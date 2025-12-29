@@ -1,0 +1,19 @@
+operating-systems:
+  label: Operating Systems
+  permalink: /operating-systems
+  description: Concepts and insights related to operating systems, including processes, memory management, and scheduling.
+
+memory:
+  label: Memory Management
+  permalink: /memory
+  description: Topics covering virtual memory, page faults, paging, and memory-related OS concepts.
+
+c++:
+  label: C++
+  permalink: /c-plus-plus
+  description: C++ language concepts, pitfalls, and best practices relevant to systems programming and interviews.
+
+concurrency:
+  label: Concurrency
+  permalink: /concurrency
+  description: Multithreading, synchronization, race conditions, and concurrency-related programming concepts.
