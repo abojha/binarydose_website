@@ -1,0 +1,10 @@
+{
+  "label": "Universities",
+  "collapsible": true,
+  "collapsed": false,
+  "link": {
+    "type": "generated-index",
+    "title": "Universities",
+    "description": "Previous Year Questions organized by university."
+  }
+}
