@@ -1,0 +1,17 @@
+---
+title: Operating System
+---
+
+import PyqList from '../../components/PyqList';
+import { OS_PYQ } from '../../data/os';
+
+
+<PyqList
+  data={OS_PYQ
+    .filter(q => q.appearances.rgpv)
+    .map(q => ({
+      question: q.question,
+      years: q.appearances.rgpv
+    }))
+  }
+/>
