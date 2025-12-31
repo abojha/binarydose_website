@@ -1,11 +1,14 @@
 ---
 title: Operating System
+description: ""
 ---
-import PyqList from '@site/pyqs/components/PyqsList';
+import PyqsList from '@site/pyqs/components/PyqsList';
 import { OS_PYQ } from '@site/pyqs/data/os';
 
 
-<PyqList
+
+
+<PyqsList
   data={OS_PYQ
     .filter(q => q.appearances.rgpv)
     .map(q => ({
