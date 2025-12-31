@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-export default function PyqList({ data }) {
+export default function PyqsList({ data }) {
   // Read initial filter from URL
   const getInitialFilter = () => {
     if (typeof window === "undefined") return "all";
