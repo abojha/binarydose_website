@@ -83,6 +83,16 @@ const config = {
         sidebarPath: "./sidebars.js",
       },
     ],
+    [
+      "@docusaurus/plugin-content-docs",
+      {
+        id: "coding",
+        path: "coding",
+        routeBasePath: "coding",
+        // sidebarPath: "./sidebars.js",
+        sidebarPath: false
+      },
+    ],
   ],
 
   themeConfig:
@@ -107,14 +117,22 @@ const config = {
             label: "PYQs",
             position: "left",
           },
+          {
+            // type: "docSidebar",
+            sidebarId: "codingSidebar",
+            // docsPluginId: "coding",
+            label: "CodeDose",
+            position: "left",
+
+            items: [
+             { label: "Arrays", to: "/coding/arrays" },
+              { label: "Linked List", to: "/coding/linked-list" },
+            ]
+          },
           { to: "/blog", label: "Blog", position: "left" },
-          // {
-          //   href: 'https://github.com/facebook/docusaurus',
-          //   label: 'GitHub',
-          //   position: 'right',
-          // },
         ],
       },
+
       footer: {
         style: "dark",
         // links: [
