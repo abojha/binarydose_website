@@ -8,3 +8,13 @@ abhay:
     linkedin: https://linkedin.com/in/abhayojha0012
     github: https://github.com/abojha
     instagram: https://www.instagram.com/abojha404
+  
+binarydose:
+  name: Binary Dose
+  title: Your Educator
+  url: https://www.youtube.com/@binarydose
+  page: true
+  image_url: /img/logo.png
+  socials:
+    youtube: https://www.youtube.com/@binarydose
+    instagram: https://www.instagram.com/binarydose

@@ -1,7 +1,7 @@
 ---
 title: "Why `volatile` is not thread-safe in C/C++"
 tags: [c++, concurrency, operating-systems]
-authors: [abhay]
+authors: [binarydose]
 ---
 
 A very common misunderstanding in C and C++ is assuming that the `volatile` keyword makes code **thread-safe**.  

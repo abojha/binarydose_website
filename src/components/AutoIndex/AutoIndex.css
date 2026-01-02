@@ -1,0 +1,41 @@
+/* Section spacing */
+.auto-index-section {
+  margin-bottom: 2rem;
+}
+
+/* Difficulty heading */
+.auto-index-heading {
+  font-size: 1.4rem;
+  margin-bottom: 0.75rem;
+  padding-left: 0.5rem;
+  border-left: 4px solid var(--ifm-color-primary);
+}
+
+/* List reset */
+.auto-index-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Each problem row */
+.auto-index-item {
+  margin-bottom: 0.5rem;
+}
+
+/* Clickable row */
+.auto-index-link {
+  display: block;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  background: var(--ifm-background-surface-color);
+  text-decoration: none;
+  color: var(--ifm-font-color-base);
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+/* Hover effect */
+.auto-index-link:hover {
+  background: var(--ifm-color-primary-lightest);
+  transform: translateX(4px);
+}

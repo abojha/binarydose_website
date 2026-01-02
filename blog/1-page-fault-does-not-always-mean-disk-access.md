@@ -1,7 +1,7 @@
 ---
 title: "Page faults don’t always mean disk access"
 tags: [operating-systems, memory]
-authors: [abhay]
+authors: [binarydose]
 ---
 
 A very common misconception in Operating Systems is that **every page fault means the OS must access the disk**.  
