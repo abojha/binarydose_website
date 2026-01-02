@@ -4,7 +4,7 @@ displayed_sidebar: null
 ---
 
 ## Easy
-- [Print Linked List](./linked-list/print_linked_list)
+- [Print Linked List](/coding/linked-list/print_linked_list.md)
 
 ## Medium
 
