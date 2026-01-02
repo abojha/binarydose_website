@@ -1,7 +1,7 @@
 import React from "react";
 import { useAllDocsData } from "@docusaurus/plugin-content-docs/client";
 import Link from "@docusaurus/Link";
-import "./autoIndex.css";
+import "./AutoIndex.css";
 
 
 
