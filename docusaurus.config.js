@@ -80,7 +80,7 @@ const config = {
         id: "pyqs",
         path: "pyqs",
         routeBasePath: "pyqs",
-        sidebarPath: "./sidebars.js",
+        sidebarPath: false
       },
     ],
     [
@@ -89,7 +89,6 @@ const config = {
         id: "coding",
         path: "coding",
         routeBasePath: "coding",
-        // sidebarPath: "./sidebars.js",
         sidebarPath: false
       },
     ],
@@ -111,21 +110,18 @@ const config = {
         },
         items: [
           {
-            type: "docSidebar",
-            sidebarId: "pyqsSidebar",
-            docsPluginId: "pyqs",
             label: "PYQs",
             position: "left",
+            items: [
+              { label: "RGPV", to: "/pyqs/rgpv" },
+            ]
           },
           {
-            // type: "docSidebar",
-            sidebarId: "codingSidebar",
-            // docsPluginId: "coding",
             label: "CodeDose",
             position: "left",
 
             items: [
-             { label: "Arrays", to: "/coding/arrays" },
+              { label: "Arrays", to: "/coding/arrays" },
               { label: "Linked List", to: "/coding/linked-list" },
             ]
           },
