@@ -5,10 +5,8 @@
 // See: https://docusaurus.io/docs/api/docusaurus-config
 
 import { themes as prismThemes } from "prism-react-renderer";
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-
-
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -43,8 +41,6 @@ const config = {
     defaultLocale: "en",
     locales: ["en"],
   },
-
-
 
   presets: [
     [
@@ -87,12 +83,9 @@ const config = {
         path: "pyqs",
         routeBasePath: "pyqs",
         sidebarPath: false,
-  
+
         remarkPlugins: [remarkMath],
         rehypePlugins: [rehypeKatex],
-      
-
-        
       },
     ],
     [
@@ -103,10 +96,8 @@ const config = {
         routeBasePath: "coding",
         sidebarPath: false,
 
-
         remarkPlugins: [remarkMath],
         rehypePlugins: [rehypeKatex],
-        
       },
     ],
   ],
@@ -129,14 +120,29 @@ const config = {
           {
             label: "PYQs",
             position: "left",
-            to: "/pyqs"
+            to: "/pyqs",
           },
           {
             label: "CodeDose",
             position: "left",
-            to: "/coding"
+            to: "/coding",
           },
           { to: "/blog", label: "Blog", position: "left" },
+          { to: "/contact-us", label: "Contact us", position: "left" },
+          { to: "/about-us", label: "About us", position: "left" },
+
+          {
+            href: "https://www.youtube.com/@binarydose",
+            position: "right",
+            className: "nav-icon nav-youtube",
+            "aria-label": "Binary Dose YouTube",
+          },
+          {
+            href: "https://www.instagram.com/binarydose",
+            position: "right",
+            className: "nav-icon nav-instagram",
+            "aria-label": "Binary Dose Instagram",
+          },
         ],
       },
 
@@ -193,4 +199,3 @@ const config = {
 };
 
 export default config;
-

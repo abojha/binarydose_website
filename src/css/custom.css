@@ -52,6 +52,38 @@
 }
 
 
+.nav-icon::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  background-size: contain;
+  background-repeat: no-repeat;
+  vertical-align: middle;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  opacity: 0.85;
+}
+
+.nav-icon:hover::before {
+  transform: scale(1.1);
+  opacity: 1;
+}
+
+.nav-youtube::before {
+  background-image: url("/icons/youtube.svg");
+}
+
+/* /* .nav-github::before {
+  background-image: url("/icons/github.svg");
+} */
+
+.nav-instagram::before {
+  background-image: url("/icons/instagram.svg");
+}
+
+
+
+
 
 /* =========================
    PYQ LIST
