@@ -10,7 +10,9 @@ Every computer science student writes code, but **very few truly understand what
 
 Whether you write C, C++, Python, or Java — the journey from **source code to running program** involves the compiler, operating system, memory, and CPU working together.
 
-Understanding this gives you:
+Understanding this gives you: ....
+
+<!-- truncate -->
 - Strong **OS fundamentals**
 - Better **debugging skills**
 - Clear answers in **interviews**
