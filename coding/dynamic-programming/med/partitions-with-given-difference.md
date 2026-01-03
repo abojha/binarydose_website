@@ -191,9 +191,9 @@ int countPartitions(int n, int d, vector<int> &arr) {
 
 - You are given an array `arr` and an integer `d`.
 - Find the number of ways to partition the array into **two subsets** `S1` and `S2` such that:Sum(S1)−Sum(S2)=d
-    
-    Sum(S1)−Sum(S2)=d\text{Sum}(S1) - \text{Sum}(S2) = d
-    
+    $$
+    \text{Sum}(S1) - \text{Sum}(S2) = d
+    $$
 - This reduces to:Find number of subsets with sum=2totalSum - d
     $$
     \text{Find number of subsets with sum} = \frac{\text{totalSum - d}}{2}

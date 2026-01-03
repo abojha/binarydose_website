@@ -87,9 +87,9 @@ class Solution {
 ---
 
 ### 🧩 Key Formula / Transition
-
-dist[i][j]=min⁡(dist[i][j], dist[i][k]+dist[k][j])\text{dist}[i][j] = \min(\text{dist}[i][j],\ \text{dist}[i][k] + \text{dist}[k][j])
-
+$$
+\text{dist}[i][j] = \min(\text{dist}[i][j],\ \text{dist}[i][k] + \text{dist}[k][j])
+$$
 - Applied for every triple `(i, j, k)`.
 
 ---

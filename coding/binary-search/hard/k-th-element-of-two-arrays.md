@@ -101,9 +101,9 @@ class Solution {
 ## 🧩 Key Formula / Recurrence
 
 - Partition condition:
-    
-    l1≤r2andl2≤r1l1 \leq r2 \quad \text{and} \quad l2 \leq r1
-    
+    $$
+    l1 \leq r2 \quad \text{and} \quad l2 \leq r1
+    $$
 - Answer:
     $$
     kth element=max⁡(l1,l2)\text{kth element} = \max(l1, l2)

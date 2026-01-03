@@ -92,8 +92,8 @@ public:
 
 Think of placing each value `i` (1..n) as the **root** of the BST.
 
-- Values `< i` must go to the **left** subtree (and there are `i-1` of them).
-- Values `> i` must go to the **right** subtree (and there are `n-i` of them).
+- Values `< i` must go to the *left* subtree (and there are `i-1` of them).
+- Values `> i` must go to the *right* subtree (and there are `n-i` of them).
 
 If `f(k)` = number of unique BSTs with `k` nodes, then for root `i` we can independently choose any valid left tree and any valid right tree, so we **multiply** the counts and **sum** over all choices of `i`.
 
@@ -106,33 +106,39 @@ A good analogy: arranging `n` distinct keys into BSTs is like counting how many 
 ## 🧩 Key Formula / Recurrence
 
 This is the classic **Catalan** recurrence:
-
-f(n)  =  ∑i=1nf(i−1)⋅f(n−i),f(0)=1,  f(1)=1f(n) \;=\; \sum_{i=1}^{n} f(i-1)\cdot f(n-i),
+$$
+f(n) \;=\; \sum_{i=1}^{n} f(i-1)\cdot f(n-i),
 \quad f(0)=1,\; f(1)=1
+$$
 
-(Equivalently Cn=∑k=0n−1Ck Cn−1−kC_n = \sum_{k=0}^{n-1} C_k\,C_{n-1-k}.)
+(Equivalently 
+$$
+C_n = \sum_{k=0}^{n-1} C_k\,C_{n-1-k}.
+$$
+
+)
 
 ---
 
 ## ⏱️ Time & Space Complexity
 
-- **Memoization / Tabulation Time:** O(n2)O(n^2) — double loop over `m` and `i`.
-- **Memoization Space:** O(n)O(n) for the memo table + recursion stack up to O(n)O(n).
-- **Tabulation Space:** O(n)O(n).
+- **Memoization / Tabulation Time:** O(n^2) — double loop over `m` and `i`.
+- **Memoization Space:** O(n) for the memo table + recursion stack up to O(n).
+- **Tabulation Space:** O(n).
 
 ---
 
 ## ⚠️ Edge Cases
 
-- **n = 0** → 1 tree (the empty tree).
-- **n = 1** → 1 tree.
-- **Integer overflow in intermediates:** use `long long` for DP/multiplications; final answer for `n ≤ 19` fits in 32‑bit `int` (LeetCode #96).
+- *n = 0* → 1 tree (the empty tree).
+- *n = 1* → 1 tree.
+- *Integer overflow in intermediates:** use `long long` for DP/multiplications; final answer for `n ≤ 19` fits in 32‑bit `int` (LeetCode #96).
 
 ---
 
 ## 💡 Other Approaches
 
-- **Closed-form Catalan:** Cn=1n+1(2nn)C_n = \frac{1}{n+1}\binom{2n}{n}.
+- **Closed-form Catalan:** $$C_n = \frac{1}{n+1}\binom{2n}{n}.$$
     - **Pros:** O(1)O(1) loops with big-integer arithmetic.
     - **Cons:** Risk of overflow without big-int; careful with intermediate precision.
 - **Divide & Conquer without memo:** Exponential — not recommended.

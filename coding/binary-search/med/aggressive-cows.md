@@ -126,9 +126,9 @@ int aggressiveCows(vector<int> &stalls, int k){
 - Binary search range: log(maxDist)
 - Feasibility check per step: O(n)
 - **Total:**
-    
-    O(nlog⁡n+nlog⁡(maxDist))O(n \log n + n \log(\text{maxDist}))
-    
+    $$
+    O(n \log n + n \log(\text{maxDist}))
+    $$
 - Space: **O(1)**
 
 ---

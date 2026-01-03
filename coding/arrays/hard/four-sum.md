@@ -83,8 +83,9 @@ vector<vector<int>> fourSum(vector<int>& nums, int target) {
 ### 🧩 Key Idea
 
 Find all quadruples such that:
-
-nums[i]+nums[j]+nums[k]+nums[l]=targetwhere i < j < k < lnums[i] + nums[j] + nums[k] + nums[l] = target \quad \text{where } i < j < k < l
+$$
+nums[i] + nums[j] + nums[k] + nums[l] = target \quad \text{where } i < j < k < l
+$$
 
 Fix `i`, `j` and use two pointers to find `k`, `l`.
 

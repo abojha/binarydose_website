@@ -74,12 +74,14 @@ vector<int> findMissingRepeatingNumbers(vector<int> a) {
     - **One number missing**
 - We use two mathematical formulas:
     - Sum of first `N` natural numbers:
-        
-        SN=n(n+1)2S_N = \frac{n(n + 1)}{2}
+        $$
+        S_N = \frac{n(n + 1)}{2}
+        $$
         
     - Sum of squares of first `N` numbers:
-        
-        `S2N=n(n+1)(2n+1)6S_{2N} = \frac{n(n + 1)(2n + 1)}{6}`
+        $$
+        S_{2N} = \frac{n(n + 1)(2n + 1)}{6}
+        $$
         
 - Let:
     - `X = repeating`, `Y = missing`
@@ -100,9 +102,9 @@ Let:
 - `valSum = X + Y = val2 / val1`
 
 Then:
-
-X=val1+valSum2,Y=X−val1X = \frac{val1 + valSum}{2}, \quad Y = X - val1
-
+$$
+X = \frac{val1 + valSum}{2}, \quad Y = X - val1
+$$
 ---
 
 ### ⏱️ Time & Space Complexity

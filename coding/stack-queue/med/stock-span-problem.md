@@ -8,8 +8,6 @@ tags:
   - stack-queue
 ---
 
-Link: https://leetcode.com/problems/online-stock-span/description/
-Summary: Use previous greater element
 
 ### Problem Statement:
 
@@ -79,7 +77,7 @@ public:
 - **Goal:** For each new price, return how many consecutive days before (including today) the stock price was less than or equal to today’s price.
 - **Technique:**
     
-    Use a **monotonic decreasing stack** to keep track of {price, index} pairs.
+    Use a **monotonic decreasing stack** to keep track of `{price, index}` pairs.
     
 - **Logic:**
     - If the stack is empty, it means the current price is the largest so far → span equals `index + 1`.

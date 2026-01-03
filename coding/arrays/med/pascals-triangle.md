@@ -10,11 +10,11 @@ tags:
 
 This problem has 3 variations. They are stated below:
 
-**Variation 1:** Given row number r and column number c. Print the element at position (r, c) in Pascal’s triangle.
+*Variation 1:* Given row number r and column number c. Print the element at position (r, c) in Pascal’s triangle.
 
-**Variation 2:** Given the row number n. Print the n-th row of Pascal’s triangle.
+*Variation 2:* Given the row number n. Print the n-th row of Pascal’s triangle.
 
-**Variation 3:** Given the number of rows n. Print the first n rows of Pascal’s triangle.
+*Variation 3:* Given the number of rows n. Print the first n rows of Pascal’s triangle.
 
 - Example:
     
@@ -83,9 +83,9 @@ vector<vector<int>> generate(int numRows) {
 - We generate each row of Pascal’s Triangle using **binomial coefficients**.
 - The value at column `j` in row `i` is **iCj** (i choose j).
 - Instead of using factorials, we use the relation:
-    
-    (nr)=(nr−1)⋅n−r+1r\binom{n}{r} = \binom{n}{r - 1} \cdot \frac{n - r + 1}{r}
-    
+    $$
+    \binom{n}{r} = \binom{n}{r - 1} \cdot \frac{n - r + 1}{r}
+    $$
 - This helps compute all values in O(N) time for each row **without overflow** (if done carefully).
 - We build each row iteratively and add it to the final 2D vector.
 

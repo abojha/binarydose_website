@@ -103,9 +103,9 @@ class Solution {
 ### 🧩 Key Formula / Transition
 
 - From current `x`, generate next states as:
-    
-    next=(x×arr[i])mod  100000\text{next} = (x \times arr[i]) \mod 100000
-    
+    $$
+    \text{next} = (x \times arr[i]) \mod 100000
+    $$
 - Transition allowed if `dist[next] > dist+ 1`
 
 ---
