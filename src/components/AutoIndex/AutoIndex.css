@@ -39,3 +39,51 @@
   background: var(--ifm-color-primary-lightest);
   transform: translateX(4px);
 }
+
+
+.auto-index-section {
+  margin-bottom: 1.2rem;
+}
+
+.auto-index-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 0.6rem 0.8rem;
+  font-size: 1rem;
+  font-weight: 600;
+
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+
+  cursor: pointer;
+}
+
+.auto-index-toggle:hover {
+  background: var(--ifm-color-emphasis-100);
+}
+
+.auto-index-meta {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.auto-index-list {
+  margin-top: 0.6rem;
+  padding-left: 1.2rem;
+}
+
+.auto-index-item {
+  margin: 0.35rem 0;
+}
+
+.auto-index-link {
+  text-decoration: none;
+}
+
+.auto-index-link:hover {
+  text-decoration: underline;
+}

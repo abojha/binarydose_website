@@ -3,6 +3,11 @@
  * bundles Infima by default. Infima is a CSS framework designed to
  * work well for content-centric websites.
  */
+ /* src/css/custom.css */
+/* src/css/custom.css */
+@import "katex/dist/katex.min.css";
+
+
 
 /* You can override the default Infima variables here. */
 :root {

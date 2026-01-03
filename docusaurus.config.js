@@ -5,6 +5,10 @@
 // See: https://docusaurus.io/docs/api/docusaurus-config
 
 import { themes as prismThemes } from "prism-react-renderer";
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+
+
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -39,6 +43,8 @@ const config = {
     defaultLocale: "en",
     locales: ["en"],
   },
+
+
 
   presets: [
     [
@@ -80,7 +86,13 @@ const config = {
         id: "pyqs",
         path: "pyqs",
         routeBasePath: "pyqs",
-        sidebarPath: false
+        sidebarPath: false,
+  
+        remarkPlugins: [remarkMath],
+        rehypePlugins: [rehypeKatex],
+      
+
+        
       },
     ],
     [
@@ -89,7 +101,12 @@ const config = {
         id: "coding",
         path: "coding",
         routeBasePath: "coding",
-        sidebarPath: false
+        sidebarPath: false,
+
+
+        remarkPlugins: [remarkMath],
+        rehypePlugins: [rehypeKatex],
+        
       },
     ],
   ],
@@ -112,18 +129,12 @@ const config = {
           {
             label: "PYQs",
             position: "left",
-            items: [
-              { label: "RGPV", to: "/pyqs/rgpv" },
-            ]
+            to: "/pyqs"
           },
           {
             label: "CodeDose",
             position: "left",
-
-            items: [
-              { label: "Arrays", to: "/coding/arrays" },
-              { label: "Linked List", to: "/coding/linked-list" },
-            ]
+            to: "/coding"
           },
           { to: "/blog", label: "Blog", position: "left" },
         ],
@@ -182,3 +193,4 @@ const config = {
 };
 
 export default config;
+
