@@ -69,9 +69,6 @@ export default function InterviewHub({ docsPluginId = "interview", basePath = "/
     });
   }, [docs, activeCategory, searchTerm]);
 
-  const totalCompleted = docs.length;
-  const progressPercent = Math.min(100, Math.round((totalCompleted / 100) * 100));
-
   if (!docs.length && (!allDocsData?.[docsPluginId]?.versions?.length)) {
     return (
       <div className="hubContainer">
@@ -90,19 +87,6 @@ export default function InterviewHub({ docsPluginId = "interview", basePath = "/
         <p className="hubSubtitle">
           Master Computer Science, Operating Systems, System Design, and Concurrency with bite-sized video shorts, visual memory diagrams, and interview-ready notes.
         </p>
-
-        {/* Progress bar */}
-        <div className="progressCard">
-          <div className="progressInfo">
-            <span className="progressLabel">Series Progress</span>
-            <span className="progressCount">
-              {totalCompleted} / 100 Days Published ({progressPercent}%)
-            </span>
-          </div>
-          <div className="progressBarTrack">
-            <div className="progressBarFill" style={{ width: `${progressPercent}%` }} />
-          </div>
-        </div>
       </div>
 
       {/* Search & Category Filters */}
