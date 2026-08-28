@@ -1,0 +1,33 @@
+.videoWrapper {
+  margin: 1.75rem 0;
+  width: 100%;
+}
+
+.responsiveIframeContainer {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+  height: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.caption {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--ifm-font-color-secondary);
+  text-align: center;
+  font-style: italic;
+}

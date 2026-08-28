@@ -27,16 +27,10 @@ const config = {
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: "/",
 
-  // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  // organizationName: 'facebook', // Usually your GitHub org/user name.
-  // projectName: 'docusaurus', // Usually your repo name.
-
   onBrokenLinks: "throw",
 
   // Even if you don't use internationalization, you can use this field to set
-  // useful metadata like html lang. For example, if your site is Chinese, you
-  // may want to replace "en" with "zh-Hans".
+  // useful metadata like html lang.
   i18n: {
     defaultLocale: "en",
     locales: ["en"],
@@ -54,11 +48,6 @@ const config = {
             type: ["rss", "atom"],
             xslt: true,
           },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          // editUrl:
-          //   'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
-          // Useful options to enforce blogging best practices
           onInlineTags: "warn",
           onInlineAuthors: "warn",
           onUntruncatedBlogPosts: "warn",
@@ -113,29 +102,29 @@ const config = {
       navbar: {
         title: "Binary Dose",
         logo: {
-          alt: "My Site Logo",
+          alt: "Binary Dose Logo",
           src: "img/logo.png",
         },
         items: [
+          {
+            label: "CodeDose (DSA)",
+            position: "left",
+            to: "/coding",
+          },
           {
             label: "PYQs",
             position: "left",
             to: "/pyqs",
           },
-          {
-            label: "CodeDose",
-            position: "left",
-            to: "/coding",
-          },
           { to: "/blog", label: "Blog", position: "left" },
-          { to: "/contact-us", label: "Contact us", position: "left" },
-          { to: "/about-us", label: "About us", position: "left" },
+          { to: "/about-us", label: "About Us", position: "left" },
+          { to: "/contact-us", label: "Contact", position: "left" },
 
           {
             href: "https://www.youtube.com/@binarydose",
             position: "right",
             className: "nav-icon nav-youtube",
-            "aria-label": "Binary Dose YouTube",
+            "aria-label": "Binary Dose YouTube Channel",
           },
           {
             href: "https://www.instagram.com/binarydose",
@@ -148,48 +137,56 @@ const config = {
 
       footer: {
         style: "dark",
-        // links: [
-        //   {
-        //     title: 'Docs',
-        //     items: [
-        //       {
-        //         label: 'Tutorial',
-        //         to: '/docs/intro',
-        //       },
-        //     ],
-        //   },
-        //   {
-        //     title: 'Community',
-        //     items: [
-        //       {
-        //         label: 'Stack Overflow',
-        //         href: 'https://stackoverflow.com/questions/tagged/docusaurus',
-        //       },
-        //       {
-        //         label: 'Discord',
-        //         href: 'https://discordapp.com/invite/docusaurus',
-        //       },
-        //       {
-        //         label: 'X',
-        //         href: 'https://x.com/docusaurus',
-        //       },
-        //     ],
-        //   },
-        //   {
-        //     title: 'More',
-        //     items: [
-        //       {
-        //         label: 'Blog',
-        //         to: '/blog',
-        //       },
-        //       {
-        //         label: 'GitHub',
-        //         href: 'https://github.com/facebook/docusaurus',
-        //       },
-        //     ],
-        //   },
-        // ],
-        copyright: `Copyright © ${new Date().getFullYear()} Binary Dose.`,
+        links: [
+          {
+            title: "Learning Tracks",
+            items: [
+              {
+                label: "CodeDose (DSA Sheet)",
+                to: "/coding",
+              },
+              {
+                label: "Previous Year Questions",
+                to: "/pyqs",
+              },
+              {
+                label: "Engineering Blog",
+                to: "/blog",
+              },
+            ],
+          },
+          {
+            title: "Community & Videos",
+            items: [
+              {
+                label: "YouTube Channel",
+                href: "https://www.youtube.com/@binarydose",
+              },
+              {
+                label: "Instagram",
+                href: "https://www.instagram.com/binarydose",
+              },
+              {
+                label: "GitHub",
+                href: "https://github.com/abojha/binarydose_website",
+              },
+            ],
+          },
+          {
+            title: "About Binary Dose",
+            items: [
+              {
+                label: "About Us & Vision",
+                to: "/about-us",
+              },
+              {
+                label: "Contact & Feedback",
+                to: "/contact-us",
+              },
+            ],
+          },
+        ],
+        copyright: `Copyright © ${new Date().getFullYear()} Binary Dose. Built with ❤️ by Abhay Ojha.`,
       },
       prism: {
         theme: prismThemes.github,

@@ -17,3 +17,23 @@ concurrency:
   label: Concurrency
   permalink: /concurrency
   description: Multithreading, synchronization, race conditions, and concurrency-related programming concepts.
+
+computer-science:
+  label: Computer Science
+  permalink: /computer-science
+  description: Fundamental and advanced topics across computer science.
+
+basics:
+  label: Basics
+  permalink: /basics
+  description: Core foundational concepts explained simply.
+
+os:
+  label: OS
+  permalink: /os
+  description: Operating Systems principles and internals.
+
+programming:
+  label: Programming
+  permalink: /programming
+  description: Programming concepts, paradigms, and best practices.

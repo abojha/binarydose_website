@@ -1,61 +1,83 @@
 /**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
+ * Binary Dose Custom Global Styles
  */
- /* src/css/custom.css */
-/* src/css/custom.css */
 @import "katex/dist/katex.min.css";
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-
-
-/* You can override the default Infima variables here. */
 :root {
-  /* Primary brand blue */
-  --ifm-color-primary: #2563eb;        /* main blue */
-  --ifm-color-primary-dark: #1e4fd6;
-  --ifm-color-primary-darker: #1b47c2;
-  --ifm-color-primary-darkest: #153a9a;
+  /* Font Families */
+  --ifm-font-family-base: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  --ifm-color-primary-light: #4f7df3;
-  --ifm-color-primary-lighter: #7da2f7;
-  --ifm-color-primary-lightest: #eaf0ff;
+  /* Primary brand blue */
+  --ifm-color-primary: #2563eb;
+  --ifm-color-primary-dark: #1d4ed8;
+  --ifm-color-primary-darker: #1e40af;
+  --ifm-color-primary-darkest: #1e3a8a;
+  --ifm-color-primary-light: #3b82f6;
+  --ifm-color-primary-lighter: #60a5fa;
+  --ifm-color-primary-lightest: #eff6ff;
 
   /* Backgrounds */
   --ifm-background-color: #ffffff;
   --ifm-background-surface-color: #f8fafc;
 
   /* Text */
-  --ifm-font-color-base: #0f172a;      /* dark slate */
-  --ifm-font-color-secondary: #334155;
+  --ifm-font-color-base: #0f172a;
+  --ifm-font-color-secondary: #475569;
+
+  /* Borders & Radius */
+  --ifm-global-radius: 12px;
+  --ifm-code-font-size: 92%;
+  --ifm-navbar-height: 4.25rem;
+  --ifm-navbar-background-color: rgba(255, 255, 255, 0.85);
 }
 
-
-/* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
-  --ifm-color-primary: #7aa2f7;        /* soft blue */
-  --ifm-color-primary-dark: #5b86f2;
-  --ifm-color-primary-darker: #4a79ee;
-  --ifm-color-primary-darkest: #2f5fd9;
-
-  --ifm-color-primary-light: #9bb8fa;
-  --ifm-color-primary-lighter: #b7cbfc;
-  --ifm-color-primary-lightest: rgba(122, 162, 247, 0.15);
+  /* Soft vibrant blue for dark mode */
+  --ifm-color-primary: #60a5fa;
+  --ifm-color-primary-dark: #3b82f6;
+  --ifm-color-primary-darker: #2563eb;
+  --ifm-color-primary-darkest: #1d4ed8;
+  --ifm-color-primary-light: #93c5fd;
+  --ifm-color-primary-lighter: #bfdbfe;
+  --ifm-color-primary-lightest: rgba(96, 165, 250, 0.12);
 
   /* Backgrounds */
-  --ifm-background-color: #0b0f19;     /* deep blue-black */
+  --ifm-background-color: #0b0f19;
   --ifm-background-surface-color: #111827;
 
   /* Text */
-  --ifm-font-color-base: #e5e7eb;
-  --ifm-font-color-secondary: #cbd5f5;
+  --ifm-font-color-base: #f1f5f9;
+  --ifm-font-color-secondary: #94a3b8;
+
+  --ifm-navbar-background-color: rgba(11, 15, 25, 0.85);
 }
 
+/* Glassmorphism Navbar */
+.navbar {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
 
+.navbar__brand {
+  font-weight: 800;
+  font-size: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.navbar__item {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* Social Nav Icons */
 .nav-icon::before {
   content: "";
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: inline-block;
   background-size: contain;
   background-repeat: no-repeat;
@@ -65,7 +87,7 @@
 }
 
 .nav-icon:hover::before {
-  transform: scale(1.1);
+  transform: scale(1.15);
   opacity: 1;
 }
 
@@ -73,56 +95,55 @@
   background-image: url("/icons/youtube.svg");
 }
 
-/* /* .nav-github::before {
-  background-image: url("/icons/github.svg");
-} */
-
 .nav-instagram::before {
   background-image: url("/icons/instagram.svg");
 }
 
+/* Modern Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
 
+::-webkit-scrollbar-track {
+  background: var(--ifm-background-color);
+}
 
+::-webkit-scrollbar-thumb {
+  background: var(--ifm-color-emphasis-300);
+  border-radius: 4px;
+}
 
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ifm-color-primary);
+}
 
 /* =========================
-   PYQ LIST
+   PYQ STYLING
 ========================= */
-
 .pyq-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-/* =========================
-   PYQ CARD
-========================= */
-
 .pyq-card {
-  padding: 0.75rem 0.9rem;
-  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+  border-radius: 12px;
   background: var(--ifm-background-surface-color);
   border: 1px solid var(--ifm-color-emphasis-200);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .pyq-card:hover {
   border-color: var(--ifm-color-primary);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
-
-/* =========================
-   MUST-DO HIGHLIGHT
-========================= */
 
 .pyq-must-do {
   border-left: 4px solid var(--ifm-color-primary);
 }
-
-/* =========================
-   ROW LAYOUT
-========================= */
 
 .pyq-row {
   display: flex;
@@ -131,23 +152,14 @@
   gap: 1rem;
 }
 
-/* =========================
-   QUESTION TEXT
-========================= */
-
 .pyq-question {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.98rem;
   font-weight: 500;
   color: var(--ifm-font-color-base);
   line-height: 1.5;
   flex: 1;
 }
-
-
-/* =========================
-   YEAR TAGS
-========================= */
 
 .pyq-years {
   display: flex;
@@ -156,38 +168,31 @@
 }
 
 .pyq-year-chip {
-  padding: 0.25rem 0.6rem;
-  font-size: 0.72rem;
-  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
   border-radius: 999px;
-  background: var(--ifm-color-emphasis-100);
+  background: var(--ifm-color-primary-lightest);
   color: var(--ifm-color-primary);
-  border: 1px solid var(--ifm-color-emphasis-200);
+  border: 1px solid var(--ifm-color-primary-lighter);
   white-space: nowrap;
 }
 
-/* =========================
-   FILTER DROPDOWN
-========================= */
-
 .pyq-filter {
-  padding: 0.4rem 0.6rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 10px;
   border: 1px solid var(--ifm-color-emphasis-300);
   background: var(--ifm-background-color);
   color: var(--ifm-font-color-base);
+  margin-bottom: 1.5rem;
 }
 
 .pyq-filter:focus {
   outline: none;
   border-color: var(--ifm-color-primary);
 }
-
-/* =========================
-   MOBILE OPTIMIZATION
-========================= */
 
 @media (max-width: 768px) {
   .pyq-row {
@@ -196,6 +201,6 @@
   }
 
   .pyq-years {
-    margin-top: 0.3rem;
+    margin-top: 0.4rem;
   }
 }

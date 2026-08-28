@@ -1,11 +1,264 @@
-.features {
-  display: flex;
-  align-items: center;
-  padding: 2rem 0;
-  width: 100%;
+.sectionContainer {
+  padding: 4.5rem 0;
+  position: relative;
 }
 
-.featureSvg {
-  height: 200px;
-  width: 200px;
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 3.5rem;
+}
+
+.sectionBadge {
+  display: inline-block;
+  padding: 0.35rem 0.9rem;
+  background: var(--ifm-color-primary-lightest);
+  color: var(--ifm-color-primary);
+  border: 1px solid var(--ifm-color-primary-lighter);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.sectionTitle {
+  font-size: 2.25rem;
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+}
+
+.sectionSubtitle {
+  font-size: 1.1rem;
+  color: var(--ifm-font-color-secondary);
+  max-width: 620px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Learning Tracks Grid */
+.tracksGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.75rem;
+}
+
+.trackCard {
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 16px;
+  padding: 2rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+.trackCard:hover {
+  transform: translateY(-6px);
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.12);
+}
+
+[data-theme='dark'] .trackCard:hover {
+  box-shadow: 0 16px 32px rgba(122, 162, 247, 0.18);
+}
+
+.trackIcon {
+  font-size: 2.25rem;
+  margin-bottom: 1.25rem;
+  display: inline-block;
+}
+
+.trackTitle {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+  color: var(--ifm-font-color-base);
+}
+
+.trackDesc {
+  font-size: 0.95rem;
+  color: var(--ifm-font-color-secondary);
+  line-height: 1.55;
+  margin-bottom: 1.5rem;
+  flex-grow: 1;
+}
+
+.trackFooter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ifm-color-primary);
+}
+
+.trackFooterArrow {
+  transition: transform 0.2s ease;
+}
+
+.trackCard:hover .trackFooterArrow {
+  transform: translateX(4px);
+}
+
+/* YouTube Showcase */
+.youtubeShowcase {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(239, 68, 68, 0.05) 100%);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 24px;
+  padding: 3rem 2.5rem;
+  margin: 4rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: center;
+}
+
+@media (min-width: 992px) {
+  .youtubeShowcase {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.ytContent {
+  flex: 1;
+  max-width: 540px;
+}
+
+.ytBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.ytTitle {
+  font-size: 1.85rem;
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+  line-height: 1.25;
+}
+
+.ytDescription {
+  font-size: 1rem;
+  color: var(--ifm-font-color-secondary);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.ytActionButtons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.ytSubscribeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #ef4444;
+  color: #ffffff !important;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ytSubscribeBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.35);
+}
+
+.ytExploreBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--ifm-background-color);
+  color: var(--ifm-font-color-base) !important;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none !important;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.ytExploreBtn:hover {
+  border-color: var(--ifm-color-primary);
+  background: var(--ifm-background-surface-color);
+}
+
+.ytPreviewCard {
+  flex: 1;
+  max-width: 460px;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.ytThumbnail {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Value Props / Features */
+.featuresGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.featureItem {
+  display: flex;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border-radius: 14px;
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.featureIconBox {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--ifm-color-primary-lightest);
+  color: var(--ifm-color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.featureTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.featureDesc {
+  font-size: 0.9rem;
+  color: var(--ifm-font-color-secondary);
+  line-height: 1.5;
+  margin: 0;
 }
