@@ -1,46 +1,43 @@
 import React, { useState, useMemo } from "react";
-import { useAllDocsData } from "@docusaurus/plugin-content-docs/client";
 import Link from "@docusaurus/Link";
 import "./InterviewHub.css";
 
-export default function InterviewHub({ docsPluginId = "interview", basePath = "/100-days" }) {
-  const allDocsData = useAllDocsData();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
-
-  const docs = useMemo(() => {
-    if (!allDocsData?.[docsPluginId]?.versions?.length) {
-      return [];
-    }
-
-    const rawDocs = allDocsData[docsPluginId].versions[0].docs;
-
-    // Filter out root index
-    return rawDocs
-      .filter((doc) => doc.path !== basePath && doc.path !== `${basePath}/`)
-      .map((doc) => {
-        // Extract Day number from path/id or frontmatter
-        const id = doc.id;
-        const dayMatch = id.match(/day[_-]?(\d+)/i) || doc.path.match(/day[_-]?(\d+)/i);
-        const day = doc.frontMatter?.day || (dayMatch ? parseInt(dayMatch[1], 10) : 0);
-
-        const category = doc.frontMatter?.category || "Core CS";
-        const summary = doc.frontMatter?.summary || doc.description || "Read full interview explanation, code, and diagrams.";
-        const tags = doc.frontMatter?.tags || [];
+// Use Webpack require.context to load real frontmatter from all markdown files in 100-days/
+function loadInterviewDocs() {
+  try {
+    const context = require.context("@site/100-days", false, /\.mdx?$/);
+    return context.keys()
+      .filter((key) => !key.includes("index"))
+      .map((key) => {
+        const mod = context(key);
+        const frontMatter = mod.frontMatter || {};
+        const filename = key.replace(/^\.\//, "").replace(/\.mdx?$/, "");
+        
+        const dayMatch = filename.match(/day[_-]?(\d+)/i);
+        const day = frontMatter.day || (dayMatch ? parseInt(dayMatch[1], 10) : 0);
 
         return {
-          id: doc.id,
-          path: doc.path,
-          title: doc.title,
+          id: filename,
+          path: `/100-days/${filename}`,
+          title: frontMatter.title || filename.replace(/-/g, " "),
           day,
-          category,
-          summary,
-          tags,
-          youtubeId: doc.frontMatter?.youtubeId || null,
+          category: frontMatter.category || "Core CS",
+          tags: frontMatter.tags || [],
+          youtubeId: frontMatter.youtubeId || null,
         };
       })
       .sort((a, b) => a.day - b.day);
-  }, [allDocsData, docsPluginId, basePath]);
+  } catch (e) {
+    console.error("Failed to load interview docs via context", e);
+    return [];
+  }
+}
+
+export default function InterviewHub() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+
+  const docs = useMemo(() => loadInterviewDocs(), []);
 
   // Extract unique categories & counts
   const categories = useMemo(() => {
@@ -59,23 +56,15 @@ export default function InterviewHub({ docsPluginId = "interview", basePath = "/
       const matchesSearch =
         !search ||
         doc.title.toLowerCase().includes(search) ||
-        doc.summary.toLowerCase().includes(search) ||
         doc.category.toLowerCase().includes(search) ||
         doc.tags.some((t) => t.toLowerCase().includes(search)) ||
         `day ${doc.day}`.includes(search) ||
-        `day-${doc.day}`.includes(search);
+        `day-${doc.day}`.includes(search) ||
+        `#${doc.day}`.includes(search);
 
       return matchesCat && matchesSearch;
     });
   }, [docs, activeCategory, searchTerm]);
-
-  if (!docs.length && (!allDocsData?.[docsPluginId]?.versions?.length)) {
-    return (
-      <div className="hubContainer">
-        <p>Loading 100 Days Interview Hub...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="hubContainer">
@@ -85,7 +74,7 @@ export default function InterviewHub({ docsPluginId = "interview", basePath = "/
         </div>
         <h1 className="hubTitle">100 Days of Interview Questions</h1>
         <p className="hubSubtitle">
-          Master Computer Science, Operating Systems, System Design, and Concurrency with bite-sized video shorts, visual memory diagrams, and interview-ready notes.
+          High-yield Computer Science, Operating Systems, System Design, and Concurrency questions explained intuitively with visual notes and code.
         </p>
       </div>
 
@@ -94,7 +83,7 @@ export default function InterviewHub({ docsPluginId = "interview", basePath = "/
         <input
           type="text"
           className="searchInput"
-          placeholder="🔍 Search questions by topic, keyword, or Day number (e.g. 'Mutex', 'Cache', 'Day 14')..."
+          placeholder="🔍 Search questions by topic, keyword, or Day number (e.g. 'TCP', 'Mutex', '#1')..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -112,23 +101,25 @@ export default function InterviewHub({ docsPluginId = "interview", basePath = "/
         </div>
       </div>
 
-      {/* Cards Grid */}
+      {/* Ultra-Clean Minimalist Question List */}
       {filteredDocs.length > 0 ? (
-        <div className="cardsGrid">
-          {filteredDocs.map((doc) => (
-            <Link key={doc.id} to={doc.path} className="questionCard">
-              <div className="cardHeader">
-                <span className="dayBadge">Day {doc.day || "#"}</span>
-                <span className="categoryTag">{doc.category}</span>
-              </div>
-              <h3 className="cardTitle">{doc.title}</h3>
-              <p className="cardSummary">{doc.summary}</p>
-              <div className="cardFooter">
-                <span>{doc.youtubeId ? "▶ Video & Notes" : "📖 Read Notes"}</span>
-                <span>&rarr;</span>
-              </div>
-            </Link>
-          ))}
+        <div className="questionList">
+          {filteredDocs.map((doc) => {
+            const formattedDay = doc.day > 0 ? (doc.day < 10 ? `#0${doc.day}` : `#${doc.day}`) : "#";
+            return (
+              <Link key={doc.id} to={doc.path} className="questionItem">
+                <div className="itemLeft">
+                  <span className="dayNumber">{formattedDay}</span>
+                  <span className="itemTitle">{doc.title}</span>
+                </div>
+
+                <div className="itemRight">
+                  <span className="categoryPill">{doc.category}</span>
+                  <span className="arrowIcon">&rarr;</span>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       ) : (
         <div className="emptyState">

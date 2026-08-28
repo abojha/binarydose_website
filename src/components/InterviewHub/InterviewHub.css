@@ -1,5 +1,8 @@
 .hubContainer {
-  margin: 1rem 0 3rem;
+  margin: 1.5rem 0 3.5rem;
+  max-width: 980px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .hubHeader {
@@ -32,7 +35,7 @@
   font-size: 1.05rem;
   color: var(--ifm-font-color-secondary);
   max-width: 650px;
-  margin: 0 auto 1.5rem;
+  margin: 0 auto;
   line-height: 1.6;
 }
 
@@ -91,90 +94,119 @@
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
-/* Cards Grid */
-.cardsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
+/* Minimalist Question Feed */
+.questionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
-.questionCard {
+.questionItem {
   background: var(--ifm-background-surface-color);
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: 14px;
-  padding: 1.5rem;
+  padding: 1.15rem 1.4rem;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
   text-decoration: none !important;
   color: inherit !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+  gap: 1.5rem;
 }
 
-.questionCard:hover {
-  transform: translateY(-4px);
+.questionItem:hover {
+  transform: translateX(4px);
   border-color: var(--ifm-color-primary);
-  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+  background: var(--ifm-background-color);
 }
 
-[data-theme='dark'] .questionCard:hover {
-  box-shadow: 0 12px 28px rgba(122, 162, 247, 0.15);
+[data-theme='dark'] .questionItem:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  border-color: var(--ifm-color-primary);
 }
 
-.cardHeader {
+.itemLeft {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.85rem;
+  gap: 1.25rem;
+  flex: 1;
+  min-width: 0;
 }
 
-.dayBadge {
-  font-size: 0.8rem;
+.dayNumber {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 1rem;
   font-weight: 800;
-  padding: 0.25rem 0.65rem;
-  background: linear-gradient(135deg, var(--ifm-color-primary) 0%, #0284c7 100%);
-  color: #ffffff;
-  border-radius: 6px;
+  color: var(--ifm-color-primary);
+  background: var(--ifm-color-primary-lightest);
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--ifm-color-primary-lighter);
+  flex-shrink: 0;
+  letter-spacing: -0.02em;
 }
 
-.categoryTag {
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.2rem 0.55rem;
+.itemTitle {
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--ifm-font-color-base);
+  line-height: 1.45;
+  word-break: break-word;
+  flex: 1;
+}
+
+.itemRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.categoryPill {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.28rem 0.75rem;
+  border-radius: 999px;
   background: var(--ifm-color-emphasis-200);
   color: var(--ifm-font-color-secondary);
-  border-radius: 999px;
+  white-space: nowrap;
 }
 
-.cardTitle {
-  font-size: 1.15rem;
-  font-weight: 700;
-  margin-bottom: 0.6rem;
-  color: var(--ifm-font-color-base);
-  line-height: 1.4;
-}
-
-.cardSummary {
-  font-size: 0.9rem;
-  color: var(--ifm-font-color-secondary);
-  line-height: 1.5;
-  margin-bottom: 1.25rem;
-  flex-grow: 1;
-}
-
-.cardFooter {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.85rem;
-  font-weight: 600;
+.arrowIcon {
+  font-size: 1.2rem;
   color: var(--ifm-color-primary);
-  padding-top: 0.75rem;
-  border-top: 1px solid var(--ifm-color-emphasis-100);
+  transition: transform 0.2s ease;
+}
+
+.questionItem:hover .arrowIcon {
+  transform: translateX(4px);
 }
 
 .emptyState {
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 3.5rem 1rem;
   color: var(--ifm-font-color-secondary);
+}
+
+@media (max-width: 768px) {
+  .questionItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.85rem;
+  }
+
+  .itemLeft {
+    align-items: flex-start;
+    gap: 0.85rem;
+    width: 100%;
+  }
+
+  .itemRight {
+    width: 100%;
+    justify-content: space-between;
+    padding-top: 0.65rem;
+    border-top: 1px dashed var(--ifm-color-emphasis-200);
+  }
 }
