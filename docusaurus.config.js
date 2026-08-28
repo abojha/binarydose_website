@@ -204,8 +204,12 @@ const config = {
                 href: "https://www.instagram.com/binarydose",
               },
               {
-                label: "GitHub",
+                label: "GitHub Repository",
                 href: "https://github.com/abojha/binarydose_website",
+              },
+              {
+                label: "✍️ Write for Us",
+                to: "/write-for-us",
               },
             ],
           },
@@ -215,6 +219,10 @@ const config = {
               {
                 label: "About Us & Vision",
                 to: "/about-us",
+              },
+              {
+                label: "Write for Us (Guide)",
+                to: "/write-for-us",
               },
               {
                 label: "Contact & Feedback",
