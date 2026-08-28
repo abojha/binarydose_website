@@ -5,23 +5,24 @@ description: Learn more about Binary Dose – a platform for clear, practical co
 
 ## 👋 Welcome to Binary Dose
 
-**Binary Dose** is a learning-first platform built for students, developers, and curious minds who want to truly **understand Computer Science**, not just memorize it.
+**Binary Dose** is a learning-first platform built for students, developers, and engineers who want to truly **understand Computer Science**, not just memorize it.
 
-We believe in **small, powerful doses of knowledge** — simple explanations, clean code, and real-world intuition.
+We believe in **small, powerful doses of knowledge** — intuitive visual explanations, clean code, and real-world engineering intuition.
 
 ---
 
 ## 🎯 What We Do
 
-Binary Dose focuses on:
+Binary Dose is an all-in-one ecosystem designed to take you from CS fundamentals to cracking top-tier tech interviews:
 
-- 📘 **Well-structured CS notes** (DSA, OS, DBMS, CN, Security)
-- 🧠 **Interview-oriented explanations**
-- 💻 **Clean, readable code implementations**
-- 📂 **PYQs, revision notes & cheatsheets**
-- 🌐 A growing **knowledge hub**, not just videos
+- 🔥 **100 Days CS Series**: Daily high-yield interview questions covering OS, System Design, Concurrency, and Computer Networks.
+- 💻 **CodeDose (DSA Sheet)**: A curated, topic-wise DSA roadmap with clean implementations in C++, Java, Python, and Go.
+- 🎥 **Structured Video Courses**: Comprehensive playlists on Operating Systems, Algorithms, Data Structures, and OOPs.
+- 📝 **Engineering Blog & Deep Dives**: In-depth articles on scalability, architecture, Linux internals, and interview breakdowns.
+- 📂 **University & GATE PYQs**: Curated previous-year questions and revision cheatsheets.
+- 🌐 **Open-Source Community**: An open platform where developers and students can contribute their own articles and solutions.
 
-All content is designed to be:
+All content is designed around three principles:
 > **Simple • Practical • Interview-Ready**
 
 ---
@@ -29,12 +30,11 @@ All content is designed to be:
 ## 🚀 Why Binary Dose Exists
 
 Most learners struggle because:
-- Concepts are over-complicated
-- Code lacks clarity
-- Notes are scattered across platforms
+- Core concepts are made unnecessarily complex with academic jargon.
+- Code implementations lack readability and meaningful variable names.
+- High-quality notes and practice problems are scattered across different websites.
 
-Binary Dose solves this by being a **single source of truth** —  
-a place where **notes, code, explanations, and revisions live together**.
+Binary Dose solves this by being a **single source of truth** — a cohesive platform where **notes, code, video explanations, and revision live together in harmony**.
 
 ---
 
@@ -42,45 +42,33 @@ a place where **notes, code, explanations, and revisions live together**.
 
 Hi, I’m **Abhay Ojha**, the creator of Binary Dose.
 
-- 🎓 M.Tech (CSE – Information Security) at **NIT Warangal**
-- 💼 Graduate Intern at **Intel**, working on Python automation
-- 🎥 Educator & content creator at **Binary Dose**
-- ❤️ Passionate about teaching, system design, and security
+- 💼 **Software Engineer** at **Intel**
+- 🎓 **M.Tech (CSE)** from **NIT Warangal**
+- 🎥 Educator & Content Creator at **Binary Dose**
+- ❤️ Passionate about Systems Programming, OS Internals, Scalability, and Mentoring
 
-I started Binary Dose to teach concepts the way I wish they were taught —  
-**clear, honest, and no-nonsense**.
+I started Binary Dose to teach computer science the way I wish it was taught when I was learning — **intuitive, honest, visual, and no-nonsense**.
 
 ---
 
 ## 🧠 What Makes Binary Dose Different?
 
-- ✅ Notes written **from interview + exam perspective**
-- ✅ Code with **meaningful variable names**
-- ✅ No fluff, no unnecessary theory
-- ✅ Built by a learner, for learners
-
----
-
-## 🌱 What’s Coming Next?
-
-- 📚 Daily blogs on CS fundamentals
-- 🧩 Interactive question hubs
-- 📊 System Design & Security deep dives
-- 🎥 YouTube lectures (coming back soon!)
+- ✅ **Interview + Real-World Perspective**: Every topic is framed around how concepts actually work in production and how interviewers test them.
+- ✅ **Clean, Production-Grade Code**: Readable variable names, clear time/space complexities, and zero boilerplate.
+- ✅ **No Fluff**: We value your time. Every post cuts straight to the core intuition with diagrams and practical examples.
+- ✅ **Community-Driven**: Built by an engineer for the developer community.
 
 ---
 
 ## 🤝 Join the Journey
 
-Binary Dose is not just a website —  
-it’s a **community of learners**.
+Binary Dose is more than just a website — it’s a **growing community of learners and engineers**.
 
-Whether you're preparing for placements, interviews, or just love CS —  
-**you belong here**.
+Whether you're preparing for campus placements, aiming for product-based tech companies, or simply love deep-diving into systems:
 
-> Learn one concept.  
-> Write one line of clean code.  
-> Grow every day.
+> **Learn one concept.**  
+> **Write one line of clean code.**  
+> **Grow every single day.**
 
 ---
 
