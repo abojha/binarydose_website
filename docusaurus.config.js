@@ -146,7 +146,7 @@ const config = {
             to: "/pyqs",
           },
           { to: "/blog", label: "Blog", position: "left" },
-          { to: "/write-for-us", label: "Contribute ✍️", position: "left" },
+          { to: "/contribute", label: "Contribute 🚀", position: "left" },
           { to: "/about-us", label: "About Us", position: "left" },
           { to: "/contact-us", label: "Contact", position: "left" },
 
@@ -194,7 +194,7 @@ const config = {
             ],
           },
           {
-            title: "Community & Videos",
+            title: "Community & Open Source",
             items: [
               {
                 label: "YouTube Channel",
@@ -209,8 +209,8 @@ const config = {
                 href: "https://github.com/abojha/binarydose_website",
               },
               {
-                label: "✍️ Write for Us",
-                to: "/write-for-us",
+                label: "🚀 Contribute to Binary Dose",
+                to: "/contribute",
               },
             ],
           },
@@ -222,8 +222,8 @@ const config = {
                 to: "/about-us",
               },
               {
-                label: "Write for Us (Guide)",
-                to: "/write-for-us",
+                label: "Contributor Guide",
+                to: "/contribute",
               },
               {
                 label: "Contact & Feedback",
