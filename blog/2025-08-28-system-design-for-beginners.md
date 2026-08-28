@@ -1,7 +1,7 @@
 ---
 title: "System Design for Beginners: How Real-World Backends Actually Scale"
 description: "From caching and rate limiting to race conditions and async queues — a practical breakdown of how production backends survive real traffic."
-authors: [abhay]
+authors: [binarydose]
 tags: [system-design, backend, caching, interview]
 ---
 
