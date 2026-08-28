@@ -229,6 +229,12 @@ const config = {
         theme: prismThemes.github,
         darkTheme: prismThemes.dracula,
       },
+      mermaid: {
+        theme: {
+          light: "neutral",
+          dark: "dark",
+        },
+      },
     }),
 };
 

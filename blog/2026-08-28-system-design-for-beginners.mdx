@@ -3,7 +3,10 @@ title: "System Design for Beginners: How Real-World Backends Actually Scale"
 description: "From caching and rate limiting to race conditions and async queues — a practical breakdown of how production backends survive real traffic."
 authors: [binarydose]
 tags: [system-design, backend, caching, interview]
+hide_table_of_contents: true
 ---
+
+import TOCInline from '@theme/TOCInline';
 
 When you build a small web application, everything feels straightforward: you create an API endpoint, connect it to a database, and fetch records. On your local machine, requests complete in a few milliseconds.
 
@@ -12,6 +15,13 @@ The problem begins when traffic shifts from 10 users to **10,000 concurrent requ
 Naive architectures fail not because of syntax errors, but because of **physical hardware and networking limits**: disk I/O bottlenecks, RAM exhaustion, and thread starvation. System design is the practice of architecting backends to remain fast, consistent, and resilient under high concurrency.
 
 <!-- truncate -->
+
+<div className="inline-toc-container">
+  <details open>
+    <summary><strong>📑 Table of Contents</strong></summary>
+    <TOCInline toc={toc} />
+  </details>
+</div>
 
 ---
 
