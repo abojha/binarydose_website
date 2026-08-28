@@ -1,33 +1,33 @@
 # Contributing to Binary Dose 🚀
 
-Thank you for your interest in contributing to **Binary Dose**! We welcome articles, interview questions, notes, and fixes from students, software engineers, and educators.
+Thank you for your interest in contributing to **Binary Dose**! We welcome technical articles, interview breakdowns, code solutions, and improvements from students, software engineers, and educators.
 
 ---
 
-## ✍️ How to Write a Blog Post for Binary Dose
+## ✍️ How to Write an Article / Interview Breakdown
 
-Writing for Binary Dose gives you a **dedicated author profile** with backlinks to your LinkedIn, GitHub, and social handles, reaching thousands of computer science students and engineers.
+Writing for Binary Dose gives you a **dedicated author profile** with backlinks to your LinkedIn, GitHub, and portfolio, reaching thousands of computer science students and engineers.
 
-### Topics We Love
+### Topics We Welcome in Blogs
 - **Operating Systems** (Memory management, scheduling, kernel, Linux internals)
 - **System Design & Backend** (Scalability, caching, databases, rate limiting, microservices)
 - **Concurrency & Multithreading** (Locks, race conditions, atomic operations)
 - **Computer Networks** (TCP/IP, HTTP, sockets, DNS, protocols)
 - **Data Structures & Algorithms** (Deep-dive problem walkthroughs, patterns)
-- **Tech Interview Experiences & System Breakdown**
+- **Interview Questions & Round Experiences** (Breakdown of tricky problems & architectural lessons)
 
 ---
 
-### 3-Step Guide to Submit via GitHub Pull Request (PR)
+## 🚀 3-Step Guide to Submit via GitHub (Pull Request)
 
-#### Step 1: Fork and Clone the Repository
+### Step 1: Fork and Clone the Repository
 ```bash
 git clone https://github.com/YOUR_USERNAME/binarydose_website.git
 cd binarydose_website
 npm install
 ```
 
-#### Step 2: Add Yourself to `blog/authors.yml`
+### Step 2: Add Yourself to `blog/authors.yml`
 Open `blog/authors.yml` and add your author profile at the bottom:
 
 ```yaml
@@ -35,14 +35,14 @@ your_username:
   name: Your Full Name
   title: Software Engineer @ Company / Student @ University
   url: https://linkedin.com/in/your-profile
-  image_url: https://github.com/your_username.png  # or /img/authors/your_photo.jpg
+  image_url: https://github.com/your_username.png  # or link to your photo
   socials:
     linkedin: https://linkedin.com/in/your-profile
     github: https://github.com/your_username
     twitter: https://twitter.com/your_handle
 ```
 
-#### Step 3: Create Your Article
+### Step 3: Create Your Article
 Create a new file in `blog/` using the naming format: `YYYY-MM-DD-your-topic-title.md` (or `.mdx`):
 
 ```markdown
@@ -50,13 +50,13 @@ Create a new file in `blog/` using the naming format: `YYYY-MM-DD-your-topic-tit
 title: "Your Catchy Article Title Here"
 description: "A short 1-2 sentence summary of what this article covers."
 authors: [your_username]
-tags: [operating-systems, backend, concurrency]  # Choose relevant tags
+tags: [operating-systems, backend, interview]
 hide_table_of_contents: true
 ---
 
 import TOCInline from '@theme/TOCInline';
 
-Write a compelling 2-3 paragraph introduction explaining what problem this article solves.
+Write a compelling introduction explaining what problem or concept this article covers.
 
 <!-- truncate -->
 
@@ -74,7 +74,7 @@ Write a compelling 2-3 paragraph introduction explaining what problem this artic
 Your content, code snippets, and explanations here.
 
 ### Diagrams with Mermaid
-You can use interactive Mermaid diagrams:
+You can include interactive diagrams:
 
 ```mermaid
 flowchart LR
@@ -90,7 +90,7 @@ flowchart LR
 - Point 2
 ```
 
-#### Step 4: Test Locally & Open a Pull Request
+### Step 4: Test Locally & Open a PR
 ```bash
 npm run start
 ```
@@ -98,21 +98,12 @@ Check `http://localhost:3000/blog` to ensure everything looks sharp. Then push y
 
 ---
 
-## 📬 Don't Know Git? Submit via Email or Instagram DM
-You can:
-1. 📸 **DM us on Instagram:** [@binarydose](https://www.instagram.com/binarydose) with your idea or draft link.
-2. ✉️ **Email your draft** (Google Doc or Markdown) to **dosebinary@gmail.com** with the subject:
-`[Contribution] Your Topic Title - Your Name`
-
-Include:
-1. Your Full Name & Current Role / College
-2. Your LinkedIn / GitHub URL
-3. Your Profile Photo URL
-4. Your Article or Question Content
+## 📬 Prefer Email or Instagram?
+If you're not familiar with Git, you can also submit directly:
+1. 📸 **DM us on Instagram:** [@binarydose](https://www.instagram.com/binarydose)
+2. ✉️ **Email your draft:** [dosebinary@gmail.com](mailto:dosebinary@gmail.com) with your article (Google Doc / Markdown), name, bio, and LinkedIn link.
 
 ---
 
-## 📜 Community & Quality Guidelines
-- **Original Content**: Please submit original, insightful content. No raw copy-pasting from Wikipedia or unverified AI dumps.
-- **Code & Clarity**: Include code examples, clean explanations, and practical takeaways.
-- **Tone**: Friendly, clear, and educational. Write for engineers and students looking to truly master concepts.
+## 📺 Follow the 100 Days CS Series
+For daily high-yield interview deep dives, check out our signature **100 Days CS Series** on [YouTube (@binarydose)](https://www.youtube.com/@binarydose) and [Instagram (@binarydose)](https://www.instagram.com/binarydose)!

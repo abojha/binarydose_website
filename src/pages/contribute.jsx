@@ -15,8 +15,8 @@ export default function Contribute() {
           <div className={styles.badge}>🚀 Open-Source & Community Driven</div>
           <h1 className={styles.title}>Contribute to Binary Dose</h1>
           <p className={styles.subtitle}>
-            Binary Dose is built for the community, by the community. Share your engineering insights,
-            real interview questions, or DSA solutions to help thousands of developers learn and prepare for free.
+            Binary Dose is built for the community, by the community. Share your technical guides,
+            interview breakdowns, or DSA solutions and get featured with your own verified author profile.
           </p>
 
           <div className={styles.heroButtons}>
@@ -47,27 +47,27 @@ export default function Contribute() {
           <div className={styles.grid}>
             <div className={styles.card}>
               <div className={styles.cardIcon}>✍️</div>
-              <h3>1. Share Technical Articles</h3>
+              <h3>1. Technical Articles & Guides</h3>
               <p>
-                Write in-depth guides on OS, System Design, Concurrency, or Networks.
+                Write in-depth engineering posts on OS, System Design, Concurrency, or Networks.
                 Get featured with your dedicated author card linking to your LinkedIn, GitHub, and portfolio.
               </p>
             </div>
 
             <div className={styles.card}>
-              <div className={styles.cardIcon}>🔥</div>
-              <h3>2. Share Real Interview Questions</h3>
+              <div className={styles.cardIcon}>🎯</div>
+              <h3>2. Interview Breakdown Blogs</h3>
               <p>
-                Encountered a high-yield question in an interview?
-                Add it to our <strong>100 Days CS Series</strong> to help fellow engineers prepare!
+                Encountered tricky questions or system design problems in an interview?
+                Share your full round breakdown and solution as a published blog article!
               </p>
             </div>
 
             <div className={styles.card}>
               <div className={styles.cardIcon}>💻</div>
-              <h3>3. Improve DSA Solutions & Notes</h3>
+              <h3>3. CodeDose DSA Solutions</h3>
               <p>
-                Add clean, optimal code solutions in C++, Java, Python, or Go to our <strong>CodeDose Sheet</strong>, or refine visual explanations.
+                Add clean, optimal code solutions in C++, Java, Python, or Go to our <strong>CodeDose Sheet</strong>, or help improve explanations.
               </p>
             </div>
           </div>
@@ -81,29 +81,29 @@ export default function Contribute() {
               <div className={styles.cardIcon}>🌟</div>
               <h3>Author Profile & Attribution</h3>
               <p>
-                Every contribution gives you full credit with a verified author card linking to your socials.
+                Every article features your custom author card with direct links to your LinkedIn, GitHub, and portfolio.
               </p>
             </div>
 
             <div className={styles.card}>
               <div className={styles.cardIcon}>👥</div>
-              <h3>Give Back to the Community</h3>
+              <h3>Reach Thousands of Developers</h3>
               <p>
-                Your notes and insights help students and developers who are preparing for exams and top tech interviews.
+                Your work helps thousands of CS students, GATE aspirants, and developers cracking top technical interviews.
               </p>
             </div>
 
             <div className={styles.card}>
               <div className={styles.cardIcon}>💼</div>
-              <h3>Open Source Credibility</h3>
+              <h3>Open-Source Credibility</h3>
               <p>
-                Published technical guides and verified GitHub contributions demonstrate strong engineering communication on your resume.
+                Published technical writing and verified GitHub contributions showcase strong engineering communication on your resume.
               </p>
             </div>
           </div>
         </section>
 
-        {/* 3 Step Process */}
+        {/* 3 Steps */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>How to Contribute in 3 Steps</h2>
           <div className={styles.steps}>
@@ -120,9 +120,9 @@ export default function Contribute() {
             <div className={styles.step}>
               <div className={styles.stepNumber}>2</div>
               <div>
-                <h4>Add Your Content or Solution</h4>
+                <h4>Add Your Blog Post or Solution</h4>
                 <p>
-                  Create a markdown file with your explanations, code snippets, and diagrams.
+                  Create a markdown file in <code>blog/</code> with your explanations, code snippets, and Mermaid diagrams.
                 </p>
               </div>
             </div>
@@ -140,7 +140,7 @@ export default function Contribute() {
 
           <div className={styles.ctaBox}>
             <h3>Ready to share your knowledge?</h3>
-            <p>Check out our quick contributor guide on GitHub.</p>
+            <p>Check out our quick contributor guide on GitHub, or follow our signature <strong>100 Days CS Series</strong> on YouTube!</p>
             <Link
               className={styles.primaryBtn}
               href="https://github.com/abojha/binarydose_website/blob/main/CONTRIBUTING.md"
