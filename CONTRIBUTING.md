@@ -99,7 +99,7 @@ Check `http://localhost:3000/blog` to ensure everything looks sharp. Then push y
 ---
 
 ## 📬 Don't Know Git? Submit via Email
-You can also email your draft (Google Doc or Markdown) to **contact@binarydose.in** with the subject:
+You can also email your draft (Google Doc or Markdown) to **dosebinary@gmail.com** with the subject:
 `[Blog Submission] Your Article Title - Your Name`
 
 Include:

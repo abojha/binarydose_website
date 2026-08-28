@@ -28,7 +28,7 @@ export default function Contribute() {
             </Link>
             <Link
               className={styles.secondaryBtn}
-              href="mailto:contact@binarydose.in?subject=[Contribution]%20Topic%20-%20Your%20Name"
+              href="mailto:dosebinary@gmail.com?subject=[Contribution]%20Topic%20-%20Your%20Name"
             >
               ✉️ Share via Email
             </Link>
