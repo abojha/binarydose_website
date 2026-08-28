@@ -235,24 +235,10 @@
 }
 
 /* =========================
-   BLOG: Full-Width Layout
-   Hide TOC sidebar on blog posts
+   BLOG: Clean Layout
+   Left sidebar removed via blogSidebarCount: 0
+   Right TOC kept for in-page navigation
 ========================= */
-.col--3[class*="tableOfContents"] {
-  display: none !important;
-}
-
-/* Blog post content — full width */
-article[class*="blogPost"] {
-  max-width: 860px;
-  margin: 0 auto;
-}
-
-[class*="blogPostContainer"] .col--9,
-[class*="blogPostContainer"] [class*="col--"] {
-  max-width: 100% !important;
-  flex: 0 0 100% !important;
-}
 
 /* Blog list page — center cards */
 [class*="blogListContainer"] {
