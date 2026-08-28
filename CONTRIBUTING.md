@@ -98,15 +98,17 @@ Check `http://localhost:3000/blog` to ensure everything looks sharp. Then push y
 
 ---
 
-## 📬 Don't Know Git? Submit via Email
-You can also email your draft (Google Doc or Markdown) to **dosebinary@gmail.com** with the subject:
-`[Blog Submission] Your Article Title - Your Name`
+## 📬 Don't Know Git? Submit via Email or Instagram DM
+You can:
+1. 📸 **DM us on Instagram:** [@binarydose](https://www.instagram.com/binarydose) with your idea or draft link.
+2. ✉️ **Email your draft** (Google Doc or Markdown) to **dosebinary@gmail.com** with the subject:
+`[Contribution] Your Topic Title - Your Name`
 
 Include:
 1. Your Full Name & Current Role / College
 2. Your LinkedIn / GitHub URL
 3. Your Profile Photo URL
-4. Your Article Content
+4. Your Article or Question Content
 
 ---
 
