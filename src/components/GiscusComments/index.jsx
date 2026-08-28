@@ -3,26 +3,21 @@ import { useColorMode } from "@docusaurus/theme-common";
 
 export default function GiscusComments({
   repo = "abojha/binarydose_website",
-  repoId = "", // Replace with your repoId from https://giscus.app
+  repoId = "R_kgDOQwuAxg",
   category = "General",
-  categoryId = "", // Replace with your categoryId from https://giscus.app
+  categoryId = "DIC_kwDOQwuAxs4DEW38",
   mapping = "pathname",
   term = "",
   strict = "0",
   reactionsEnabled = "1",
   emitMetadata = "0",
-  inputPosition = "top",
+  inputPosition = "bottom",
   lang = "en",
 }) {
   const { colorMode } = useColorMode();
   const commentsRef = useRef(null);
 
-  // Check if real Giscus IDs have been provided
-  const isConfigured = repoId && categoryId && !repoId.includes("XXXXXXXX") && !categoryId.includes("XXXXXXXX");
-
   useEffect(() => {
-    if (!isConfigured) return;
-
     const theme = colorMode === "dark" ? "dark_dimmed" : "light";
 
     // Clear previous giscus iframe if any
@@ -50,35 +45,10 @@ export default function GiscusComments({
     if (commentsRef.current) {
       commentsRef.current.appendChild(script);
     }
-  }, [colorMode, repo, repoId, category, categoryId, mapping, term, isConfigured]);
-
-  if (!isConfigured) {
-    return (
-      <div
-        style={{
-          marginTop: "3rem",
-          padding: "1.5rem",
-          borderRadius: "12px",
-          background: "var(--ifm-background-surface-color)",
-          border: "1px dashed var(--ifm-color-emphasis-300)",
-          textAlign: "center",
-        }}
-      >
-        <h4 style={{ margin: "0 0 0.5rem 0", fontSize: "1.1rem" }}>💬 Discussion & Community Comments</h4>
-        <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--ifm-font-color-secondary)" }}>
-          To activate live GitHub Discussions comments on this site, follow the quick 2-step setup on{" "}
-          <a href="https://giscus.app" target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600 }}>
-            giscus.app
-          </a>{" "}
-          and paste your <code>repoId</code> and <code>categoryId</code> into{" "}
-          <code>src/components/GiscusComments/index.jsx</code>.
-        </p>
-      </div>
-    );
-  }
+  }, [colorMode, repo, repoId, category, categoryId, mapping, term, strict, reactionsEnabled, emitMetadata, inputPosition, lang]);
 
   return (
-    <div style={{ marginTop: "3rem", paddingTop: "2rem", borderTop: "1px solid var(--ifm-color-emphasis-200)" }}>
+    <div style={{ marginTop: "3.5rem", paddingTop: "2rem", borderTop: "1px solid var(--ifm-color-emphasis-200)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.5rem" }}>
         <span style={{ fontSize: "1.3rem" }}>💬</span>
         <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>
