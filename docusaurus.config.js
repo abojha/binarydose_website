@@ -129,6 +129,11 @@ const config = {
             to: "/100-days",
           },
           {
+            label: "Video Courses",
+            position: "left",
+            to: "/courses",
+          },
+          {
             label: "PYQs",
             position: "left",
             to: "/pyqs",
@@ -165,6 +170,10 @@ const config = {
               {
                 label: "100 Days CS Series 🔥",
                 to: "/100-days",
+              },
+              {
+                label: "Video Courses (Playlists)",
+                to: "/courses",
               },
               {
                 label: "Previous Year Questions",

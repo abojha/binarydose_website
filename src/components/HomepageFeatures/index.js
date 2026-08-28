@@ -12,25 +12,25 @@ const LearningTracks = [
     linkText: "Start Solving",
   },
   {
-    icon: "🧠",
-    title: "Core CS Fundamentals",
-    description: "Operating Systems, DBMS, Computer Networks, and Security explained with real-world intuition, not rote memorization.",
-    link: "/about-us",
-    linkText: "Explore Notes",
+    icon: "🔥",
+    title: "100 Days CS Series",
+    description: "Bite-sized daily interview questions covering OS, System Design, Concurrency, and Memory with deep-dive notes.",
+    link: "/100-days",
+    linkText: "Explore 100 Days",
+  },
+  {
+    icon: "📺",
+    title: "Video Courses & Playlists",
+    description: "Complete YouTube video courses on Data Structures (CSE-303), Operating Systems, Algorithms, and CS Fundamentals.",
+    link: "/courses",
+    linkText: "Watch Courses",
   },
   {
     icon: "📑",
     title: "Previous Year Questions (PYQs)",
-    description: "High-yield university & placement questions with comprehensive solutions and must-solve markers.",
+    description: "High-yield university & placement exam questions with comprehensive solutions and must-solve markers.",
     link: "/pyqs",
     linkText: "View PYQs",
-  },
-  {
-    icon: "💡",
-    title: "Engineering Blog",
-    description: "Bite-sized engineering deep-dives covering concurrency, memory models, Linux internals, and interview questions.",
-    link: "/blog",
-    linkText: "Read Articles",
   },
 ];
 
@@ -111,8 +111,8 @@ export default function HomepageFeatures() {
               >
                 <span>▶</span> Subscribe on YouTube
               </a>
-              <Link to="/coding" className={styles.ytExploreBtn}>
-                Explore Coding Problems
+              <Link to="/courses" className={styles.ytExploreBtn}>
+                Explore Video Courses
               </Link>
             </div>
           </div>
