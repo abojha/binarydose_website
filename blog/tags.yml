@@ -37,3 +37,23 @@ programming:
   label: Programming
   permalink: /programming
   description: Programming concepts, paradigms, and best practices.
+
+system-design:
+  label: System Design
+  permalink: /system-design
+  description: Backend architecture, scaling patterns, and distributed systems concepts.
+
+backend:
+  label: Backend
+  permalink: /backend
+  description: Server-side engineering, APIs, databases, and infrastructure.
+
+caching:
+  label: Caching
+  permalink: /caching
+  description: In-memory caching strategies, Redis, cache invalidation, and eviction policies.
+
+interview:
+  label: Interview
+  permalink: /interview
+  description: Interview preparation topics and frequently asked questions.

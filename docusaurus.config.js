@@ -16,6 +16,12 @@ const config = {
   tagline: "A Dose of Binary",
   favicon: "img/logo.png",
 
+  // Enable Mermaid diagrams in all markdown/MDX content
+  markdown: {
+    mermaid: true,
+  },
+  themes: ["@docusaurus/theme-mermaid"],
+
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
     v4: true, // Improve compatibility with the upcoming Docusaurus v4
