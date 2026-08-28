@@ -68,6 +68,18 @@ const config = {
     [
       "@docusaurus/plugin-content-docs",
       {
+        id: "interview",
+        path: "100-days",
+        routeBasePath: "100-days",
+        sidebarPath: false,
+
+        remarkPlugins: [remarkMath],
+        rehypePlugins: [rehypeKatex],
+      },
+    ],
+    [
+      "@docusaurus/plugin-content-docs",
+      {
         id: "pyqs",
         path: "pyqs",
         routeBasePath: "pyqs",
@@ -112,6 +124,11 @@ const config = {
             to: "/coding",
           },
           {
+            label: "100 Days CS 🔥",
+            position: "left",
+            to: "/100-days",
+          },
+          {
             label: "PYQs",
             position: "left",
             to: "/pyqs",
@@ -144,6 +161,10 @@ const config = {
               {
                 label: "CodeDose (DSA Sheet)",
                 to: "/coding",
+              },
+              {
+                label: "100 Days CS Series 🔥",
+                to: "/100-days",
               },
               {
                 label: "Previous Year Questions",
