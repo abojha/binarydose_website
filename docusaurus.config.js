@@ -146,6 +146,7 @@ const config = {
             to: "/pyqs",
           },
           { to: "/blog", label: "Blog", position: "left" },
+          { to: "/write-for-us", label: "Contribute ✍️", position: "left" },
           { to: "/about-us", label: "About Us", position: "left" },
           { to: "/contact-us", label: "Contact", position: "left" },
 
