@@ -4,9 +4,21 @@
 // There are various equivalent ways to declare your Docusaurus config.
 // See: https://docusaurus.io/docs/api/docusaurus-config
 
+import fs from "node:fs";
 import { themes as prismThemes } from "prism-react-renderer";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+
+// Load local .env file if present
+if (fs.existsSync(".env")) {
+  try {
+    if (typeof process.loadEnvFile === "function") {
+      process.loadEnvFile();
+    }
+  } catch {
+    // Ignore if already loaded or on platforms managing env directly
+  }
+}
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -34,6 +46,17 @@ const config = {
   baseUrl: "/",
 
   onBrokenLinks: "throw",
+
+  // Inject Google AdSense script if client ID is provided in environment variables
+  scripts: process.env.ADSENSE_CLIENT_ID
+    ? [
+        {
+          src: `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.ADSENSE_CLIENT_ID}`,
+          async: true,
+          crossorigin: "anonymous",
+        },
+      ]
+    : [],
 
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang.
