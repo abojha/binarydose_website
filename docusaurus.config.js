@@ -131,7 +131,7 @@ const config = {
             to: "/coding",
           },
           {
-            label: "100 Days CS 🔥",
+            label: "100 Days of Interview",
             position: "left",
             to: "/100-days",
           },
@@ -176,7 +176,7 @@ const config = {
                 to: "/coding",
               },
               {
-                label: "100 Days CS Series 🔥",
+                label: "100 Days of Interview Questions",
                 to: "/100-days",
               },
               {

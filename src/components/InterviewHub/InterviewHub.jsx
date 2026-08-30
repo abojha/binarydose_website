@@ -2,12 +2,13 @@ import React, { useState, useMemo } from "react";
 import Link from "@docusaurus/Link";
 import "./InterviewHub.css";
 
-// Use Webpack require.context to load real frontmatter from all markdown files in 100-days/
+// Load frontmatter from all markdown files in 100-days via Webpack require.context
+// Automatically discovers day-01, day-02, day-03, etc.
 function loadInterviewDocs() {
   try {
     const context = require.context("@site/100-days", false, /\.mdx?$/);
     return context.keys()
-      .filter((key) => !key.includes("index"))
+      .filter((key) => !/^\.\/index\./i.test(key))
       .map((key) => {
         const mod = context(key);
         const frontMatter = mod.frontMatter || {};

@@ -1,13 +1,12 @@
 ---
-title: "Why Isn't a 2-Way Handshake Enough?"
+title: "Why Isn't a 2-Way Handshake Enough in TCP?"
 day: 1
 category: "Computer Networks"
 summary: "A 2-way handshake leaves the server in doubt if its reply reached the client. TCP uses 3 steps (SYN, SYN-ACK, ACK) for mutual bidirectional confirmation."
 tags: ["networking", "tcp", "handshake", "interview", "binary-dose"]
 youtubeId: "pnBKL-qbbBY"
+hide_table_of_contents: true
 ---
-
-# Why TCP Uses a 3-Way Handshake Instead of 2
 
 ## 🎯 The Question
 
@@ -27,7 +26,9 @@ To prevent half-open / phantom connections and ensure **mutual confirmation from
 
 ## 🧠 Deep Dive: Bidirectional Confirmation & Sequence Sync
 
-### 1. Step-by-Step Packet Exchange
+### 1. Step-by-Step Packet Exchange & Sequence Synchronization
+
+To establish a reliable bidirectional channel, both endpoints must synchronize their independent 32-bit sequence numbers ($X$ and $Y$):
 
 ```mermaid
 sequenceDiagram
@@ -35,28 +36,28 @@ sequenceDiagram
     actor Client
     actor Server
     
-    Client->>Server: 1. SYN (I want to connect)
-    Note over Server: Server knows Client can SEND
+    Client->>Server: 1. SYN (seq = X)
+    Note over Server: Server receives SYN & allocates buffers<br/>Verifies Client can SEND
     
-    Server->>Client: 2. SYN + ACK (I'm ready & I hear you)
-    Note over Client: Client knows Server can SEND & RECEIVE ✅
+    Server->>Client: 2. SYN + ACK (seq = Y, ack = X + 1)
+    Note over Client: Client verifies ACK for X & records seq Y<br/>Confirms Server can SEND & RECEIVE ✅
     
-    Client->>Server: 3. ACK (I received your reply)
-    Note over Server: Server knows Client can RECEIVE ✅
-    Note over Client,Server: Connection ESTABLISHED (Both Confirmed)
+    Client->>Server: 3. ACK (ack = Y + 1)
+    Note over Server: Server verifies ACK for Y<br/>Confirms Client can RECEIVE ✅
+    Note over Client,Server: Connection ESTABLISHED (Full-Duplex Synchronized)
 ```
 
-- **Step 1 — SYN (Client $\to$ Server)**:  
-  The Client initiates the handshake saying: *"I want to connect."*  
-  **What is verified**: Server learns that Client can **send** data.
+- **Step 1 — SYN (seq = X) [Client $\to$ Server]**:  
+  The Client initiates the connection by choosing an initial sequence number ($X$).  
+  **What is verified**: Server learns that the Client can **send** data.
 
-- **Step 2 — SYN + ACK (Server $\to$ Client)**:  
-  The Server responds: *"I received your request, and I am ready to connect."*  
-  **What is verified**: Client confirms Server can **receive and send** data. However, Server is still unconfirmed if its reply reached Client.
+- **Step 2 — SYN + ACK (seq = Y, ack = X + 1) [Server $\to$ Client]**:  
+  The Server acknowledges the client's sequence number ($X + 1$) and transmits its own initial sequence number ($Y$).  
+  **What is verified**: Client confirms the Server can **receive and send** data. However, the Server is still unconfirmed if its reply ever reached the Client.
 
-- **Step 3 — ACK (Client $\to$ Server)**:  
-  The Client sends the final confirmation: *"I received your SYN-ACK."*  
-  **What is verified**: Server now knows Client can **receive** data. Both sides are 100% synchronized and ready for full-duplex data transfer.
+- **Step 3 — ACK (ack = Y + 1) [Client $\to$ Server]**:  
+  The Client confirms receipt of sequence number $Y$ by acknowledging ($Y + 1$).  
+  **What is verified**: Server now knows the Client can **receive** data. Both sequence numbers ($X$ and $Y$) are mutually synchronized, and the connection is officially ready for full-duplex transmission.
 
 ---
 
