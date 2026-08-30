@@ -139,7 +139,7 @@ $$
 ## 💡 Other Approaches
 
 - **Closed-form Catalan:** $$C_n = \frac{1}{n+1}\binom{2n}{n}.$$
-    - **Pros:** O(1)O(1) loops with big-integer arithmetic.
+    - **Pros:** $O(1)$ loops with big-integer arithmetic.
     - **Cons:** Risk of overflow without big-int; careful with intermediate precision.
 - **Divide & Conquer without memo:** Exponential — not recommended.
 

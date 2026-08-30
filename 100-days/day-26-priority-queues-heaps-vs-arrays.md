@@ -77,7 +77,7 @@ During `insert()`, the element is appended to the array and sifted up ($O(\log N
 ## 💡 What Interviewers Ask Next (Follow-Up Traps)
 
 1. **"What is the time complexity of building a heap from an unsorted array (`heapify`)?"**
-   - *Answer*: **$O(N)$ Linear Time**, not $O(N \log N)$. By sifting down from the bottom non-leaf nodes upwards, the majority of nodes are near the bottom and only move down 1 or 2 levels ($\sum rac{h}{2^h} = 2$).
+   - *Answer*: **$O(N)$ Linear Time**, not $O(N \log N)$. By sifting down from the bottom non-leaf nodes upwards, the majority of nodes are near the bottom and only move down 1 or 2 levels ($\sum \frac{h}{2^h} = 2$).
 
 2. **"What is a Fibonacci Heap and where is it used?"**
    - *Answer*: A Fibonacci Heap provides amortized **$O(1)$ `insert` and `decreaseKey`** operations and $O(\log N)$ `extractMin`. It is used in Dijkstra's Shortest Path and Prim's MST algorithms to achieve theoretical $O(E + V \log V)$ runtime on dense graphs.

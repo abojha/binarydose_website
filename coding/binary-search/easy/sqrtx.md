@@ -95,15 +95,15 @@ $$
 
 Adjust bounds:
 
-- If mid2≤xmid^2 \leq x  → move right (`low = mid + 1`)
-- If mid2>xmid^2 > x  → move left (`high = mid - 1`)
+- If $\text{mid}^2 \le x$ → move right (`low = mid + 1`)
+- If $\text{mid}^2 > x$ → move left (`high = mid - 1`)
 
 ---
 
 ## ⏱️ Time & Space Complexity
 
-- **Time Complexity:** O(log⁡x)O(\log x) → each step halves the search space.
-- **Space Complexity:** O(1)O(1) → only a few variables are used.
+- **Time Complexity:** $O(\log x)$ → each step halves the search space.
+- **Space Complexity:** $O(1)$ → only a few variables are used.
 
 ---
 

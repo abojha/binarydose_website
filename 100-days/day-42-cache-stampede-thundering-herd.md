@@ -16,7 +16,7 @@ hide_table_of_contents: true
 
 ## ⚡ 30-Second Elevator Pitch
 
-In high-traffic systems, a popular key (e.g., `"top_products"`) might serve **10,000 requests per second** directly from Redis ($1\\text{ ms}$ latency), keeping database load at 0%.
+In high-traffic systems, a popular key (e.g., `"top_products"`) might serve **10,000 requests per second** directly from Redis ($1\text{ ms}$ latency), keeping database load at 0%.
 
 The moment that key hits its TTL and expires:
 1. All 10,000 concurrent incoming requests experience a **Cache Miss** at the exact same millisecond.

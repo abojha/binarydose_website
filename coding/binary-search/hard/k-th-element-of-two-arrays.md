@@ -106,7 +106,7 @@ class Solution {
     $$
 - Answer:
     $$
-    kth element=max⁡(l1,l2)\text{kth element} = \max(l1, l2)
+    \text{kth element} = \max(l1, l2)
     $$
     
 

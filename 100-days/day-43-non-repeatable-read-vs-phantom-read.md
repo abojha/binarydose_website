@@ -40,13 +40,13 @@ sequenceDiagram
 
     Note over T1,T2: Scenario 1: Non-Repeatable Read (Row UPDATE)
     T1->>DB: SELECT salary FROM emp WHERE id = 1 (Returns $1000)
-    T2->>DB: UPDATE emp SET salary = 2000 WHERE id = 1; COMMIT;
-    T1->>DB: SELECT salary FROM emp WHERE id = 1 (Returns $2000! ❌ Value changed)
+    T2->>DB: UPDATE emp SET salary = 2000 WHERE id = 1 & COMMIT
+    T1->>DB: SELECT salary FROM emp WHERE id = 1 (Returns $2000 - Value changed ❌)
 
     Note over T1,T2: Scenario 2: Phantom Read (Range INSERT)
     T1->>DB: SELECT * FROM emp WHERE dept = 'Sales' (Returns 3 rows)
-    T2->>DB: INSERT INTO emp (id, dept) VALUES (99, 'Sales'); COMMIT;
-    T1->>DB: SELECT * FROM emp WHERE dept = 'Sales' (Returns 4 rows! 👻 Phantom appeared)
+    T2->>DB: INSERT INTO emp (id, dept) VALUES (99, 'Sales') & COMMIT
+    T1->>DB: SELECT * FROM emp WHERE dept = 'Sales' (Returns 4 rows - Phantom appeared 👻)
 ```
 
 ---

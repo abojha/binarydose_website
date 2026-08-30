@@ -113,24 +113,24 @@ class Solution {
 
 - Feasibility check:
     $$
-    if required students≤k⇒valid allocation\text{if } \text{required students} \leq k \quad \Rightarrow \quad \text{valid allocation}
+    \text{if required students} \le k \implies \text{valid allocation}
     $$
 - Search space shrinks using binary search:
-    - If valid → high = mid - 1
-    - Else → low = mid + 1
+    - If valid → `high = mid - 1`
+    - Else → `low = mid + 1`
 
 ---
 
 ## ⏱️ Time & Space Complexity
 
-- `check()` runs in **O(n)**.
-- Binary search on range `[max(arr), sum(arr)]` → about **O(log(sum))** steps.
+- `check()` runs in **$O(n)$**.
+- Binary search on range `[max(arr), sum(arr)]` → about **$O(\log(\text{sum}))$** steps.
 - **Total**:
     $$
-    O(n⋅log⁡(sum of pages))O(n \cdot \log(\text{sum of pages}))
+    O(n \cdot \log(\text{sum of pages}))
     $$
     
-- Space: **O(1)**.
+- Space: **$O(1)$**.
 
 ---
 

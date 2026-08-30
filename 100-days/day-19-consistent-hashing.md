@@ -23,7 +23,7 @@ With traditional **Modulo Hashing** ($	ext{Server} = 	ext{hash}(	ext{key}) \pmod
 **Consistent Hashing solves this:**
 1. Both servers and keys are hashed onto a circular **360° Hash Ring** ($[0, 2^{32}-1]$).
 2. A key is assigned to the **first server encountered moving clockwise**.
-3. When a server is added or removed, **only $rac{K}{N}$ keys are moved** on average; the rest stay on their existing servers.
+3. When a server is added or removed, **only $\frac{K}{N}$ keys are moved** on average; the rest stay on their existing servers.
 
 ---
 
@@ -60,7 +60,7 @@ In a naive ring with 3 servers, nodes might land close to each other, creating *
 
 | Property | Naive Modulo Hashing (`hash % N`) | Consistent Hashing with V-Nodes |
 | :--- | :--- | :--- |
-| **Key Redistribution on Node Change**| **~100% of keys re-hashed** (Massive Cache Thrash) | **Only $rac{1}{N}$ of keys moved** |
+| **Key Redistribution on Node Change**| **~100% of keys re-hashed** (Massive Cache Thrash) | **Only $\frac{1}{N}$ of keys moved** |
 | **Horizontal Scalability** | Disastrous (Requires full data reload) | Seamless (Zero-downtime scaling) |
 | **Hotspot Prevention** | None | Solved using Virtual Nodes (V-Nodes) |
 | **Industry Adoption** | Monolithic single-node systems | DynamoDB, Cassandra, Memcached, CDNs |
@@ -78,7 +78,7 @@ In a naive ring with 3 servers, nodes might land close to each other, creating *
 ---
 
 :::tip Placement & Interview Takeaway
-**Interview Answer**: Consistent Hashing maps both data keys and server nodes to a circular hash ring. It decouples cache distribution from the node count, ensuring that adding or removing a node only redistributes $rac{1}{N}$ of the keys, preventing catastrophic cache stampedes in distributed systems.
+**Interview Answer**: Consistent Hashing maps both data keys and server nodes to a circular hash ring. It decouples cache distribution from the node count, ensuring that adding or removing a node only redistributes $\frac{1}{N}$ of the keys, preventing catastrophic cache stampedes in distributed systems.
 :::
 
 ---

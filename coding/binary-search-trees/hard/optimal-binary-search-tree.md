@@ -136,8 +136,8 @@ $dp[i][j]=
 
 ## 💡 Other Approaches
 
-- **Bottom-Up Tabulation:** Same recurrence filled by interval length; identical complexity O(n3)O(n^3) and O(n2)O(n^2) space.
-- **Knuth Optimization (when applicable):** If the quadrangle inequality holds, narrows root search range → **O(n2)O(n^2)** time. (Structure unchanged conceptually.)
+- **Bottom-Up Tabulation:** Same recurrence filled by interval length; identical complexity $O(n^3)$ time and $O(n^2)$ space.
+- **Knuth Optimization (when applicable):** If the quadrangle inequality holds, narrows root search range → **$O(n^2)$** time. (Structure unchanged conceptually.)
 - **OBST with unsuccessful searches:** Extend model to include miss probabilities `q[i]` (CLRS variant).
 
 ## 🔁 Related Problems

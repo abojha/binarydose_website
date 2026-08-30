@@ -55,11 +55,11 @@ flowchart TD
 To insert $N$ elements into a doubling array:
 * Cost of inserting $N$ raw elements: $N$ writes.
 * Cost of copying elements during resizes:
-  $$	ext{Copies} = 1 + 2 + 4 + 8 + \dots + rac{N}{2} = N - 1$$
+  $$\text{Copies} = 1 + 2 + 4 + 8 + \dots + \frac{N}{2} = N - 1$$
 * **Total Operations**:
-  $$	ext{Total Cost} = N + (N - 1) = 2N - 1$$
+  $$\text{Total Cost} = N + (N - 1) = 2N - 1$$
 * **Amortized Cost per Operation**:
-  $$	ext{Amortized Cost} = rac{2N - 1}{N} pprox 2 = O(1)$$
+  $$\text{Amortized Cost} = \frac{2N - 1}{N} \approx 2 = O(1)$$
 
 ---
 
@@ -67,16 +67,16 @@ To insert $N$ elements into a doubling array:
 
 | Growth Strategy | Total Copy Work for $N$ Inserts | Amortized Cost per `append()` | Memory Waste Overhead |
 | :--- | :--- | :--- | :--- |
-| **Fixed Increment ($+K$)** | $pprox rac{N^2}{2K} = O(N^2)$ | 🐢 $O(N)$ Linear | Minimal ($+K$ slots) |
-| **$2.0\times$ Growth (Java / C++)** | $pprox 2N = O(N)$ | ⚡ **$O(1)$ Constant** | Max 50% unused capacity |
-| **$1.5\times$ Growth (MSVC / Folly)**| $pprox 3N = O(N)$ | ⚡ **$O(1)$ Constant** | Max 33% unused capacity (Memory recycling friendly) |
+| **Fixed Increment ($+K$)** | $\approx \frac{N^2}{2K} = O(N^2)$ | 🐢 $O(N)$ Linear | Minimal ($+K$ slots) |
+| **$2.0\times$ Growth (Java / C++)** | $\approx 2N = O(N)$ | ⚡ **$O(1)$ Constant** | Max 50% unused capacity |
+| **$1.5\times$ Growth (MSVC / Folly)**| $\approx 3N = O(N)$ | ⚡ **$O(1)$ Constant** | Max 33% unused capacity (Memory recycling friendly) |
 
 ---
 
 ## 💡 What Interviewers Ask Next (Follow-Up Traps)
 
 1. **"Why do some implementations (like MSVC `std::vector` and Facebook's `FBVector`) use a $1.5\times$ growth factor instead of $2.0\times$?"**
-   - *Answer*: With a $2.0\times$ factor, the new allocated memory block is always strictly larger than the sum of all previously freed memory chunks ($2^k > \sum_{i=0}^{k-1} 2^i$), preventing the memory allocator from reusing previously deallocated memory. A growth factor of $1.5\times$ (or the Golden Ratio $\phi pprox 1.618$) allows the allocator to reuse previously freed memory segments, reducing fragmentation.
+   - *Answer*: With a $2.0\times$ factor, the new allocated memory block is always strictly larger than the sum of all previously freed memory chunks ($2^k > \sum_{i=0}^{k-1} 2^i$), preventing the memory allocator from reusing previously deallocated memory. A growth factor of $1.5\times$ (or the Golden Ratio $\phi \approx 1.618$) allows the allocator to reuse previously freed memory segments, reducing fragmentation.
 
 2. **"How do you eliminate all reallocation overhead in production?"**
    - *Answer*: Call `reserve(expected_size)` before inserting elements. This pre-allocates contiguous memory upfront, reducing resize operations and copying overhead to absolute zero.

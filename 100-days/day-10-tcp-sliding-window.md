@@ -47,9 +47,9 @@ flowchart TD
 
 The theoretical maximum throughput of a connection is defined by:
 
-$$	ext{BDP} = 	ext{Bandwidth} 	imes 	ext{RTT}$$
+$$\text{BDP} = \text{Bandwidth} \times \text{RTT}$$
 
-* **Without Sliding Window**: Throughput is bounded to $rac{	ext{Packet Size}}{	ext{RTT}}$, wasting ~99% of fiber capacity.
+* **Without Sliding Window**: Throughput is bounded to $\frac{\text{Packet Size}}{\text{RTT}}$, wasting ~99% of fiber capacity.
 * **With Sliding Window**: The window size matches BDP, keeping the network pipeline full at all times.
 
 ---

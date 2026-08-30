@@ -99,7 +99,7 @@ class Solution {
 
 - Desired position:
     $$
-    desired=n×m+12\text{desired} = \frac{n \times m + 1}{2}
+    \text{desired} = \frac{n \times m + 1}{2}
     $$
     
 - Transition during binary search:
@@ -110,11 +110,12 @@ class Solution {
 
 ## ⏱️ Time & Space Complexity
 
-- **Counting step per mid:** O(n * log m) (`upper_bound` in each row).
-- **Binary search range:** `log(maxVal - minVal)`.
+- **Counting step per mid:** $O(n \cdot \log m)$ (`upper_bound` in each row).
+- **Binary search range:** $O(\log(\text{maxVal} - \text{minVal}))$.
 - **Total:**
-    
-    O(n⋅log⁡m⋅log⁡(maxVal−minVal))O(n \cdot \log m \cdot \log(maxVal - minVal))
+    $$
+    O(n \cdot \log m \cdot \log(\text{maxVal} - \text{minVal}))
+    $$
     
 - Space: **O(1)** (no extra structures).
 

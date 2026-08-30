@@ -112,7 +112,7 @@ int aggressiveCows(vector<int> &stalls, int k){
 
 - Feasibility check:
     $$
-    place cows greedily with gap ≥ mid; if count ≥ k → feasible\text{place cows greedily with gap ≥ mid; if count ≥ k → feasible}
+    \text{place cows greedily with gap } \ge \text{mid; if count } \ge k \implies \text{feasible}
     $$
 - Binary search update:
     - If feasible → `low = mid + 1`
@@ -122,14 +122,14 @@ int aggressiveCows(vector<int> &stalls, int k){
 
 ## ⏱️ Time & Space Complexity
 
-- Sorting stalls: **O(n log n)**
-- Binary search range: log(maxDist)
-- Feasibility check per step: O(n)
+- Sorting stalls: **$O(n \log n)$**
+- Binary search range: $O(\log(\text{maxDist}))$
+- Feasibility check per step: $O(n)$
 - **Total:**
     $$
     O(n \log n + n \log(\text{maxDist}))
     $$
-- Space: **O(1)**
+- Space: **$O(1)$**
 
 ---
 

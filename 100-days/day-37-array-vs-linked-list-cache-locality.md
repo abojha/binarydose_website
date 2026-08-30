@@ -19,7 +19,7 @@ hide_table_of_contents: true
 Modern CPU registers compute in **0.5 nanoseconds**, but fetching data from physical RAM takes **50 to 100 nanoseconds**. To bridge this speed gap, CPUs use ultra-fast **L1/L2/L3 Hardware Caches**.
 
 * **Array (Spatial Locality & Hardware Prefetching)**:
-  Arrays are contiguous blocks of RAM. When the CPU reads `arr[0]`, the hardware prefetcher loads an entire **64-byte Cache Line** containing `arr[0]` through `arr[15]`. The next 15 iterations hit L1 Cache ($1\\text{ ns}$) with **0% RAM latency**.
+  Arrays are contiguous blocks of RAM. When the CPU reads `arr[0]`, the hardware prefetcher loads an entire **64-byte Cache Line** containing `arr[0]` through `arr[15]`. The next 15 iterations hit L1 Cache ($1\text{ ns}$) with **0% RAM latency**.
 * **Linked List (Pointer Chasing & Cache Misses)**:
   Linked list nodes are allocated independently across the Heap. Traversing to `node->next` requires dereferencing random memory pointers, triggering a **CPU Cache Miss on almost every single hop** and stalling the CPU pipeline.
 
@@ -50,10 +50,10 @@ flowchart TD
 ## 🔬 Memory Overhead: Payload vs. Pointer Waste
 
 Consider storing 32-bit integers (`int` = 4 bytes):
-* **Array of 10M integers**: $10\\text{M} \times 4\\text{ bytes} = \\mathbf{40\\text{ MB}}$ of compact contiguous RAM.
+* **Array of 10M integers**: $10\text{M} \times 4\text{ bytes} = \mathbf{40\text{ MB}}$ of compact contiguous RAM.
 * **Linked List of 10M integers (64-bit)**:
   Each node needs 4 bytes (data) + 4 bytes (alignment padding) + 8 bytes (`next` pointer) + 16 bytes (malloc allocator chunk header) = **32 bytes per node**.
-  Total = $\\mathbf{320\\text{ MB}}$ ($8\\times$ memory bloat!), consuming valuable cache space.
+  Total = $\mathbf{320\text{ MB}}$ ($8\times$ memory bloat!), consuming valuable cache space.
 
 ---
 
@@ -65,7 +65,7 @@ Consider storing 32-bit integers (`int` = 4 bytes):
 | **Actual Hardware Runtime** | ⚡ Blazing fast (~1–5 ms for 1M items) | 🐢 Slow (~50–100 ms for 1M items) |
 | **Spatial Locality** | ⭐ Perfect (Consecutive addresses) | None (Scattered across heap) |
 | **Hardware Prefetcher** | ✅ 100% Effective (L1 Cache hits) | ❌ Ineffective (Cannot predict next pointer) |
-| **Memory per Integer** | 4 bytes | 24–32 bytes ($8\\times$ memory bloat) |
+| **Memory per Integer** | 4 bytes | 24–32 bytes ($8\times$ memory bloat) |
 
 ---
 
