@@ -1,0 +1,182 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.modeTabs {
+  display: flex;
+  gap: 0.5rem;
+  background: var(--ifm-background-surface-color);
+  padding: 0.35rem;
+  border-radius: var(--ifm-global-radius);
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.modeTab {
+  flex: 1;
+  padding: 0.55rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--ifm-font-color-secondary);
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modeTab:hover {
+  color: var(--ifm-font-color-base);
+}
+
+.modeTabActive {
+  background: var(--ifm-background-color) !important;
+  color: var(--ifm-color-primary) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.statsBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: var(--ifm-global-radius);
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.statLabel {
+  color: var(--ifm-font-color-secondary);
+  font-weight: 600;
+}
+
+.statValue {
+  font-family: var(--ifm-font-family-monospace);
+  font-weight: 800;
+  color: var(--ifm-color-primary);
+  background: var(--ifm-background-color);
+  padding: 0.15rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 0.8rem;
+  color: var(--ifm-font-color-secondary);
+  font-weight: 600;
+}
+
+.legendDot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  margin-right: 0.3rem;
+}
+
+.dotComparing {
+  background: #f59e0b;
+}
+
+.dotSwapping {
+  background: #ec4899;
+}
+
+.dotSorted {
+  background: #10b981;
+}
+
+.canvasCard {
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: var(--ifm-global-radius);
+  padding: 2.5rem 1.25rem 1.5rem 1.25rem;
+  overflow-x: auto;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+}
+
+.barsContainer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.85rem;
+  height: 220px;
+  min-width: min-content;
+  padding-bottom: 0.5rem;
+}
+
+.barColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 48px;
+  flex-shrink: 0;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.barValue {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ifm-font-color-base);
+  margin-bottom: 0.35rem;
+}
+
+.barFill {
+  width: 100%;
+  background: var(--ifm-color-primary);
+  border-radius: 8px 8px 3px 3px;
+  transition: height 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+
+.barComparing {
+  background: #f59e0b !important;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.45) !important;
+  transform: scaleY(1.03);
+}
+
+.barSwapping {
+  background: #ec4899 !important;
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.5) !important;
+  transform: scaleY(1.05);
+}
+
+.barSorted {
+  background: #10b981 !important;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.35) !important;
+}
+
+.barIndex {
+  font-size: 0.72rem;
+  font-family: var(--ifm-font-family-monospace);
+  color: var(--ifm-font-color-secondary);
+  margin-top: 0.45rem;
+}
+
+@media (max-width: 768px) {
+  .statsBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .legend {
+    justify-content: flex-start;
+  }
+  .barsContainer {
+    justify-content: flex-start;
+  }
+}
