@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
+import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./SortingVisualizer.module.css";
 
 const BUBBLE_SORT_CODE = [
@@ -34,8 +35,20 @@ const SELECTION_SORT_CODE = [
   "}",
 ];
 
-export default function SortingVisualizer() {
-  const [algo, setAlgo] = useState("bubble"); // "bubble" | "selection"
+export default function SortingVisualizer({ selectedAlgoId = null }) {
+  const [algo, setAlgo] = useState(
+    selectedAlgoId === "selection_sort" ? "selection" : "bubble"
+  );
+
+  useEffect(() => {
+    if (selectedAlgoId === "selection_sort") {
+      setAlgo("selection");
+      setCurrentStepIndex(0);
+    } else if (selectedAlgoId === "bubble_sort") {
+      setAlgo("bubble");
+      setCurrentStepIndex(0);
+    }
+  }, [selectedAlgoId]);
   const [initialArray, setInitialArray] = useState([45, 12, 85, 32, 89, 39, 69, 22]);
   const [customInput, setCustomInput] = useState("45, 12, 85, 32, 89, 39, 69, 22");
 
@@ -278,34 +291,36 @@ export default function SortingVisualizer() {
   };
 
   return (
-    <div className={styles.container}>
-      {/* Algorithm Mode Tabs */}
-      <div className={styles.modeTabs}>
-        <button
-          type="button"
-          className={`${styles.modeTab} ${algo === "bubble" ? styles.modeTabActive : ""}`}
-          onClick={() => {
-            setIsPlaying(false);
-            setAlgo("bubble");
-            setCurrentStepIndex(0);
-          }}
-        >
-          🫧 Bubble Sort
-        </button>
-        <button
-          type="button"
-          className={`${styles.modeTab} ${algo === "selection" ? styles.modeTabActive : ""}`}
-          onClick={() => {
-            setIsPlaying(false);
-            setAlgo("selection");
-            setCurrentStepIndex(0);
-          }}
-        >
-          🎯 Selection Sort
-        </button>
-      </div>
+    <div className={layoutStyles.twoColumnGrid}>
+      <div className={layoutStyles.leftColumn}>
+        {!selectedAlgoId && (
+          <div className={styles.modeTabs}>
+            <button
+              type="button"
+              className={`${styles.modeTab} ${algo === "bubble" ? styles.modeTabActive : ""}`}
+              onClick={() => {
+                setIsPlaying(false);
+                setAlgo("bubble");
+                setCurrentStepIndex(0);
+              }}
+            >
+              🫧 Bubble Sort
+            </button>
+            <button
+              type="button"
+              className={`${styles.modeTab} ${algo === "selection" ? styles.modeTabActive : ""}`}
+              onClick={() => {
+                setIsPlaying(false);
+                setAlgo("selection");
+                setCurrentStepIndex(0);
+              }}
+            >
+              🎯 Selection Sort
+            </button>
+          </div>
+        )}
 
-      {/* Stats Counter Bar */}
+        {/* Stats Counter Bar */}
       <div className={styles.statsBar}>
         <div className={styles.statItem}>
           <span className={styles.statLabel}>Comparisons:</span>
@@ -368,8 +383,10 @@ export default function SortingVisualizer() {
         onCustomInputSubmit={handleCustomInputSubmit}
         inputPlaceholder="e.g. 45, 12, 85, 32, 89"
       />
+    </div>
 
-      {/* Synchronized Code & Step Explanation Panel */}
+    {/* Right Column: Synchronized Code & Step Explanation Panel */}
+    <div className={layoutStyles.rightColumn}>
       <CodeSyncPanel
         codeLines={algo === "bubble" ? BUBBLE_SORT_CODE : SELECTION_SORT_CODE}
         activeLine={currentStep.codeLine}
@@ -380,5 +397,6 @@ export default function SortingVisualizer() {
         spaceComplexity="O(1)"
       />
     </div>
-  );
+  </div>
+);
 }

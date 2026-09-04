@@ -1,0 +1,111 @@
+.calloutCard {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.15rem 1.5rem;
+  margin: 1.5rem 0 2rem 0;
+  border-radius: var(--ifm-global-radius);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border-left: 4px solid var(--ifm-color-primary);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.04);
+}
+
+[data-theme='dark'] .calloutCard {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+.contentArea {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 240px;
+}
+
+.iconCircle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  background: var(--ifm-color-primary-lightest);
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+[data-theme='dark'] .iconCircle {
+  background: rgba(96, 165, 250, 0.18);
+}
+
+.textContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ifm-color-primary);
+  margin-bottom: 0.2rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--ifm-font-color-base);
+}
+
+.description {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.88rem;
+  color: var(--ifm-font-color-secondary);
+  line-height: 1.45;
+}
+
+.ctaButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: 9999px;
+  background: var(--ifm-color-primary);
+  color: #ffffff !important;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.ctaButton:hover {
+  background: var(--ifm-color-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+}
+
+.arrow {
+  transition: transform 0.2s ease;
+}
+
+.ctaButton:hover .arrow {
+  transform: translateX(3px);
+}
+
+@media (max-width: 640px) {
+  .calloutCard {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ctaButton {
+    justify-content: center;
+  }
+}

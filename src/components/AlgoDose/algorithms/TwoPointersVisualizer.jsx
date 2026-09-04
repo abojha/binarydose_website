@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
+import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./TwoPointersVisualizer.module.css";
 
 const TWO_SUM_CODE = [
@@ -33,8 +34,20 @@ const SLIDING_WINDOW_CODE = [
   "}",
 ];
 
-export default function TwoPointersVisualizer() {
-  const [subType, setSubType] = useState("two_sum"); // "two_sum" | "sliding_window"
+export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
+  const [subType, setSubType] = useState(
+    selectedAlgoId === "sliding_window_sum" ? "sliding_window" : "two_sum"
+  );
+
+  useEffect(() => {
+    if (selectedAlgoId === "sliding_window_sum") {
+      setSubType("sliding_window");
+      setCurrentStepIndex(0);
+    } else if (selectedAlgoId === "two_sum") {
+      setSubType("two_sum");
+      setCurrentStepIndex(0);
+    }
+  }, [selectedAlgoId]);
   const [twoSumArray, setTwoSumArray] = useState([1, 3, 4, 6, 8, 11, 15]);
   const [twoSumTarget, setTwoSumTarget] = useState(14);
 
@@ -261,38 +274,40 @@ export default function TwoPointersVisualizer() {
   };
 
   return (
-    <div className={styles.container}>
-      {/* Sub-algorithm Mode Tabs */}
-      <div className={styles.modeTabs}>
-        <button
-          type="button"
-          className={`${styles.modeTab} ${
-            subType === "two_sum" ? styles.modeTabActive : ""
-          }`}
-          onClick={() => {
-            setIsPlaying(false);
-            setSubType("two_sum");
-            setCurrentStepIndex(0);
-          }}
-        >
-          ↔️ Two Sum (Sorted Array)
-        </button>
-        <button
-          type="button"
-          className={`${styles.modeTab} ${
-            subType === "sliding_window" ? styles.modeTabActive : ""
-          }`}
-          onClick={() => {
-            setIsPlaying(false);
-            setSubType("sliding_window");
-            setCurrentStepIndex(0);
-          }}
-        >
-          🪟 Sliding Window (Max Sum)
-        </button>
-      </div>
+    <div className={layoutStyles.twoColumnGrid}>
+      <div className={layoutStyles.leftColumn}>
+        {!selectedAlgoId && (
+          <div className={styles.modeTabs}>
+            <button
+              type="button"
+              className={`${styles.modeTab} ${
+                subType === "two_sum" ? styles.modeTabActive : ""
+              }`}
+              onClick={() => {
+                setIsPlaying(false);
+                setSubType("two_sum");
+                setCurrentStepIndex(0);
+              }}
+            >
+              ↔️ Two Sum (Sorted Array)
+            </button>
+            <button
+              type="button"
+              className={`${styles.modeTab} ${
+                subType === "sliding_window" ? styles.modeTabActive : ""
+              }`}
+              onClick={() => {
+                setIsPlaying(false);
+                setSubType("sliding_window");
+                setCurrentStepIndex(0);
+              }}
+            >
+              🪟 Sliding Window (Max Sum)
+            </button>
+          </div>
+        )}
 
-      {/* Mode Controls Bar */}
+        {/* Mode Controls Bar */}
       {subType === "two_sum" ? (
         <div className={styles.controlHeader}>
           <div className={styles.inputGroup}>
@@ -430,8 +445,10 @@ export default function TwoPointersVisualizer() {
         onRandomize={handleRandomize}
         showCustomInput={false}
       />
+    </div>
 
-      {/* Synchronized Code & Step Explanation Panel */}
+    {/* Right Column: Code Sync & Step Intuition */}
+    <div className={layoutStyles.rightColumn}>
       <CodeSyncPanel
         codeLines={subType === "two_sum" ? TWO_SUM_CODE : SLIDING_WINDOW_CODE}
         activeLine={currentStep.codeLine}
@@ -442,5 +459,6 @@ export default function TwoPointersVisualizer() {
         spaceComplexity="O(1)"
       />
     </div>
-  );
+  </div>
+);
 }

@@ -1,51 +1,76 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "@docusaurus/Link";
 import Heading from "@theme/Heading";
+import { ALGO_CATALOG, findAlgorithmById } from "./algoCatalog";
 import BinarySearchVisualizer from "./algorithms/BinarySearchVisualizer";
 import TwoPointersVisualizer from "./algorithms/TwoPointersVisualizer";
 import SortingVisualizer from "./algorithms/SortingVisualizer";
 import styles from "./AlgoDoseShell.module.css";
 
-const CATEGORIES = [
-  {
-    id: "searching",
-    name: "Binary Search",
-    icon: "🔍",
-    badge: "O(log N)",
-    description: "Search space halving and pointer convergence",
-    component: BinarySearchVisualizer,
-    codeDoseLink: "/coding/binary-search",
-  },
-  {
-    id: "two_pointers",
-    name: "Two Pointers & Sliding Window",
-    icon: "↔️",
-    badge: "O(N)",
-    description: "Two Sum pairs and bounded subarray sliding windows",
-    component: TwoPointersVisualizer,
-    codeDoseLink: "/coding/two-pointers-sliding-window-problems",
-  },
-  {
-    id: "sorting",
-    name: "Sorting Playground",
-    icon: "📊",
-    badge: "O(N²)",
-    description: "Bubble Sort and Selection Sort step-by-step swaps",
-    component: SortingVisualizer,
-    codeDoseLink: "/coding/sorting",
-  },
-];
+const COMPONENT_MAP = {
+  searching: BinarySearchVisualizer,
+  two_pointers: TwoPointersVisualizer,
+  sorting: SortingVisualizer,
+};
 
 export default function AlgoDoseShell() {
   const [activeCategoryId, setActiveCategoryId] = useState("searching");
+  const [activeAlgorithmId, setActiveAlgorithmId] = useState("binary_search");
 
-  const activeCategory =
-    CATEGORIES.find((c) => c.id === activeCategoryId) || CATEGORIES[0];
-  const ActiveComponent = activeCategory.component;
+  // Read URL query parameter ?algo=... on mount or popstate
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const queryAlgo = params.get("algo");
+      if (queryAlgo) {
+        const { category, algorithm } = findAlgorithmById(queryAlgo);
+        if (category && algorithm) {
+          setActiveCategoryId(category.categoryId);
+          setActiveAlgorithmId(algorithm.id);
+        }
+      }
+    }
+  }, []);
+
+  const currentCategory =
+    ALGO_CATALOG.find((c) => c.categoryId === activeCategoryId) || ALGO_CATALOG[0];
+
+  const currentAlgorithm =
+    currentCategory.algorithms.find((a) => a.id === activeAlgorithmId) ||
+    currentCategory.algorithms[0];
+
+  const ActiveComponent = COMPONENT_MAP[activeCategoryId] || BinarySearchVisualizer;
+
+  const handleCategoryChange = (newCatId) => {
+    setActiveCategoryId(newCatId);
+    const cat = ALGO_CATALOG.find((c) => c.categoryId === newCatId);
+    if (cat && cat.algorithms.length > 0) {
+      setActiveAlgorithmId(cat.algorithms[0].id);
+      // Update URL query param cleanly without reload
+      if (typeof window !== "undefined" && window.history?.pushState) {
+        window.history.pushState(
+          {},
+          "",
+          `${window.location.pathname}?algo=${cat.algorithms[0].id}`
+        );
+      }
+    }
+  };
+
+  const handleAlgorithmChange = (newAlgoId) => {
+    setActiveAlgorithmId(newAlgoId);
+    if (typeof window !== "undefined" && window.history?.pushState) {
+      window.history.pushState(
+        {},
+        "",
+        `${window.location.pathname}?algo=${newAlgoId}`
+      );
+    }
+  };
 
   return (
     <div className={styles.wrapper}>
-      {/* Header Section */}
+      {/* Hero Header Section */}
       <header className={styles.heroHeader}>
         <div className={styles.badge}>
           <span className={styles.badgeIcon}>⚡</span>
@@ -63,56 +88,87 @@ export default function AlgoDoseShell() {
         </p>
       </header>
 
-      {/* Main Algorithm Switcher Navigation */}
-      <nav className={styles.navBar} aria-label="Algorithm Categories">
-        <div className={styles.tabList}>
-          {CATEGORIES.map((cat) => {
-            const isActive = cat.id === activeCategoryId;
-            return (
-              <button
-                key={cat.id}
-                type="button"
-                className={`${styles.tabButton} ${
-                  isActive ? styles.tabButtonActive : ""
-                }`}
-                onClick={() => setActiveCategoryId(cat.id)}
+      {/* Option A: Top Connected Dropdown Selector Bar */}
+      <div className={styles.selectorBar}>
+        <div className={styles.dropdownsContainer}>
+          {/* Category Dropdown */}
+          <div className={styles.selectGroup}>
+            <label htmlFor="algo-topic-select" className={styles.selectLabel}>
+              Topic:
+            </label>
+            <div className={styles.selectWrapper}>
+              <select
+                id="algo-topic-select"
+                className={styles.styledSelect}
+                value={activeCategoryId}
+                onChange={(e) => handleCategoryChange(e.target.value)}
               >
-                <span className={styles.tabIcon}>{cat.icon}</span>
-                <span className={styles.tabName}>{cat.name}</span>
-                <span className={styles.tabBadge}>{cat.badge}</span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* Main Visualizer Canvas Container */}
-      <main className={styles.mainCanvas}>
-        <div className={styles.canvasHeader}>
-          <div className={styles.canvasTitleGroup}>
-            <span className={styles.activeIcon}>{activeCategory.icon}</span>
-            <div>
-              <h2 className={styles.activeTitle}>{activeCategory.name}</h2>
-              <p className={styles.activeDesc}>{activeCategory.description}</p>
+                {ALGO_CATALOG.map((cat) => (
+                  <option key={cat.categoryId} value={cat.categoryId}>
+                    {cat.categoryIcon} {cat.categoryName}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
-          {activeCategory.codeDoseLink && (
-            <Link
-              to={activeCategory.codeDoseLink}
-              className={styles.docLink}
-              title="Read complete theory and problems on CodeDose"
-            >
-              📖 CodeDose Theory &rarr;
-            </Link>
-          )}
+          {/* Algorithm / Problem Dropdown */}
+          <div className={styles.selectGroup}>
+            <label htmlFor="algo-problem-select" className={styles.selectLabel}>
+              Problem:
+            </label>
+            <div className={styles.selectWrapper}>
+              <select
+                id="algo-problem-select"
+                className={styles.styledSelect}
+                value={activeAlgorithmId}
+                onChange={(e) => handleAlgorithmChange(e.target.value)}
+              >
+                {currentCategory.algorithms.map((algo) => (
+                  <option key={algo.id} value={algo.id}>
+                    {algo.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
-        {/* Render Active Algorithm */}
-        <ActiveComponent />
+        {/* CodeDose Cross-Link Button */}
+        {currentAlgorithm.codeDoseLink && (
+          <Link
+            to={currentAlgorithm.codeDoseLink}
+            className={styles.codeDoseLinkBtn}
+            title="Open complete problem notes & solutions on CodeDose"
+          >
+            <span>📖 Full Notes on CodeDose</span>
+            <span className={styles.arrowIcon}>&rarr;</span>
+          </Link>
+        )}
+      </div>
+
+      {/* Algorithm Header Banner */}
+      <div className={styles.algoHeaderCard}>
+        <div className={styles.algoHeaderLeft}>
+          <span className={styles.algoIcon}>{currentCategory.categoryIcon}</span>
+          <div>
+            <div className={styles.algoTitleRow}>
+              <h2 className={styles.algoTitle}>{currentAlgorithm.name}</h2>
+              <span className={styles.complexityPill}>
+                {currentAlgorithm.timeComplexity}
+              </span>
+            </div>
+            <p className={styles.algoDesc}>{currentAlgorithm.description}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Visualizer Content Area (Side-by-Side Two Column Layout) */}
+      <main className={styles.canvasSection}>
+        <ActiveComponent selectedAlgoId={activeAlgorithmId} />
       </main>
 
-      {/* Bottom Info Bar / CodeDose Connection */}
+      {/* Bottom Educational Note */}
       <footer className={styles.footerNote}>
         <div className={styles.noteContent}>
           <span className={styles.noteIcon}>💡</span>

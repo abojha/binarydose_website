@@ -6,6 +6,14 @@ tags:
   - sorting
 ---
 
+import AlgoDoseCallout from '@site/src/components/AlgoDose/AlgoDoseCallout';
+
+<AlgoDoseCallout
+  algoId="bubble_sort"
+  title="Bubble Sort"
+  description="Watch adjacent elements compare, swap, and bubble up into their sorted positions step-by-step."
+/>
+
 ### Problem Statement:
 
 Given an array **arr**, use Bubble **sort** to sort arr[] in increasing order.

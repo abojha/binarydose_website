@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
+import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./BinarySearchVisualizer.module.css";
 
 const BINARY_SEARCH_CODE = [
@@ -215,8 +216,9 @@ export default function BinarySearchVisualizer() {
   };
 
   return (
-    <div className={styles.container}>
-      {/* Target Selector Bar */}
+    <div className={layoutStyles.twoColumnGrid}>
+      <div className={layoutStyles.leftColumn}>
+        {/* Target Selector Bar */}
       <div className={styles.targetBar}>
         <div className={styles.targetInputGroup}>
           <label htmlFor="bs-target-input" className={styles.targetLabel}>
@@ -339,8 +341,10 @@ export default function BinarySearchVisualizer() {
         onCustomInputSubmit={handleCustomInputSubmit}
         inputPlaceholder="Enter comma-separated sorted numbers"
       />
+    </div>
 
-      {/* Synchronized Code & Step Explanation Panel */}
+    {/* Right Column: Synchronized Code & Step Explanation Panel */}
+    <div className={layoutStyles.rightColumn}>
       <CodeSyncPanel
         codeLines={BINARY_SEARCH_CODE}
         activeLine={currentStep.codeLine}
@@ -351,5 +355,6 @@ export default function BinarySearchVisualizer() {
         spaceComplexity="O(1)"
       />
     </div>
-  );
+  </div>
+);
 }

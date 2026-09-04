@@ -6,6 +6,14 @@ tags:
   - sorting
 ---
 
+import AlgoDoseCallout from '@site/src/components/AlgoDose/AlgoDoseCallout';
+
+<AlgoDoseCallout
+  algoId="selection_sort"
+  title="Selection Sort"
+  description="Watch the algorithm scan for the minimum element and place it at the sorted boundary step-by-step."
+/>
+
 ### Problem Statement:
 
 Given an array **arr**, use **selection sort** to sort arr[] in increasing order.
