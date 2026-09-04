@@ -105,6 +105,28 @@
   border-color: var(--ifm-color-primary);
 }
 
+.targetRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.targetInputGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.quickGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
 .targetInput {
   width: 70px;
   padding: 0.35rem 0.55rem;

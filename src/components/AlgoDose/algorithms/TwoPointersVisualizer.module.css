@@ -105,6 +105,29 @@
   border-color: var(--ifm-color-primary);
 }
 
+.targetRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.targetInputGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.quickGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.targetInput,
 .numInput {
   width: 70px;
   padding: 0.35rem 0.55rem;
@@ -120,6 +143,7 @@
   transition: border-color 0.2s ease;
 }
 
+.targetInput:focus,
 .numInput:focus {
   border-color: var(--ifm-color-primary);
 }
@@ -179,6 +203,7 @@
   color: var(--ifm-font-color-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
+  font-family: var(--ifm-font-family-monospace);
 }
 
 .chip:hover {

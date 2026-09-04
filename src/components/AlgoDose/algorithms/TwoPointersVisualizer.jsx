@@ -63,6 +63,19 @@ export default function TwoPointersVisualizer() {
   const [speed, setSpeed] = useState(900);
   const timerRef = useRef(null);
 
+  // Dynamic Quick Targets computed from active array (realistic pair sums + test missing sum)
+  const quickTargets = useMemo(() => {
+    if (!twoSumArray || twoSumArray.length < 2) return { valid: [], impossible: null };
+    const n = twoSumArray.length;
+    const t1 = twoSumArray[0] + twoSumArray[1];
+    const midIdx = Math.floor(n / 2);
+    const t2 = twoSumArray[1] + twoSumArray[midIdx];
+    const t3 = twoSumArray[n - 2] + twoSumArray[n - 1];
+    const valid = Array.from(new Set([t1, t2, t3]));
+    const impossible = twoSumArray[n - 1] + twoSumArray[n - 1] + 3;
+    return { valid, impossible };
+  }, [twoSumArray]);
+
   // Two Sum Steps
   const steps = useMemo(() => {
     const generated = [];
@@ -334,39 +347,58 @@ export default function TwoPointersVisualizer() {
               {inputError && <div className={styles.errorNotice}>⚠️ {inputError}</div>}
 
               {/* Row 2: Target Sum Input & Quick Chips */}
-              <div className={styles.inputRow}>
-                <label className={styles.label}>Target Sum:</label>
-                <input
-                  type="number"
-                  className={styles.numInput}
-                  value={twoSumTarget}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    if (!isNaN(val)) {
-                      setTwoSumTarget(val);
-                      setIsPlaying(false);
-                      setCurrentStepIndex(0);
-                    }
-                  }}
-                />
-                <div className={styles.quickChips}>
-                  <span style={{ fontSize: "0.8rem", color: "var(--ifm-font-color-secondary)" }}>
-                    Quick Targets:
-                  </span>
-                  {[7, 14, 19].map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      className={`${styles.chipBtn} ${twoSumTarget === t ? styles.chipBtnActive : ""}`}
-                      onClick={() => {
-                        setTwoSumTarget(t);
+              <div className={styles.targetRow}>
+                <div className={styles.targetInputGroup}>
+                  <label htmlFor="tp-target-input" className={styles.label}>
+                    Target Sum:
+                  </label>
+                  <input
+                    id="tp-target-input"
+                    type="number"
+                    className={styles.targetInput}
+                    value={twoSumTarget}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val)) {
+                        setTwoSumTarget(val);
                         setIsPlaying(false);
                         setCurrentStepIndex(0);
-                      }}
-                    >
-                      {t}
-                    </button>
-                  ))}
+                      }
+                    }}
+                  />
+                </div>
+                <div className={styles.quickGroup}>
+                  <span className={styles.label}>Quick:</span>
+                  <div className={styles.quickChips}>
+                    {quickTargets.valid.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        className={`${styles.chip} ${twoSumTarget === t ? styles.chipActive : ""}`}
+                        onClick={() => {
+                          setTwoSumTarget(t);
+                          setIsPlaying(false);
+                          setCurrentStepIndex(0);
+                        }}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                    {quickTargets.impossible && (
+                      <button
+                        type="button"
+                        className={`${styles.chip} ${twoSumTarget === quickTargets.impossible ? styles.chipActive : ""}`}
+                        onClick={() => {
+                          setTwoSumTarget(quickTargets.impossible);
+                          setIsPlaying(false);
+                          setCurrentStepIndex(0);
+                        }}
+                        title="Test target with no matching pair"
+                      >
+                        {quickTargets.impossible} ❌
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </>

@@ -107,3 +107,11 @@ If you're not familiar with Git, you can also submit directly:
 
 ## 📺 Follow the 100 Days CS Series
 For daily high-yield interview deep dives, check out our signature **100 Days CS Series** on [YouTube (@binarydose)](https://www.youtube.com/@binarydose) and [Instagram (@binarydose)](https://www.instagram.com/binarydose)!
+
+---
+
+## ⚖️ Contributor Terms & Copyright Protection
+- **Author Credit & Attribution**: When your article is merged, you retain full author credit, backlinks to your LinkedIn, GitHub, and portfolio, and bragging rights as an official contributor to Binary Dose.
+- **Publication License**: By submitting a Pull Request, you grant Binary Dose a perpetual, worldwide, non-exclusive license to host, display, and share your article on `https://binarydose.in`.
+- **Anti-Plagiarism Protection**: Your contributed work is protected under the Binary Dose [LICENSE](LICENSE). Third parties are strictly prohibited from scraping, cloning, or commercially redistributing your articles without permission.
+

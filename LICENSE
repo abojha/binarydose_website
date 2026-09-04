@@ -1,0 +1,38 @@
+# Binary Dose Source Code & Content License
+
+Copyright (c) 2026 Abhay Ojha / Binary Dose (https://binarydose.in).
+All rights reserved.
+
+---
+
+### 1. Intellectual Property & Ownership
+The Binary Dose platform (including but not limited to the website, source code, interactive visualizer engines like AlgoDose, CodeDose, custom UI components, animations, styles, branding, logos, diagrams, and written educational articles) is the exclusive intellectual property and copyrighted work of Abhay Ojha ("Author") and Binary Dose.
+
+### 2. Permitted Uses
+You are granted a limited, personal, non-exclusive, revocable license to:
+- **Personal Learning**: View, study, and interact with the website, algorithms, and visualizers for personal, non-commercial educational purposes.
+- **Open Contribution**: Fork this repository on GitHub solely to prepare and submit contributions (articles, algorithmic visualizers, bug fixes, or documentation improvements) via GitHub Pull Requests back to this official repository.
+- **Fair Citation**: Quote short excerpts or reference problem explanations in academic or educational contexts, provided full attribution and a direct clickable link to the original article on `https://binarydose.in` are prominently included.
+
+### 3. Strictly Prohibited Uses
+Except as expressly authorized above, you **MAY NOT**:
+- **Clone or Re-Host**: Host, deploy, mirror, repackage, or distribute this website, its source code, or any derivative works on any public/private domain, hosting provider, mobile app, or network service.
+- **Commercial Exploitation**: Sell, monetize, sub-license, syndicate, gate behind paywalls, or run advertisements on any portion or derivative work of this platform.
+- **Scraping & Plagiarism**: Scrape, duplicate, bulk-export, or publish the articles, practice questions, visualizer logic, or curricula on other platforms, Medium, Substack, LinkedIn, or video courses without prior explicit written permission from the Author.
+- **Brand Infringement**: Use the "Binary Dose", "AlgoDose", or "CodeDose" names, logos, or trademarks in a way that implies endorsement, affiliation, or ownership.
+
+### 4. Community Contributions & Author Attribution
+Binary Dose is open for community contributions under the following terms:
+- By submitting a Pull Request, issue, or article to this repository, you confirm that your contribution is your own original work and does not violate any third-party copyright.
+- You grant Binary Dose a perpetual, irrevocable, worldwide, royalty-free, transferable license to publish, display, adapt, and distribute your contribution on `https://binarydose.in` and official channels.
+- Contributors retain author attribution and dedicated author profile cards (with backlinks to their GitHub, LinkedIn, and personal portfolios) on every published article.
+
+### 5. DMCA & Legal Enforcement
+Any unauthorized mirroring, scraping, or commercial infringement will result in immediate DMCA takedown notices filed with hosting providers (including GitHub, Vercel, Netlify, Cloudflare, AWS), domain registrars, and search engines (Google Search de-indexing), followed by applicable legal remedies.
+
+---
+
+For licensing inquiries, corporate partnerships, or syndicated publishing permissions:
+- **Founder & Author**: Abhay Ojha
+- **Website**: https://binarydose.in
+- **Contact**: https://binarydose.in/contact-us

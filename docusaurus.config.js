@@ -346,7 +346,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Binary Dose. Built with ❤️ by Abhay Ojha.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Binary Dose. All rights reserved. Built with ❤️ by Abhay Ojha.`,
       },
       prism: {
         theme: prismThemes.github,

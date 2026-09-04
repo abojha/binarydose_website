@@ -313,41 +313,48 @@ export default function SlidingWindowVisualizer() {
               {inputError && <div className={styles.errorNotice}>⚠️ {inputError}</div>}
 
               {/* Row 2: Window Size (k) Configuration */}
-              <div className={styles.inputRow}>
-                <label className={styles.label}>Window Size (k):</label>
-                <input
-                  type="number"
-                  min="1"
-                  max={windowArray.length}
-                  className={styles.numInput}
-                  value={windowK}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    if (!isNaN(val) && val >= 1 && val <= windowArray.length) {
-                      setWindowK(val);
-                      setIsPlaying(false);
-                      setCurrentStepIndex(0);
-                    }
-                  }}
-                />
-                <div className={styles.quickChips}>
-                  <span style={{ fontSize: "0.8rem", color: "var(--ifm-font-color-secondary)" }}>
-                    Quick k:
-                  </span>
-                  {[2, 3, 4].map((k) => (
-                    <button
-                      key={k}
-                      type="button"
-                      className={`${styles.chipBtn} ${windowK === k ? styles.chipBtnActive : ""}`}
-                      onClick={() => {
-                        setWindowK(k);
+              <div className={styles.targetRow}>
+                <div className={styles.targetInputGroup}>
+                  <label htmlFor="sw-k-input" className={styles.label}>
+                    Window Size (k):
+                  </label>
+                  <input
+                    id="sw-k-input"
+                    type="number"
+                    min="1"
+                    max={windowArray.length}
+                    className={styles.targetInput}
+                    value={windowK}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val) && val >= 1 && val <= windowArray.length) {
+                        setWindowK(val);
                         setIsPlaying(false);
                         setCurrentStepIndex(0);
-                      }}
-                    >
-                      k={k}
-                    </button>
-                  ))}
+                      }
+                    }}
+                  />
+                </div>
+                <div className={styles.quickGroup}>
+                  <span className={styles.label}>Quick:</span>
+                  <div className={styles.quickChips}>
+                    {[2, 3, 4]
+                      .filter((k) => k <= windowArray.length)
+                      .map((k) => (
+                        <button
+                          key={k}
+                          type="button"
+                          className={`${styles.chip} ${windowK === k ? styles.chipActive : ""}`}
+                          onClick={() => {
+                            setWindowK(k);
+                            setIsPlaying(false);
+                            setCurrentStepIndex(0);
+                          }}
+                        >
+                          k={k}
+                        </button>
+                      ))}
+                  </div>
                 </div>
               </div>
             </>

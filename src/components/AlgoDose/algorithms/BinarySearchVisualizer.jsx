@@ -361,50 +361,54 @@ export default function BinarySearchVisualizer() {
               {inputError && <div className={styles.errorNotice}>⚠️ {inputError}</div>}
 
               {/* Row 2: Target Input & Quick Chips */}
-              <div className={styles.inputRow}>
-                <label htmlFor="bs-target-input" className={styles.label}>
-                  Target:
-                </label>
-                <input
-                  id="bs-target-input"
-                  type="number"
-                  className={styles.targetInput}
-                  value={target}
-                  onChange={(e) => {
-                    setIsPlaying(false);
-                    const val = parseInt(e.target.value, 10);
-                    setTarget(isNaN(val) ? 0 : val);
-                    setCurrentStepIndex(0);
-                  }}
-                />
-                <span className={styles.label}>Quick:</span>
-                <div className={styles.quickChips}>
-                  {array.slice(0, 5).map((num, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      className={`${styles.chip} ${target === num ? styles.chipActive : ""}`}
-                      onClick={() => {
-                        setIsPlaying(false);
-                        setTarget(num);
-                        setCurrentStepIndex(0);
-                      }}
-                    >
-                      {num}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    className={`${styles.chip} ${target === 99 ? styles.chipActive : ""}`}
-                    onClick={() => {
+              <div className={styles.targetRow}>
+                <div className={styles.targetInputGroup}>
+                  <label htmlFor="bs-target-input" className={styles.label}>
+                    Target:
+                  </label>
+                  <input
+                    id="bs-target-input"
+                    type="number"
+                    className={styles.targetInput}
+                    value={target}
+                    onChange={(e) => {
                       setIsPlaying(false);
-                      setTarget(99);
+                      const val = parseInt(e.target.value, 10);
+                      setTarget(isNaN(val) ? 0 : val);
                       setCurrentStepIndex(0);
                     }}
-                    title="Test missing value"
-                  >
-                    99 ❌
-                  </button>
+                  />
+                </div>
+                <div className={styles.quickGroup}>
+                  <span className={styles.label}>Quick:</span>
+                  <div className={styles.quickChips}>
+                    {array.slice(0, 5).map((num, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        className={`${styles.chip} ${target === num ? styles.chipActive : ""}`}
+                        onClick={() => {
+                          setIsPlaying(false);
+                          setTarget(num);
+                          setCurrentStepIndex(0);
+                        }}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className={`${styles.chip} ${target === 99 ? styles.chipActive : ""}`}
+                      onClick={() => {
+                        setIsPlaying(false);
+                        setTarget(99);
+                        setCurrentStepIndex(0);
+                      }}
+                      title="Test missing value"
+                    >
+                      99 ❌
+                    </button>
+                  </div>
                 </div>
               </div>
             </>
