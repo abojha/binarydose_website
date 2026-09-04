@@ -329,6 +329,10 @@ const config = {
                 label: "Contact & Feedback",
                 to: "/contact-us",
               },
+              {
+                label: "Privacy Policy",
+                to: "/privacy-policy",
+              },
             ],
           },
         ],
