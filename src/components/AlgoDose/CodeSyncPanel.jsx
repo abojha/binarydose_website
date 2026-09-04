@@ -23,13 +23,13 @@ export default function CodeSyncPanel({
           </div>
           <div className={styles.complexities}>
             {timeComplexity && (
-              <span className={styles.complexityTag}>
-                ⏱ Time: <strong>{timeComplexity}</strong>
+              <span className={styles.complexityTagTc} title="Time Complexity">
+                ⏱ TC: <strong>{timeComplexity}</strong>
               </span>
             )}
             {spaceComplexity && (
-              <span className={styles.complexityTag}>
-                💾 Space: <strong>{spaceComplexity}</strong>
+              <span className={styles.complexityTagSc} title="Space Complexity">
+                💾 SC: <strong>{spaceComplexity}</strong>
               </span>
             )}
           </div>

@@ -124,18 +124,6 @@ export default function PlayerControls({
             ))}
           </div>
         </div>
-
-        {/* Randomize Generator (if kept at bottom) */}
-        {onRandomize && (
-          <button
-            type="button"
-            className={styles.randomButton}
-            onClick={onRandomize}
-            title="Generate a new randomized array"
-          >
-            🎲 Randomize
-          </button>
-        )}
       </div>
 
       {/* Optional Custom Input & Extra Controls Row */}

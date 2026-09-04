@@ -29,6 +29,38 @@ const SELECTION_SORT_CODE = [
   "    return arr",
 ];
 
+const INSERTION_SORT_CODE = [
+  "def insertion_sort(arr):",
+  "    for i in range(1, len(arr)):",
+  "        key = arr[i]",
+  "        j = i - 1",
+  "        while j >= 0 and arr[j] > key:",
+  "            arr[j + 1] = arr[j]  # Shift element right",
+  "            j -= 1",
+  "        arr[j + 1] = key  # Insert into sorted partition",
+  "    return arr",
+];
+
+const QUICKSORT_CODE = [
+  "def partition(arr, low, high):",
+  "    pivot = arr[high]",
+  "    i = low - 1",
+  "    for j in range(low, high):",
+  "        if arr[j] < pivot:",
+  "            i += 1",
+  "            arr[i], arr[j] = arr[j], arr[i]",
+  "    arr[i + 1], arr[high] = arr[high], arr[i + 1]",
+  "    return i + 1",
+];
+
+const PATTERN_COMPLEXITIES = {
+  bubble: { tc: "O(N²)", sc: "O(1)" },
+  selection: { tc: "O(N²)", sc: "O(1)" },
+  insertion: { tc: "O(N²)", sc: "O(1)" },
+  quicksort: { tc: "O(N log N)", sc: "O(log N)" },
+  mergesort: { tc: "O(N log N)", sc: "O(N)" },
+};
+
 export default function SortingVisualizer({ selectedAlgoId = null }) {
   const [algo, setAlgo] = useState(
     selectedAlgoId === "selection_sort" ? "selection" : "bubble"
@@ -52,12 +84,30 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
   );
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [inputError, setInputError] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(900);
   const timerRef = useRef(null);
 
+  const isReadyAlgo = algo === "bubble" || algo === "selection";
+
   // Generate sorting steps
   const steps = useMemo(() => {
+    if (!isReadyAlgo) {
+      return [{
+        array: [...initialArray],
+        comparing: [],
+        swapping: [],
+        sorted: new Set(),
+        comparisons: 0,
+        swaps: 0,
+        codeLine: 1,
+        statusText: "Coming Soon",
+        statusType: "info",
+        explanation: "This sorting pattern visualizer is currently being engineered.",
+      }];
+    }
+
     const generated = [];
     const arr = [...initialArray];
     const n = arr.length;
@@ -77,14 +127,14 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
         statusText: "Ready",
         statusType: "info",
         variables: [
-          { label: "Elements", value: n },
-          { label: "Comparisons", value: 0 },
-          { label: "Swaps", value: 0 },
+          { label: "Algorithm", value: "Bubble Sort" },
+          { label: "Array Length", value: n },
         ],
-        explanation: `Array ready for Bubble Sort. Total elements: ${n}.`,
+        explanation: "Bubble sort initialized. Will repeatedly scan array and bubble largest elements to the end.",
       });
 
       for (let i = 0; i < n - 1; i++) {
+        let swappedInPass = false;
         for (let j = 0; j < n - i - 1; j++) {
           comparisons++;
           const willSwap = arr[j] > arr[j + 1];
@@ -97,19 +147,21 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
             comparisons,
             swaps,
             codeLine: 5,
-            statusText: willSwap ? "Swap Required" : "Ordered",
-            statusType: willSwap ? "warning" : "info",
+            statusText: "Comparing",
+            statusType: "warning",
             variables: [
-              { label: "Comparing", value: `${arr[j]} vs ${arr[j + 1]}`, highlight: willSwap },
-              { label: "Swaps", value: swaps },
+              { label: "arr[j]", value: arr[j] },
+              { label: "arr[j+1]", value: arr[j + 1] },
+              { label: "Condition", value: `${arr[j]} > ${arr[j + 1]} (${willSwap ? "True" : "False"})` },
             ],
             explanation: willSwap
-              ? `${arr[j]} > ${arr[j + 1]} ➔ Adjacent elements out of order. Swapping.`
-              : `${arr[j]} <= ${arr[j + 1]} ➔ Already in non-decreasing order. No swap.`,
+              ? `arr[${j}] (${arr[j]}) > arr[${j + 1}] (${arr[j + 1]}): Out of order! Swapping elements.`
+              : `arr[${j}] (${arr[j]}) <= arr[${j + 1}] (${arr[j + 1]}): In correct relative order.`,
           });
 
           if (willSwap) {
             swaps++;
+            swappedInPass = true;
             const temp = arr[j];
             arr[j] = arr[j + 1];
             arr[j + 1] = temp;
@@ -125,16 +177,17 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
               statusText: "Swapped",
               statusType: "danger",
               variables: [
-                { label: "Swapped", value: `${arr[j + 1]} ↔ ${arr[j]}`, highlight: true },
+                { label: "Swapped", value: `arr[${j}] ⟷ arr[${j + 1}]` },
                 { label: "Total Swaps", value: swaps },
               ],
-              explanation: `Bubbled larger element (${arr[j + 1]}) to index ${j + 1}.`,
+              explanation: `Swapped ${arr[j + 1]} and ${arr[j]}.`,
             });
           }
         }
         sortedIndices.add(n - i - 1);
+        if (!swappedInPass) break;
       }
-      sortedIndices.add(0);
+      for (let k = 0; k < n; k++) sortedIndices.add(k);
 
       generated.push({
         array: [...arr],
@@ -151,7 +204,7 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
           { label: "Total Swaps", value: swaps, highlight: true },
           { label: "Status", value: "Fully Sorted ✅", highlight: true },
         ],
-        explanation: `🏁 All adjacent elements are sorted. Total comparisons: ${comparisons}, swaps: ${swaps}.`,
+        explanation: `🏁 Bubble sort complete! Array is completely sorted in non-decreasing order.`,
       });
     } else {
       // Selection Sort
@@ -166,33 +219,14 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
         statusText: "Ready",
         statusType: "info",
         variables: [
-          { label: "Elements", value: n },
-          { label: "Comparisons", value: 0 },
-          { label: "Swaps", value: 0 },
+          { label: "Algorithm", value: "Selection Sort" },
+          { label: "Array Length", value: n },
         ],
-        explanation: `Array ready for Selection Sort. Scanning for minimum in each pass.`,
+        explanation: "Selection sort initialized. Will repeatedly find minimum element from unsorted boundary and place it at boundary index.",
       });
 
       for (let i = 0; i < n - 1; i++) {
         let minIdx = i;
-
-        generated.push({
-          array: [...arr],
-          comparing: [i],
-          swapping: [],
-          sorted: new Set(sortedIndices),
-          comparisons,
-          swaps,
-          codeLine: 4,
-          statusText: "Set Min",
-          statusType: "info",
-          variables: [
-            { label: "Pass", value: `${i + 1}/${n - 1}` },
-            { label: "min_idx", value: `${i} (val: ${arr[i]})`, highlight: true },
-          ],
-          explanation: `Starting pass ${i + 1}. Initial candidate minimum at index ${i} (val: ${arr[i]}).`,
-        });
-
         for (let j = i + 1; j < n; j++) {
           comparisons++;
           const isNewMin = arr[j] < arr[minIdx];
@@ -205,8 +239,8 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
             comparisons,
             swaps,
             codeLine: 6,
-            statusText: isNewMin ? "New Min!" : "Comparing",
-            statusType: isNewMin ? "warning" : "info",
+            statusText: "Comparing",
+            statusType: "warning",
             variables: [
               { label: "arr[j]", value: arr[j] },
               { label: "min_idx", value: `${minIdx} (val: ${arr[minIdx]})`, highlight: isNewMin },
@@ -268,14 +302,14 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
     }
 
     return generated;
-  }, [initialArray, algo]);
+  }, [initialArray, algo, isReadyAlgo]);
 
   const currentStep = steps[currentStepIndex] || steps[0];
   const maxVal = Math.max(...initialArray, 1);
 
   // Playback timer
   useEffect(() => {
-    if (isPlaying) {
+    if (isPlaying && isReadyAlgo) {
       timerRef.current = setTimeout(() => {
         if (currentStepIndex < steps.length - 1) {
           setCurrentStepIndex((prev) => prev + 1);
@@ -290,7 +324,7 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [isPlaying, currentStepIndex, steps.length, speed]);
+  }, [isPlaying, currentStepIndex, steps.length, speed, isReadyAlgo]);
 
   const handlePlayPause = () => {
     if (currentStepIndex >= steps.length - 1) {
@@ -330,183 +364,247 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
   };
 
   const handleCustomInputSubmit = () => {
-    setIsPlaying(false);
     const parsed = customInput
       .split(",")
       .map((x) => parseInt(x.trim(), 10))
       .filter((x) => !isNaN(x) && x > 0);
 
-    if (parsed.length >= 3 && parsed.length <= 15) {
-      setInitialArray(parsed);
-      setCustomInput(parsed.join(", "));
-      setCurrentStepIndex(0);
+    if (parsed.length < 3) {
+      setInputError("Array must contain at least 3 positive numbers.");
+      return;
     }
+    if (parsed.length > 12) {
+      setInputError("Array cannot exceed 12 numbers.");
+      return;
+    }
+
+    setInputError("");
+    setIsPlaying(false);
+    setInitialArray(parsed);
+    setCustomInput(parsed.join(", "));
+    setCurrentStepIndex(0);
   };
 
   return (
     <div className={layoutStyles.twoColumnGrid}>
       {/* Left Column: Visual Canvas & Controls */}
       <div className={layoutStyles.leftColumn}>
-        {/* Sub-algorithm Selector */}
-        {!selectedAlgoId && (
-          <div className={styles.modeTabs}>
-            <button
-              type="button"
-              className={`${styles.modeTab} ${
-                algo === "bubble" ? styles.modeTabActive : ""
-              }`}
-              onClick={() => {
-                setIsPlaying(false);
-                setAlgo("bubble");
-                setCurrentStepIndex(0);
-              }}
-            >
-              🫧 Bubble Sort
-            </button>
-            <button
-              type="button"
-              className={`${styles.modeTab} ${
-                algo === "selection" ? styles.modeTabActive : ""
-              }`}
-              onClick={() => {
-                setIsPlaying(false);
-                setAlgo("selection");
-                setCurrentStepIndex(0);
-              }}
-            >
-              🎯 Selection Sort
-            </button>
-          </div>
-        )}
-
         {/* Consolidated Inputs & Configuration Toolbar at Top */}
         <div className={styles.configCard}>
-          <form
-            className={styles.inputRow}
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleCustomInputSubmit();
-            }}
-          >
-            <label className={styles.label}>Array:</label>
-            <input
-              type="text"
-              className={styles.textInput}
-              value={customInput}
-              onChange={(e) => setCustomInput(e.target.value)}
-              placeholder="e.g. 45, 12, 85, 32, 89, 39, 69, 22"
-            />
-            <button type="submit" className={styles.applyBtn}>
-              Apply
-            </button>
-            <button
-              type="button"
-              className={styles.randomBtn}
-              onClick={handleRandomize}
-              title="Generate new random array"
-            >
-              🎲 Randomize
-            </button>
-          </form>
-        </div>
+          {/* Pattern Header Row */}
+          <div className={styles.patternRow}>
+            <label htmlFor="sort-pattern-select" className={styles.patternLabel}>
+              Pattern:
+            </label>
+            <div className={styles.patternSelectWrapper}>
+              <select
+                id="sort-pattern-select"
+                className={styles.patternSelect}
+                value={algo}
+                onChange={(e) => {
+                  setIsPlaying(false);
+                  setAlgo(e.target.value);
+                  setCurrentStepIndex(0);
+                }}
+              >
+                <optgroup label="Ready Patterns">
+                  <option value="bubble">🫧 Bubble Sort (Adjacent Swaps)</option>
+                  <option value="selection">🎯 Selection Sort (Min Boundary Placement)</option>
+                </optgroup>
+                <optgroup label="Upcoming Patterns">
+                  <option value="insertion">⚡ Insertion Sort (Sorted Partition Shift) (Coming Soon)</option>
+                  <option value="quicksort">🔪 QuickSort (Lomuto Partition) (Coming Soon)</option>
+                  <option value="mergesort">🔀 Merge Sort (Divide & Conquer) (Coming Soon)</option>
+                </optgroup>
+              </select>
+            </div>
+          </div>
 
-        {/* Stats Counter Bar */}
-        <div className={styles.statsBar}>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Comparisons:</span>
-            <span className={styles.statValue}>{currentStep.comparisons}</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Swaps:</span>
-            <span className={styles.statValue}>{currentStep.swaps}</span>
-          </div>
-          <div className={styles.legend}>
-            <span className={`${styles.legendDot} ${styles.dotComparing}`}></span>{" "}
-            Comparing
-            <span className={`${styles.legendDot} ${styles.dotSwapping}`}></span>{" "}
-            Swapping
-            <span className={`${styles.legendDot} ${styles.dotSorted}`}></span>{" "}
-            Sorted
-          </div>
+          {isReadyAlgo ? (
+            <>
+              <form
+                className={styles.inputRow}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleCustomInputSubmit();
+                }}
+              >
+                <label className={styles.label}>Array:</label>
+                <input
+                  type="text"
+                  className={styles.textInput}
+                  value={customInput}
+                  onChange={(e) => {
+                    setCustomInput(e.target.value);
+                    setInputError("");
+                  }}
+                  placeholder="e.g. 45, 12, 85, 32 (3 to 12 items)"
+                />
+                <button type="submit" className={styles.applyBtn}>
+                  Apply
+                </button>
+                <button
+                  type="button"
+                  className={styles.randomBtn}
+                  onClick={() => {
+                    setInputError("");
+                    handleRandomize();
+                  }}
+                  title="Generate new random array"
+                >
+                  🎲 Randomize
+                </button>
+              </form>
+              {inputError && <div className={styles.errorNotice}>⚠️ {inputError}</div>}
+
+              {/* Real-time stats & Legend */}
+              <div className={styles.statsBar}>
+                <div className={styles.statItem}>
+                  <span className={styles.statLabel}>Comparisons:</span>
+                  <span className={styles.statValue}>{currentStep.comparisons}</span>
+                </div>
+                <div className={styles.statItem}>
+                  <span className={styles.statLabel}>Swaps:</span>
+                  <span className={styles.statValue}>{currentStep.swaps}</span>
+                </div>
+                <div className={styles.legend}>
+                  <span className={`${styles.legendDot} ${styles.dotComparing}`}></span>{" "}
+                  Comparing
+                  <span className={`${styles.legendDot} ${styles.dotSwapping}`}></span>{" "}
+                  Swapping
+                  <span className={`${styles.legendDot} ${styles.dotSorted}`}></span>{" "}
+                  Sorted
+                </div>
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: "0.85rem", color: "var(--ifm-font-color-secondary)", padding: "0.25rem 0" }}>
+              💡 Switch to <strong>Bubble Sort</strong> or <strong>Selection Sort</strong> to run live interactive sorting executions.
+            </div>
+          )}
         </div>
 
         {/* Visual Canvas with Dynamic Bars */}
         <div className={styles.canvasCard}>
-          {/* Status banner with fixed height slot to avoid CLS */}
-          <div className={styles.canvasStatusSlot}>
-            {currentStep.statusText.includes("Sorted") ? (
-              <div className={styles.winningBanner}>
-                ✅ Array Successfully Sorted! Total Comparisons:{" "}
-                {currentStep.comparisons} | Swaps: {currentStep.swaps}
+          {isReadyAlgo ? (
+            <>
+              {/* Status banner with fixed height slot to avoid CLS */}
+              <div className={styles.canvasStatusSlot}>
+                {currentStep.statusText.includes("Sorted") ? (
+                  <div className={styles.winningBanner}>
+                    ✅ Array Successfully Sorted! Total Comparisons:{" "}
+                    {currentStep.comparisons} | Swaps: {currentStep.swaps}
+                  </div>
+                ) : (
+                  <div className={styles.activePhaseHint}>
+                    <span>Pass:</span>
+                    <strong>{currentStep.variables?.find((v) => v.label === "Pass")?.value || "Running"}</strong>
+                    <span>| Action:</span>
+                    <strong style={{ color: "var(--ifm-color-primary)" }}>{currentStep.statusText}</strong>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className={styles.activePhaseHint}>
-                <span>Pass:</span>
-                <strong>{currentStep.variables?.find((v) => v.label === "Pass")?.value || "Running"}</strong>
-                <span>| Action:</span>
-                <strong style={{ color: "var(--ifm-color-primary)" }}>{currentStep.statusText}</strong>
+
+              <div className={styles.barsContainer}>
+                {currentStep.array.map((num, idx) => {
+                  const isComparing = currentStep.comparing.includes(idx);
+                  const isSwapping = currentStep.swapping.includes(idx);
+                  const isSorted = currentStep.sorted.has(idx);
+
+                  const heightPercent = Math.max(
+                    20,
+                    Math.round((num / maxVal) * 160)
+                  );
+
+                  return (
+                    <div key={idx} className={styles.barColumn}>
+                      <span className={styles.barValue}>{num}</span>
+                      <div
+                        className={`
+                          ${styles.barFill}
+                          ${isComparing ? styles.barComparing : ""}
+                          ${isSwapping ? styles.barSwapping : ""}
+                          ${isSorted ? styles.barSorted : ""}
+                        `}
+                        style={{ height: `${heightPercent}px` }}
+                      />
+                      <span className={styles.barIndex}>[{idx}]</span>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
-
-          <div className={styles.barsContainer}>
-            {currentStep.array.map((num, idx) => {
-              const isComparing = currentStep.comparing.includes(idx);
-              const isSwapping = currentStep.swapping.includes(idx);
-              const isSorted = currentStep.sorted.has(idx);
-
-              const heightPercent = Math.max(
-                20,
-                Math.round((num / maxVal) * 160)
-              );
-
-              return (
-                <div key={idx} className={styles.barColumn}>
-                  <span className={styles.barValue}>{num}</span>
-                  <div
-                    className={`
-                      ${styles.barFill}
-                      ${isComparing ? styles.barComparing : ""}
-                      ${isSwapping ? styles.barSwapping : ""}
-                      ${isSorted ? styles.barSorted : ""}
-                    `}
-                    style={{ height: `${heightPercent}px` }}
-                  />
-                  <span className={styles.barIndex}>[{idx}]</span>
-                </div>
-              );
-            })}
-          </div>
+            </>
+          ) : (
+            <div className={styles.patternComingSoon}>
+              <span style={{ fontSize: "2.25rem", marginBottom: "0.5rem" }}>🛠️</span>
+              <div className={styles.patternComingSoonBadge}>Pattern in Active Development</div>
+              <h3 style={{ margin: "0.25rem 0", fontSize: "1.25rem", color: "var(--ifm-font-color-base)" }}>
+                {algo === "insertion"
+                  ? "Insertion Sort Visualizer"
+                  : algo === "quicksort"
+                  ? "QuickSort (Lomuto Partition) Visualizer"
+                  : "Merge Sort (Divide & Conquer) Visualizer"}
+              </h3>
+              <p style={{ maxWidth: "460px", fontSize: "0.92rem", color: "var(--ifm-font-color-secondary)", margin: "0.5rem 0 1.25rem 0", lineHeight: 1.6 }}>
+                {algo === "insertion"
+                  ? "Incremental sorted subarray expansion and shifting larger elements to the right is currently being engineered."
+                  : algo === "quicksort"
+                  ? "Pivot selection, boundary partition scanning, and recursive sub-array division are currently being engineered."
+                  : "Recursive split trees and auxiliary merge buffers are currently being engineered."}
+              </p>
+              <a
+                href="/coding/sorting"
+                className={styles.patternComingSoonBtn}
+              >
+                <span>📖 Study Full Sorting Tutorial on CodeDose</span>
+                <span>&rarr;</span>
+              </a>
+            </div>
+          )}
         </div>
 
         {/* Player Controls */}
-        <PlayerControls
-          isPlaying={isPlaying}
-          onPlayPause={handlePlayPause}
-          onNext={handleNext}
-          onPrev={handlePrev}
-          onReset={handleReset}
-          currentStep={currentStepIndex}
-          totalSteps={steps.length}
-          speed={speed}
-          onSpeedChange={setSpeed}
-          showCustomInput={false}
-        />
+        {isReadyAlgo && (
+          <PlayerControls
+            isPlaying={isPlaying}
+            onPlayPause={handlePlayPause}
+            onNext={handleNext}
+            onPrev={handlePrev}
+            onReset={handleReset}
+            currentStep={currentStepIndex}
+            totalSteps={steps.length}
+            speed={speed}
+            onSpeedChange={setSpeed}
+            showCustomInput={false}
+          />
+        )}
       </div>
 
-      {/* Right Column: Synchronized Code & Step Explanation Panel */}
+      {/* Right Column: Code Sync & Step Intuition */}
       <div className={layoutStyles.rightColumn}>
         <CodeSyncPanel
-          codeLines={algo === "bubble" ? BUBBLE_SORT_CODE : SELECTION_SORT_CODE}
-          activeLine={currentStep.codeLine}
-          explanation={currentStep.explanation}
-          actionTitle={currentStep.actionTitle}
-          variables={currentStep.variables}
-          statusText={currentStep.statusText}
-          statusType={currentStep.statusType}
-          timeComplexity="O(N²)"
-          spaceComplexity="O(1)"
-          language="Python"
+          codeLines={
+            algo === "bubble"
+              ? BUBBLE_SORT_CODE
+              : algo === "selection"
+              ? SELECTION_SORT_CODE
+              : algo === "insertion"
+              ? INSERTION_SORT_CODE
+              : QUICKSORT_CODE
+          }
+          activeLine={isReadyAlgo ? currentStep.codeLine : 1}
+          explanation={
+            algo === "insertion"
+              ? "Insertion sort: Progressively expands a sorted partition by shifting elements greater than the key to the right."
+              : algo === "quicksort"
+              ? "QuickSort: Partitions elements around a pivot such that smaller elements are left and greater elements are right."
+              : currentStep.explanation
+          }
+          variables={isReadyAlgo ? currentStep.variables : []}
+          statusText={isReadyAlgo ? currentStep.statusText : "Coming Soon"}
+          statusType={isReadyAlgo ? currentStep.statusType : "info"}
+          timeComplexity={PATTERN_COMPLEXITIES[algo]?.tc}
+          spaceComplexity={PATTERN_COMPLEXITIES[algo]?.sc}
         />
       </div>
     </div>

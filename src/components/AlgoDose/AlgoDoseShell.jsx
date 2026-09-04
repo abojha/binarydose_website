@@ -1,72 +1,57 @@
 import React, { useState, useEffect } from "react";
 import Link from "@docusaurus/Link";
 import Heading from "@theme/Heading";
-import { ALGO_CATALOG, findAlgorithmById } from "./algoCatalog";
-import BinarySearchVisualizer from "./algorithms/BinarySearchVisualizer";
+import { ENGINES_CATALOG, findEngineById } from "./algoCatalog";
 import TwoPointersVisualizer from "./algorithms/TwoPointersVisualizer";
+import SlidingWindowVisualizer from "./algorithms/SlidingWindowVisualizer";
+import BinarySearchVisualizer from "./algorithms/BinarySearchVisualizer";
 import SortingVisualizer from "./algorithms/SortingVisualizer";
+import ComingSoonCard from "./ComingSoonCard";
 import styles from "./AlgoDoseShell.module.css";
 
 const COMPONENT_MAP = {
-  searching: BinarySearchVisualizer,
   two_pointers: TwoPointersVisualizer,
+  sliding_window: SlidingWindowVisualizer,
+  binary_search: BinarySearchVisualizer,
   sorting: SortingVisualizer,
 };
 
 export default function AlgoDoseShell() {
-  const [activeCategoryId, setActiveCategoryId] = useState("searching");
-  const [activeAlgorithmId, setActiveAlgorithmId] = useState("binary_search");
+  const [activeEngineId, setActiveEngineId] = useState("two_pointers");
 
-  // Read URL query parameter ?algo=... on mount or popstate
+  // Read URL query parameter (?engine=... or ?algo=...) on mount or popstate
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const queryAlgo = params.get("algo");
-      if (queryAlgo) {
-        const { category, algorithm } = findAlgorithmById(queryAlgo);
-        if (category && algorithm) {
-          setActiveCategoryId(category.categoryId);
-          setActiveAlgorithmId(algorithm.id);
+      const queryParam = params.get("engine") || params.get("algo");
+      if (queryParam) {
+        const found = findEngineById(queryParam);
+        if (found) {
+          setActiveEngineId(found.id);
         }
       }
     }
   }, []);
 
-  const currentCategory =
-    ALGO_CATALOG.find((c) => c.categoryId === activeCategoryId) || ALGO_CATALOG[0];
+  const currentEngine =
+    ENGINES_CATALOG.find((e) => e.id === activeEngineId) || ENGINES_CATALOG[0];
 
-  const currentAlgorithm =
-    currentCategory.algorithms.find((a) => a.id === activeAlgorithmId) ||
-    currentCategory.algorithms[0];
+  const ActiveComponent =
+    COMPONENT_MAP[activeEngineId] || TwoPointersVisualizer;
 
-  const ActiveComponent = COMPONENT_MAP[activeCategoryId] || BinarySearchVisualizer;
-
-  const handleCategoryChange = (newCatId) => {
-    setActiveCategoryId(newCatId);
-    const cat = ALGO_CATALOG.find((c) => c.categoryId === newCatId);
-    if (cat && cat.algorithms.length > 0) {
-      setActiveAlgorithmId(cat.algorithms[0].id);
-      // Update URL query param cleanly without reload
-      if (typeof window !== "undefined" && window.history?.pushState) {
-        window.history.pushState(
-          {},
-          "",
-          `${window.location.pathname}?algo=${cat.algorithms[0].id}`
-        );
-      }
-    }
-  };
-
-  const handleAlgorithmChange = (newAlgoId) => {
-    setActiveAlgorithmId(newAlgoId);
+  const handleEngineChange = (newEngineId) => {
+    setActiveEngineId(newEngineId);
     if (typeof window !== "undefined" && window.history?.pushState) {
       window.history.pushState(
         {},
         "",
-        `${window.location.pathname}?algo=${newAlgoId}`
+        `${window.location.pathname}?engine=${newEngineId}`
       );
     }
   };
+
+  const readyEngines = ENGINES_CATALOG.filter((e) => e.status === "ready");
+  const upcomingEngines = ENGINES_CATALOG.filter((e) => e.status === "coming_soon");
 
   return (
     <div className={styles.wrapper}>
@@ -88,60 +73,47 @@ export default function AlgoDoseShell() {
         </p>
       </header>
 
-      {/* Option A: Top Connected Dropdown Selector Bar */}
+      {/* Top Connected Selector Bar */}
       <div className={styles.selectorBar}>
         <div className={styles.dropdownsContainer}>
-          {/* Category Dropdown */}
           <div className={styles.selectGroup}>
-            <label htmlFor="algo-topic-select" className={styles.selectLabel}>
-              Topic:
+            <label htmlFor="algo-engine-select" className={styles.selectLabel}>
+              Engine:
             </label>
             <div className={styles.selectWrapper}>
               <select
-                id="algo-topic-select"
+                id="algo-engine-select"
                 className={styles.styledSelect}
-                value={activeCategoryId}
-                onChange={(e) => handleCategoryChange(e.target.value)}
+                value={activeEngineId}
+                onChange={(e) => handleEngineChange(e.target.value)}
               >
-                {ALGO_CATALOG.map((cat) => (
-                  <option key={cat.categoryId} value={cat.categoryId}>
-                    {cat.categoryIcon} {cat.categoryName}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Algorithm / Problem Dropdown */}
-          <div className={styles.selectGroup}>
-            <label htmlFor="algo-problem-select" className={styles.selectLabel}>
-              Problem:
-            </label>
-            <div className={styles.selectWrapper}>
-              <select
-                id="algo-problem-select"
-                className={styles.styledSelect}
-                value={activeAlgorithmId}
-                onChange={(e) => handleAlgorithmChange(e.target.value)}
-              >
-                {currentCategory.algorithms.map((algo) => (
-                  <option key={algo.id} value={algo.id}>
-                    {algo.name}
-                  </option>
-                ))}
+                <optgroup label="Ready Visualizers">
+                  {readyEngines.map((engine) => (
+                    <option key={engine.id} value={engine.id}>
+                      {engine.icon} {engine.name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Upcoming Engines">
+                  {upcomingEngines.map((engine) => (
+                    <option key={engine.id} value={engine.id}>
+                      {engine.icon} {engine.name} (Coming Soon)
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </div>
           </div>
         </div>
 
         {/* CodeDose Cross-Link Button */}
-        {currentAlgorithm.codeDoseLink && (
+        {currentEngine.codeDoseLink && (
           <Link
-            to={currentAlgorithm.codeDoseLink}
+            to={currentEngine.codeDoseLink}
             className={styles.codeDoseLinkBtn}
-            title="Open complete problem notes & solutions on CodeDose"
+            title={`Open complete ${currentEngine.name} notes & problems on CodeDose`}
           >
-            <span>📖 Full Notes on CodeDose</span>
+            <span>📖 Practice in CodeDose</span>
             <span className={styles.arrowIcon}>&rarr;</span>
           </Link>
         )}
@@ -150,22 +122,23 @@ export default function AlgoDoseShell() {
       {/* Algorithm Header Banner */}
       <div className={styles.algoHeaderCard}>
         <div className={styles.algoHeaderLeft}>
-          <span className={styles.algoIcon}>{currentCategory.categoryIcon}</span>
+          <span className={styles.algoIcon}>{currentEngine.icon}</span>
           <div>
             <div className={styles.algoTitleRow}>
-              <h2 className={styles.algoTitle}>{currentAlgorithm.name}</h2>
-              <span className={styles.complexityPill}>
-                {currentAlgorithm.timeComplexity}
-              </span>
+              <h2 className={styles.algoTitle}>{currentEngine.name}</h2>
             </div>
-            <p className={styles.algoDesc}>{currentAlgorithm.description}</p>
+            <p className={styles.algoDesc}>{currentEngine.description}</p>
           </div>
         </div>
       </div>
 
-      {/* Main Visualizer Content Area (Side-by-Side Two Column Layout) */}
+      {/* Main Visualizer Content Area */}
       <main className={styles.canvasSection}>
-        <ActiveComponent selectedAlgoId={activeAlgorithmId} />
+        {currentEngine.status === "coming_soon" ? (
+          <ComingSoonCard engine={currentEngine} />
+        ) : (
+          <ActiveComponent />
+        )}
       </main>
 
       {/* Bottom Educational Note */}

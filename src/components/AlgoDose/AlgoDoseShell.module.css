@@ -206,14 +206,56 @@
   color: var(--ifm-font-color-base);
 }
 
-.complexityPill {
+.complexityBadges {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.tcBadge {
   font-size: 0.72rem;
   font-family: var(--ifm-font-family-monospace);
   font-weight: 700;
-  padding: 0.15rem 0.55rem;
+  padding: 0.16rem 0.6rem;
   border-radius: 9999px;
-  background: rgba(37, 99, 235, 0.12);
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.25);
   color: var(--ifm-color-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.scBadge {
+  font-size: 0.72rem;
+  font-family: var(--ifm-font-family-monospace);
+  font-weight: 700;
+  padding: 0.16rem 0.6rem;
+  border-radius: 9999px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  color: #8b5cf6;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+[data-theme='dark'] .tcBadge {
+  color: #93c5fd;
+  border-color: rgba(147, 197, 253, 0.3);
+  background: rgba(59, 130, 246, 0.15);
+}
+
+[data-theme='dark'] .scBadge {
+  color: #c4b5fd;
+  border-color: rgba(196, 181, 253, 0.3);
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.complexityPrefix {
+  font-weight: 800;
+  opacity: 0.85;
 }
 
 .algoDesc {
