@@ -25,7 +25,7 @@ if (fs.existsSync(".env")) {
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: "Binary Dose",
-  tagline: "A Dose of Binary",
+  tagline: "Zero-Fluff Computer Science, DSA & Interview Prep",
   favicon: "img/logo.png",
 
   // Enable Mermaid diagrams in all markdown/MDX content
@@ -68,6 +68,7 @@ const config = {
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: "/",
+  trailingSlash: false,
 
   clientModules: ["./src/utils/gtagShim.js"],
 
@@ -121,7 +122,13 @@ const config = {
         theme: {
           customCss: "./src/css/custom.css",
         },
-
+        sitemap: {
+          lastmod: "date",
+          changefreq: "weekly",
+          priority: 0.8,
+          ignorePatterns: ["/tags/**"],
+          filename: "sitemap.xml",
+        },
         gtag: {
           trackingID: "G-86LMP8KT9T",
           anonymizeIP: true,
@@ -179,6 +186,14 @@ const config = {
         { property: "og:image:width", content: "1200" },
         { property: "og:image:height", content: "630" },
         { property: "og:image:alt", content: "Binary Dose - Master DSA, System Design & CS Fundamentals" },
+        { name: "keywords", content: "computer science, data structures, algorithms, dsa sheet, system design, operating systems, dbms, computer networks, 100 days of interview, coding interview, leetcode solutions" },
+        { name: "author", content: "Binary Dose" },
+        { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
+        { property: "og:site_name", content: "Binary Dose" },
+        { property: "og:type", content: "website" },
+        { name: "twitter:site", content: "@binarydose" },
+        { name: "twitter:creator", content: "@binarydose" },
+        { name: "theme-color", content: "#2563eb" },
       ],
       colorMode: {
         respectPrefersColorScheme: true,

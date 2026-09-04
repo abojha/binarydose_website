@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /search
+Disallow: /tags/
+
+Sitemap: https://binarydose.in/sitemap.xml

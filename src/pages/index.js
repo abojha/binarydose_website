@@ -5,6 +5,7 @@ import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
 import Layout from "@theme/Layout";
 import HomepageFeatures from "@site/src/components/HomepageFeatures";
 import Heading from "@theme/Heading";
+import Head from "@docusaurus/Head";
 import styles from "./index.module.css";
 
 function HomepageHeader() {
@@ -76,11 +77,57 @@ function HomepageHeader() {
 
 export default function Home() {
   const { siteConfig } = useDocusaurusContext();
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://binarydose.in/#website",
+        "url": "https://binarydose.in",
+        "name": "Binary Dose",
+        "description": "Zero-fluff computer science fundamentals, high-yield interview preparation, and DSA mastery with clear visual intuitions.",
+        "publisher": {
+          "@type": "Organization",
+          "@id": "https://binarydose.in/#organization",
+          "name": "Binary Dose",
+          "url": "https://binarydose.in",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://binarydose.in/img/logo.png",
+          },
+          "sameAs": [
+            "https://www.youtube.com/@binarydose",
+            "https://www.instagram.com/binarydose",
+          ],
+        },
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://binarydose.in/search?q={search_term_string}",
+          "query-input": "required name=search_term_string",
+        },
+      },
+      {
+        "@type": "EducationalOrganization",
+        "@id": "https://binarydose.in/#organization",
+        "name": "Binary Dose",
+        "url": "https://binarydose.in",
+        "logo": "https://binarydose.in/img/logo.png",
+        "description": "Free, open-source computer science & software engineering learning hub.",
+      },
+    ],
+  };
+
   return (
     <Layout
-      title="Binary Dose | A Dose of Binary – Computer Science & DSA"
-      description="Binary Dose is a platform for computer science students and engineers to master DSA, Operating Systems, DBMS, and core concepts with intuitive notes and video solutions."
+      title="Master DSA, System Design & CS Fundamentals"
+      description="Zero-fluff computer science fundamentals, high-yield software engineering interview preparation, and DSA patterns with clear visual intuitions."
     >
+      <Head>
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
+      </Head>
       <HomepageHeader />
       <main>
         <HomepageFeatures />

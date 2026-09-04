@@ -29,8 +29,8 @@ const Playlists = [
 export default function Courses() {
   return (
     <Layout
-      title="Video Courses | Binary Dose"
-      description="Explore video course playlists on Operating Systems, Algorithms, Data Structures, and Object Oriented Programming (OOPs) by Binary Dose on YouTube."
+      title="Video Courses"
+      description="Curated high-yield video course playlists on Operating Systems, Algorithms, Data Structures, and Object Oriented Programming (OOPs) by Binary Dose."
     >
       <main className={styles.container}>
         <header className={styles.header}>
