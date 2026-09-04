@@ -7,6 +7,7 @@ import SlidingWindowVisualizer from "./algorithms/SlidingWindowVisualizer";
 import BinarySearchVisualizer from "./algorithms/BinarySearchVisualizer";
 import SortingVisualizer from "./algorithms/SortingVisualizer";
 import ComingSoonCard from "./ComingSoonCard";
+import CustomDropdown from "./CustomDropdown";
 import styles from "./AlgoDoseShell.module.css";
 
 const COMPONENT_MAP = {
@@ -81,27 +82,31 @@ export default function AlgoDoseShell() {
               Engine:
             </label>
             <div className={styles.selectWrapper}>
-              <select
+              <CustomDropdown
                 id="algo-engine-select"
-                className={styles.styledSelect}
                 value={activeEngineId}
-                onChange={(e) => handleEngineChange(e.target.value)}
-              >
-                <optgroup label="Ready Visualizers">
-                  {readyEngines.map((engine) => (
-                    <option key={engine.id} value={engine.id}>
-                      {engine.icon} {engine.name}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Upcoming Engines">
-                  {upcomingEngines.map((engine) => (
-                    <option key={engine.id} value={engine.id}>
-                      {engine.icon} {engine.name} (Coming Soon)
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
+                onChange={handleEngineChange}
+                options={[
+                  {
+                    group: "Ready Visualizers",
+                    items: readyEngines.map((engine) => ({
+                      value: engine.id,
+                      label: engine.name,
+                      icon: engine.icon,
+                    })),
+                  },
+                  {
+                    group: "Upcoming Engines",
+                    items: upcomingEngines.map((engine) => ({
+                      value: engine.id,
+                      label: `${engine.name} (Coming Soon)`,
+                      icon: engine.icon,
+                      badge: "Coming Soon",
+                    })),
+                  },
+                ]}
+                ariaLabel="Select algorithm engine"
+              />
             </div>
           </div>
         </div>

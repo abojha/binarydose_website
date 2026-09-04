@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
+import CustomDropdown from "../CustomDropdown";
 import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./TwoPointersVisualizer.module.css";
 
@@ -272,24 +273,31 @@ export default function TwoPointersVisualizer() {
               Pattern:
             </label>
             <div className={styles.patternSelectWrapper}>
-              <select
+              <CustomDropdown
                 id="tp-pattern-select"
-                className={styles.patternSelect}
                 value={activePattern}
-                onChange={(e) => {
-                  setActivePattern(e.target.value);
+                onChange={(val) => {
+                  setActivePattern(val);
                   setIsPlaying(false);
                   setCurrentStepIndex(0);
                 }}
-              >
-                <optgroup label="Ready Patterns">
-                  <option value="two_sum">↔️ Opposing Pointers (Two Sum)</option>
-                </optgroup>
-                <optgroup label="Upcoming Patterns">
-                  <option value="fast_slow">🏎️ Fast & Slow (Remove Duplicates) (Coming Soon)</option>
-                  <option value="three_sum">📐 Three Sum (Sorted Boundary) (Coming Soon)</option>
-                </optgroup>
-              </select>
+                options={[
+                  {
+                    group: "Ready Patterns",
+                    items: [
+                      { value: "two_sum", label: "Opposing Pointers (Two Sum)", icon: "↔️" },
+                    ],
+                  },
+                  {
+                    group: "Upcoming Patterns",
+                    items: [
+                      { value: "fast_slow", label: "Fast & Slow (Remove Duplicates)", icon: "🏎️", badge: "Coming Soon" },
+                      { value: "three_sum", label: "Three Sum (Sorted Boundary)", icon: "📐", badge: "Coming Soon" },
+                    ],
+                  },
+                ]}
+                ariaLabel="Select Two Pointers pattern"
+              />
             </div>
           </div>
 

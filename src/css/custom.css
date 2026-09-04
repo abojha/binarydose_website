@@ -25,6 +25,7 @@ body {
 }
 
 :root {
+  color-scheme: light;
   /* Font Families */
   --ifm-font-family-base: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --ifm-font-family-monospace: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -54,6 +55,7 @@ body {
 }
 
 [data-theme='dark'] {
+  color-scheme: dark;
   /* Soft vibrant blue for dark mode */
   --ifm-color-primary: #60a5fa;
   --ifm-color-primary-dark: #3b82f6;

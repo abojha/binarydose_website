@@ -98,6 +98,7 @@
 .selectWrapper {
   position: relative;
   display: inline-block;
+  min-width: 260px;
 }
 
 .styledSelect {
@@ -313,6 +314,11 @@
   .selectGroup {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .selectWrapper {
+    width: 100%;
+    min-width: unset;
   }
 
   .styledSelect {

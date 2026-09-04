@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
+import CustomDropdown from "../CustomDropdown";
 import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./BinarySearchVisualizer.module.css";
 
@@ -41,10 +42,10 @@ const PATTERN_COMPLEXITIES = {
 
 export default function BinarySearchVisualizer() {
   const [activePattern, setActivePattern] = useState("exact_search");
-  const [array, setArray] = useState([2, 5, 8, 12, 16, 23, 38, 56]);
+  const [array, setArray] = useState([2, 5, 8, 12, 16, 23, 38]);
   const [target, setTarget] = useState(23);
   const [customInput, setCustomInput] = useState(
-    "2, 5, 8, 12, 16, 23, 38, 56"
+    "2, 5, 8, 12, 16, 23, 38"
   );
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [inputError, setInputError] = useState("");
@@ -234,7 +235,7 @@ export default function BinarySearchVisualizer() {
   const handleRandomize = () => {
     setIsPlaying(false);
     setInputError("");
-    const length = 8;
+    const length = 7;
     const sorted = [];
     let current = Math.floor(Math.random() * 5) + 1;
     for (let i = 0; i < length; i++) {
@@ -292,25 +293,32 @@ export default function BinarySearchVisualizer() {
               Pattern:
             </label>
             <div className={styles.patternSelectWrapper}>
-              <select
+              <CustomDropdown
                 id="bs-pattern-select"
-                className={styles.patternSelect}
                 value={activePattern}
-                onChange={(e) => {
-                  setActivePattern(e.target.value);
+                onChange={(val) => {
+                  setActivePattern(val);
                   setIsPlaying(false);
                   setCurrentStepIndex(0);
                 }}
-              >
-                <optgroup label="Ready Patterns">
-                  <option value="exact_search">🔍 Exact Target Search</option>
-                </optgroup>
-                <optgroup label="Upcoming Patterns">
-                  <option value="lower_bound">📉 Lower Bound (First Occurrence) (Coming Soon)</option>
-                  <option value="upper_bound">📈 Upper Bound (Last Occurrence) (Coming Soon)</option>
-                  <option value="rotated_array">🔄 Rotated Sorted Array Search (Coming Soon)</option>
-                </optgroup>
-              </select>
+                options={[
+                  {
+                    group: "Ready Patterns",
+                    items: [
+                      { value: "exact_search", label: "Exact Target Search", icon: "🔍" },
+                    ],
+                  },
+                  {
+                    group: "Upcoming Patterns",
+                    items: [
+                      { value: "lower_bound", label: "Lower Bound (First Occurrence)", icon: "📉", badge: "Coming Soon" },
+                      { value: "upper_bound", label: "Upper Bound (Last Occurrence)", icon: "📈", badge: "Coming Soon" },
+                      { value: "rotated_array", label: "Rotated Sorted Array Search", icon: "🔄", badge: "Coming Soon" },
+                    ],
+                  },
+                ]}
+                ariaLabel="Select Binary Search pattern"
+              />
             </div>
           </div>
 

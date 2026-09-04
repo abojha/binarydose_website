@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
+import CustomDropdown from "../CustomDropdown";
 import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./SlidingWindowVisualizer.module.css";
 
@@ -52,9 +53,9 @@ const PATTERN_COMPLEXITIES = {
 export default function SlidingWindowVisualizer() {
   const [activePattern, setActivePattern] = useState("fixed_window");
 
-  const [windowArray, setWindowArray] = useState([2, 1, 5, 1, 3, 2]);
+  const [windowArray, setWindowArray] = useState([2, 1, 5, 2, 8, 1, 5]);
   const [windowK, setWindowK] = useState(3);
-  const [customInputStr, setCustomInputStr] = useState("2, 1, 5, 1, 3, 2");
+  const [customInputStr, setCustomInputStr] = useState("2, 1, 5, 2, 8, 1, 5");
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [inputError, setInputError] = useState("");
@@ -251,24 +252,31 @@ export default function SlidingWindowVisualizer() {
               Pattern:
             </label>
             <div className={styles.patternSelectWrapper}>
-              <select
+              <CustomDropdown
                 id="sw-pattern-select"
-                className={styles.patternSelect}
                 value={activePattern}
-                onChange={(e) => {
-                  setActivePattern(e.target.value);
+                onChange={(val) => {
+                  setActivePattern(val);
                   setIsPlaying(false);
                   setCurrentStepIndex(0);
                 }}
-              >
-                <optgroup label="Ready Patterns">
-                  <option value="fixed_window">🪟 Fixed Window (Max Subarray Sum)</option>
-                </optgroup>
-                <optgroup label="Upcoming Patterns">
-                  <option value="dynamic_window">📏 Dynamic Window (Min Subarray Sum) (Coming Soon)</option>
-                  <option value="longest_substr">🔤 Longest Substring Without Repeating (Coming Soon)</option>
-                </optgroup>
-              </select>
+                options={[
+                  {
+                    group: "Ready Patterns",
+                    items: [
+                      { value: "fixed_window", label: "Fixed Window (Max Subarray Sum)", icon: "🪟" },
+                    ],
+                  },
+                  {
+                    group: "Upcoming Patterns",
+                    items: [
+                      { value: "dynamic_window", label: "Dynamic Window (Min Subarray Sum)", icon: "📏", badge: "Coming Soon" },
+                      { value: "longest_substr", label: "Longest Substring Without Repeating", icon: "🔤", badge: "Coming Soon" },
+                    ],
+                  },
+                ]}
+                ariaLabel="Select Sliding Window pattern"
+              />
             </div>
           </div>
 

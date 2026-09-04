@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
+import CustomDropdown from "../CustomDropdown";
 import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./SortingVisualizer.module.css";
 
@@ -77,10 +78,10 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
   }, [selectedAlgoId]);
 
   const [initialArray, setInitialArray] = useState([
-    45, 12, 85, 32, 89, 39, 69, 22,
+    45, 12, 85, 32, 89, 39, 69,
   ]);
   const [customInput, setCustomInput] = useState(
-    "45, 12, 85, 32, 89, 39, 69, 22"
+    "45, 12, 85, 32, 89, 39, 69"
   );
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -355,7 +356,7 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
   const handleRandomize = () => {
     setIsPlaying(false);
     const randomArr = Array.from(
-      { length: 8 },
+      { length: 7 },
       () => Math.floor(Math.random() * 85) + 12
     );
     setInitialArray(randomArr);
@@ -397,26 +398,33 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
               Pattern:
             </label>
             <div className={styles.patternSelectWrapper}>
-              <select
+              <CustomDropdown
                 id="sort-pattern-select"
-                className={styles.patternSelect}
                 value={algo}
-                onChange={(e) => {
+                onChange={(val) => {
                   setIsPlaying(false);
-                  setAlgo(e.target.value);
+                  setAlgo(val);
                   setCurrentStepIndex(0);
                 }}
-              >
-                <optgroup label="Ready Patterns">
-                  <option value="bubble">🫧 Bubble Sort (Adjacent Swaps)</option>
-                  <option value="selection">🎯 Selection Sort (Min Boundary Placement)</option>
-                </optgroup>
-                <optgroup label="Upcoming Patterns">
-                  <option value="insertion">⚡ Insertion Sort (Sorted Partition Shift) (Coming Soon)</option>
-                  <option value="quicksort">🔪 QuickSort (Lomuto Partition) (Coming Soon)</option>
-                  <option value="mergesort">🔀 Merge Sort (Divide & Conquer) (Coming Soon)</option>
-                </optgroup>
-              </select>
+                options={[
+                  {
+                    group: "Ready Patterns",
+                    items: [
+                      { value: "bubble", label: "Bubble Sort (Adjacent Swaps)", icon: "🫧" },
+                      { value: "selection", label: "Selection Sort (Min Boundary Placement)", icon: "🎯" },
+                    ],
+                  },
+                  {
+                    group: "Upcoming Patterns",
+                    items: [
+                      { value: "insertion", label: "Insertion Sort (Sorted Partition Shift)", icon: "⚡", badge: "Coming Soon" },
+                      { value: "quicksort", label: "QuickSort (Lomuto Partition)", icon: "🔪", badge: "Coming Soon" },
+                      { value: "mergesort", label: "Merge Sort (Divide & Conquer)", icon: "🔀", badge: "Coming Soon" },
+                    ],
+                  },
+                ]}
+                ariaLabel="Select Sorting pattern"
+              />
             </div>
           </div>
 
