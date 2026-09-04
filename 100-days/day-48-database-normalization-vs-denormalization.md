@@ -1,6 +1,6 @@
 ---
 title: "College vs Production: Database Normalization (3NF vs Denormalization)"
-day: 47
+day: 48
 category: "Databases"
 summary: "College courses preach 3NF to eliminate redundancy, but production systems intentionally denormalize data to eliminate expensive multi-table JOINs and scale read-heavy workloads."
 tags: ["dbms", "normalization", "denormalization", "3nf", "sql", "performance", "interview", "binary-dose"]
@@ -95,5 +95,5 @@ In modern cloud datacenters:
 
 <YouTubeEmbed 
   id="9DRRD95g1Pc" 
-  title="College vs Production: Database Normalization | Interview Question #47" 
+  title="College vs Production: Database Normalization | Interview Question #48" 
 />
