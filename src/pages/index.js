@@ -15,14 +15,16 @@ function HomepageHeader() {
       <div className="container">
         <div className={styles.heroContent}>
           <div className={styles.brandBadge}>
-            <span>⚡</span>
-            <span>Official YouTube Companion & Engineering Hub</span>
+            <span className={styles.badgeIcon}>🎯</span>
+            <span className={styles.badgeText}>
+              Zero-Fluff Software Engineering &amp; Coding Hub
+            </span>
           </div>
 
           <Heading as="h1" className={styles.heroTitle}>
-            Clear Intuitions for <br />
+            Clear Intuitions for{" "}
             <span className={styles.heroGradientText}>
-              Computer Science & Coding
+              Computer Science &amp; Coding
             </span>
           </Heading>
 

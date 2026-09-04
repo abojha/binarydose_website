@@ -4,13 +4,13 @@
   position: relative;
   overflow: hidden;
   background: radial-gradient(circle at 50% -20%, rgba(37, 99, 235, 0.18) 0%, rgba(37, 99, 235, 0) 70%),
-              linear-gradient(180deg, var(--ifm-background-color) 0%, var(--ifm-background-surface-color) 100%);
+    linear-gradient(180deg, var(--ifm-background-color) 0%, var(--ifm-background-surface-color) 100%);
   border-bottom: 1px solid var(--ifm-color-emphasis-200);
 }
 
 [data-theme='dark'] .heroBanner {
   background: radial-gradient(circle at 50% -20%, rgba(122, 162, 247, 0.22) 0%, rgba(11, 15, 25, 0) 70%),
-              linear-gradient(180deg, #0b0f19 0%, #111827 100%);
+    linear-gradient(180deg, #0b0f19 0%, #111827 100%);
 }
 
 .heroContent {
@@ -23,25 +23,65 @@
 .brandBadge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  padding: 0.4rem 1rem;
-  background: var(--ifm-color-primary-lightest);
-  border: 1px solid var(--ifm-color-primary-lighter);
+  padding: 0.38rem 1.05rem;
+  background: rgba(37, 99, 235, 0.06);
+  border: 1px solid rgba(37, 99, 235, 0.2);
   color: var(--ifm-color-primary);
-  border-radius: 999px;
-  font-size: 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.84rem;
   font-weight: 700;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+  letter-spacing: 0.015em;
+  margin-bottom: 1.6rem;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  max-width: 90%;
+}
+
+.brandBadge:hover {
+  transform: translateY(-1px);
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.16);
+}
+
+[data-theme='dark'] .brandBadge {
+  background: rgba(96, 165, 250, 0.08);
+  border: 1px solid rgba(96, 165, 250, 0.22);
+  color: #93c5fd;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme='dark'] .brandBadge:hover {
+  border-color: rgba(147, 197, 253, 0.45);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+}
+
+.badgeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  transform: translateY(-0.5px);
+}
+
+.badgeText {
+  display: inline-block;
+  line-height: 1.25;
 }
 
 .heroTitle {
   font-size: 3.25rem;
   font-weight: 900;
-  line-height: 1.15;
+  line-height: 1.18;
   letter-spacing: -0.03em;
   margin-bottom: 1.25rem;
   color: var(--ifm-font-color-base);
+  text-wrap: balance;
 }
 
 .heroGradientText {
@@ -152,8 +192,15 @@
     padding: 3.5rem 1rem 3rem;
   }
 
+  .brandBadge {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+
   .heroTitle {
-    font-size: 2.3rem;
+    font-size: 2.15rem;
+    line-height: 1.22;
   }
 
   .heroSubtitle {
@@ -166,5 +213,17 @@
 
   .statNumber {
     font-size: 1.35rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .brandBadge {
+    font-size: 0.74rem;
+    padding: 0.3rem 0.75rem;
+    max-width: 95%;
+  }
+
+  .heroTitle {
+    font-size: 1.85rem;
   }
 }
