@@ -1,0 +1,323 @@
+.panelContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.intuitionCard {
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  background: var(--ifm-background-surface-color);
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.02);
+}
+
+.intuitionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.intuitionTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--ifm-font-color-base);
+}
+
+.bulbIcon {
+  font-size: 1.05rem;
+}
+
+.statusBadge {
+  padding: 0.15rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status_info {
+  border-left: 3.5px solid var(--ifm-color-primary);
+}
+
+.badge_info {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--ifm-color-primary);
+}
+
+.status_success {
+  border-left: 3.5px solid #10b981;
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.badge_success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.status_warning {
+  border-left: 3.5px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.badge_warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.status_danger {
+  border-left: 3.5px solid #ef4444;
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.badge_danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+/* Compact Inline Variable Ribbon */
+.variablesRibbon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+  align-items: center;
+}
+
+.varChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  background: var(--ifm-background-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.76rem;
+  color: var(--ifm-font-color-base);
+}
+
+.varLabel {
+  color: var(--ifm-font-color-secondary);
+  font-weight: 500;
+}
+
+.varValue {
+  color: var(--ifm-font-color-base);
+  font-weight: 700;
+}
+
+.varChipHighlight {
+  border-color: var(--ifm-color-primary);
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--ifm-color-primary);
+}
+
+[data-theme='dark'] .varChipHighlight {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+}
+
+.explanationText {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ifm-font-color-base);
+}
+
+/* Code Card */
+.codeCard {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  background: var(--ifm-background-surface-color);
+  overflow: hidden;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.02);
+}
+
+.codeHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: var(--ifm-background-color);
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  gap: 0.4rem;
+}
+
+.codeTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.codeTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ifm-font-color-secondary);
+}
+
+.langBadge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.12rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--ifm-color-primary);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.complexities {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.complexityTagTc {
+  font-size: 0.74rem;
+  color: var(--ifm-font-color-secondary);
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.22);
+  padding: 0.14rem 0.5rem;
+  border-radius: 6px;
+  font-family: var(--ifm-font-family-monospace);
+  white-space: nowrap;
+}
+
+.complexityTagTc strong {
+  color: var(--ifm-color-primary);
+}
+
+.complexityTagSc {
+  font-size: 0.74rem;
+  color: var(--ifm-font-color-secondary);
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  padding: 0.14rem 0.5rem;
+  border-radius: 6px;
+  font-family: var(--ifm-font-family-monospace);
+  white-space: nowrap;
+}
+
+.complexityTagSc strong {
+  color: #8b5cf6;
+}
+
+[data-theme='dark'] .complexityTagTc {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(96, 165, 250, 0.25);
+}
+
+[data-theme='dark'] .complexityTagTc strong {
+  color: #93c5fd;
+}
+
+[data-theme='dark'] .complexityTagSc {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(196, 181, 253, 0.25);
+}
+
+[data-theme='dark'] .complexityTagSc strong {
+  color: #c4b5fd;
+}
+
+.codeBody {
+  overflow-x: auto;
+  padding: 0.35rem 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ifm-color-emphasis-300) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.codeBody::-webkit-scrollbar {
+  height: 4px;
+}
+
+.codeBody::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.codeBody::-webkit-scrollbar-thumb {
+  background: var(--ifm-color-emphasis-300);
+  border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+  .codeBody {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .codeBody::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.codePre {
+  margin: 0;
+  padding: 0;
+  background: transparent !important;
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.codeLine {
+  display: flex;
+  align-items: center;
+  padding: 0.18rem 0.85rem;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  border-left: 3px solid transparent;
+}
+
+.codeLineActive {
+  background: rgba(37, 99, 235, 0.12);
+  border-left-color: var(--ifm-color-primary);
+  font-weight: 600;
+}
+
+[data-theme='dark'] .codeLineActive {
+  background: rgba(96, 165, 250, 0.16);
+  border-left-color: #60a5fa;
+}
+
+.lineNumber {
+  width: 1.8rem;
+  flex-shrink: 0;
+  text-align: right;
+  margin-right: 1rem;
+  color: var(--ifm-color-emphasis-400);
+  user-select: none;
+  font-size: 0.76rem;
+}
+
+.lineContent {
+  flex: 1;
+  white-space: pre;
+  color: var(--ifm-font-color-base);
+}
+
+.activeIndicator {
+  margin-left: 0.6rem;
+  font-size: 0.72rem;
+  color: var(--ifm-color-primary);
+  animation: bounceRight 1s infinite alternate;
+}
+
+@keyframes bounceRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(3px);
+  }
+}

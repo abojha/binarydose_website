@@ -4,6 +4,10 @@
 @import "katex/dist/katex.min.css";
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
+html {
+  scrollbar-gutter: stable;
+}
+
 /* Prevent horizontal overflow scrolling across the entire site */
 html,
 body {
@@ -365,16 +369,50 @@ body {
   color: var(--ifm-color-primary) !important;
 }
 
-@media (min-width: 997px) and (max-width: 1250px) {
+.navbar__inner {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.5rem !important;
+}
+
+@media (min-width: 997px) {
+  .navbar__items {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .navbar__items--right {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    margin-left: auto !important;
+    gap: 0.35rem !important;
+  }
+}
+
+@media (min-width: 997px) and (max-width: 1320px) {
   .navbar__item {
-    font-size: 0.86rem !important;
+    font-size: 0.84rem !important;
+    padding: 0.25rem 0.45rem !important;
   }
   .navbar__link {
-    padding: 0.35rem 0.55rem !important;
+    padding: 0.25rem 0.4rem !important;
   }
   .navbar__brand {
-    margin-right: 0.4rem !important;
-    font-size: 1.18rem !important;
+    margin-right: 0.5rem !important;
+    font-size: 1.12rem !important;
+  }
+  .nav-contribute-cta {
+    padding: 0.25rem 0.6rem !important;
+    font-size: 0.8rem !important;
+  }
+  /* Hide social icons from header on medium laptop screens to prevent collision with More dropdown */
+  .navbar__inner .nav-icon {
+    display: none !important;
   }
 }
 
@@ -900,11 +938,11 @@ body {
 
 @media (min-width: 997px) {
   .navbar__search-input {
-    width: 125px !important;
+    width: 115px !important;
   }
   .navbar__search-input:focus,
   [data-theme='dark'] .navbar__search-input:focus {
-    width: 195px !important;
+    width: 150px !important;
   }
 }
 

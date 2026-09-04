@@ -212,6 +212,11 @@ const config = {
             to: "/coding",
           },
           {
+            label: "AlgoDose",
+            position: "left",
+            to: "/algodose",
+          },
+          {
             label: "100 Days Interview",
             position: "left",
             to: "/100-days",
@@ -275,6 +280,10 @@ const config = {
               {
                 label: "CodeDose (DSA Sheet)",
                 to: "/coding",
+              },
+              {
+                label: "AlgoDose (Visualizer)",
+                to: "/algodose",
               },
               {
                 label: "100 Days of Interview Questions",

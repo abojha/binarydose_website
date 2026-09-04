@@ -6,6 +6,14 @@ tags:
   - med
 ---
 
+import AlgoDoseCallout from '@site/src/components/AlgoDose/AlgoDoseCallout';
+
+<AlgoDoseCallout
+  algoId="two_sum"
+  title="Two Sum (Two Pointers)"
+  description="Watch the left and right pointers converge, inspect sum comparisons, and step through the logic in real-time."
+/>
+
 ### Problem Statement:
 
 Given an array of integers arr[] and an integer target.
