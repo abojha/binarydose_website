@@ -5,26 +5,25 @@ import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./BinarySearchVisualizer.module.css";
 
 const BINARY_SEARCH_CODE = [
-  "function binarySearch(arr, target) {",
-  "  let low = 0, high = arr.length - 1;",
-  "  while (low <= high) {",
-  "    let mid = Math.floor((low + high) / 2);",
-  "    if (arr[mid] === target) {",
-  "      return mid; // Found!",
-  "    } else if (arr[mid] < target) {",
-  "      low = mid + 1; // Search right half",
-  "    } else {",
-  "      high = mid - 1; // Search left half",
-  "    }",
-  "  }",
-  "  return -1; // Not found",
-  "}",
+  "def binary_search(arr, target):",
+  "    low, high = 0, len(arr) - 1",
+  "    while low <= high:",
+  "        mid = (low + high) // 2",
+  "        if arr[mid] == target:",
+  "            return mid  # Target found!",
+  "        elif arr[mid] < target:",
+  "            low = mid + 1   # Discard left half",
+  "        else:",
+  "            high = mid - 1  # Discard right half",
+  "    return -1  # Target not found",
 ];
 
 export default function BinarySearchVisualizer() {
   const [array, setArray] = useState([2, 5, 8, 12, 16, 23, 38, 45, 56, 72]);
   const [target, setTarget] = useState(23);
-  const [customInput, setCustomInput] = useState("2, 5, 8, 12, 16, 23, 38, 45, 56, 72");
+  const [customInput, setCustomInput] = useState(
+    "2, 5, 8, 12, 16, 23, 38, 45, 56, 72"
+  );
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(900);
@@ -47,7 +46,12 @@ export default function BinarySearchVisualizer() {
       statusText: "Ready",
       statusType: "info",
       codeLine: 2,
-      explanation: `Initialized low = 0, high = ${high}. Target to find: ${target}.`,
+      variables: [
+        { label: "low", value: 0 },
+        { label: "high", value: high },
+        { label: "target", value: target },
+      ],
+      explanation: `Search space initialized: indices [0..${high}]. Target: ${target}.`,
     });
 
     while (low <= high) {
@@ -60,10 +64,15 @@ export default function BinarySearchVisualizer() {
         mid,
         eliminated: new Set(eliminated),
         status: "comparing",
-        statusText: "Comparing",
+        statusText: "Inspect Mid",
         statusType: "info",
         codeLine: 4,
-        explanation: `Calculated mid index = Math.floor((${low} + ${high}) / 2) = ${mid}. Inspecting element arr[${mid}] = ${array[mid]}.`,
+        variables: [
+          { label: "low", value: low },
+          { label: "mid", value: `${mid} (val: ${array[mid]})`, highlight: true },
+          { label: "high", value: high },
+        ],
+        explanation: `Checking middle element arr[${mid}] = ${array[mid]} against target ${target}.`,
       });
 
       if (array[mid] === target) {
@@ -73,10 +82,14 @@ export default function BinarySearchVisualizer() {
           mid,
           eliminated: new Set(eliminated),
           status: "found",
-          statusText: "Found!",
+          statusText: "🎯 Found!",
           statusType: "success",
           codeLine: 6,
-          explanation: `🎯 Match found! arr[${mid}] == ${target} at index ${mid}. Search complete!`,
+          variables: [
+            { label: "Index", value: mid, highlight: true },
+            { label: "Value", value: `${array[mid]} == ${target}`, highlight: true },
+          ],
+          explanation: `🎯 Target found! arr[${mid}] equals ${target}. Returning index ${mid}.`,
         });
         return generated;
       } else if (array[mid] < target) {
@@ -93,7 +106,11 @@ export default function BinarySearchVisualizer() {
           statusText: "Eliminate Left",
           statusType: "warning",
           codeLine: 8,
-          explanation: `arr[${mid}] (${array[mid]}) < ${target}. Since array is sorted, all elements from index ${low} to ${mid} are smaller. Discarding left half and setting low = ${mid + 1}.`,
+          variables: [
+            { label: "arr[mid]", value: `${array[mid]} < ${target}` },
+            { label: "New low", value: mid + 1, highlight: true },
+          ],
+          explanation: `Target is larger than arr[${mid}]. Discarding left half; searching right (low = ${mid + 1}).`,
         });
         low = mid + 1;
       } else {
@@ -110,13 +127,17 @@ export default function BinarySearchVisualizer() {
           statusText: "Eliminate Right",
           statusType: "warning",
           codeLine: 10,
-          explanation: `arr[${mid}] (${array[mid]}) > ${target}. Since array is sorted, all elements from index ${mid} to ${high} are larger. Discarding right half and setting high = ${mid - 1}.`,
+          variables: [
+            { label: "arr[mid]", value: `${array[mid]} > ${target}` },
+            { label: "New high", value: mid - 1, highlight: true },
+          ],
+          explanation: `Target is smaller than arr[${mid}]. Discarding right half; searching left (high = ${mid - 1}).`,
         });
         high = mid - 1;
       }
     }
 
-    // Not found step
+    // Not found
     generated.push({
       low,
       high,
@@ -125,8 +146,11 @@ export default function BinarySearchVisualizer() {
       status: "not_found",
       statusText: "Not Found",
       statusType: "danger",
-      codeLine: 13,
-      explanation: `❌ low (${low}) > high (${high}). Search interval is empty. Target ${target} does not exist in this array.`,
+      codeLine: 11,
+      variables: [
+        { label: "Result", value: "-1 (Not Found)", highlight: true },
+      ],
+      explanation: `❌ Search boundary crossed (low > high). Target ${target} does not exist in array.`,
     });
 
     return generated;
@@ -134,7 +158,7 @@ export default function BinarySearchVisualizer() {
 
   const currentStep = steps[currentStepIndex] || steps[0];
 
-  // Playback timer
+  // Auto-play timer
   useEffect(() => {
     if (isPlaying) {
       timerRef.current = setTimeout(() => {
@@ -163,14 +187,12 @@ export default function BinarySearchVisualizer() {
   };
 
   const handleNext = () => {
-    setIsPlaying(false);
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex((prev) => prev + 1);
     }
   };
 
   const handlePrev = () => {
-    setIsPlaying(false);
     if (currentStepIndex > 0) {
       setCurrentStepIndex((prev) => prev - 1);
     }
@@ -183,16 +205,19 @@ export default function BinarySearchVisualizer() {
 
   const handleRandomize = () => {
     setIsPlaying(false);
-    const length = 10;
-    const set = new Set();
-    while (set.size < length) {
-      set.add(Math.floor(Math.random() * 90) + 5);
+    const len = 9;
+    const sorted = [];
+    let val = Math.floor(Math.random() * 6) + 1;
+    for (let i = 0; i < len; i++) {
+      sorted.push(val);
+      val += Math.floor(Math.random() * 8) + 2;
     }
-    const sorted = Array.from(set).sort((a, b) => a - b);
     setArray(sorted);
     setCustomInput(sorted.join(", "));
-    // Pick a random target (either present or absent)
-    const randomPick = Math.random() > 0.3 ? sorted[Math.floor(Math.random() * sorted.length)] : 99;
+    const randomPick =
+      Math.random() > 0.25
+        ? sorted[Math.floor(Math.random() * sorted.length)]
+        : 99;
     setTarget(randomPick);
     setCurrentStepIndex(0);
   };
@@ -218,143 +243,201 @@ export default function BinarySearchVisualizer() {
   return (
     <div className={layoutStyles.twoColumnGrid}>
       <div className={layoutStyles.leftColumn}>
-        {/* Target Selector Bar */}
-      <div className={styles.targetBar}>
-        <div className={styles.targetInputGroup}>
-          <label htmlFor="bs-target-input" className={styles.targetLabel}>
-            🎯 Target to Search:
-          </label>
-          <input
-            id="bs-target-input"
-            type="number"
-            className={styles.targetInput}
-            value={target}
-            onChange={(e) => {
-              setIsPlaying(false);
-              const val = parseInt(e.target.value, 10);
-              setTarget(isNaN(val) ? 0 : val);
-              setCurrentStepIndex(0);
-            }}
-          />
-        </div>
-
-        {/* Quick Pick Target Chips */}
-        <div className={styles.quickChips}>
-          <span className={styles.chipsLabel}>Quick picks:</span>
-          {array.slice(0, 4).map((num) => (
-            <button
-              key={num}
-              type="button"
-              className={`${styles.chip} ${target === num ? styles.chipActive : ""}`}
-              onClick={() => {
-                setIsPlaying(false);
-                setTarget(num);
-                setCurrentStepIndex(0);
-              }}
-            >
-              {num}
-            </button>
-          ))}
-          <button
-            type="button"
-            className={`${styles.chip} ${target === 99 ? styles.chipActive : ""}`}
-            onClick={() => {
-              setIsPlaying(false);
-              setTarget(99);
-              setCurrentStepIndex(0);
+        {/* Consolidated Inputs & Configuration Toolbar at Top */}
+        <div className={styles.configCard}>
+          {/* Row 1: Array Input & Randomize */}
+          <form
+            className={styles.inputRow}
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleCustomInputSubmit();
             }}
           >
-            99 (Not Present)
-          </button>
-        </div>
-      </div>
+            <label className={styles.label}>Array:</label>
+            <input
+              type="text"
+              className={styles.textInput}
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+              placeholder="e.g. 2, 5, 8, 12, 16, 23, 38, 45"
+            />
+            <button type="submit" className={styles.applyBtn}>
+              Apply
+            </button>
+            <button
+              type="button"
+              className={styles.randomBtn}
+              onClick={handleRandomize}
+              title="Generate new random array"
+            >
+              🎲 Randomize
+            </button>
+          </form>
 
-      {/* Visual Array Canvas */}
-      <div className={styles.canvasCard}>
-        <div className={styles.arrayWrapper}>
-          {array.map((num, idx) => {
-            const isMid = currentStep.mid === idx;
-            const isLow = currentStep.low === idx;
-            const isHigh = currentStep.high === idx;
-            const isEliminated = currentStep.eliminated.has(idx);
-            const isFound = isMid && currentStep.status === "found";
-
-            return (
-              <div key={idx} className={styles.elementColumn}>
-                {/* Pointer indicators on top */}
-                <div className={styles.pointerTopSpace}>
-                  {isMid && (
-                    <span className={`${styles.pointerBadge} ${styles.pointerMid}`}>
-                      mid
-                    </span>
-                  )}
-                </div>
-
-                {/* Number Box */}
-                <div
-                  className={`
-                    ${styles.elementBox}
-                    ${isMid ? styles.boxMid : ""}
-                    ${isEliminated ? styles.boxEliminated : ""}
-                    ${isFound ? styles.boxFound : ""}
-                  `}
+          {/* Row 2: Target Input & Quick Chips */}
+          <div className={styles.inputRow}>
+            <label htmlFor="bs-target-input" className={styles.label}>
+              Target:
+            </label>
+            <input
+              id="bs-target-input"
+              type="number"
+              className={styles.targetInput}
+              value={target}
+              onChange={(e) => {
+                setIsPlaying(false);
+                const val = parseInt(e.target.value, 10);
+                setTarget(isNaN(val) ? 0 : val);
+                setCurrentStepIndex(0);
+              }}
+            />
+            <span className={styles.label}>Quick:</span>
+            <div className={styles.quickChips}>
+              {array.slice(0, 4).map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  className={`${styles.chip} ${
+                    target === num ? styles.chipActive : ""
+                  }`}
+                  onClick={() => {
+                    setIsPlaying(false);
+                    setTarget(num);
+                    setCurrentStepIndex(0);
+                  }}
                 >
-                  <span className={styles.elementValue}>{num}</span>
-                </div>
+                  {num}
+                </button>
+              ))}
+              <button
+                type="button"
+                className={`${styles.chip} ${
+                  target === 99 ? styles.chipActive : ""
+                }`}
+                onClick={() => {
+                  setIsPlaying(false);
+                  setTarget(99);
+                  setCurrentStepIndex(0);
+                }}
+              >
+                99 (Not Found)
+              </button>
+            </div>
+          </div>
+        </div>
 
-                {/* Index & Low/High pointers below */}
-                <div className={styles.elementFooter}>
-                  <span className={styles.elementIndex}>[{idx}]</span>
-                  <div className={styles.pointerBottomSpace}>
-                    {isLow && (
-                      <span className={`${styles.pointerBadge} ${styles.pointerLow}`}>
-                        low
-                      </span>
-                    )}
-                    {isHigh && (
-                      <span className={`${styles.pointerBadge} ${styles.pointerHigh}`}>
-                        high
+        {/* Visual Array Canvas */}
+        <div className={styles.canvasCard}>
+          {/* Status banner with fixed height slot to avoid CLS */}
+          <div className={styles.canvasStatusSlot}>
+            {currentStep.status === "found" ? (
+              <div className={styles.winningBanner}>
+                🎯 Target Found: arr[{currentStep.mid}] = {target} (Index:{" "}
+                {currentStep.mid})
+              </div>
+            ) : currentStep.status === "not_found" ? (
+              <div className={styles.notFoundBanner}>
+                ❌ Target {target} not found in array
+              </div>
+            ) : (
+              <div className={styles.activePhaseHint}>
+                <span>Search Range:</span>
+                <strong>arr[{currentStep.low}..{currentStep.high}]</strong>
+                <span>| Mid:</span>
+                <strong style={{ color: "#8b5cf6" }}>[{currentStep.mid}] = {array[currentStep.mid]}</strong>
+              </div>
+            )}
+          </div>
+
+          <div className={styles.arrayWrapper}>
+            {array.map((num, idx) => {
+              const isMid = currentStep.mid === idx;
+              const isLow = currentStep.low === idx;
+              const isHigh = currentStep.high === idx;
+              const isEliminated = currentStep.eliminated.has(idx);
+              const isFound = isMid && currentStep.status === "found";
+
+              return (
+                <div key={idx} className={styles.elementColumn}>
+                  {/* Pointer indicators on top */}
+                  <div className={styles.pointerTopSpace}>
+                    {isMid && (
+                      <span
+                        className={`${styles.pointerBadge} ${styles.pointerMid}`}
+                      >
+                        MID
                       </span>
                     )}
                   </div>
+
+                  {/* Number Box */}
+                  <div
+                    className={`
+                      ${styles.elementBox}
+                      ${isMid ? styles.boxMid : ""}
+                      ${isEliminated ? styles.boxEliminated : ""}
+                      ${isFound ? styles.boxFound : ""}
+                    `}
+                  >
+                    <span className={styles.elementValue}>{num}</span>
+                  </div>
+
+                  {/* Index & Low/High pointers below */}
+                  <div className={styles.elementFooter}>
+                    <span className={styles.elementIndex}>[{idx}]</span>
+                    <div className={styles.pointerBottomSpace}>
+                      {isLow && (
+                        <span
+                          className={`${styles.pointerBadge} ${styles.pointerLow}`}
+                        >
+                          LOW
+                        </span>
+                      )}
+                      {isHigh && (
+                        <span
+                          className={`${styles.pointerBadge} ${styles.pointerHigh}`}
+                        >
+                          HIGH
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
+
+        {/* Reusable Player Controls */}
+        <PlayerControls
+          isPlaying={isPlaying}
+          onPlayPause={handlePlayPause}
+          onNext={handleNext}
+          onPrev={handlePrev}
+          onReset={handleReset}
+          currentStep={currentStepIndex}
+          totalSteps={steps.length}
+          speed={speed}
+          onSpeedChange={setSpeed}
+          showCustomInput={false}
+        />
       </div>
 
-      {/* Reusable Player Controls */}
-      <PlayerControls
-        isPlaying={isPlaying}
-        onPlayPause={handlePlayPause}
-        onNext={handleNext}
-        onPrev={handlePrev}
-        onReset={handleReset}
-        currentStep={currentStepIndex}
-        totalSteps={steps.length}
-        speed={speed}
-        onSpeedChange={setSpeed}
-        onRandomize={handleRandomize}
-        customInput={customInput}
-        onCustomInputChange={setCustomInput}
-        onCustomInputSubmit={handleCustomInputSubmit}
-        inputPlaceholder="Enter comma-separated sorted numbers"
-      />
+      {/* Right Column: Synchronized Code & Step Explanation Panel */}
+      <div className={layoutStyles.rightColumn}>
+        <CodeSyncPanel
+          codeLines={BINARY_SEARCH_CODE}
+          activeLine={currentStep.codeLine}
+          explanation={currentStep.explanation}
+          actionTitle={currentStep.actionTitle}
+          variables={currentStep.variables}
+          statusText={currentStep.statusText}
+          statusType={currentStep.statusType}
+          timeComplexity="O(log N)"
+          spaceComplexity="O(1)"
+          language="Python"
+        />
+      </div>
     </div>
-
-    {/* Right Column: Synchronized Code & Step Explanation Panel */}
-    <div className={layoutStyles.rightColumn}>
-      <CodeSyncPanel
-        codeLines={BINARY_SEARCH_CODE}
-        activeLine={currentStep.codeLine}
-        explanation={currentStep.explanation}
-        statusText={currentStep.statusText}
-        statusType={currentStep.statusType}
-        timeComplexity="O(log N)"
-        spaceComplexity="O(1)"
-      />
-    </div>
-  </div>
-);
+  );
 }

@@ -29,6 +29,30 @@ export default function PlayerControls({
     { label: "2x", value: 250 },
   ];
 
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target?.tagName)) {
+        return;
+      }
+      if (e.code === "Space") {
+        e.preventDefault();
+        onPlayPause();
+      } else if (e.code === "ArrowRight") {
+        e.preventDefault();
+        if (!isLastStep) onNext();
+      } else if (e.code === "ArrowLeft") {
+        e.preventDefault();
+        if (!isFirstStep) onPrev();
+      } else if (e.code === "KeyR") {
+        e.preventDefault();
+        onReset();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onPlayPause, onNext, onPrev, onReset, isFirstStep, isLastStep]);
+
   return (
     <div className={styles.controlsWrapper}>
       <div className={styles.playbackRow}>
@@ -38,7 +62,7 @@ export default function PlayerControls({
             type="button"
             className={styles.iconButton}
             onClick={onReset}
-            title="Reset to beginning"
+            title="Reset to beginning (R)"
             aria-label="Reset"
           >
             ↺
@@ -48,7 +72,7 @@ export default function PlayerControls({
             className={styles.iconButton}
             onClick={onPrev}
             disabled={isFirstStep}
-            title="Previous step"
+            title="Previous step (Left arrow)"
             aria-label="Previous step"
           >
             ⏮
@@ -57,7 +81,7 @@ export default function PlayerControls({
             type="button"
             className={`${styles.iconButton} ${styles.primaryPlayButton}`}
             onClick={onPlayPause}
-            title={isPlaying ? "Pause" : "Play automatically"}
+            title={isPlaying ? "Pause (Space)" : "Play automatically (Space)"}
             aria-label={isPlaying ? "Pause" : "Play"}
           >
             {isPlaying ? "⏸" : "▶"}
@@ -67,7 +91,7 @@ export default function PlayerControls({
             className={styles.iconButton}
             onClick={onNext}
             disabled={isLastStep}
-            title="Next step"
+            title="Next step (Right arrow)"
             aria-label="Next step"
           >
             ⏭
@@ -101,7 +125,7 @@ export default function PlayerControls({
           </div>
         </div>
 
-        {/* Randomize Generator */}
+        {/* Randomize Generator (if kept at bottom) */}
         {onRandomize && (
           <button
             type="button"
@@ -149,6 +173,16 @@ export default function PlayerControls({
           )}
         </div>
       )}
+
+      {/* Keyboard Shortcuts Hint */}
+      <div className={styles.shortcutsHint}>
+        <span>⌨️ Shortcuts:</span>
+        <kbd>Space</kbd> Play/Pause
+        <span>•</span>
+        <kbd>←</kbd> <kbd>→</kbd> Step
+        <span>•</span>
+        <kbd>R</kbd> Reset
+      </div>
     </div>
   );
 }

@@ -5,33 +5,29 @@ import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./TwoPointersVisualizer.module.css";
 
 const TWO_SUM_CODE = [
-  "function twoSumSorted(arr, target) {",
-  "  let left = 0, right = arr.length - 1;",
-  "  while (left < right) {",
-  "    let currentSum = arr[left] + arr[right];",
-  "    if (currentSum === target) {",
-  "      return [left, right]; // Found pair!",
-  "    } else if (currentSum < target) {",
-  "      left++; // Need a larger sum",
-  "    } else {",
-  "      right--; // Need a smaller sum",
-  "    }",
-  "  }",
-  "  return [-1, -1]; // No pair found",
-  "}",
+  "def two_sum_sorted(arr, target):",
+  "    left, right = 0, len(arr) - 1",
+  "    while left < right:",
+  "        curr_sum = arr[left] + arr[right]",
+  "        if curr_sum == target:",
+  "            return [left, right]  # Pair found!",
+  "        elif curr_sum < target:",
+  "            left += 1   # Need larger sum",
+  "        else:",
+  "            right -= 1  # Need smaller sum",
+  "    return [-1, -1]  # No pair found",
 ];
 
 const SLIDING_WINDOW_CODE = [
-  "function maxSubarraySum(arr, k) {",
-  "  let windowSum = 0, maxSum = 0;",
-  "  for (let i = 0; i < k; i++) windowSum += arr[i];",
-  "  maxSum = windowSum;",
-  "  for (let i = k; i < arr.length; i++) {",
-  "    windowSum += arr[i] - arr[i - k]; // Slide window",
-  "    maxSum = Math.max(maxSum, windowSum);",
-  "  }",
-  "  return maxSum;",
-  "}",
+  "def max_subarray_sum(arr, k):",
+  "    window_sum = sum(arr[:k])",
+  "    max_sum = window_sum",
+  "",
+  "    for i in range(k, len(arr)):",
+  "        window_sum += arr[i] - arr[i - k]  # Slide window",
+  "        max_sum = max(max_sum, window_sum)",
+  "",
+  "    return max_sum",
 ];
 
 export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
@@ -48,6 +44,7 @@ export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
       setCurrentStepIndex(0);
     }
   }, [selectedAlgoId]);
+
   const [twoSumArray, setTwoSumArray] = useState([1, 3, 4, 6, 8, 11, 15]);
   const [twoSumTarget, setTwoSumTarget] = useState(14);
 
@@ -73,7 +70,12 @@ export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
       statusText: "Initialized",
       statusType: "info",
       codeLine: 2,
-      explanation: `Initialized left = 0 (val: ${twoSumArray[0]}), right = ${right} (val: ${twoSumArray[right]}). Target sum: ${twoSumTarget}.`,
+      variables: [
+        { label: "left", value: `0 (val: ${twoSumArray[0]})` },
+        { label: "right", value: `${right} (val: ${twoSumArray[right]})` },
+        { label: "target", value: twoSumTarget },
+      ],
+      explanation: `Initialized pointers at both boundaries. Target sum to find: ${twoSumTarget}.`,
     });
 
     while (left < right) {
@@ -84,10 +86,14 @@ export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
         right,
         currentSum: sum,
         status: "checking",
-        statusText: "Checking Sum",
+        statusText: "Checking",
         statusType: "info",
         codeLine: 4,
-        explanation: `Comparing arr[left] (${twoSumArray[left]}) + arr[right] (${twoSumArray[right]}) = ${sum} against target (${twoSumTarget}).`,
+        variables: [
+          { label: "arr[left] + arr[right]", value: `${twoSumArray[left]} + ${twoSumArray[right]} = ${sum}`, highlight: true },
+          { label: "target", value: twoSumTarget },
+        ],
+        explanation: `Comparing current sum (${sum}) against target (${twoSumTarget}).`,
       });
 
       if (sum === twoSumTarget) {
@@ -96,10 +102,14 @@ export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
           right,
           currentSum: sum,
           status: "found",
-          statusText: "Pair Found!",
+          statusText: "🎯 Pair Found",
           statusType: "success",
           codeLine: 6,
-          explanation: `🎯 Target sum found! arr[${left}] (${twoSumArray[left]}) + arr[${right}] (${twoSumArray[right]}) = ${twoSumTarget}. Indices [${left}, ${right}].`,
+          variables: [
+            { label: "Pair", value: `[${left}, ${right}]`, highlight: true },
+            { label: "Sum", value: `${sum} == ${twoSumTarget}`, highlight: true },
+          ],
+          explanation: `🎯 Target sum reached! Returning indices [${left}, ${right}].`,
         });
         return generated;
       } else if (sum < twoSumTarget) {
@@ -108,10 +118,14 @@ export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
           right,
           currentSum: sum,
           status: "move_left",
-          statusText: "Move Left ➔",
+          statusText: "Advance left ➔",
           statusType: "warning",
           codeLine: 8,
-          explanation: `Current sum ${sum} < target ${twoSumTarget}. Since array is sorted, moving left pointer (left++) to get a larger sum.`,
+          variables: [
+            { label: "Sum", value: `${sum} < ${twoSumTarget}` },
+            { label: "Next", value: `left = ${left + 1}`, highlight: true },
+          ],
+          explanation: `Sum is too small. Since array is sorted, advancing left++ increases the sum.`,
         });
         left++;
       } else {
@@ -120,10 +134,14 @@ export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
           right,
           currentSum: sum,
           status: "move_right",
-          statusText: "Move Right ⬅",
+          statusText: "Retract right ⬅",
           statusType: "warning",
           codeLine: 10,
-          explanation: `Current sum ${sum} > target ${twoSumTarget}. Since array is sorted, moving right pointer (right--) to get a smaller sum.`,
+          variables: [
+            { label: "Sum", value: `${sum} > ${twoSumTarget}` },
+            { label: "Next", value: `right = ${right - 1}`, highlight: true },
+          ],
+          explanation: `Sum is too large. Since array is sorted, decrementing right-- decreases the sum.`,
         });
         right--;
       }
@@ -134,16 +152,19 @@ export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
       right,
       currentSum: null,
       status: "not_found",
-      statusText: "No Pair Found",
+      statusText: "Not Found",
       statusType: "danger",
-      codeLine: 13,
-      explanation: `❌ left pointer crossed right pointer. No two numbers in this array sum to ${twoSumTarget}.`,
+      codeLine: 11,
+      variables: [
+        { label: "Result", value: "[-1, -1]", highlight: true },
+      ],
+      explanation: `❌ Pointers crossed without finding any pair summing to ${twoSumTarget}.`,
     });
 
     return generated;
   }, [twoSumArray, twoSumTarget]);
 
-  // Sliding Window Steps
+  // Sliding Window Steps (with true best window tracking!)
   const slidingWindowSteps = useMemo(() => {
     const generated = [];
     const k = windowK;
@@ -152,17 +173,27 @@ export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
     let initialSum = 0;
     for (let i = 0; i < k; i++) initialSum += windowArray[i];
     let maxSum = initialSum;
+    let bestStart = 0;
+    let bestEnd = k - 1;
 
     generated.push({
       windowStart: 0,
       windowEnd: k - 1,
       windowSum: initialSum,
       maxSum: initialSum,
+      bestStart: 0,
+      bestEnd: k - 1,
+      isNewMax: true,
       status: "initial_window",
       statusText: "First Window",
       statusType: "info",
-      codeLine: 3,
-      explanation: `Built initial window of size ${k} (indices 0 to ${k - 1}). Current sum: ${initialSum}. Max sum so far: ${maxSum}.`,
+      codeLine: 2,
+      variables: [
+        { label: "Window", value: `[0..${k - 1}]` },
+        { label: "Sum", value: initialSum, highlight: true },
+        { label: "Max", value: maxSum },
+      ],
+      explanation: `Calculated sum of initial window [0..${k - 1}] = ${initialSum}.`,
     });
 
     for (let i = k; i < n; i++) {
@@ -170,33 +201,56 @@ export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
       const removed = windowArray[i - k];
       initialSum += added - removed;
       const isNewMax = initialSum > maxSum;
-      maxSum = Math.max(maxSum, initialSum);
+      if (isNewMax) {
+        maxSum = initialSum;
+        bestStart = i - k + 1;
+        bestEnd = i;
+      }
 
       generated.push({
         windowStart: i - k + 1,
         windowEnd: i,
         windowSum: initialSum,
         maxSum,
+        bestStart,
+        bestEnd,
+        isNewMax,
         status: isNewMax ? "new_max" : "slide",
-        statusText: isNewMax ? "New Max Sum!" : "Sliding Window",
+        statusText: isNewMax ? "New Record!" : "Slide ➔",
         statusType: isNewMax ? "success" : "info",
         codeLine: 6,
-        explanation: `Slid window ➔: Subtracted arr[${i - k}] (${removed}) and added arr[${i}] (${added}). Window sum = ${initialSum}.${
-          isNewMax ? ` 🔥 New Maximum Sum: ${maxSum}!` : ` Max sum remains ${maxSum}.`
-        }`,
+        variables: [
+          { label: "Window", value: `[${i - k + 1}..${i}]` },
+          { label: "Sum", value: initialSum, highlight: isNewMax },
+          { label: "Record Max", value: `${maxSum} 🏆`, highlight: isNewMax },
+        ],
+        explanation: isNewMax
+          ? `🔥 Subtracted ${removed}, added ${added}. Window sum ${initialSum} sets a new record max!`
+          : `Subtracted ${removed}, added ${added}. Window sum is ${initialSum} (max remains ${maxSum}).`,
       });
     }
 
+    // Final Completion Step: Highlights the TRUE WINNING window!
     generated.push({
-      windowStart: n - k,
-      windowEnd: n - 1,
-      windowSum: initialSum,
+      windowStart: bestStart,
+      windowEnd: bestEnd,
+      windowSum: maxSum,
       maxSum,
+      bestStart,
+      bestEnd,
+      isNewMax: false,
       status: "complete",
-      statusText: "Finished",
+      statusText: "🏆 Max Window",
       statusType: "success",
       codeLine: 9,
-      explanation: `🏁 Finished sliding across entire array. Maximum subarray sum of size ${k} is ${maxSum}!`,
+      variables: [
+        { label: "Winning Window", value: `[${bestStart}..${bestEnd}]`, highlight: true },
+        { label: "Max Sum", value: `${maxSum} 🏆`, highlight: true },
+        { label: "Subarray", value: `[${windowArray.slice(bestStart, bestEnd + 1).join(", ")}]` },
+      ],
+      explanation: `🏁 Finished sliding! Subarray [${windowArray
+        .slice(bestStart, bestEnd + 1)
+        .join(", ")}] yields the maximum sum of ${maxSum}.`,
     });
 
     return generated;
@@ -234,14 +288,12 @@ export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
   };
 
   const handleNext = () => {
-    setIsPlaying(false);
     if (currentStepIndex < activeSteps.length - 1) {
       setCurrentStepIndex((prev) => prev + 1);
     }
   };
 
   const handlePrev = () => {
-    setIsPlaying(false);
     if (currentStepIndex > 0) {
       setCurrentStepIndex((prev) => prev - 1);
     }
@@ -255,31 +307,68 @@ export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
   const handleRandomize = () => {
     setIsPlaying(false);
     if (subType === "two_sum") {
-      const length = 7;
-      const set = new Set();
-      while (set.size < length) {
-        set.add(Math.floor(Math.random() * 30) + 1);
+      const len = 7;
+      const sorted = [];
+      let val = Math.floor(Math.random() * 5) + 1;
+      for (let i = 0; i < len; i++) {
+        sorted.push(val);
+        val += Math.floor(Math.random() * 4) + 2;
       }
-      const sorted = Array.from(set).sort((a, b) => a - b);
       setTwoSumArray(sorted);
-      // Pick target as a real sum of two random items
-      const i1 = Math.floor(Math.random() * (length - 1));
-      const i2 = i1 + 1 + Math.floor(Math.random() * (length - 1 - i1));
+      const i1 = Math.floor(Math.random() * 3);
+      const i2 = Math.floor(Math.random() * 3) + 3;
       setTwoSumTarget(sorted[i1] + sorted[i2]);
     } else {
-      const rand = Array.from({ length: 7 }, () => Math.floor(Math.random() * 15) + 1);
-      setWindowArray(rand);
+      const randomArr = Array.from(
+        { length: 7 },
+        () => Math.floor(Math.random() * 10) + 1
+      );
+      setWindowArray(randomArr);
     }
     setCurrentStepIndex(0);
   };
 
+  const [customInputStr, setCustomInputStr] = useState(
+    subType === "two_sum" ? twoSumArray.join(", ") : windowArray.join(", ")
+  );
+
+  useEffect(() => {
+    setCustomInputStr(
+      subType === "two_sum" ? twoSumArray.join(", ") : windowArray.join(", ")
+    );
+  }, [subType, twoSumArray, windowArray]);
+
+  const handleCustomInputSubmit = (e) => {
+    if (e) e.preventDefault();
+    const parsed = customInputStr
+      .split(",")
+      .map((item) => parseInt(item.trim(), 10))
+      .filter((n) => !isNaN(n));
+
+    if (parsed.length >= 3) {
+      setIsPlaying(false);
+      if (subType === "two_sum") {
+        const sorted = [...parsed].sort((a, b) => a - b);
+        setTwoSumArray(sorted);
+        // Automatically adjust target to something reasonable if current target is impossible
+        if (twoSumTarget < sorted[0] + sorted[1]) {
+          setTwoSumTarget(sorted[0] + sorted[sorted.length - 1]);
+        }
+      } else {
+        setWindowArray(parsed);
+      }
+      setCurrentStepIndex(0);
+    }
+  };
+
   return (
     <div className={layoutStyles.twoColumnGrid}>
+      {/* Left Column: Visualizer Canvas & Controls */}
       <div className={layoutStyles.leftColumn}>
+        {/* Sub-algorithm Selector */}
         {!selectedAlgoId && (
           <div className={styles.modeTabs}>
             <button
-              type="button"
               className={`${styles.modeTab} ${
                 subType === "two_sum" ? styles.modeTabActive : ""
               }`}
@@ -289,10 +378,9 @@ export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
                 setCurrentStepIndex(0);
               }}
             >
-              ↔️ Two Sum (Sorted Array)
+              ↔️ Two Sum (Sorted)
             </button>
             <button
-              type="button"
               className={`${styles.modeTab} ${
                 subType === "sliding_window" ? styles.modeTabActive : ""
               }`}
@@ -307,158 +395,278 @@ export default function TwoPointersVisualizer({ selectedAlgoId = null }) {
           </div>
         )}
 
-        {/* Mode Controls Bar */}
-      {subType === "two_sum" ? (
-        <div className={styles.controlHeader}>
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Target Sum:</label>
+        {/* Consolidated Inputs & Configuration Toolbar at Top */}
+        <div className={styles.configCard}>
+          {/* Row 1: Array Input & Randomize */}
+          <form className={styles.inputRow} onSubmit={handleCustomInputSubmit}>
+            <label className={styles.label}>Array:</label>
             <input
-              type="number"
-              className={styles.numInput}
-              value={twoSumTarget}
-              onChange={(e) => {
-                setIsPlaying(false);
-                setTwoSumTarget(parseInt(e.target.value, 10) || 0);
-                setCurrentStepIndex(0);
-              }}
+              type="text"
+              className={styles.textInput}
+              value={customInputStr}
+              onChange={(e) => setCustomInputStr(e.target.value)}
+              placeholder="e.g. 1, 3, 4, 7, 9, 11, 15"
             />
-          </div>
-          {currentStep.currentSum !== undefined && currentStep.currentSum !== null && (
-            <div className={styles.sumBadge}>
-              Current Sum: <strong>{currentStep.currentSum}</strong> (vs Target {twoSumTarget})
+            <button type="submit" className={styles.applyBtn}>
+              Apply
+            </button>
+            <button
+              type="button"
+              className={styles.randomBtn}
+              onClick={handleRandomize}
+              title="Generate random array"
+            >
+              🎲 Randomize
+            </button>
+          </form>
+
+          {/* Row 2: Target Sum or Window Size K + Quick Chips */}
+          {subType === "two_sum" ? (
+            <div className={styles.inputRow}>
+              <label className={styles.label}>Target Sum:</label>
+              <input
+                type="number"
+                className={styles.numInput}
+                value={twoSumTarget}
+                onChange={(e) => {
+                  setIsPlaying(false);
+                  setTwoSumTarget(parseInt(e.target.value, 10) || 0);
+                  setCurrentStepIndex(0);
+                }}
+              />
+              <span className={styles.label}>Quick:</span>
+              <div className={styles.quickChips}>
+                {[10, 14, 17, 23].map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    className={`${styles.chip} ${
+                      twoSumTarget === val ? styles.chipActive : ""
+                    }`}
+                    onClick={() => {
+                      setIsPlaying(false);
+                      setTwoSumTarget(val);
+                      setCurrentStepIndex(0);
+                    }}
+                  >
+                    {val}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className={styles.inputRow}>
+              <label className={styles.label}>Window Size (k):</label>
+              <input
+                type="number"
+                min="2"
+                max="5"
+                className={styles.numInput}
+                value={windowK}
+                onChange={(e) => {
+                  setIsPlaying(false);
+                  const val = Math.max(
+                    2,
+                    Math.min(5, parseInt(e.target.value, 10) || 2)
+                  );
+                  setWindowK(val);
+                  setCurrentStepIndex(0);
+                }}
+              />
+              <span className={styles.label}>Quick:</span>
+              <div className={styles.quickChips}>
+                {[2, 3, 4].map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    className={`${styles.chip} ${
+                      windowK === k ? styles.chipActive : ""
+                    }`}
+                    onClick={() => {
+                      setIsPlaying(false);
+                      setWindowK(k);
+                      setCurrentStepIndex(0);
+                    }}
+                  >
+                    k={k}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
-      ) : (
-        <div className={styles.controlHeader}>
-          <div className={styles.inputGroup}>
-            <label className={styles.label}>Window Size (k):</label>
-            <input
-              type="number"
-              min="2"
-              max="5"
-              className={styles.numInput}
-              value={windowK}
-              onChange={(e) => {
-                setIsPlaying(false);
-                const val = Math.max(2, Math.min(5, parseInt(e.target.value, 10) || 2));
-                setWindowK(val);
-                setCurrentStepIndex(0);
-              }}
-            />
+
+        {/* Visual Canvas Card */}
+        <div className={styles.canvasCard}>
+          {/* Status banner with fixed height slot to avoid CLS */}
+          <div className={styles.canvasStatusSlot}>
+            {subType === "two_sum" ? (
+              currentStep.status === "found" ? (
+                <div className={styles.winningBanner}>
+                  🎯 Target Pair Found: arr[{currentStep.left}] ({twoSumArray[currentStep.left]}) + arr[{currentStep.right}] ({twoSumArray[currentStep.right]}) = {twoSumTarget}
+                </div>
+              ) : (
+                <div className={styles.activePhaseHint}>
+                  <span>Current Sum:</span>
+                  <strong style={{ color: "var(--ifm-color-primary)" }}>
+                    {currentStep.currentSum ?? (twoSumArray[currentStep.left] + twoSumArray[currentStep.right])}
+                  </strong>
+                  <span>vs Target</span>
+                  <strong>{twoSumTarget}</strong>
+                </div>
+              )
+            ) : currentStep.status === "complete" ? (
+              <div className={styles.winningBanner}>
+                🏆 Winner: Window [{currentStep.bestStart}..{currentStep.bestEnd}] &rarr; Max Sum = {currentStep.maxSum}
+              </div>
+            ) : (
+              <div className={styles.activePhaseHint}>
+                <span>Window Sum:</span>
+                <strong style={{ color: "var(--ifm-color-primary)" }}>
+                  {currentStep.windowSum}
+                </strong>
+                <span>| Record Max:</span>
+                <strong style={{ color: "#10b981" }}>{currentStep.maxSum} 🏆</strong>
+              </div>
+            )}
           </div>
-          <div className={styles.sumBadge}>
-            Window Sum: <strong>{currentStep.windowSum}</strong> | Max Sum:{" "}
-            <strong style={{ color: "#10b981" }}>{currentStep.maxSum}</strong>
-          </div>
+
+          {subType === "two_sum" ? (
+            <div className={styles.arrayWrapper}>
+              {twoSumArray.map((num, idx) => {
+                const isLeft = currentStep.left === idx;
+                const isRight = currentStep.right === idx;
+                const isFound =
+                  (isLeft || isRight) && currentStep.status === "found";
+
+                return (
+                  <div key={idx} className={styles.elementColumn}>
+                    {/* Top Pointer Badge */}
+                    <div className={styles.pointerTopSpace}>
+                      {isFound ? (
+                        <span className={styles.pointerFound}>MATCH!</span>
+                      ) : (
+                        <>
+                          {isLeft && (
+                            <span
+                              className={`${styles.pointerBadge} ${styles.pointerLeft}`}
+                            >
+                              LEFT
+                            </span>
+                          )}
+                          {isRight && (
+                            <span
+                              className={`${styles.pointerBadge} ${styles.pointerRight}`}
+                            >
+                              RIGHT
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Element Box */}
+                    <div
+                      className={`
+                        ${styles.elementBox}
+                        ${isLeft ? styles.boxLeft : ""}
+                        ${isRight ? styles.boxRight : ""}
+                        ${isFound ? styles.boxFound : ""}
+                      `}
+                    >
+                      <span>{num}</span>
+                    </div>
+
+                    {/* Index Below */}
+                    <span className={styles.elementIndex}>[{idx}]</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className={styles.arrayWrapper}>
+              {windowArray.map((num, idx) => {
+                const isComplete = currentStep.status === "complete";
+                const inActiveWindow =
+                  idx >= currentStep.windowStart && idx <= currentStep.windowEnd;
+                const inWinningWindow =
+                  isComplete &&
+                  idx >= currentStep.bestStart &&
+                  idx <= currentStep.bestEnd;
+
+                return (
+                  <div key={idx} className={styles.elementColumn}>
+                    <div className={styles.pointerTopSpace}>
+                      {isComplete ? (
+                        inWinningWindow && idx === currentStep.bestStart && (
+                          <span className={styles.winnerMarker}>WINNER</span>
+                        )
+                      ) : (
+                        <>
+                          {idx === currentStep.windowStart && (
+                            <span className={styles.windowBorderMarker}>START</span>
+                          )}
+                          {idx === currentStep.windowEnd && (
+                            <span className={styles.windowBorderMarker}>END</span>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    <div
+                      className={`
+                        ${styles.elementBox}
+                        ${
+                          inWinningWindow
+                            ? styles.boxWinningWindow
+                            : inActiveWindow
+                            ? styles.boxInWindow
+                            : styles.boxOutsideWindow
+                        }
+                      `}
+                    >
+                      <span>{num}</span>
+                    </div>
+
+                    <span className={styles.elementIndex}>[{idx}]</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Visual Canvas */}
-      <div className={styles.canvasCard}>
-        {subType === "two_sum" ? (
-          <div className={styles.arrayWrapper}>
-            {twoSumArray.map((num, idx) => {
-              const isLeft = currentStep.left === idx;
-              const isRight = currentStep.right === idx;
-              const isFound = (isLeft || isRight) && currentStep.status === "found";
-
-              return (
-                <div key={idx} className={styles.elementColumn}>
-                  {/* Top Pointer Badge */}
-                  <div className={styles.pointerTopSpace}>
-                    {isLeft && (
-                      <span className={`${styles.pointerBadge} ${styles.pointerLeft}`}>
-                        L ({num})
-                      </span>
-                    )}
-                    {isRight && (
-                      <span className={`${styles.pointerBadge} ${styles.pointerRight}`}>
-                        R ({num})
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Element Box */}
-                  <div
-                    className={`
-                      ${styles.elementBox}
-                      ${isLeft ? styles.boxLeft : ""}
-                      ${isRight ? styles.boxRight : ""}
-                      ${isFound ? styles.boxFound : ""}
-                    `}
-                  >
-                    <span>{num}</span>
-                  </div>
-
-                  {/* Index Below */}
-                  <span className={styles.elementIndex}>[{idx}]</span>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className={styles.arrayWrapper}>
-            {windowArray.map((num, idx) => {
-              const inWindow =
-                idx >= currentStep.windowStart && idx <= currentStep.windowEnd;
-
-              return (
-                <div key={idx} className={styles.elementColumn}>
-                  <div className={styles.pointerTopSpace}>
-                    {idx === currentStep.windowStart && (
-                      <span className={styles.windowBorderMarker}>start</span>
-                    )}
-                    {idx === currentStep.windowEnd && (
-                      <span className={styles.windowBorderMarker}>end</span>
-                    )}
-                  </div>
-
-                  <div
-                    className={`
-                      ${styles.elementBox}
-                      ${inWindow ? styles.boxInWindow : styles.boxOutsideWindow}
-                    `}
-                  >
-                    <span>{num}</span>
-                  </div>
-
-                  <span className={styles.elementIndex}>[{idx}]</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {/* Player Controls */}
+        <PlayerControls
+          isPlaying={isPlaying}
+          onPlayPause={handlePlayPause}
+          onNext={handleNext}
+          onPrev={handlePrev}
+          onReset={handleReset}
+          currentStep={currentStepIndex}
+          totalSteps={activeSteps.length}
+          speed={speed}
+          onSpeedChange={setSpeed}
+          onRandomize={handleRandomize}
+          showCustomInput={false}
+        />
       </div>
 
-      {/* Player Controls */}
-      <PlayerControls
-        isPlaying={isPlaying}
-        onPlayPause={handlePlayPause}
-        onNext={handleNext}
-        onPrev={handlePrev}
-        onReset={handleReset}
-        currentStep={currentStepIndex}
-        totalSteps={activeSteps.length}
-        speed={speed}
-        onSpeedChange={setSpeed}
-        onRandomize={handleRandomize}
-        showCustomInput={false}
-      />
+      {/* Right Column: Code Sync & Step Intuition */}
+      <div className={layoutStyles.rightColumn}>
+        <CodeSyncPanel
+          codeLines={subType === "two_sum" ? TWO_SUM_CODE : SLIDING_WINDOW_CODE}
+          activeLine={currentStep.codeLine}
+          explanation={currentStep.explanation}
+          actionTitle={currentStep.actionTitle}
+          variables={currentStep.variables}
+          statusText={currentStep.statusText}
+          statusType={currentStep.statusType}
+          timeComplexity="O(N)"
+          spaceComplexity="O(1)"
+          language="Python"
+        />
+      </div>
     </div>
-
-    {/* Right Column: Code Sync & Step Intuition */}
-    <div className={layoutStyles.rightColumn}>
-      <CodeSyncPanel
-        codeLines={subType === "two_sum" ? TWO_SUM_CODE : SLIDING_WINDOW_CODE}
-        activeLine={currentStep.codeLine}
-        explanation={currentStep.explanation}
-        statusText={currentStep.statusText}
-        statusType={currentStep.statusType}
-        timeComplexity={subType === "two_sum" ? "O(N)" : "O(N)"}
-        spaceComplexity="O(1)"
-      />
-    </div>
-  </div>
-);
+  );
 }

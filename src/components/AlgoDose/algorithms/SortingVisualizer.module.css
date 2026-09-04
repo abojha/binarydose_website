@@ -4,36 +4,88 @@
   gap: 1.25rem;
 }
 
-.modeTabs {
+/* Consolidated Input Configuration Card at Top */
+.configCard {
   display: flex;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem 1.15rem;
   background: var(--ifm-background-surface-color);
-  padding: 0.35rem;
-  border-radius: var(--ifm-global-radius);
   border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: var(--ifm-global-radius);
 }
 
-.modeTab {
-  flex: 1;
-  padding: 0.55rem 1rem;
-  border: none;
-  background: transparent;
-  color: var(--ifm-font-color-secondary);
+.inputRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.label {
+  font-size: 0.85rem;
   font-weight: 700;
-  font-size: 0.9rem;
+  color: var(--ifm-font-color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.textInput {
+  flex: 1;
+  min-width: 160px;
+  padding: 0.35rem 0.65rem;
   border-radius: 8px;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  background: var(--ifm-background-color);
+  color: var(--ifm-font-color-base);
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.textInput:focus {
+  border-color: var(--ifm-color-primary);
+}
+
+.applyBtn {
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--ifm-color-primary);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.82rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.modeTab:hover {
+.applyBtn:hover {
+  background: var(--ifm-color-primary-dark);
+}
+
+.randomBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  background: var(--ifm-background-color);
   color: var(--ifm-font-color-base);
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.modeTabActive {
-  background: var(--ifm-background-color) !important;
-  color: var(--ifm-color-primary) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+.randomBtn:hover {
+  border-color: var(--ifm-color-primary);
+  color: var(--ifm-color-primary);
 }
 
 .statsBar {
@@ -42,7 +94,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.85rem 1.25rem;
+  padding: 0.75rem 1.15rem;
   background: var(--ifm-background-surface-color);
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: var(--ifm-global-radius);
@@ -52,7 +104,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 .statLabel {
@@ -99,13 +151,57 @@
   background: #10b981;
 }
 
+/* Visual Canvas Card */
 .canvasCard {
   background: var(--ifm-background-surface-color);
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: var(--ifm-global-radius);
-  padding: 2.5rem 1.25rem 1.5rem 1.25rem;
+  padding: 1.5rem 1.25rem 1.5rem 1.25rem;
   overflow-x: auto;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+}
+
+/* Fixed 42px height slot - Zero CLS */
+.canvasStatusSlot {
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.85rem;
+  overflow: hidden;
+}
+
+.activePhaseHint {
+  font-size: 0.85rem;
+  color: var(--ifm-font-color-secondary);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  background: var(--ifm-background-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  white-space: nowrap;
+}
+
+.winningBanner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #10b981;
+  font-weight: 700;
+  font-size: 0.86rem;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .barsContainer {
@@ -147,13 +243,11 @@
 .barComparing {
   background: #f59e0b !important;
   box-shadow: 0 0 16px rgba(245, 158, 11, 0.45) !important;
-  transform: scaleY(1.03);
 }
 
 .barSwapping {
   background: #ec4899 !important;
   box-shadow: 0 0 20px rgba(236, 72, 153, 0.5) !important;
-  transform: scaleY(1.05);
 }
 
 .barSorted {
@@ -162,13 +256,21 @@
 }
 
 .barIndex {
+  height: 18px;
+  min-height: 18px;
+  line-height: 18px;
   font-size: 0.72rem;
   font-family: var(--ifm-font-family-monospace);
   color: var(--ifm-font-color-secondary);
   margin-top: 0.45rem;
+  text-align: center;
 }
 
 @media (max-width: 768px) {
+  .inputRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
   .statsBar {
     flex-direction: column;
     align-items: stretch;
