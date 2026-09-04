@@ -32,7 +32,31 @@ const config = {
   markdown: {
     mermaid: true,
   },
-  themes: ["@docusaurus/theme-mermaid"],
+  themes: [
+    "@docusaurus/theme-mermaid",
+    [
+      "@easyops-cn/docusaurus-search-local",
+      /** @type {import("@easyops-cn/docusaurus-search-local").PluginOptions} */
+      ({
+        hashed: true,
+        language: ["en"],
+        docsRouteBasePath: ["100-days", "pyqs", "coding"],
+        docsDir: ["100-days", "pyqs", "coding"],
+        docsPluginIdForPreferredVersion: "coding",
+        blogRouteBasePath: "blog",
+        blogDir: "blog",
+        indexDocs: true,
+        indexBlog: true,
+        indexPages: true,
+        searchResultLimits: 8,
+        searchResultContextMaxLength: 50,
+        highlightSearchTermsOnTargetPage: true,
+        searchBarShortcutHint: false,
+        searchBarShortcutKeymap: "mod+k",
+        searchBarPosition: "right",
+      }),
+    ],
+  ],
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
@@ -44,6 +68,8 @@ const config = {
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: "/",
+
+  clientModules: ["./src/utils/gtagShim.js"],
 
   onBrokenLinks: "throw",
 
@@ -164,7 +190,7 @@ const config = {
             to: "/coding",
           },
           {
-            label: "100 Days of Interview",
+            label: "100 Days Interview",
             position: "left",
             to: "/100-days",
           },
@@ -174,14 +200,34 @@ const config = {
             to: "/courses",
           },
           {
-            label: "PYQs",
+            to: "/blog",
+            label: "Blog",
             position: "left",
-            to: "/pyqs",
           },
-          { to: "/blog", label: "Blog", position: "left" },
-          { to: "/contribute", label: "Contribute 🚀", position: "left" },
-          { to: "/about-us", label: "About Us", position: "left" },
-          { to: "/contact-us", label: "Contact", position: "left" },
+          {
+            to: "/contribute",
+            label: "Contribute 🚀",
+            position: "left",
+            className: "nav-contribute-cta",
+          },
+          {
+            label: "More",
+            position: "left",
+            items: [
+              {
+                label: "PYQs",
+                to: "/pyqs",
+              },
+              {
+                label: "About Us",
+                to: "/about-us",
+              },
+              {
+                label: "Contact",
+                to: "/contact-us",
+              },
+            ],
+          },
 
           {
             href: "https://www.youtube.com/@binarydose",
