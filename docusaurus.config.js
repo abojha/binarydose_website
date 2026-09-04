@@ -193,6 +193,7 @@ const config = {
         { property: "og:type", content: "website" },
         { name: "twitter:site", content: "@binarydose" },
         { name: "twitter:creator", content: "@binarydose" },
+        { name: "google-adsense-account", content: "ca-pub-6128203738681503" },
         { name: "theme-color", content: "#2563eb" },
       ],
       colorMode: {
