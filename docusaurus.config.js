@@ -172,8 +172,14 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      // Replace with your project's social card
-      image: "img/logo.png",
+      // Project official Open Graph 1200x630 social card
+      image: "img/binarydose-og.png",
+      metadata: [
+        { name: "twitter:card", content: "summary_large_image" },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
+        { property: "og:image:alt", content: "Binary Dose - Master DSA, System Design & CS Fundamentals" },
+      ],
       colorMode: {
         respectPrefersColorScheme: true,
       },
