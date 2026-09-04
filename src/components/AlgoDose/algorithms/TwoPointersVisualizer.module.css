@@ -197,8 +197,13 @@
   background: var(--ifm-background-surface-color);
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: var(--ifm-global-radius);
-  padding: 1.5rem 1.25rem 1.5rem 1.25rem;
-  overflow-x: auto;
+  padding: 1.25rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  min-height: 220px;
+  justify-content: center;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
 }
 
@@ -247,19 +252,19 @@
 
 .arrayWrapper {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
   justify-content: center;
-  gap: 0.75rem;
-  min-width: min-content;
-  padding: 0.25rem;
+  align-items: flex-start;
+  padding: 0.5rem 0;
+  max-width: 100%;
 }
 
 .elementColumn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 54px;
-  flex-shrink: 0;
+  width: 50px;
 }
 
 .pointerTopSpace {
@@ -329,23 +334,18 @@
   white-space: nowrap;
 }
 
-/* Element Box: Strict fixed dimensions, box-sizing: border-box, NO transform: scale() */
 .elementBox {
   width: 50px;
   height: 52px;
-  min-width: 50px;
-  max-width: 50px;
-  min-height: 52px;
-  max-height: 52px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--ifm-background-color);
   border: 2px solid var(--ifm-color-emphasis-300);
-  border-radius: 10px;
+  border-radius: 8px;
   font-family: var(--ifm-font-family-monospace);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--ifm-font-color-base);
   transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
@@ -440,13 +440,13 @@
     margin-bottom: 2px;
   }
   .pointerBadge {
-    font-size: 0.6rem;
-    padding: 1px 4px;
+    font-size: 0.55rem;
+    padding: 1px 3px;
     letter-spacing: 0.02em;
   }
   .pointerFound {
-    font-size: 0.6rem;
-    padding: 1px 4px;
+    font-size: 0.55rem;
+    padding: 1px 3px;
   }
   .elementIndex {
     font-size: 0.65rem;
