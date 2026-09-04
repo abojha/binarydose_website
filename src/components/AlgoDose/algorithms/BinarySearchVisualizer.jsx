@@ -469,19 +469,29 @@ export default function BinarySearchVisualizer() {
                       <div className={styles.elementFooter}>
                         <span className={styles.elementIndex}>[{idx}]</span>
                         <div className={styles.pointerBottomSpace}>
-                          {isLow && (
+                          {isLow && isHigh ? (
                             <span
-                              className={`${styles.pointerBadge} ${styles.pointerLow}`}
+                              className={`${styles.pointerBadge} ${styles.pointerBoth}`}
                             >
-                              LOW
+                              L & H
                             </span>
-                          )}
-                          {isHigh && (
-                            <span
-                              className={`${styles.pointerBadge} ${styles.pointerHigh}`}
-                            >
-                              HIGH
-                            </span>
+                          ) : (
+                            <>
+                              {isLow && (
+                                <span
+                                  className={`${styles.pointerBadge} ${styles.pointerLow}`}
+                                >
+                                  LOW
+                                </span>
+                              )}
+                              {isHigh && (
+                                <span
+                                  className={`${styles.pointerBadge} ${styles.pointerHigh}`}
+                                >
+                                  HIGH
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
