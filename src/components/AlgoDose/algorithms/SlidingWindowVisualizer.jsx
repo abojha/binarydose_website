@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
 import CustomDropdown from "../CustomDropdown";
+import CanvasStatusBanner from "../CanvasStatusBanner";
 import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./SlidingWindowVisualizer.module.css";
 
@@ -370,22 +371,23 @@ export default function SlidingWindowVisualizer() {
           {activePattern === "fixed_window" ? (
             <>
               {/* Status banner with fixed height slot to avoid CLS */}
-              <div className={styles.canvasStatusSlot}>
-                {currentStep.status === "complete" ? (
-                  <div className={styles.winningBanner}>
-                    🏆 Winner: Window [{currentStep.bestStart}..{currentStep.bestEnd}] &rarr; Max Sum = {currentStep.maxSum}
-                  </div>
-                ) : (
-                  <div className={styles.activePhaseHint}>
-                    <span>Window Sum:</span>
-                    <strong style={{ color: "var(--ifm-color-primary)" }}>
-                      {currentStep.windowSum}
-                    </strong>
-                    <span>| Record Max:</span>
-                    <strong style={{ color: "#10b981" }}>{currentStep.maxSum} 🏆</strong>
-                  </div>
-                )}
-              </div>
+              {currentStep.status === "complete" ? (
+                <CanvasStatusBanner
+                  type="success"
+                  icon="🏆"
+                  text={`Winner: Window [${currentStep.bestStart}..${currentStep.bestEnd}] → Max Sum = ${currentStep.maxSum}`}
+                  mobileText={`Winner: Win [${currentStep.bestStart}..${currentStep.bestEnd}] → Max = ${currentStep.maxSum}`}
+                />
+              ) : (
+                <CanvasStatusBanner type="info">
+                  <span>Window Sum:</span>
+                  <strong style={{ color: "var(--ifm-color-primary)" }}>
+                    {currentStep.windowSum}
+                  </strong>
+                  <span>| Record Max:</span>
+                  <strong style={{ color: "#10b981" }}>{currentStep.maxSum} 🏆</strong>
+                </CanvasStatusBanner>
+              )}
 
               <div className={styles.arrayWrapper}>
                 {windowArray.map((num, idx) => {

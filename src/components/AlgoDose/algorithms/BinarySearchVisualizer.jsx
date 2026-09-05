@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
 import CustomDropdown from "../CustomDropdown";
+import CanvasStatusBanner from "../CanvasStatusBanner";
 import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./BinarySearchVisualizer.module.css";
 
@@ -424,25 +425,28 @@ export default function BinarySearchVisualizer() {
           {activePattern === "exact_search" ? (
             <>
               {/* Status banner with fixed height slot to avoid CLS */}
-              <div className={styles.canvasStatusSlot}>
-                {currentStep.status === "found" ? (
-                  <div className={styles.winningBanner}>
-                    🎯 Target Found: arr[{currentStep.mid}] = {target} (Index:{" "}
-                    {currentStep.mid})
-                  </div>
-                ) : currentStep.status === "not_found" ? (
-                  <div className={styles.notFoundBanner}>
-                    ❌ Target {target} not found in array
-                  </div>
-                ) : (
-                  <div className={styles.activePhaseHint}>
-                    <span>Search Range:</span>
-                    <strong>arr[{currentStep.low}..{currentStep.high}]</strong>
-                    <span>| Mid:</span>
-                    <strong style={{ color: "#8b5cf6" }}>[{currentStep.mid}] = {array[currentStep.mid]}</strong>
-                  </div>
-                )}
-              </div>
+              {currentStep.status === "found" ? (
+                <CanvasStatusBanner
+                  type="success"
+                  icon="🎯"
+                  text={`Target Found: arr[${currentStep.mid}] = ${target} (Index: ${currentStep.mid})`}
+                  mobileText={`Found: arr[${currentStep.mid}] = ${target}`}
+                />
+              ) : currentStep.status === "not_found" ? (
+                <CanvasStatusBanner
+                  type="danger"
+                  icon="❌"
+                  text={`Target ${target} not found in array`}
+                  mobileText={`Target ${target} not found`}
+                />
+              ) : (
+                <CanvasStatusBanner type="info">
+                  <span>Search Range:</span>
+                  <strong>arr[{currentStep.low}..{currentStep.high}]</strong>
+                  <span>| Mid:</span>
+                  <strong style={{ color: "#8b5cf6" }}>[{currentStep.mid}] = {array[currentStep.mid]}</strong>
+                </CanvasStatusBanner>
+              )}
 
               <div className={styles.arrayWrapper}>
                 {array.map((num, idx) => {

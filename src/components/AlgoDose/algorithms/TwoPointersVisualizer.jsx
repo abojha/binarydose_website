@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
 import CustomDropdown from "../CustomDropdown";
+import CanvasStatusBanner from "../CanvasStatusBanner";
 import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./TwoPointersVisualizer.module.css";
 
@@ -414,26 +415,30 @@ export default function TwoPointersVisualizer() {
           {activePattern === "two_sum" ? (
             <>
               {/* Status banner with fixed height slot to avoid CLS */}
-              <div className={styles.canvasStatusSlot}>
-                {currentStep.status === "found" ? (
-                  <div className={styles.winningBanner}>
-                    🎯 Target Pair Found: arr[{currentStep.left}] ({twoSumArray[currentStep.left]}) + arr[{currentStep.right}] ({twoSumArray[currentStep.right]}) = {twoSumTarget}
-                  </div>
-                ) : currentStep.status === "not_found" ? (
-                  <div className={styles.activePhaseHint} style={{ color: "#ef4444" }}>
-                    ❌ No pair in array sums to {twoSumTarget}
-                  </div>
-                ) : (
-                  <div className={styles.activePhaseHint}>
-                    <span>Current Sum:</span>
-                    <strong style={{ color: "var(--ifm-color-primary)" }}>
-                      {currentStep.currentSum ?? (twoSumArray[currentStep.left] + twoSumArray[currentStep.right])}
-                    </strong>
-                    <span>vs Target</span>
-                    <strong>{twoSumTarget}</strong>
-                  </div>
-                )}
-              </div>
+              {currentStep.status === "found" ? (
+                <CanvasStatusBanner
+                  type="success"
+                  icon="🎯"
+                  text={`Target Pair Found: arr[${currentStep.left}] (${twoSumArray[currentStep.left]}) + arr[${currentStep.right}] (${twoSumArray[currentStep.right]}) = ${twoSumTarget}`}
+                  mobileText={`Pair Found: arr[${currentStep.left}] + arr[${currentStep.right}] = ${twoSumTarget}`}
+                />
+              ) : currentStep.status === "not_found" ? (
+                <CanvasStatusBanner
+                  type="danger"
+                  icon="❌"
+                  text={`No pair in array sums to ${twoSumTarget}`}
+                  mobileText={`No pair sums to ${twoSumTarget}`}
+                />
+              ) : (
+                <CanvasStatusBanner type="info">
+                  <span>Current Sum:</span>
+                  <strong style={{ color: "var(--ifm-color-primary)" }}>
+                    {currentStep.currentSum ?? (twoSumArray[currentStep.left] + twoSumArray[currentStep.right])}
+                  </strong>
+                  <span>vs Target</span>
+                  <strong>{twoSumTarget}</strong>
+                </CanvasStatusBanner>
+              )}
 
               <div className={styles.arrayWrapper}>
                 {twoSumArray.map((num, idx) => {

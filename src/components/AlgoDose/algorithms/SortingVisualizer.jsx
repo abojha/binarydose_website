@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
 import CustomDropdown from "../CustomDropdown";
+import CanvasStatusBanner from "../CanvasStatusBanner";
 import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./SortingVisualizer.module.css";
 
@@ -497,21 +498,21 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
           {isReadyAlgo ? (
             <>
               {/* Status banner with fixed height slot to avoid CLS */}
-              <div className={styles.canvasStatusSlot}>
-                {currentStep.statusText.includes("Sorted") ? (
-                  <div className={styles.winningBanner}>
-                    ✅ Array Successfully Sorted! Total Comparisons:{" "}
-                    {currentStep.comparisons} | Swaps: {currentStep.swaps}
-                  </div>
-                ) : (
-                  <div className={styles.activePhaseHint}>
-                    <span>Pass:</span>
-                    <strong>{currentStep.variables?.find((v) => v.label === "Pass")?.value || "Running"}</strong>
-                    <span>| Action:</span>
-                    <strong style={{ color: "var(--ifm-color-primary)" }}>{currentStep.statusText}</strong>
-                  </div>
-                )}
-              </div>
+              {currentStep.statusText.includes("Sorted") ? (
+                <CanvasStatusBanner
+                  type="success"
+                  icon="✅"
+                  text={`Array Successfully Sorted! Total Comparisons: ${currentStep.comparisons} | Swaps: ${currentStep.swaps}`}
+                  mobileText={`Sorted! • ${currentStep.comparisons} Comps • ${currentStep.swaps} Swaps`}
+                />
+              ) : (
+                <CanvasStatusBanner type="info">
+                  <span>Pass:</span>
+                  <strong>{currentStep.variables?.find((v) => v.label === "Pass")?.value || "Running"}</strong>
+                  <span>| Action:</span>
+                  <strong style={{ color: "var(--ifm-color-primary)" }}>{currentStep.statusText}</strong>
+                </CanvasStatusBanner>
+              )}
 
               <div className={styles.barsContainer}>
                 {currentStep.array.map((num, idx) => {
