@@ -93,12 +93,12 @@ const TWO_POINTERS_PATTERN_OPTIONS = [
     group: "Ready Patterns",
     items: [
       { value: "two_sum", label: "Opposing Pointers (Two Sum)", icon: "↔️" },
+      { value: "fast_slow", label: "Fast & Slow (Remove Duplicates)", icon: "🏎️" },
     ],
   },
   {
     group: "Upcoming Patterns",
     items: [
-      { value: "fast_slow", label: "Fast & Slow (Remove Duplicates)", icon: "🏎️", badge: "Coming Soon" },
       { value: "container_water", label: "Greedy Opposing (Container With Water)", icon: "🌊", badge: "Coming Soon" },
       { value: "three_sum", label: "Anchored 3-Pointer (3Sum)", icon: "📐", badge: "Coming Soon" },
     ],
@@ -108,9 +108,14 @@ const TWO_POINTERS_PATTERN_OPTIONS = [
 export default function TwoPointersVisualizer() {
   const [activePattern, setActivePattern] = useState("two_sum");
 
+  // Two Sum State
   const [twoSumArray, setTwoSumArray] = useState([1, 3, 4, 6, 8, 11, 15]);
   const [twoSumTarget, setTwoSumTarget] = useState(14);
   const [customInputStr, setCustomInputStr] = useState("1, 3, 4, 6, 8, 11, 15");
+
+  // Fast & Slow State (Remove Duplicates from Sorted Array)
+  const [fastSlowArray, setFastSlowArray] = useState([1, 1, 2, 2, 3, 4, 4, 5]);
+  const [fastSlowInputStr, setFastSlowInputStr] = useState("1, 1, 2, 2, 3, 4, 4, 5");
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [inputError, setInputError] = useState("");
@@ -131,34 +136,88 @@ export default function TwoPointersVisualizer() {
     return { valid, impossible };
   }, [twoSumArray]);
 
-  // Two Sum Steps
-  const steps = useMemo(() => {
+  // Two Sum Steps Generator (Detailed 1-to-1 Code Sync)
+  const twoSumSteps = useMemo(() => {
     const generated = [];
     let left = 0;
     let right = twoSumArray.length - 1;
 
+    // Step 0: Line 2 - Initialize Pointers
     generated.push({
       left,
       right,
       currentSum: twoSumArray[left] + twoSumArray[right],
       status: "initial",
-      statusText: "Initialized",
+      statusText: "Initialize Pointers",
       statusType: "info",
       codeLine: 2,
       variables: [
-        { label: "left", value: `0 (val: ${twoSumArray[0]})` },
-        { label: "right", value: `${right} (val: ${twoSumArray[right]})` },
-        { label: "sum", value: twoSumArray[0] + twoSumArray[right] },
+        { label: "left", value: `0 (arr[0] = ${twoSumArray[0]})` },
+        { label: "right", value: `${right} (arr[${right}] = ${twoSumArray[right]})` },
         { label: "target", value: twoSumTarget },
       ],
-      explanation: `Initialized left pointer at index 0 (val: ${twoSumArray[0]}) and right pointer at index ${right} (val: ${twoSumArray[right]}).`,
+      explanation: `Initialized left = 0 (val: ${twoSumArray[0]}) at the beginning, and right = ${right} (val: ${twoSumArray[right]}) at the end of the sorted array.`,
     });
 
     let found = false;
     while (left < right) {
+      // Step A: Line 3 - While condition check
+      generated.push({
+        left,
+        right,
+        currentSum: twoSumArray[left] + twoSumArray[right],
+        status: "checking",
+        statusText: "Check Boundary",
+        statusType: "info",
+        codeLine: 3,
+        variables: [
+          { label: "left < right", value: `${left} < ${right} (True)`, highlight: true },
+          { label: "arr[left]", value: twoSumArray[left] },
+          { label: "arr[right]", value: twoSumArray[right] },
+          { label: "target", value: twoSumTarget },
+        ],
+        explanation: `Boundary check: left (${left}) < right (${right}) is True. Pointers have not crossed; proceeding inside the while loop.`,
+      });
+
       const sum = twoSumArray[left] + twoSumArray[right];
 
+      // Step B: Line 4 - Calculate curr_sum
+      generated.push({
+        left,
+        right,
+        currentSum: sum,
+        status: "computing",
+        statusText: "Compute Pair Sum",
+        statusType: "info",
+        codeLine: 4,
+        variables: [
+          { label: "arr[left]", value: twoSumArray[left] },
+          { label: "arr[right]", value: twoSumArray[right] },
+          { label: "curr_sum", value: `${twoSumArray[left]} + ${twoSumArray[right]} = ${sum}`, highlight: true },
+          { label: "target", value: twoSumTarget },
+        ],
+        explanation: `Calculated curr_sum = arr[${left}] (${twoSumArray[left]}) + arr[${right}] (${twoSumArray[right]}) = ${sum}. Comparing against target = ${twoSumTarget}.`,
+      });
+
       if (sum === twoSumTarget) {
+        // Step C1: Line 5 - Evaluate if curr_sum == target
+        generated.push({
+          left,
+          right,
+          currentSum: sum,
+          status: "eval_equal",
+          statusText: "Condition Matched! 🎯",
+          statusType: "success",
+          codeLine: 5,
+          variables: [
+            { label: "curr_sum == target", value: `${sum} == ${twoSumTarget} (True!)`, highlight: true },
+            { label: "left", value: `idx ${left}` },
+            { label: "right", value: `idx ${right}` },
+          ],
+          explanation: `Condition curr_sum == target is True (${sum} == ${twoSumTarget})! Match found. Entering if block to return indices.`,
+        });
+
+        // Step C2: Line 6 - return [left, right]
         generated.push({
           left,
           right,
@@ -168,50 +227,105 @@ export default function TwoPointersVisualizer() {
           statusType: "success",
           codeLine: 6,
           variables: [
-            { label: "left", value: `arr[${left}] = ${twoSumArray[left]}`, highlight: true },
-            { label: "right", value: `arr[${right}] = ${twoSumArray[right]}`, highlight: true },
-            { label: "sum", value: `${sum} == ${twoSumTarget}`, highlight: true },
+            { label: "arr[left]", value: `arr[${left}] = ${twoSumArray[left]}`, highlight: true },
+            { label: "arr[right]", value: `arr[${right}] = ${twoSumArray[right]}`, highlight: true },
+            { label: "return", value: `[${left}, ${right}]`, highlight: true },
           ],
           explanation: `🎯 Target pair found! arr[${left}] (${twoSumArray[left]}) + arr[${right}] (${twoSumArray[right]}) = ${twoSumTarget}. Returning indices [${left}, ${right}].`,
         });
         found = true;
         break;
       } else if (sum < twoSumTarget) {
+        // Step C1: Line 7 - elif curr_sum < target
+        generated.push({
+          left,
+          right,
+          currentSum: sum,
+          status: "eval_less",
+          statusText: "Sum Too Small",
+          statusType: "warning",
+          codeLine: 7,
+          variables: [
+            { label: "curr_sum < target", value: `${sum} < ${twoSumTarget} (True)`, highlight: true },
+            { label: "action needed", value: "Need larger sum ➔ move left rightward" },
+          ],
+          explanation: `Condition elif curr_sum < target is True (${sum} < ${twoSumTarget}). Sum is too small. Because array is sorted, advancing left will produce a larger candidate sum.`,
+        });
+
+        // Step C2: Line 8 - left += 1
+        const prevLeft = left;
+        left++;
         generated.push({
           left,
           right,
           currentSum: sum,
           status: "less",
           statusText: "Advance left ➔",
-          statusType: "warning",
+          statusType: "info",
           codeLine: 8,
           variables: [
-            { label: "currentSum", value: `${sum} < ${twoSumTarget}` },
-            { label: "action", value: "left += 1 (need larger sum)" },
+            { label: "left", value: `${prevLeft} ➔ ${left}`, highlight: true },
+            { label: "new arr[left]", value: twoSumArray[left] },
+            { label: "right", value: `${right} (${twoSumArray[right]})` },
           ],
-          explanation: `arr[${left}] (${twoSumArray[left]}) + arr[${right}] (${twoSumArray[right]}) = ${sum} < target (${twoSumTarget}). Sum is too small, advancing left pointer to index ${left + 1}.`,
+          explanation: `Executed left += 1. Left pointer advanced from index ${prevLeft} to index ${left} (val: ${twoSumArray[left]}).`,
         });
-        left++;
       } else {
+        // Step C1: Line 9 - else:
+        generated.push({
+          left,
+          right,
+          currentSum: sum,
+          status: "eval_greater",
+          statusText: "Sum Too Large",
+          statusType: "warning",
+          codeLine: 9,
+          variables: [
+            { label: "curr_sum > target", value: `${sum} > ${twoSumTarget} (fell into else)`, highlight: true },
+            { label: "action needed", value: "Need smaller sum ➔ move right leftward" },
+          ],
+          explanation: `curr_sum (${sum}) > target (${twoSumTarget}). Fell into else block. Sum is too large; decrementing right will produce a smaller candidate sum.`,
+        });
+
+        // Step C2: Line 10 - right -= 1
+        const prevRight = right;
+        right--;
         generated.push({
           left,
           right,
           currentSum: sum,
           status: "greater",
           statusText: "Retract right ⬅",
-          statusType: "warning",
+          statusType: "info",
           codeLine: 10,
           variables: [
-            { label: "currentSum", value: `${sum} > ${twoSumTarget}` },
-            { label: "action", value: "right -= 1 (need smaller sum)" },
+            { label: "right", value: `${prevRight} ➔ ${right}`, highlight: true },
+            { label: "new arr[right]", value: twoSumArray[right] },
+            { label: "left", value: `${left} (${twoSumArray[left]})` },
           ],
-          explanation: `arr[${left}] (${twoSumArray[left]}) + arr[${right}] (${twoSumArray[right]}) = ${sum} > target (${twoSumTarget}). Sum is too large, decrementing right pointer to index ${right - 1}.`,
+          explanation: `Executed right -= 1. Right pointer retracted from index ${prevRight} to index ${right} (val: ${twoSumArray[right]}).`,
         });
-        right--;
       }
     }
 
     if (!found) {
+      // Line 3 - While condition evaluated to False
+      generated.push({
+        left,
+        right,
+        currentSum: null,
+        status: "loop_exit",
+        statusText: "Loop Terminated",
+        statusType: "warning",
+        codeLine: 3,
+        variables: [
+          { label: "left < right", value: `${left} < ${right} (False)`, highlight: true },
+          { label: "result", value: "Pointers met/crossed" },
+        ],
+        explanation: `Boundary check: left (${left}) < right (${right}) is now False. The search window has collapsed; exiting while loop.`,
+      });
+
+      // Line 11 - return [-1, -1]
       generated.push({
         left,
         right,
@@ -221,14 +335,172 @@ export default function TwoPointersVisualizer() {
         statusType: "error",
         codeLine: 11,
         variables: [{ label: "result", value: "[-1, -1] (no pair found)" }],
-        explanation: `Pointers met (left=${left}, right=${right}). No two elements sum to target ${twoSumTarget}.`,
+        explanation: `Pointers met (left=${left}, right=${right}). No two elements sum to target ${twoSumTarget}. Returning [-1, -1].`,
       });
     }
 
     return generated;
   }, [twoSumArray, twoSumTarget]);
 
+  // Fast & Slow (In-Place Remove Duplicates) Steps Generator (Detailed 1-to-1 Code Sync)
+  const fastSlowSteps = useMemo(() => {
+    if (!fastSlowArray || fastSlowArray.length === 0) return [];
+    const generated = [];
+    const arr = [...fastSlowArray];
+    const n = arr.length;
+
+    let slow = 0;
+
+    // Step 0: Line 3 - slow = 0
+    generated.push({
+      array: [...arr],
+      slow: 0,
+      fast: 1,
+      action: "init",
+      statusText: "Initialize Pointers",
+      statusType: "info",
+      codeLine: 3, // slow = 0
+      justWrittenIdx: null,
+      variables: [
+        { label: "slow (writer)", value: "0", highlight: true },
+        { label: "fast (reader)", value: "starts at 1" },
+        { label: "nums[slow]", value: arr[0] },
+        { label: "Unique (k)", value: 1 },
+      ],
+      explanation: `Initialized writer slow = 0 at index 0 (val: ${arr[0]}). The first element is always part of the unique prefix.`,
+    });
+
+    for (let fast = 1; fast < n; fast++) {
+      // Step A: Line 4 - for fast in range(1, len(nums)):
+      generated.push({
+        array: [...arr],
+        slow,
+        fast,
+        action: "reader_advance",
+        statusText: "Reader Advances ⏩",
+        statusType: "info",
+        codeLine: 4, // for fast in range(1, len(nums)):
+        justWrittenIdx: null,
+        variables: [
+          { label: "fast (reader)", value: `idx ${fast} (val: ${arr[fast]})`, highlight: true },
+          { label: "slow (writer)", value: `idx ${slow} (val: ${arr[slow]})` },
+          { label: "loop progress", value: `${fast} of ${n - 1}` },
+        ],
+        explanation: `For loop iteration: fast reader advances to index ${fast} (val: ${arr[fast]}). Now checking if it differs from the last unique element at slow (idx ${slow}).`,
+      });
+
+      const isDuplicate = arr[fast] === arr[slow];
+
+      // Step B: Line 5 - if nums[fast] != nums[slow]:
+      if (isDuplicate) {
+        generated.push({
+          array: [...arr],
+          slow,
+          fast,
+          action: "duplicate_skip",
+          statusText: "Duplicate Skip ⏭️",
+          statusType: "warning",
+          codeLine: 5, // if nums[fast] != nums[slow]:
+          justWrittenIdx: null,
+          variables: [
+            { label: "nums[fast] != nums[slow]", value: `${arr[fast]} != ${arr[slow]} (False)`, highlight: true },
+            { label: "nums[fast]", value: arr[fast] },
+            { label: "nums[slow]", value: arr[slow] },
+            { label: "decision", value: "Duplicate! Skip if block." },
+          ],
+          explanation: `nums[${fast}] (${arr[fast]}) != nums[${slow}] (${arr[slow]}) is False! Duplicate value detected. Writer slow remains at index ${slow}; fast reader skips to next element.`,
+        });
+      } else {
+        const newUniqueVal = arr[fast];
+
+        // Step B (Distinct): Line 5 evaluates to True!
+        generated.push({
+          array: [...arr],
+          slow,
+          fast,
+          action: "condition_true",
+          statusText: "New Unique Found! ✨",
+          statusType: "info",
+          codeLine: 5, // if nums[fast] != nums[slow]:
+          justWrittenIdx: null,
+          variables: [
+            { label: "nums[fast] != nums[slow]", value: `${arr[fast]} != ${arr[slow]} (True!)`, highlight: true },
+            { label: "nums[fast]", value: arr[fast] },
+            { label: "nums[slow]", value: arr[slow] },
+            { label: "decision", value: "Distinct! Entering if block." },
+          ],
+          explanation: `nums[${fast}] (${arr[fast]}) != nums[${slow}] (${arr[slow]}) is True! New unique value ${arr[fast]} discovered. Entering if block to advance writer and overwrite.`,
+        });
+
+        // Step C: Line 6 - slow += 1
+        const prevSlow = slow;
+        slow++;
+        generated.push({
+          array: [...arr],
+          slow,
+          fast,
+          action: "advance_slow",
+          statusText: "Advance Writer ➔",
+          statusType: "info",
+          codeLine: 6, // slow += 1
+          justWrittenIdx: null,
+          variables: [
+            { label: "slow (writer)", value: `${prevSlow} ➔ ${slow}`, highlight: true },
+            { label: "fast (reader)", value: fast },
+            { label: "new unique val", value: newUniqueVal },
+            { label: "Unique (k)", value: slow + 1, highlight: true },
+          ],
+          explanation: `Executed slow += 1. Writer pointer slow advances from index ${prevSlow} to index ${slow} to reserve slot for the next unique element.`,
+        });
+
+        // Step D: Line 7 - nums[slow] = nums[fast]
+        arr[slow] = newUniqueVal;
+        generated.push({
+          array: [...arr],
+          slow,
+          fast,
+          action: "write",
+          statusText: "In-Place Write ✍️",
+          statusType: "success",
+          codeLine: 7, // nums[slow] = nums[fast]
+          justWrittenIdx: slow,
+          variables: [
+            { label: `nums[${slow}]`, value: newUniqueVal, highlight: true },
+            { label: "slow (writer)", value: slow },
+            { label: "fast (reader)", value: fast },
+            { label: "Unique Prefix", value: `[${arr.slice(0, slow + 1).join(", ")}]` },
+          ],
+          explanation: `Executed nums[${slow}] = nums[${fast}]: In-place write! Value ${newUniqueVal} written into nums[${slow}]. Unique prefix [0..${slow}] updated.`,
+        });
+      }
+    }
+
+    const uniqueCount = slow + 1;
+    const uniqueElements = arr.slice(0, uniqueCount);
+    // Final Step: Line 8 - return slow + 1
+    generated.push({
+      array: [...arr],
+      slow,
+      fast: n,
+      action: "complete",
+      statusText: "Compaction Complete ✅",
+      statusType: "success",
+      codeLine: 8, // return slow + 1
+      justWrittenIdx: null,
+      variables: [
+        { label: "k (Unique Length)", value: uniqueCount, highlight: true },
+        { label: "Unique Prefix", value: `[${uniqueElements.join(", ")}]`, highlight: true },
+        { label: "Return Value", value: uniqueCount, highlight: true },
+      ],
+      explanation: `🏁 Reader reached end of array. Array compaction complete! The first k = ${uniqueCount} elements [${uniqueElements.join(", ")}] are the unique elements in sorted order. Returning k = ${uniqueCount}.`,
+    });
+
+    return generated;
+  }, [fastSlowArray]);
+
+  const steps = activePattern === "fast_slow" ? fastSlowSteps : twoSumSteps;
   const currentStep = steps[currentStepIndex] || steps[0];
+  const isReadyPattern = activePattern === "two_sum" || activePattern === "fast_slow";
 
   // Playback timer
   useEffect(() => {
@@ -329,6 +601,50 @@ export default function TwoPointersVisualizer() {
     setCurrentStepIndex(0);
   };
 
+  const handleFastSlowRandomize = () => {
+    setIsPlaying(false);
+    setInputError("");
+    const length = 7 + Math.floor(Math.random() * 3); // 7 to 9 items
+    const arr = [];
+    let current = Math.floor(Math.random() * 3) + 1;
+    for (let i = 0; i < length; i++) {
+      arr.push(current);
+      if (Math.random() > 0.55) {
+        current += Math.floor(Math.random() * 2) + 1;
+      }
+    }
+    if (new Set(arr).size === arr.length) {
+      arr[1] = arr[0];
+    }
+    setFastSlowArray(arr);
+    setFastSlowInputStr(arr.join(", "));
+    setCurrentStepIndex(0);
+  };
+
+  const handleFastSlowInputSubmit = (e) => {
+    if (e) e.preventDefault();
+    const parsed = fastSlowInputStr
+      .split(",")
+      .map((item) => parseInt(item.trim(), 10))
+      .filter((n) => !isNaN(n));
+
+    if (parsed.length < 3) {
+      setInputError("Please enter at least 3 numbers.");
+      return;
+    }
+    if (parsed.length > 12) {
+      setInputError("Please enter no more than 12 numbers.");
+      return;
+    }
+
+    setInputError("");
+    setIsPlaying(false);
+    const sorted = [...parsed].sort((a, b) => a - b);
+    setFastSlowArray(sorted);
+    setFastSlowInputStr(sorted.join(", "));
+    setCurrentStepIndex(0);
+  };
+
   return (
     <div className={styles.container}>
       {/* Generalized Pattern Blueprint & Selector Card */}
@@ -348,251 +664,385 @@ export default function TwoPointersVisualizer() {
         <div className={layoutStyles.leftColumn}>
           {/* Consolidated Inputs & Configuration Toolbar at Top */}
           <div className={styles.configCard}>
-            {/* Row 1: Array Input & Randomize */}
             {activePattern === "two_sum" ? (
               <>
+                {/* Row 1: Array Input & Randomize */}
                 <form className={styles.inputRow} onSubmit={handleCustomInputSubmit}>
-                <label className={styles.label}>Sorted Array:</label>
-                <input
-                  type="text"
-                  className={styles.textInput}
-                  value={customInputStr}
-                  onChange={(e) => {
-                    setCustomInputStr(e.target.value);
-                    setInputError("");
-                  }}
-                  placeholder="e.g. 1, 3, 4, 7, 9, 11 (3 to 12 items)"
-                />
-                <button type="submit" className={styles.applyBtn}>
-                  Apply
-                </button>
-                <button
-                  type="button"
-                  className={styles.randomBtn}
-                  onClick={() => {
-                    setInputError("");
-                    handleRandomize();
-                  }}
-                  title="Generate random sorted array"
-                >
-                  🎲 Randomize
-                </button>
-              </form>
-              {inputError && <div className={styles.errorNotice}>⚠️ {inputError}</div>}
-
-              {/* Row 2: Target Sum Input & Quick Chips */}
-              <div className={styles.targetRow}>
-                <div className={styles.targetInputGroup}>
-                  <label htmlFor="tp-target-input" className={styles.label}>
-                    Target Sum:
-                  </label>
+                  <label className={styles.label}>Sorted Array:</label>
                   <input
-                    id="tp-target-input"
-                    type="number"
-                    className={styles.targetInput}
-                    value={twoSumTarget}
+                    type="text"
+                    className={styles.textInput}
+                    value={customInputStr}
                     onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
-                      if (!isNaN(val)) {
-                        setTwoSumTarget(val);
-                        setIsPlaying(false);
-                        setCurrentStepIndex(0);
-                      }
+                      setCustomInputStr(e.target.value);
+                      setInputError("");
                     }}
+                    placeholder="e.g. 1, 3, 4, 7, 9, 11 (3 to 12 items)"
                   />
-                </div>
-                <div className={styles.quickGroup}>
-                  <span className={styles.label}>Quick:</span>
-                  <div className={styles.quickChips}>
-                    {quickTargets.valid.map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        className={`${styles.chip} ${twoSumTarget === t ? styles.chipActive : ""}`}
-                        onClick={() => {
-                          setTwoSumTarget(t);
+                  <button type="submit" className={styles.applyBtn}>
+                    Apply
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.randomBtn}
+                    onClick={() => {
+                      setInputError("");
+                      handleRandomize();
+                    }}
+                    title="Generate random sorted array"
+                  >
+                    🎲 Randomize
+                  </button>
+                </form>
+                {inputError && <div className={styles.errorNotice}>⚠️ {inputError}</div>}
+
+                {/* Row 2: Target Sum Input & Quick Chips */}
+                <div className={styles.targetRow}>
+                  <div className={styles.targetInputGroup}>
+                    <label htmlFor="tp-target-input" className={styles.label}>
+                      Target Sum:
+                    </label>
+                    <input
+                      id="tp-target-input"
+                      type="number"
+                      className={styles.targetInput}
+                      value={twoSumTarget}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        if (!isNaN(val)) {
+                          setTwoSumTarget(val);
                           setIsPlaying(false);
                           setCurrentStepIndex(0);
-                        }}
-                      >
-                        {t}
-                      </button>
-                    ))}
-                    {quickTargets.impossible && (
-                      <button
-                        type="button"
-                        className={`${styles.chip} ${twoSumTarget === quickTargets.impossible ? styles.chipActive : ""}`}
-                        onClick={() => {
-                          setTwoSumTarget(quickTargets.impossible);
-                          setIsPlaying(false);
-                          setCurrentStepIndex(0);
-                        }}
-                        title="Test target with no matching pair"
-                      >
-                        {quickTargets.impossible} ❌
-                      </button>
-                    )}
+                        }
+                      }}
+                    />
+                  </div>
+                  <div className={styles.quickGroup}>
+                    <span className={styles.label}>Quick:</span>
+                    <div className={styles.quickChips}>
+                      {quickTargets.valid.map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          className={`${styles.chip} ${twoSumTarget === t ? styles.chipActive : ""}`}
+                          onClick={() => {
+                            setTwoSumTarget(t);
+                            setIsPlaying(false);
+                            setCurrentStepIndex(0);
+                          }}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                      {quickTargets.impossible && (
+                        <button
+                          type="button"
+                          className={`${styles.chip} ${twoSumTarget === quickTargets.impossible ? styles.chipActive : ""}`}
+                          onClick={() => {
+                            setTwoSumTarget(quickTargets.impossible);
+                            setIsPlaying(false);
+                            setCurrentStepIndex(0);
+                          }}
+                          title="Test target with no matching pair"
+                        >
+                          {quickTargets.impossible} ❌
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </>
-          ) : (
-            <div style={{ fontSize: "0.85rem", color: "var(--ifm-font-color-secondary)", padding: "0.25rem 0" }}>
-              💡 Switch to <strong>Opposing Pointers (Two Sum)</strong> to run live interactive array executions.
-            </div>
-          )}
-        </div>
+              </>
+            ) : activePattern === "fast_slow" ? (
+              <>
+                {/* Row 1: Array Input & Randomize */}
+                <form className={styles.inputRow} onSubmit={handleFastSlowInputSubmit}>
+                  <label className={styles.label}>Sorted Array:</label>
+                  <input
+                    type="text"
+                    className={styles.textInput}
+                    value={fastSlowInputStr}
+                    onChange={(e) => {
+                      setFastSlowInputStr(e.target.value);
+                      setInputError("");
+                    }}
+                    placeholder="e.g. 1, 1, 2, 2, 3, 4, 4, 5 (3 to 12 items)"
+                  />
+                  <button type="submit" className={styles.applyBtn}>
+                    Apply
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.randomBtn}
+                    onClick={handleFastSlowRandomize}
+                    title="Generate random sorted array with duplicates"
+                  >
+                    🎲 Randomize
+                  </button>
+                </form>
+                {inputError && <div className={styles.errorNotice}>⚠️ {inputError}</div>}
 
-        {/* Visual Canvas Card */}
-        <div className={styles.canvasCard}>
-          {activePattern === "two_sum" ? (
-            <>
-              {/* Status banner with fixed height slot to avoid CLS */}
-              {currentStep.status === "found" ? (
-                <CanvasStatusBanner
-                  type="success"
-                  icon="🎯"
-                  text={`Target Pair Found: arr[${currentStep.left}] (${twoSumArray[currentStep.left]}) + arr[${currentStep.right}] (${twoSumArray[currentStep.right]}) = ${twoSumTarget}`}
-                  mobileText={`Pair Found: arr[${currentStep.left}] + arr[${currentStep.right}] = ${twoSumTarget}`}
-                />
-              ) : currentStep.status === "not_found" ? (
-                <CanvasStatusBanner
-                  type="danger"
-                  icon="❌"
-                  text={`No pair in array sums to ${twoSumTarget}`}
-                  mobileText={`No pair sums to ${twoSumTarget}`}
-                />
-              ) : (
-                <CanvasStatusBanner type="info">
-                  <span>Current Sum:</span>
-                  <strong style={{ color: "var(--ifm-color-primary)" }}>
-                    {currentStep.currentSum ?? (twoSumArray[currentStep.left] + twoSumArray[currentStep.right])}
-                  </strong>
-                  <span>vs Target</span>
-                  <strong>{twoSumTarget}</strong>
-                </CanvasStatusBanner>
-              )}
-
-              <div className={styles.arrayWrapper}>
-                {twoSumArray.map((num, idx) => {
-                  const isLeft = currentStep.left === idx;
-                  const isRight = currentStep.right === idx;
-                  const isFound =
-                    (isLeft || isRight) && currentStep.status === "found";
-
-                  return (
-                    <div key={idx} className={styles.elementColumn}>
-                      {/* Top Pointer Badge */}
-                      <div className={styles.pointerTopSpace}>
-                        {isFound ? (
-                          <span className={styles.pointerFound}>MATCH!</span>
-                        ) : (
-                          <>
-                            {isLeft && (
-                              <span
-                                className={`${styles.pointerBadge} ${styles.pointerLeft}`}
-                              >
-                                LEFT
-                              </span>
-                            )}
-                            {isRight && (
-                              <span
-                                className={`${styles.pointerBadge} ${styles.pointerRight}`}
-                              >
-                                RIGHT
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </div>
-
-                      {/* Element Box */}
-                      <div
-                        className={`
-                          ${styles.elementBox}
-                          ${isLeft ? styles.boxLeft : ""}
-                          ${isRight ? styles.boxRight : ""}
-                          ${isFound ? styles.boxFound : ""}
-                        `}
-                      >
-                        <span>{num}</span>
-                      </div>
-
-                      {/* Index Below */}
-                      <span className={styles.elementIndex}>[{idx}]</span>
+                {/* Row 2: Presets for Fast & Slow */}
+                <div className={styles.targetRow}>
+                  <div className={styles.quickGroup}>
+                    <span className={styles.label}>Presets:</span>
+                    <div className={styles.quickChips}>
+                      {[
+                        { label: "Standard", arr: [1, 1, 2, 2, 3, 4, 4, 5] },
+                        { label: "Classic 0-4", arr: [0, 0, 1, 1, 1, 2, 2, 3, 3, 4] },
+                        { label: "Clusters", arr: [1, 2, 2, 3, 4, 4, 4] },
+                        { label: "All Duplicates", arr: [2, 2, 2, 2, 2] },
+                      ].map((preset, pIdx) => (
+                        <button
+                          key={pIdx}
+                          type="button"
+                          className={`${styles.chip} ${
+                            fastSlowArray.join(",") === preset.arr.join(",") ? styles.chipActive : ""
+                          }`}
+                          onClick={() => {
+                            setFastSlowArray(preset.arr);
+                            setFastSlowInputStr(preset.arr.join(", "));
+                            setInputError("");
+                            setIsPlaying(false);
+                            setCurrentStepIndex(0);
+                          }}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
                     </div>
-                  );
-                })}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: "0.85rem", color: "var(--ifm-font-color-secondary)", padding: "0.25rem 0" }}>
+                💡 Switch to <strong>Opposing Pointers (Two Sum)</strong> or <strong>Fast & Slow (Remove Duplicates)</strong> to run live executions.
               </div>
-            </>
-          ) : (
-            <div className={styles.patternComingSoon}>
-              <span style={{ fontSize: "2.25rem", marginBottom: "0.5rem" }}>🛠️</span>
-              <div className={styles.patternComingSoonBadge}>Pattern in Active Development</div>
-              <h3 style={{ margin: "0.25rem 0", fontSize: "1.25rem", color: "var(--ifm-font-color-base)" }}>
-                {activePattern === "fast_slow"
-                  ? "Fast & Slow Pointers (Remove Duplicates)"
-                  : "Three Sum (Sorted Boundary)"}
-              </h3>
-              <p style={{ maxWidth: "460px", fontSize: "0.92rem", color: "var(--ifm-font-color-secondary)", margin: "0.5rem 0 1.25rem 0", lineHeight: 1.6 }}>
-                {activePattern === "fast_slow"
-                  ? "Dual-speed pointer synchronization illustrating in-place array element overwriting and Floyd's cycle detection is currently being engineered."
-                  : "3-pointer outer anchoring loop combined with inner two-pointer target convergence is currently being engineered."}
-              </p>
-              <a
-                href="/coding/two-pointers-sliding-window-problems"
-                className={styles.patternComingSoonBtn}
-              >
-                <span>📖 Study Full Tutorial & Problems on CodeDose</span>
-                <span>&rarr;</span>
-              </a>
-            </div>
+            )}
+          </div>
+
+          {/* Visual Canvas Card */}
+          <div className={styles.canvasCard}>
+            {activePattern === "two_sum" ? (
+              <>
+                {/* Status banner with fixed height slot to avoid CLS */}
+                {currentStep.status === "found" ? (
+                  <CanvasStatusBanner
+                    type="success"
+                    icon="🎯"
+                    text={`Target Pair Found: arr[${currentStep.left}] (${twoSumArray[currentStep.left]}) + arr[${currentStep.right}] (${twoSumArray[currentStep.right]}) = ${twoSumTarget}`}
+                    mobileText={`Pair Found: arr[${currentStep.left}] + arr[${currentStep.right}] = ${twoSumTarget}`}
+                  />
+                ) : currentStep.status === "not_found" ? (
+                  <CanvasStatusBanner
+                    type="danger"
+                    icon="❌"
+                    text={`No pair in array sums to ${twoSumTarget}`}
+                    mobileText={`No pair sums to ${twoSumTarget}`}
+                  />
+                ) : (
+                  <CanvasStatusBanner type="info">
+                    <span>Current Sum:</span>
+                    <strong style={{ color: "var(--ifm-color-primary)" }}>
+                      {currentStep.currentSum ?? (twoSumArray[currentStep.left] + twoSumArray[currentStep.right])}
+                    </strong>
+                    <span>vs Target</span>
+                    <strong>{twoSumTarget}</strong>
+                  </CanvasStatusBanner>
+                )}
+
+                <div className={styles.arrayWrapper}>
+                  {twoSumArray.map((num, idx) => {
+                    const isLeft = currentStep.left === idx;
+                    const isRight = currentStep.right === idx;
+                    const isFound =
+                      (isLeft || isRight) && currentStep.status === "found";
+
+                    return (
+                      <div key={idx} className={styles.elementColumn}>
+                        {/* Top Pointer Badge */}
+                        <div className={styles.pointerTopSpace}>
+                          {isFound ? (
+                            <span className={styles.pointerFound}>MATCH!</span>
+                          ) : (
+                            <>
+                              {isLeft && (
+                                <span
+                                  className={`${styles.pointerBadge} ${styles.pointerLeft}`}
+                                >
+                                  LEFT
+                                </span>
+                              )}
+                              {isRight && (
+                                <span
+                                  className={`${styles.pointerBadge} ${styles.pointerRight}`}
+                                >
+                                  RIGHT
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        {/* Element Box */}
+                        <div
+                          className={`
+                            ${styles.elementBox}
+                            ${isLeft ? styles.boxLeft : ""}
+                            ${isRight ? styles.boxRight : ""}
+                            ${isFound ? styles.boxFound : ""}
+                          `}
+                        >
+                          <span>{num}</span>
+                        </div>
+
+                        {/* Index Below */}
+                        <span className={styles.elementIndex}>[{idx}]</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : activePattern === "fast_slow" ? (
+              <>
+                {/* Fast & Slow Status Banner */}
+                {currentStep.action === "complete" ? (
+                  <CanvasStatusBanner
+                    type="success"
+                    icon="🏆"
+                    text={`Compaction Complete! Unique count k = ${currentStep.slow + 1} | Unique Prefix: [${currentStep.array.slice(0, currentStep.slow + 1).join(", ")}]`}
+                    mobileText={`Complete! k = ${currentStep.slow + 1} unique items: [${currentStep.array.slice(0, currentStep.slow + 1).join(", ")}]`}
+                  />
+                ) : (
+                  <CanvasStatusBanner type="info">
+                    <span>Writer (Slow):</span>
+                    <strong style={{ color: "#10b981" }}>idx {currentStep.slow}</strong>
+                    <span>| Reader (Fast):</span>
+                    <strong style={{ color: "#3b82f6" }}>
+                      {currentStep.fast < currentStep.array.length ? `idx ${currentStep.fast}` : "End"}
+                    </strong>
+                    <span>| Action:</span>
+                    <strong style={{ color: "var(--ifm-color-primary)" }}>{currentStep.statusText}</strong>
+                  </CanvasStatusBanner>
+                )}
+
+                {/* Fast & Slow Array Elements */}
+                <div className={styles.arrayWrapper}>
+                  {currentStep.array.map((num, idx) => {
+                    const isSlow = idx === currentStep.slow;
+                    const isFast = idx === currentStep.fast;
+                    const isInPrefix = idx <= currentStep.slow;
+                    const isJustWritten = idx === currentStep.justWrittenIdx;
+                    const isDuplicateSkipped = currentStep.action === "duplicate_skip" && isFast;
+
+                    return (
+                      <div key={idx} className={styles.elementColumn}>
+                        {/* Top Pointer Badge */}
+                        <div className={styles.pointerTopSpace}>
+                          {isSlow && isFast ? (
+                            <span className={`${styles.pointerBadge} ${styles.pointerBoth}`}>
+                              S&F
+                            </span>
+                          ) : isSlow ? (
+                            <span className={`${styles.pointerBadge} ${styles.pointerSlow}`}>
+                              S: WRITER
+                            </span>
+                          ) : isFast ? (
+                            <span className={`${styles.pointerBadge} ${styles.pointerFast}`}>
+                              F: READER
+                            </span>
+                          ) : null}
+                        </div>
+
+                        {/* Element Box */}
+                        <div
+                          className={`
+                            ${styles.elementBox}
+                            ${isInPrefix ? styles.boxUniquePrefix : ""}
+                            ${isSlow ? styles.boxSlow : ""}
+                            ${isFast ? styles.boxFast : ""}
+                            ${isJustWritten ? styles.boxWrittenFlash : ""}
+                            ${isDuplicateSkipped ? styles.boxDuplicateSkipped : ""}
+                          `}
+                        >
+                          <span>{num}</span>
+                        </div>
+
+                        {/* Index Below */}
+                        <span className={styles.elementIndex}>[{idx}]</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className={styles.patternComingSoon}>
+                <span style={{ fontSize: "2.25rem", marginBottom: "0.5rem" }}>🛠️</span>
+                <div className={styles.patternComingSoonBadge}>Pattern in Active Development</div>
+                <h3 style={{ margin: "0.25rem 0", fontSize: "1.25rem", color: "var(--ifm-font-color-base)" }}>
+                  {activePattern === "container_water"
+                    ? "Greedy Opposing (Container With Water)"
+                    : "Anchored 3-Pointer (3Sum)"}
+                </h3>
+                <p style={{ maxWidth: "460px", fontSize: "0.92rem", color: "var(--ifm-font-color-secondary)", margin: "0.5rem 0 1.25rem 0", lineHeight: 1.6 }}>
+                  {activePattern === "container_water"
+                    ? "Greedy two-pointer area maximization constrained by boundary heights is currently being engineered."
+                    : "3-pointer outer anchoring loop combined with inner two-pointer target convergence is currently being engineered."}
+                </p>
+                <a
+                  href="/coding/two-pointers-sliding-window-problems"
+                  className={styles.patternComingSoonBtn}
+                >
+                  <span>📖 Study Full Tutorial & Problems on CodeDose</span>
+                  <span>&rarr;</span>
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Player Controls */}
+          {isReadyPattern && (
+            <PlayerControls
+              isPlaying={isPlaying}
+              onPlayPause={handlePlayPause}
+              onNext={handleNext}
+              onPrev={handlePrev}
+              onReset={handleReset}
+              currentStep={currentStepIndex}
+              totalSteps={steps.length}
+              speed={speed}
+              onSpeedChange={setSpeed}
+              showCustomInput={false}
+            />
           )}
         </div>
 
-        {/* Player Controls */}
-        {activePattern === "two_sum" && (
-          <PlayerControls
-            isPlaying={isPlaying}
-            onPlayPause={handlePlayPause}
-            onNext={handleNext}
-            onPrev={handlePrev}
-            onReset={handleReset}
-            currentStep={currentStepIndex}
-            totalSteps={steps.length}
-            speed={speed}
-            onSpeedChange={setSpeed}
-            showCustomInput={false}
+        {/* Right Column: Code Sync & Step Intuition */}
+        <div className={layoutStyles.rightColumn}>
+          <CodeSyncPanel
+            codeLines={
+              activePattern === "fast_slow"
+                ? FAST_SLOW_CODE
+                : activePattern === "three_sum"
+                ? THREE_SUM_CODE
+                : TWO_SUM_CODE
+            }
+            activeLine={isReadyPattern ? currentStep.codeLine : 1}
+            explanation={
+              activePattern === "three_sum"
+                ? "Three Sum: Fixes the first element using an outer loop, then uses two opposing pointers on the remaining sorted subarray."
+                : activePattern === "container_water"
+                ? "Container With Water: Evaluates boundary heights and moves the shorter wall inward."
+                : currentStep.explanation
+            }
+            variables={isReadyPattern ? currentStep.variables : []}
+            statusText={isReadyPattern ? currentStep.statusText : "Coming Soon"}
+            statusType={isReadyPattern ? currentStep.statusType : "info"}
+            timeComplexity={PATTERN_COMPLEXITIES[activePattern]?.tc}
+            spaceComplexity={PATTERN_COMPLEXITIES[activePattern]?.sc}
           />
-        )}
-      </div>
-
-      {/* Right Column: Code Sync & Step Intuition */}
-      <div className={layoutStyles.rightColumn}>
-        <CodeSyncPanel
-          codeLines={
-            activePattern === "fast_slow"
-              ? FAST_SLOW_CODE
-              : activePattern === "three_sum"
-              ? THREE_SUM_CODE
-              : TWO_SUM_CODE
-          }
-          activeLine={activePattern === "two_sum" ? currentStep.codeLine : 1}
-          explanation={
-            activePattern === "fast_slow"
-              ? "Fast & Slow pointers: The slow pointer marks the boundary of unique elements, while the fast pointer explores ahead."
-              : activePattern === "three_sum"
-              ? "Three Sum: Fixes the first element using an outer loop, then uses two opposing pointers on the remaining sorted subarray."
-              : currentStep.explanation
-          }
-          variables={activePattern === "two_sum" ? currentStep.variables : []}
-          statusText={activePattern === "two_sum" ? currentStep.statusText : "Coming Soon"}
-          statusType={activePattern === "two_sum" ? currentStep.statusType : "info"}
-          timeComplexity={PATTERN_COMPLEXITIES[activePattern]?.tc}
-          spaceComplexity={PATTERN_COMPLEXITIES[activePattern]?.sc}
-        />
+        </div>
       </div>
     </div>
-  </div>
   );
 }
+

@@ -120,6 +120,7 @@ export default function SlidingWindowVisualizer() {
     let bestStart = 0;
     let bestEnd = k - 1;
 
+    // Step 0: Line 2 - window_sum = sum(arr[:k])
     generated.push({
       windowStart: 0,
       windowEnd: k - 1,
@@ -129,21 +130,64 @@ export default function SlidingWindowVisualizer() {
       bestEnd: k - 1,
       isNewMax: true,
       status: "initial_window",
-      statusText: "First Window",
+      statusText: "Initial Window",
       statusType: "info",
       codeLine: 2,
       variables: [
-        { label: "Window", value: `[0..${k - 1}]` },
-        { label: "Sum", value: initialSum, highlight: true },
-        { label: "Max", value: maxSum },
+        { label: "window", value: `[0..${k - 1}]` },
+        { label: "window_sum", value: `sum(arr[:${k}]) = ${initialSum}`, highlight: true },
+        { label: "k", value: k },
       ],
-      explanation: `Calculated sum of initial window [0..${k - 1}] = ${initialSum}.`,
+      explanation: `Calculated sum of initial window [0..${k - 1}]: sum(arr[:${k}]) = ${initialSum}.`,
+    });
+
+    // Step 1: Line 3 - max_sum = window_sum
+    generated.push({
+      windowStart: 0,
+      windowEnd: k - 1,
+      windowSum: initialSum,
+      maxSum: initialSum,
+      bestStart: 0,
+      bestEnd: k - 1,
+      isNewMax: true,
+      status: "initial_max",
+      statusText: "Record Initial Max",
+      statusType: "info",
+      codeLine: 3,
+      variables: [
+        { label: "max_sum", value: initialSum, highlight: true },
+        { label: "initial window", value: `[0..${k - 1}]` },
+      ],
+      explanation: `Set max_sum = window_sum = ${initialSum}. Tracking benchmark maximum for future slides.`,
     });
 
     for (let i = k; i < n; i++) {
       const added = windowArray[i];
       const removed = windowArray[i - k];
+
+      // Step A: Line 5 - for i in range(k, len(arr)):
+      generated.push({
+        windowStart: i - k,
+        windowEnd: i - 1,
+        windowSum: initialSum,
+        maxSum,
+        bestStart,
+        bestEnd,
+        isNewMax: false,
+        status: "slide_advance",
+        statusText: "Slide Ahead ➔",
+        statusType: "info",
+        codeLine: 5,
+        variables: [
+          { label: "i (incoming)", value: `idx ${i} (${added})`, highlight: true },
+          { label: "outgoing", value: `idx ${i - k} (${removed})` },
+          { label: "current max", value: `${maxSum} 🏆` },
+        ],
+        explanation: `For loop iteration: advancing window to include index ${i} (${added}) and drop index ${i - k} (${removed}).`,
+      });
+
       initialSum += added - removed;
+      const prevMax = maxSum;
       const isNewMax = initialSum > maxSum;
       if (isNewMax) {
         maxSum = initialSum;
@@ -151,6 +195,27 @@ export default function SlidingWindowVisualizer() {
         bestEnd = i;
       }
 
+      // Step B: Line 6 - window_sum += arr[i] - arr[i - k]  # Slide window
+      generated.push({
+        windowStart: i - k + 1,
+        windowEnd: i,
+        windowSum: initialSum,
+        maxSum: prevMax,
+        bestStart,
+        bestEnd,
+        isNewMax: false,
+        status: "slide_calc",
+        statusText: "Update Window Sum",
+        statusType: "warning",
+        codeLine: 6,
+        variables: [
+          { label: "window_sum", value: `${initialSum - added + removed} - ${removed} + ${added} = ${initialSum}`, highlight: true },
+          { label: "new window", value: `[${i - k + 1}..${i}]` },
+        ],
+        explanation: `Executed window_sum += arr[${i}] - arr[${i - k}]: subtracted ${removed}, added ${added}. Window sum is now ${initialSum}.`,
+      });
+
+      // Step C: Line 7 - max_sum = max(max_sum, window_sum)
       generated.push({
         windowStart: i - k + 1,
         windowEnd: i,
@@ -160,21 +225,20 @@ export default function SlidingWindowVisualizer() {
         bestEnd,
         isNewMax,
         status: isNewMax ? "new_max" : "slide",
-        statusText: isNewMax ? "New Record!" : "Slide ➔",
+        statusText: isNewMax ? "New Record! 🏆" : "Max Unchanged",
         statusType: isNewMax ? "success" : "info",
-        codeLine: 6,
+        codeLine: 7,
         variables: [
-          { label: "Window", value: `[${i - k + 1}..${i}]` },
-          { label: "Sum", value: initialSum, highlight: isNewMax },
-          { label: "Record Max", value: `${maxSum} 🏆`, highlight: isNewMax },
+          { label: "max_sum", value: `max(${prevMax}, ${initialSum}) ➔ ${maxSum}`, highlight: isNewMax },
+          { label: "record set?", value: isNewMax ? "Yes! 🏆" : "No" },
         ],
         explanation: isNewMax
-          ? `🔥 Subtracted ${removed}, added ${added}. Window sum ${initialSum} sets a new record max!`
-          : `Subtracted ${removed}, added ${added}. Window sum is ${initialSum} (max remains ${maxSum}).`,
+          ? `🔥 Executed max_sum = max(${prevMax}, ${initialSum}) = ${initialSum}. Window sum ${initialSum} sets a new record max!`
+          : `Executed max_sum = max(${prevMax}, ${initialSum}) = ${maxSum}. Current window sum does not exceed previous max (${maxSum}).`,
       });
     }
 
-    // Final Completion Step: Highlights the TRUE WINNING window!
+    // Final Step: Line 9 - return max_sum
     generated.push({
       windowStart: bestStart,
       windowEnd: bestEnd,
@@ -189,10 +253,10 @@ export default function SlidingWindowVisualizer() {
       codeLine: 9,
       variables: [
         { label: "Winning Window", value: `[${bestStart}..${bestEnd}]`, highlight: true },
-        { label: "Max Sum", value: `${maxSum} 🏆`, highlight: true },
+        { label: "return max_sum", value: `${maxSum} 🏆`, highlight: true },
         { label: "Subarray", value: `[${windowArray.slice(bestStart, bestEnd + 1).join(", ")}]` },
       ],
-      explanation: `Completed array traversal! Maximum subarray sum of size ${k} is ${maxSum} in subarray [${windowArray.slice(bestStart, bestEnd + 1).join(", ")}].`,
+      explanation: `🏁 Completed array traversal! Maximum subarray sum of size ${k} is ${maxSum} in subarray [${windowArray.slice(bestStart, bestEnd + 1).join(", ")}]. Returning ${maxSum}.`,
     });
 
     return generated;

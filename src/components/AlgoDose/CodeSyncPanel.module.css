@@ -276,6 +276,8 @@
 
 .codeBody {
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: 290px;
   padding: 0.35rem 0;
   scrollbar-width: thin;
   scrollbar-color: var(--ifm-color-emphasis-300) transparent;
@@ -283,6 +285,7 @@
 }
 
 .codeBody::-webkit-scrollbar {
+  width: 5px;
   height: 4px;
 }
 
