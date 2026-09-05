@@ -3,6 +3,7 @@ import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
 import CustomDropdown from "../CustomDropdown";
 import CanvasStatusBanner from "../CanvasStatusBanner";
+import PatternBlueprintCard from "../PatternBlueprintCard";
 import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./SortingVisualizer.module.css";
 
@@ -61,6 +62,67 @@ const PATTERN_COMPLEXITIES = {
   insertion: { tc: "O(N²)", sc: "O(1)" },
   quicksort: { tc: "O(N log N)", sc: "O(log N)" },
   mergesort: { tc: "O(N log N)", sc: "O(N)" },
+};
+
+const SORTING_PATTERN_OPTIONS = [
+  {
+    group: "Ready Patterns",
+    items: [
+      { value: "bubble", label: "Bubble Sort (Adjacent Swaps)", icon: "🫧" },
+      { value: "selection", label: "Selection Sort (Min Boundary Placement)", icon: "🎯" },
+    ],
+  },
+  {
+    group: "Upcoming Patterns",
+    items: [
+      { value: "insertion", label: "Insertion Sort (Sorted Partition Shift)", icon: "📥", badge: "Coming Soon" },
+      { value: "quicksort", label: "QuickSort (Lomuto Partition)", icon: "⚡", badge: "Coming Soon" },
+      { value: "mergesort", label: "Merge Sort (Divide & Conquer)", icon: "🔀", badge: "Coming Soon" },
+    ],
+  },
+];
+
+const SORTING_BLUEPRINTS = {
+  bubble: {
+    id: "bubble",
+    name: "Bubble Sort (Adjacent Swaps)",
+    icon: "🫧",
+    problem: "Order elements in non-decreasing sequence through sequential adjacent pairwise comparisons.",
+    whenToUse: "Educational baseline for swap mechanics; detects already-sorted arrays early in O(N).",
+    mechanics: "Iterate through array comparing neighbors arr[j] > arr[j+1]. Swap out-of-order pairs to bubble maximum rightward.",
+  },
+  selection: {
+    id: "selection",
+    name: "Selection Sort (Min Boundary Placement)",
+    icon: "🎯",
+    problem: "Sort array by repeatedly finding the absolute minimum element from the unsorted segment.",
+    whenToUse: "When memory writes (swaps) are expensive and need to be strictly bounded to O(N).",
+    mechanics: "Maintain sorted prefix boundary. Scan unsorted suffix to find minimum, then swap once per outer pass.",
+  },
+  insertion: {
+    id: "insertion",
+    name: "Insertion Sort (Sorted Partition Shift)",
+    icon: "📥",
+    problem: "Incrementally build a sorted array one element at a time by shifting larger elements.",
+    whenToUse: "Ideal for small datasets (N < 25) or nearly sorted streams.",
+    mechanics: "Pick next element and insert it into correct position in sorted left prefix by shifting elements right.",
+  },
+  quicksort: {
+    id: "quicksort",
+    name: "QuickSort (Lomuto Partition)",
+    icon: "⚡",
+    problem: "High-speed in-place sorting by partitioning elements around a chosen pivot value.",
+    whenToUse: "General-purpose internal sorting when average-case cache locality and O(1) space matter.",
+    mechanics: "Partition array such that elements < pivot are left and > pivot are right; recurse on partitions.",
+  },
+  mergesort: {
+    id: "mergesort",
+    name: "Merge Sort (Divide & Conquer)",
+    icon: "🔀",
+    problem: "Guaranteed O(N log N) sorting by recursive halving and merging sorted subarrays.",
+    whenToUse: "When stability is required and additional O(N) memory is acceptable.",
+    mechanics: "Recursively split array into halves until singletons, then merge two sorted halves in sorted order.",
+  },
 };
 
 export default function SortingVisualizer({
@@ -459,48 +521,26 @@ export default function SortingVisualizer({
   }
 
   return (
-    <div className={layoutStyles.twoColumnGrid}>
-      {/* Left Column: Visual Canvas & Controls */}
-      <div className={layoutStyles.leftColumn}>
-        {/* Consolidated Inputs & Configuration Toolbar at Top */}
-        <div className={styles.configCard}>
-          {/* Pattern Header Row */}
-          <div className={styles.patternRow}>
-            <label htmlFor="sort-pattern-select" className={styles.patternLabel}>
-              Pattern:
-            </label>
-            <div className={styles.patternSelectWrapper}>
-              <CustomDropdown
-                id="sort-pattern-select"
-                value={algo}
-                onChange={(val) => {
-                  setIsPlaying(false);
-                  setAlgo(val);
-                  setCurrentStepIndex(0);
-                }}
-                options={[
-                  {
-                    group: "Ready Patterns",
-                    items: [
-                      { value: "bubble", label: "Bubble Sort (Adjacent Swaps)", icon: "🫧" },
-                      { value: "selection", label: "Selection Sort (Min Boundary Placement)", icon: "🎯" },
-                    ],
-                  },
-                  {
-                    group: "Upcoming Patterns",
-                    items: [
-                      { value: "insertion", label: "Insertion Sort (Sorted Partition Shift)", icon: "⚡", badge: "Coming Soon" },
-                      { value: "quicksort", label: "QuickSort (Lomuto Partition)", icon: "🔪", badge: "Coming Soon" },
-                      { value: "mergesort", label: "Merge Sort (Divide & Conquer)", icon: "🔀", badge: "Coming Soon" },
-                    ],
-                  },
-                ]}
-                ariaLabel="Select Sorting pattern"
-              />
-            </div>
-          </div>
+    <div className={styles.container}>
+      {/* Generalized Pattern Blueprint & Selector Card */}
+      <PatternBlueprintCard
+        patternId={algo}
+        onPatternChange={(val) => {
+          setIsPlaying(false);
+          setAlgo(val);
+          setCurrentStepIndex(0);
+        }}
+        options={SORTING_PATTERN_OPTIONS}
+        blueprint={SORTING_BLUEPRINTS[algo]}
+        id="sort-pattern-select"
+      />
 
-          {isReadyAlgo ? (
+      <div className={layoutStyles.twoColumnGrid}>
+        {/* Left Column: Visual Canvas & Controls */}
+        <div className={layoutStyles.leftColumn}>
+          {/* Consolidated Inputs & Configuration Toolbar at Top */}
+          <div className={styles.configCard}>
+            {isReadyAlgo ? (
             <>
               <form
                 className={styles.inputRow}
@@ -688,5 +728,6 @@ export default function SortingVisualizer({
         />
       </div>
     </div>
+  </div>
   );
 }

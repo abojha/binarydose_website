@@ -3,6 +3,7 @@ import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
 import CustomDropdown from "../CustomDropdown";
 import CanvasStatusBanner from "../CanvasStatusBanner";
+import PatternBlueprintCard from "../PatternBlueprintCard";
 import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./TwoPointersVisualizer.module.css";
 
@@ -48,8 +49,61 @@ const THREE_SUM_CODE = [
 const PATTERN_COMPLEXITIES = {
   two_sum: { tc: "O(N)", sc: "O(1)" },
   fast_slow: { tc: "O(N)", sc: "O(1)" },
+  container_water: { tc: "O(N)", sc: "O(1)" },
   three_sum: { tc: "O(N²)", sc: "O(1)" },
 };
+
+const TWO_POINTERS_BLUEPRINTS = {
+  two_sum: {
+    id: "two_sum",
+    name: "Opposing Pointers (Two Sum)",
+    icon: "↔️",
+    problem: "Find two elements in an ordered collection whose combined sum matches a target condition.",
+    whenToUse: "When the input array is sorted or monotonic, and a pair condition can be evaluated from the extreme boundaries inward.",
+    mechanics: "Left starts at 0, Right starts at N-1. Advance left to increase sum; retract right to decrease sum.",
+  },
+  fast_slow: {
+    id: "fast_slow",
+    name: "Fast & Slow (Remove Duplicates)",
+    icon: "🏎️",
+    problem: "In-place array compaction, element filtering, or partitioning without auxiliary memory allocation.",
+    whenToUse: "When you must modify an array in-place based on a condition (e.g. unique items or filtered values) in O(1) extra space.",
+    mechanics: "A reader pointer (fast) scans ahead through all items. A writer pointer (slow) only advances when writing a valid unique item.",
+  },
+  container_water: {
+    id: "container_water",
+    name: "Greedy Opposing (Container With Water)",
+    icon: "🌊",
+    problem: "Maximizing an enclosed area or capacity constrained by the minimum of two boundary walls.",
+    whenToUse: "When capacity is limited by the shorter boundary. Moving the taller boundary can never increase the result, so greedily move the shorter boundary.",
+    mechanics: "Pointers start at both ends. Compute current capacity, then advance whichever pointer points to the shorter boundary inward.",
+  },
+  three_sum: {
+    id: "three_sum",
+    name: "Anchored 3-Pointer (3Sum)",
+    icon: "📐",
+    problem: "Finding triplet combinations meeting a target condition without cubic O(N³) brute-force.",
+    whenToUse: "When solving k-sum problems where sorting the collection reduces the problem dimensionality by 1.",
+    mechanics: "An outer loop fixes an anchor element at index i, while standard opposing two pointers search the remaining sorted subarray.",
+  },
+};
+
+const TWO_POINTERS_PATTERN_OPTIONS = [
+  {
+    group: "Ready Patterns",
+    items: [
+      { value: "two_sum", label: "Opposing Pointers (Two Sum)", icon: "↔️" },
+    ],
+  },
+  {
+    group: "Upcoming Patterns",
+    items: [
+      { value: "fast_slow", label: "Fast & Slow (Remove Duplicates)", icon: "🏎️", badge: "Coming Soon" },
+      { value: "container_water", label: "Greedy Opposing (Container With Water)", icon: "🌊", badge: "Coming Soon" },
+      { value: "three_sum", label: "Anchored 3-Pointer (3Sum)", icon: "📐", badge: "Coming Soon" },
+    ],
+  },
+];
 
 export default function TwoPointersVisualizer() {
   const [activePattern, setActivePattern] = useState("two_sum");
@@ -276,49 +330,28 @@ export default function TwoPointersVisualizer() {
   };
 
   return (
-    <div className={layoutStyles.twoColumnGrid}>
-      {/* Left Column: Visualizer Canvas & Controls */}
-      <div className={layoutStyles.leftColumn}>
-        {/* Consolidated Inputs & Configuration Toolbar at Top */}
-        <div className={styles.configCard}>
-          {/* Pattern Header Row */}
-          <div className={styles.patternRow}>
-            <label htmlFor="tp-pattern-select" className={styles.patternLabel}>
-              Pattern:
-            </label>
-            <div className={styles.patternSelectWrapper}>
-              <CustomDropdown
-                id="tp-pattern-select"
-                value={activePattern}
-                onChange={(val) => {
-                  setActivePattern(val);
-                  setIsPlaying(false);
-                  setCurrentStepIndex(0);
-                }}
-                options={[
-                  {
-                    group: "Ready Patterns",
-                    items: [
-                      { value: "two_sum", label: "Opposing Pointers (Two Sum)", icon: "↔️" },
-                    ],
-                  },
-                  {
-                    group: "Upcoming Patterns",
-                    items: [
-                      { value: "fast_slow", label: "Fast & Slow (Remove Duplicates)", icon: "🏎️", badge: "Coming Soon" },
-                      { value: "three_sum", label: "Three Sum (Sorted Boundary)", icon: "📐", badge: "Coming Soon" },
-                    ],
-                  },
-                ]}
-                ariaLabel="Select Two Pointers pattern"
-              />
-            </div>
-          </div>
+    <div className={styles.container}>
+      {/* Generalized Pattern Blueprint & Selector Card */}
+      <PatternBlueprintCard
+        patternId={activePattern}
+        onPatternChange={(val) => {
+          setActivePattern(val);
+          setIsPlaying(false);
+          setCurrentStepIndex(0);
+        }}
+        options={TWO_POINTERS_PATTERN_OPTIONS}
+        blueprint={TWO_POINTERS_BLUEPRINTS[activePattern]}
+      />
 
-          {/* Row 1: Array Input & Randomize */}
-          {activePattern === "two_sum" ? (
-            <>
-              <form className={styles.inputRow} onSubmit={handleCustomInputSubmit}>
+      <div className={layoutStyles.twoColumnGrid}>
+        {/* Left Column: Visualizer Canvas & Controls */}
+        <div className={layoutStyles.leftColumn}>
+          {/* Consolidated Inputs & Configuration Toolbar at Top */}
+          <div className={styles.configCard}>
+            {/* Row 1: Array Input & Randomize */}
+            {activePattern === "two_sum" ? (
+              <>
+                <form className={styles.inputRow} onSubmit={handleCustomInputSubmit}>
                 <label className={styles.label}>Sorted Array:</label>
                 <input
                   type="text"
@@ -560,5 +593,6 @@ export default function TwoPointersVisualizer() {
         />
       </div>
     </div>
+  </div>
   );
 }

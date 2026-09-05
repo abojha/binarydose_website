@@ -88,8 +88,11 @@ export default function CodeSyncPanel({
           </div>
         )}
 
-        {/* Concise Intuition Text */}
-        <p className={styles.explanationText}>{explanation}</p>
+        {/* Intuition Callout Box */}
+        <div className={styles.explanationBox}>
+          <span className={styles.quoteBar} aria-hidden="true" />
+          <p className={styles.explanationText}>{explanation}</p>
+        </div>
       </div>
     </div>
   );

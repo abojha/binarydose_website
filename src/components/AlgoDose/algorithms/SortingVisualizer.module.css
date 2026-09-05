@@ -13,61 +13,7 @@
   background: var(--ifm-background-surface-color);
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: var(--ifm-global-radius);
-}
-
-/* Pattern Header Row */
-.patternRow {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px dashed var(--ifm-color-emphasis-200);
-}
-
-.patternLabel {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--ifm-font-color-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-
-.patternSelectWrapper {
-  position: relative;
-  display: inline-block;
-  flex: 1;
-  max-width: 340px;
-}
-
-.patternSelect {
-  width: 100%;
-  appearance: none;
-  -webkit-appearance: none;
-  padding: 0.4rem 2.2rem 0.4rem 0.75rem;
-  border-radius: 8px;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  background: var(--ifm-background-color);
-  color: var(--ifm-font-color-base);
-  font-family: var(--ifm-font-family-base);
-  font-size: 0.88rem;
-  font-weight: 700;
-  cursor: pointer;
-  outline: none;
-  transition: all 0.2s ease;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 0.65rem center;
-  background-size: 0.95rem;
-}
-
-.patternSelect:focus {
-  border-color: var(--ifm-color-primary);
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
-}
-
-.patternSelect:hover {
-  border-color: var(--ifm-color-primary);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.02);
 }
 
 .inputRow {
@@ -79,11 +25,12 @@
 }
 
 .label {
-  font-size: 0.85rem;
-  font-weight: 700;
+  font-family: var(--ifm-font-family-base);
+  font-size: 0.82rem;
+  font-weight: 800;
   color: var(--ifm-font-color-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   white-space: nowrap;
 }
 

@@ -3,6 +3,7 @@ import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
 import CustomDropdown from "../CustomDropdown";
 import CanvasStatusBanner from "../CanvasStatusBanner";
+import PatternBlueprintCard from "../PatternBlueprintCard";
 import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./BinarySearchVisualizer.module.css";
 
@@ -39,6 +40,58 @@ const PATTERN_COMPLEXITIES = {
   lower_bound: { tc: "O(log N)", sc: "O(1)" },
   upper_bound: { tc: "O(log N)", sc: "O(1)" },
   rotated_array: { tc: "O(log N)", sc: "O(1)" },
+};
+
+const BINARY_SEARCH_PATTERN_OPTIONS = [
+  {
+    group: "Ready Patterns",
+    items: [
+      { value: "exact_search", label: "Exact Target Search", icon: "🔍" },
+    ],
+  },
+  {
+    group: "Upcoming Patterns",
+    items: [
+      { value: "lower_bound", label: "Lower Bound (First Occurrence)", icon: "📉", badge: "Coming Soon" },
+      { value: "upper_bound", label: "Upper Bound (Last Occurrence)", icon: "📈", badge: "Coming Soon" },
+      { value: "rotated_array", label: "Rotated Sorted Array Search", icon: "🔄", badge: "Coming Soon" },
+    ],
+  },
+];
+
+const BINARY_SEARCH_BLUEPRINTS = {
+  exact_search: {
+    id: "exact_search",
+    name: "Exact Target Search",
+    icon: "🔍",
+    problem: "Find the exact index of a target element in a strictly sorted collection.",
+    whenToUse: "When the search space is monotonic/sorted and direct equality comparison is required.",
+    mechanics: "Calculate mid = (low + high) // 2. If arr[mid] == target return mid; halve search space based on comparison.",
+  },
+  lower_bound: {
+    id: "lower_bound",
+    name: "Lower Bound (First Occurrence)",
+    icon: "📉",
+    problem: "Find the first index where arr[index] >= target in a sorted collection.",
+    whenToUse: "When searching for insertion position or the earliest valid candidate satisfying a condition.",
+    mechanics: "If arr[mid] >= target, record candidate index and narrow search to the left half (high = mid - 1).",
+  },
+  upper_bound: {
+    id: "upper_bound",
+    name: "Upper Bound (Last Occurrence)",
+    icon: "📈",
+    problem: "Find the first index where arr[index] > target in a sorted collection.",
+    whenToUse: "When counting occurrences or establishing boundary limits in sorted sequences.",
+    mechanics: "If arr[mid] <= target, advance right (low = mid + 1); otherwise candidate found and search left.",
+  },
+  rotated_array: {
+    id: "rotated_array",
+    name: "Rotated Sorted Array Search",
+    icon: "🔄",
+    problem: "Locate target in an array sorted in ascending order that was rotated at an unknown pivot.",
+    whenToUse: "When an array consists of two sorted monotonic segments separated by a pivot inflection.",
+    mechanics: "Identify which half is strictly sorted; check if target falls inside that range to eliminate the other half.",
+  },
 };
 
 export default function BinarySearchVisualizer() {
@@ -284,46 +337,25 @@ export default function BinarySearchVisualizer() {
   };
 
   return (
-    <div className={layoutStyles.twoColumnGrid}>
-      <div className={layoutStyles.leftColumn}>
-        {/* Consolidated Inputs & Configuration Toolbar at Top */}
-        <div className={styles.configCard}>
-          {/* Pattern Header Row */}
-          <div className={styles.patternRow}>
-            <label htmlFor="bs-pattern-select" className={styles.patternLabel}>
-              Pattern:
-            </label>
-            <div className={styles.patternSelectWrapper}>
-              <CustomDropdown
-                id="bs-pattern-select"
-                value={activePattern}
-                onChange={(val) => {
-                  setActivePattern(val);
-                  setIsPlaying(false);
-                  setCurrentStepIndex(0);
-                }}
-                options={[
-                  {
-                    group: "Ready Patterns",
-                    items: [
-                      { value: "exact_search", label: "Exact Target Search", icon: "🔍" },
-                    ],
-                  },
-                  {
-                    group: "Upcoming Patterns",
-                    items: [
-                      { value: "lower_bound", label: "Lower Bound (First Occurrence)", icon: "📉", badge: "Coming Soon" },
-                      { value: "upper_bound", label: "Upper Bound (Last Occurrence)", icon: "📈", badge: "Coming Soon" },
-                      { value: "rotated_array", label: "Rotated Sorted Array Search", icon: "🔄", badge: "Coming Soon" },
-                    ],
-                  },
-                ]}
-                ariaLabel="Select Binary Search pattern"
-              />
-            </div>
-          </div>
+    <div className={styles.container}>
+      {/* Generalized Pattern Blueprint & Selector Card */}
+      <PatternBlueprintCard
+        patternId={activePattern}
+        onPatternChange={(val) => {
+          setActivePattern(val);
+          setIsPlaying(false);
+          setCurrentStepIndex(0);
+        }}
+        options={BINARY_SEARCH_PATTERN_OPTIONS}
+        blueprint={BINARY_SEARCH_BLUEPRINTS[activePattern]}
+        id="bs-pattern-select"
+      />
 
-          {activePattern === "exact_search" ? (
+      <div className={layoutStyles.twoColumnGrid}>
+        <div className={layoutStyles.leftColumn}>
+          {/* Consolidated Inputs & Configuration Toolbar at Top */}
+          <div className={styles.configCard}>
+            {activePattern === "exact_search" ? (
             <>
               {/* Row 1: Array Input & Randomize */}
               <form
@@ -584,5 +616,6 @@ export default function BinarySearchVisualizer() {
         />
       </div>
     </div>
+  </div>
   );
 }
