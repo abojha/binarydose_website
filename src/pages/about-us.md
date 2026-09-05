@@ -15,8 +15,9 @@ We believe in **small, powerful doses of knowledge** — intuitive visual explan
 
 Binary Dose is an all-in-one ecosystem designed to take you from CS fundamentals to cracking top-tier tech interviews:
 
-- 🔥 **100 Days CS Series**: Daily high-yield interview questions covering OS, System Design, Concurrency, and Computer Networks.
+- 🕹️ **AlgoDose (Interactive Visualizer Lab)**: Live, step-by-step algorithm visualizers with synchronized code execution and zero lag.
 - 💻 **CodeDose (DSA Sheet)**: A curated, topic-wise DSA roadmap with clean implementations in C++, Java, Python, and Go.
+- 🔥 **100 Days Interview Series**: Daily high-yield interview questions covering OS, System Design, Concurrency, and Computer Networks.
 - 🎥 **Structured Video Courses**: Comprehensive playlists on Operating Systems, Algorithms, Data Structures, and OOPs.
 - 📝 **Engineering Blog & Deep Dives**: In-depth articles on scalability, architecture, Linux internals, and interview breakdowns.
 - 📂 **University & GATE PYQs**: Curated previous-year questions and revision cheatsheets.
@@ -46,6 +47,12 @@ Hi, I’m **Abhay Ojha**, the creator of Binary Dose.
 - 🎓 **M.Tech (CSE)** from **NIT Warangal**
 - 🎥 Educator & Content Creator at **Binary Dose**
 - ❤️ Passionate about Systems Programming, OS Internals, Scalability, and Mentoring
+
+### 📬 Connect with Abhay:
+- 💼 **LinkedIn**: [Abhay Ojha](https://linkedin.com/in/abhayojha0012)
+- 📸 **Instagram**: [@ab_slogs](https://www.instagram.com/ab_slogs/)
+- 💻 **GitHub**: [@abojha](https://github.com/abojha)
+- ✉️ **Platform Inquiries**: [dosebinary@gmail.com](mailto:dosebinary@gmail.com)
 
 I started Binary Dose to teach computer science the way I wish it was taught when I was learning — **intuitive, honest, visual, and no-nonsense**.
 

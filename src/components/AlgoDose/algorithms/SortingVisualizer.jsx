@@ -63,7 +63,10 @@ const PATTERN_COMPLEXITIES = {
   mergesort: { tc: "O(N log N)", sc: "O(N)" },
 };
 
-export default function SortingVisualizer({ selectedAlgoId = null }) {
+export default function SortingVisualizer({
+  selectedAlgoId = null,
+  previewMode = false,
+}) {
   const [algo, setAlgo] = useState(
     selectedAlgoId === "selection_sort" ? "selection" : "bubble"
   );
@@ -386,6 +389,74 @@ export default function SortingVisualizer({ selectedAlgoId = null }) {
     setCustomInput(parsed.join(", "));
     setCurrentStepIndex(0);
   };
+
+  if (previewMode) {
+    return (
+      <div className={styles.previewContainer}>
+        <div className={styles.canvasCard}>
+          {currentStep.statusText.includes("Sorted") ? (
+            <CanvasStatusBanner
+              type="success"
+              icon="✅"
+              text={`Array Successfully Sorted! Total Comparisons: ${currentStep.comparisons} | Swaps: ${currentStep.swaps}`}
+              mobileText={`Sorted! • ${currentStep.comparisons} Comps • ${currentStep.swaps} Swaps`}
+            />
+          ) : (
+            <CanvasStatusBanner type="info">
+              <span>Pass:</span>
+              <strong>{currentStep.variables?.find((v) => v.label === "Pass")?.value || "Running"}</strong>
+              <span>| Action:</span>
+              <strong style={{ color: "var(--ifm-color-primary)" }}>{currentStep.statusText}</strong>
+            </CanvasStatusBanner>
+          )}
+
+          <div className={styles.barsContainer}>
+            {currentStep.array.map((num, idx) => {
+              const isComparing = currentStep.comparing.includes(idx);
+              const isSwapping = currentStep.swapping.includes(idx);
+              const isSorted = currentStep.sorted.has(idx);
+
+              const heightPercent = Math.max(
+                20,
+                Math.round((num / maxVal) * 160)
+              );
+
+              return (
+                <div key={idx} className={styles.barColumn}>
+                  <span className={styles.barValue}>{num}</span>
+                  <div
+                    className={`
+                      ${styles.barFill}
+                      ${isComparing ? styles.barComparing : ""}
+                      ${isSwapping ? styles.barSwapping : ""}
+                      ${isSorted ? styles.barSorted : ""}
+                    `}
+                    style={{ height: `${heightPercent}px` }}
+                  />
+                  <span className={styles.barIndex}>[{idx}]</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className={styles.previewControlsWrapper}>
+          <PlayerControls
+            isPlaying={isPlaying}
+            onPlayPause={handlePlayPause}
+            onNext={handleNext}
+            onPrev={handlePrev}
+            onReset={handleReset}
+            currentStep={currentStepIndex}
+            totalSteps={steps.length}
+            speed={speed}
+            onSpeedChange={setSpeed}
+            showCustomInput={false}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={layoutStyles.twoColumnGrid}>

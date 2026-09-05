@@ -392,3 +392,19 @@
   gap: 0.35rem;
 }
 
+/* Homepage & Teaser Preview Mode Container */
+.previewContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.previewControlsWrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+

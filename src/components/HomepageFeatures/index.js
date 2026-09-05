@@ -1,38 +1,8 @@
 import React from "react";
 import Link from "@docusaurus/Link";
 import Heading from "@theme/Heading";
+import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
 import styles from "./styles.module.css";
-
-const LearningTracks = [
-  {
-    icon: "⚡",
-    title: "CodeDose DSA Sheet",
-    description: "Curated collection of must-do coding patterns with visual explanations, clean code, and time/space complexity analysis.",
-    link: "/coding",
-    linkText: "Start Solving",
-  },
-  {
-    icon: "🔥",
-    title: "100 Days CS Series",
-    description: "Bite-sized daily interview questions covering OS, System Design, Concurrency, and Memory with deep-dive notes.",
-    link: "/100-days",
-    linkText: "Explore 100 Days",
-  },
-  {
-    icon: "📺",
-    title: "Video Courses & Playlists",
-    description: "Complete YouTube video courses on Data Structures (CSE-303), Operating Systems, Algorithms, and CS Fundamentals.",
-    link: "/courses",
-    linkText: "Watch Courses",
-  },
-  {
-    icon: "📑",
-    title: "Previous Year Questions (PYQs)",
-    description: "High-yield university & placement exam questions with comprehensive solutions and must-solve markers.",
-    link: "/pyqs",
-    linkText: "View PYQs",
-  },
-];
 
 const CoreValues = [
   {
@@ -53,11 +23,49 @@ const CoreValues = [
   {
     icon: "🚀",
     title: "Built by an Engineer",
-    description: "Created by Abhay Ojha (M.Tech CSE at NIT Warangal, Intel Graduate Intern) with passion for high-clarity teaching.",
+    description: "Created by Abhay Ojha (Software Engineer at Intel, M.Tech CSE from NIT Warangal) with a passion for high-clarity teaching.",
   },
 ];
 
 export default function HomepageFeatures() {
+  const { siteConfig } = useDocusaurusContext();
+  const stats = siteConfig.customFields?.stats || {};
+
+  const learningTracks = [
+    {
+      icon: "🕹️",
+      badge: `${stats.visualizerEnginesCount || 4} Interactive Engines`,
+      title: "AlgoDose Visualizer Lab",
+      description: "Interactive step-by-step algorithm visualizer with zero CLS, pointer indicators, and synchronized code execution.",
+      link: "/algodose",
+      linkText: "Launch Visualizer",
+    },
+    {
+      icon: "⚡",
+      badge: `${stats.totalProblems || 390}+ Problems • ${stats.totalCategories || 16} Patterns`,
+      title: "CodeDose DSA Sheet",
+      description: `Curated collection of must-solve coding patterns with clean C++ and Python implementations and complexity analysis.`,
+      link: "/coding",
+      linkText: "Start Solving",
+    },
+    {
+      icon: "🔥",
+      badge: `${stats.hundredDaysCount || 48}+ Interview Doses`,
+      title: "100 Days Interview Series",
+      description: "Bite-sized daily interview questions covering OS, System Design, Concurrency, and Memory with deep-dive notes.",
+      link: "/100-days",
+      linkText: "Explore 100 Days",
+    },
+    {
+      icon: "📺",
+      badge: `${stats.videoPlaylistsCount || 4} Video Playlists`,
+      title: "Video Courses & Playlists",
+      description: "Complete animated video courses on Operating Systems, Algorithms, Data Structures, and Object-Oriented Programming.",
+      link: "/courses",
+      linkText: "Watch Courses",
+    },
+  ];
+
   return (
     <>
       {/* 1. Learning Tracks Section */}
@@ -74,9 +82,14 @@ export default function HomepageFeatures() {
           </div>
 
           <div className={styles.tracksGrid}>
-            {LearningTracks.map((track, idx) => (
+            {learningTracks.map((track, idx) => (
               <Link key={idx} to={track.link} className={styles.trackCard}>
-                <span className={styles.trackIcon}>{track.icon}</span>
+                <div className={styles.trackCardHeader}>
+                  <span className={styles.trackIcon}>{track.icon}</span>
+                  {track.badge && (
+                    <span className={styles.trackBadge}>{track.badge}</span>
+                  )}
+                </div>
                 <h3 className={styles.trackTitle}>{track.title}</h3>
                 <p className={styles.trackDesc}>{track.description}</p>
                 <div className={styles.trackFooter}>
@@ -131,7 +144,61 @@ export default function HomepageFeatures() {
         </div>
       </section>
 
-      {/* 3. Core Philosophy Section */}
+      {/* 3. Open-Source Community & Contribution Showcase Banner */}
+      <section className="container">
+        <div className={styles.communityShowcase}>
+          <div className={styles.communityContent}>
+            <div className={styles.communityBadge}>
+              <span>🚀</span> Open-Source &amp; Community
+            </div>
+            <h2 className={styles.communityTitle}>
+              Built by Engineers, for Engineers
+            </h2>
+            <p className={styles.communityDescription}>
+              Binary Dose is built for the developer community, by the developer community. Have a clean DSA solution, an interview breakdown, or a visualizer enhancement? Contribute on GitHub and get your own verified author profile.
+            </p>
+            <div className={styles.communityActionButtons}>
+              <a
+                href="https://github.com/abojha/binarydose_website"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.communityGithubBtn}
+              >
+                <span>⭐</span> Star &amp; Contribute on GitHub
+              </a>
+              <Link to="/contribute" className={styles.communityExploreBtn}>
+                Learn How to Contribute &rarr;
+              </Link>
+            </div>
+          </div>
+
+          <div className={styles.communityPerksCard}>
+            <div className={styles.perkItem}>
+              <span className={styles.perkIcon}>🌟</span>
+              <div>
+                <strong>Verified Author Profile</strong>
+                <p>Get your custom author card linking to your LinkedIn and GitHub.</p>
+              </div>
+            </div>
+            <div className={styles.perkItem}>
+              <span className={styles.perkIcon}>👥</span>
+              <div>
+                <strong>Reach Thousands of Developers</strong>
+                <p>Help students and engineers cracking product-based company interviews.</p>
+              </div>
+            </div>
+            <div className={styles.perkItem}>
+              <span className={styles.perkIcon}>💼</span>
+              <div>
+                <strong>Open-Source Resume Credibility</strong>
+                <p>Demonstrate strong technical writing and verified code contributions.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Core Philosophy Section */}
       <section className={styles.sectionContainer} style={{ background: "var(--ifm-background-surface-color)" }}>
         <div className="container">
           <div className={styles.sectionHeader}>

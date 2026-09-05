@@ -19,30 +19,25 @@ Just reach out 👇
 ---
 
 ## ✉️ Email
-
-📩 **dosebinary@gmail.com**  
-*(Recommended for detailed queries or collaborations)*
-
----
-
-## 🌐 Social Media
-
-Stay connected and get updates:
-
-- 📸 **Instagram (Binary Dose):**  
-  https://www.instagram.com/binarydose
-
-- 👤 **Personal Instagram:**  
-  https://www.instagram.com/abojha404
-
-- 💼 **LinkedIn:**  
-  https://www.linkedin.com/in/abhayojha0012
+- 📩 **Platform & Collaborations:**  
+  [dosebinary@gmail.com](mailto:dosebinary@gmail.com)
 
 ---
 
-<!-- ## 🧑‍💻 GitHub (Optional – if you want later)
+## 🌐 Connect & Follow
 
-You can also explore and contribute to code-based content:
-> _(Add GitHub link here when ready)_
+Stay connected across platforms:
 
---- -->
+1. 💼 **LinkedIn:**  
+   [https://www.linkedin.com/in/abhayojha0012](https://www.linkedin.com/in/abhayojha0012)
+
+2. 📸 **Instagram (Personal):**  
+   [https://www.instagram.com/ab_slogs/](https://www.instagram.com/ab_slogs/)
+
+3. 📸 **Instagram (Binary Dose Community):**  
+   [https://www.instagram.com/binarydose](https://www.instagram.com/binarydose)
+
+4. 💻 **GitHub:**  
+   [https://github.com/abojha](https://github.com/abojha)
+
+---

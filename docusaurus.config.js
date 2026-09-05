@@ -8,6 +8,7 @@ import fs from "node:fs";
 import { themes as prismThemes } from "prism-react-renderer";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import getSiteStats from "./src/utils/getSiteStats.js";
 
 // Load local .env file if present
 if (fs.existsSync(".env")) {
@@ -27,6 +28,11 @@ const config = {
   title: "Binary Dose",
   tagline: "Zero-Fluff Computer Science, DSA & Interview Prep",
   favicon: "img/logo.png",
+
+  // Dynamic statistics computed at launch/build time
+  customFields: {
+    stats: getSiteStats(),
+  },
 
   // Enable Mermaid diagrams in all markdown/MDX content
   markdown: {
