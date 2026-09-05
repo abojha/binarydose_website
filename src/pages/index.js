@@ -123,24 +123,35 @@ function HomepageVisualizerTeaser() {
 
 export default function Home() {
   const { siteConfig } = useDocusaurusContext();
+  const siteUrl = siteConfig.url || "https://binarydose.in";
 
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
       {
         "@type": "WebSite",
-        "@id": "https://binarydose.in/#website",
-        "url": "https://binarydose.in",
+        "@id": `${siteUrl}/#website`,
+        "url": siteUrl,
         "name": "Binary Dose",
         "description": "Zero-fluff computer science fundamentals, high-yield interview preparation, and DSA mastery with clear visual intuitions and interactive visualizers.",
         "publisher": {
           "@type": "Organization",
-          "@id": "https://binarydose.in/#organization",
+          "@id": `${siteUrl}/#organization`,
           "name": "Binary Dose",
-          "url": "https://binarydose.in",
+          "url": siteUrl,
           "logo": {
             "@type": "ImageObject",
-            "url": "https://binarydose.in/img/logo.png",
+            "url": `${siteUrl}/img/logo.png`,
+          },
+          "founder": {
+            "@type": "Person",
+            "name": "Abhay Ojha",
+            "jobTitle": "Software Engineer",
+            "sameAs": [
+              "https://linkedin.com/in/abhayojha0012",
+              "https://www.instagram.com/ab_slogs/",
+              "https://github.com/abojha",
+            ],
           },
           "sameAs": [
             "https://www.youtube.com/@binarydose",
@@ -149,16 +160,16 @@ export default function Home() {
         },
         "potentialAction": {
           "@type": "SearchAction",
-          "target": "https://binarydose.in/search?q={search_term_string}",
+          "target": `${siteUrl}/search?q={search_term_string}`,
           "query-input": "required name=search_term_string",
         },
       },
       {
         "@type": "EducationalOrganization",
-        "@id": "https://binarydose.in/#organization",
+        "@id": `${siteUrl}/#organization`,
         "name": "Binary Dose",
-        "url": "https://binarydose.in",
-        "logo": "https://binarydose.in/img/logo.png",
+        "url": siteUrl,
+        "logo": `${siteUrl}/img/logo.png`,
         "description": "Free, open-source computer science & software engineering learning hub with interactive algorithm visualizers.",
       },
     ],

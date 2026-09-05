@@ -69,8 +69,8 @@ const config = {
     v4: true, // Improve compatibility with the upcoming Docusaurus v4
   },
 
-  // Set the production url of your site here
-  url: "https://binarydose.in",
+  // Set the production url of your site here (supports SITE_URL env override for seamless domain shifts)
+  url: process.env.SITE_URL || "https://binarydose.in",
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: "/",
@@ -193,7 +193,10 @@ const config = {
         { property: "og:image:height", content: "630" },
         { property: "og:image:alt", content: "Binary Dose - Master DSA, System Design & CS Fundamentals" },
         { name: "keywords", content: "computer science, data structures, algorithms, dsa sheet, system design, operating systems, dbms, computer networks, 100 days of interview, coding interview, leetcode solutions" },
-        { name: "author", content: "Binary Dose" },
+        { name: "author", content: "Abhay Ojha, Binary Dose" },
+        { name: "creator", content: "Abhay Ojha" },
+        { name: "publisher", content: "Binary Dose" },
+        { name: "copyright", content: `Copyright © ${new Date().getFullYear()} Binary Dose (Abhay Ojha). All rights reserved.` },
         { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
         { property: "og:site_name", content: "Binary Dose" },
         { property: "og:type", content: "website" },
