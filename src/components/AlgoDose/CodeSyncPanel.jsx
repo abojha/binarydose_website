@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import styles from "./CodeSyncPanel.module.css";
 
 export default function CodeSyncPanel({
@@ -12,6 +12,23 @@ export default function CodeSyncPanel({
   spaceComplexity = "",
   language = "Python",
 }) {
+  const activeLineRef = useRef(null);
+  const codeBodyRef = useRef(null);
+
+  useEffect(() => {
+    if (activeLineRef.current && codeBodyRef.current) {
+      const container = codeBodyRef.current;
+      const activeEl = activeLineRef.current;
+      const targetScroll =
+        activeEl.offsetTop -
+        (container.clientHeight - activeEl.offsetHeight) / 2;
+      container.scrollTo({
+        top: Math.max(0, targetScroll),
+        behavior: "smooth",
+      });
+    }
+  }, [activeLine]);
+
   return (
     <div className={styles.panelContainer}>
       {/* 1. Code Synchronization Block (Stable on TOP, never fluctuates) */}
@@ -35,7 +52,7 @@ export default function CodeSyncPanel({
           </div>
         </div>
 
-        <div className={styles.codeBody}>
+        <div ref={codeBodyRef} className={styles.codeBody}>
           <pre className={styles.codePre}>
             {codeLines.map((line, idx) => {
               const lineNum = idx + 1;
@@ -43,6 +60,7 @@ export default function CodeSyncPanel({
               return (
                 <div
                   key={lineNum}
+                  ref={isActive ? activeLineRef : null}
                   className={`${styles.codeLine} ${
                     isActive ? styles.codeLineActive : ""
                   }`}
@@ -88,8 +106,11 @@ export default function CodeSyncPanel({
           </div>
         )}
 
-        {/* Concise Intuition Text */}
-        <p className={styles.explanationText}>{explanation}</p>
+        {/* Intuition Callout Box */}
+        <div className={styles.explanationBox}>
+          <span className={styles.quoteBar} aria-hidden="true" />
+          <p className={styles.explanationText}>{explanation}</p>
+        </div>
       </div>
     </div>
   );

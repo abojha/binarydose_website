@@ -74,9 +74,10 @@ export default function AlgoDoseShell() {
         </p>
       </header>
 
-      {/* Top Connected Selector Bar */}
-      <div className={styles.selectorBar}>
-        <div className={styles.dropdownsContainer}>
+      {/* Unified Engine Selector & Header Card */}
+      <div className={styles.engineCard}>
+        {/* Top Header Row: Engine Dropdown on Left, CodeDose Button on Right */}
+        <div className={styles.engineHeaderRow}>
           <div className={styles.selectGroup}>
             <label htmlFor="algo-engine-select" className={styles.selectLabel}>
               Engine:
@@ -109,26 +110,24 @@ export default function AlgoDoseShell() {
               />
             </div>
           </div>
+
+          {/* CodeDose Cross-Link Button */}
+          {currentEngine.codeDoseLink && (
+            <Link
+              to={currentEngine.codeDoseLink}
+              className={styles.codeDoseLinkBtn}
+              title={`Open complete ${currentEngine.name} notes & problems on CodeDose`}
+            >
+              <span>📖 Practice in CodeDose</span>
+              <span className={styles.arrowIcon}>&rarr;</span>
+            </Link>
+          )}
         </div>
 
-        {/* CodeDose Cross-Link Button */}
-        {currentEngine.codeDoseLink && (
-          <Link
-            to={currentEngine.codeDoseLink}
-            className={styles.codeDoseLinkBtn}
-            title={`Open complete ${currentEngine.name} notes & problems on CodeDose`}
-          >
-            <span>📖 Practice in CodeDose</span>
-            <span className={styles.arrowIcon}>&rarr;</span>
-          </Link>
-        )}
-      </div>
-
-      {/* Algorithm Header Banner */}
-      <div className={styles.algoHeaderCard}>
-        <div className={styles.algoHeaderLeft}>
+        {/* Bottom Engine Information Row: Icon + Title + Description */}
+        <div className={styles.engineInfoRow}>
           <span className={styles.algoIcon}>{currentEngine.icon}</span>
-          <div>
+          <div className={styles.engineInfoContent}>
             <div className={styles.algoTitleRow}>
               <h2 className={styles.algoTitle}>{currentEngine.name}</h2>
             </div>

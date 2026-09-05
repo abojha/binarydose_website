@@ -3,6 +3,7 @@ import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
 import CustomDropdown from "../CustomDropdown";
 import CanvasStatusBanner from "../CanvasStatusBanner";
+import PatternBlueprintCard from "../PatternBlueprintCard";
 import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./BinarySearchVisualizer.module.css";
 
@@ -41,6 +42,58 @@ const PATTERN_COMPLEXITIES = {
   rotated_array: { tc: "O(log N)", sc: "O(1)" },
 };
 
+const BINARY_SEARCH_PATTERN_OPTIONS = [
+  {
+    group: "Ready Patterns",
+    items: [
+      { value: "exact_search", label: "Exact Target Search", icon: "🔍" },
+    ],
+  },
+  {
+    group: "Upcoming Patterns",
+    items: [
+      { value: "lower_bound", label: "Lower Bound (First Occurrence)", icon: "📉", badge: "Coming Soon" },
+      { value: "upper_bound", label: "Upper Bound (Last Occurrence)", icon: "📈", badge: "Coming Soon" },
+      { value: "rotated_array", label: "Rotated Sorted Array Search", icon: "🔄", badge: "Coming Soon" },
+    ],
+  },
+];
+
+const BINARY_SEARCH_BLUEPRINTS = {
+  exact_search: {
+    id: "exact_search",
+    name: "Exact Target Search",
+    icon: "🔍",
+    problem: "Find the exact index of a target element in a strictly sorted collection.",
+    whenToUse: "When the search space is monotonic/sorted and direct equality comparison is required.",
+    mechanics: "Calculate mid = (low + high) // 2. If arr[mid] == target return mid; halve search space based on comparison.",
+  },
+  lower_bound: {
+    id: "lower_bound",
+    name: "Lower Bound (First Occurrence)",
+    icon: "📉",
+    problem: "Find the first index where arr[index] >= target in a sorted collection.",
+    whenToUse: "When searching for insertion position or the earliest valid candidate satisfying a condition.",
+    mechanics: "If arr[mid] >= target, record candidate index and narrow search to the left half (high = mid - 1).",
+  },
+  upper_bound: {
+    id: "upper_bound",
+    name: "Upper Bound (Last Occurrence)",
+    icon: "📈",
+    problem: "Find the first index where arr[index] > target in a sorted collection.",
+    whenToUse: "When counting occurrences or establishing boundary limits in sorted sequences.",
+    mechanics: "If arr[mid] <= target, advance right (low = mid + 1); otherwise candidate found and search left.",
+  },
+  rotated_array: {
+    id: "rotated_array",
+    name: "Rotated Sorted Array Search",
+    icon: "🔄",
+    problem: "Locate target in an array sorted in ascending order that was rotated at an unknown pivot.",
+    whenToUse: "When an array consists of two sorted monotonic segments separated by a pivot inflection.",
+    mechanics: "Identify which half is strictly sorted; check if target falls inside that range to eliminate the other half.",
+  },
+};
+
 export default function BinarySearchVisualizer() {
   const [activePattern, setActivePattern] = useState("exact_search");
   const [array, setArray] = useState([2, 5, 8, 12, 16, 23, 38]);
@@ -54,14 +107,14 @@ export default function BinarySearchVisualizer() {
   const [speed, setSpeed] = useState(900);
   const timerRef = useRef(null);
 
-  // Generate all binary search steps deterministically
+  // Generate all binary search steps deterministically (Detailed 1-to-1 Code Sync)
   const steps = useMemo(() => {
     const generated = [];
     let low = 0;
     let high = array.length - 1;
     let eliminated = new Set();
 
-    // Initial step
+    // Step 0: Line 2 - Initialize low and high
     generated.push({
       low,
       high,
@@ -76,32 +129,67 @@ export default function BinarySearchVisualizer() {
         { label: "high", value: high },
         { label: "target", value: target },
       ],
-      explanation: `Search space initialized: indices [0..${high}]. Target: ${target}.`,
+      explanation: `Search space initialized: low = 0, high = ${high}. Target: ${target}.`,
     });
 
     while (low <= high) {
+      // Step A: Line 3 - While condition check
+      generated.push({
+        low,
+        high,
+        mid: null,
+        eliminated: new Set(eliminated),
+        status: "checking",
+        statusText: "Check Boundary",
+        statusType: "info",
+        codeLine: 3,
+        variables: [
+          { label: "low <= high", value: `${low} <= ${high} (True)`, highlight: true },
+          { label: "range", value: `[${low}..${high}]` },
+          { label: "target", value: target },
+        ],
+        explanation: `Boundary check: low (${low}) <= high (${high}) is True. Search space contains ${high - low + 1} active candidate elements.`,
+      });
+
       const mid = Math.floor((low + high) / 2);
 
-      // Comparing step
+      // Step B: Line 4 - Calculate mid
       generated.push({
         low,
         high,
         mid,
         eliminated: new Set(eliminated),
         status: "comparing",
-        statusText: "Check Mid",
+        statusText: "Calculate Mid",
         statusType: "info",
         codeLine: 4,
         variables: [
-          { label: "mid", value: `${mid} (val: ${array[mid]})` },
+          { label: "mid", value: `(${low} + ${high}) // 2 = ${mid}`, highlight: true },
+          { label: "arr[mid]", value: array[mid] },
           { label: "target", value: target },
-          { label: "range", value: `[${low}..${high}]` },
         ],
-        explanation: `Calculated mid = floor((${low} + ${high}) / 2) = ${mid}. Checking arr[${mid}] (${array[mid]}) vs target (${target}).`,
+        explanation: `Calculated mid = floor((${low} + ${high}) / 2) = ${mid}. Inspecting arr[${mid}] = ${array[mid]}.`,
       });
 
       if (array[mid] === target) {
-        // Found step
+        // Step C1: Line 5 - Evaluate condition arr[mid] == target
+        generated.push({
+          low,
+          high,
+          mid,
+          eliminated: new Set(eliminated),
+          status: "eval_equal",
+          statusText: "Condition Matched! 🎯",
+          statusType: "success",
+          codeLine: 5,
+          variables: [
+            { label: "arr[mid] == target", value: `${array[mid]} == ${target} (True!)`, highlight: true },
+            { label: "mid", value: mid },
+          ],
+          explanation: `Condition arr[mid] == target is True (${array[mid]} == ${target})! Target match confirmed.`,
+        });
+
+        // Step C2: Line 6 - return mid
         generated.push({
           low,
           high,
@@ -114,18 +202,39 @@ export default function BinarySearchVisualizer() {
           variables: [
             { label: "mid", value: `${mid} (MATCH)`, highlight: true },
             { label: "target", value: target, highlight: true },
-            { label: "result", value: `Index ${mid}`, highlight: true },
+            { label: "return", value: `Index ${mid}`, highlight: true },
           ],
-          explanation: `🎯 Target ${target} found at index ${mid}! Returning ${mid}.`,
+          explanation: `🎯 Target ${target} found at index ${mid}! Returning index ${mid}.`,
         });
         return generated;
       } else if (array[mid] < target) {
+        // Step C1: Line 7 - elif arr[mid] < target:
+        generated.push({
+          low,
+          high,
+          mid,
+          eliminated: new Set(eliminated),
+          status: "eval_less",
+          statusText: "Mid < Target",
+          statusType: "warning",
+          codeLine: 7,
+          variables: [
+            { label: "arr[mid] < target", value: `${array[mid]} < ${target} (True)`, highlight: true },
+            { label: "decision", value: "Target must be in right half" },
+          ],
+          explanation: `Condition elif arr[mid] < target is True (${array[mid]} < ${target}). Since the array is sorted, the target must lie to the right of mid.`,
+        });
+
         // Eliminate left half
         for (let i = low; i <= mid; i++) {
           eliminated.add(i);
         }
+        const prevLow = low;
+        low = mid + 1;
+
+        // Step C2: Line 8 - low = mid + 1
         generated.push({
-          low: mid + 1,
+          low,
           high,
           mid,
           eliminated: new Set(eliminated),
@@ -134,21 +243,41 @@ export default function BinarySearchVisualizer() {
           statusType: "warning",
           codeLine: 8,
           variables: [
-            { label: "arr[mid]", value: `${array[mid]} < ${target}` },
-            { label: "action", value: `low = mid + 1 (${mid + 1})` },
-            { label: "new range", value: `[${mid + 1}..${high}]` },
+            { label: "low", value: `${prevLow} ➔ ${low}`, highlight: true },
+            { label: "discarded", value: `[${prevLow}..${mid}]` },
+            { label: "new range", value: `[${low}..${high}]` },
           ],
-          explanation: `arr[${mid}] (${array[mid]}) < ${target}. All elements from index ${low} to ${mid} are too small. Setting low = ${mid + 1}.`,
+          explanation: `Executed low = mid + 1. Discarded indices [${prevLow}..${mid}]. Active search space narrowed to [${low}..${high}].`,
         });
-        low = mid + 1;
       } else {
+        // Step C1: Line 9 - else:
+        generated.push({
+          low,
+          high,
+          mid,
+          eliminated: new Set(eliminated),
+          status: "eval_greater",
+          statusText: "Mid > Target",
+          statusType: "warning",
+          codeLine: 9,
+          variables: [
+            { label: "arr[mid] > target", value: `${array[mid]} > ${target} (fell into else)`, highlight: true },
+            { label: "decision", value: "Target must be in left half" },
+          ],
+          explanation: `arr[mid] (${array[mid]}) > target (${target}). Fell into else block. Since array is sorted, the target must lie to the left of mid.`,
+        });
+
         // Eliminate right half
         for (let i = mid; i <= high; i++) {
           eliminated.add(i);
         }
+        const prevHigh = high;
+        high = mid - 1;
+
+        // Step C2: Line 10 - high = mid - 1
         generated.push({
           low,
-          high: mid - 1,
+          high,
           mid,
           eliminated: new Set(eliminated),
           status: "eliminate_right",
@@ -156,17 +285,33 @@ export default function BinarySearchVisualizer() {
           statusType: "warning",
           codeLine: 10,
           variables: [
-            { label: "arr[mid]", value: `${array[mid]} > ${target}` },
-            { label: "action", value: `high = mid - 1 (${mid - 1})` },
-            { label: "new range", value: `[${low}..${mid - 1}]` },
+            { label: "high", value: `${prevHigh} ➔ ${high}`, highlight: true },
+            { label: "discarded", value: `[${mid}..${prevHigh}]` },
+            { label: "new range", value: `[${low}..${high}]` },
           ],
-          explanation: `arr[${mid}] (${array[mid]}) > ${target}. All elements from index ${mid} to ${high} are too large. Setting high = ${mid - 1}.`,
+          explanation: `Executed high = mid - 1. Discarded indices [${mid}..${prevHigh}]. Active search space narrowed to [${low}..${high}].`,
         });
-        high = mid - 1;
       }
     }
 
-    // Not found
+    // Step D: Line 3 - Loop exit check
+    generated.push({
+      low,
+      high,
+      mid: null,
+      eliminated: new Set(eliminated),
+      status: "loop_exit",
+      statusText: "Interval Collapsed",
+      statusType: "warning",
+      codeLine: 3,
+      variables: [
+        { label: "low <= high", value: `${low} <= ${high} (False)`, highlight: true },
+        { label: "result", value: "Search space empty" },
+      ],
+      explanation: `Boundary check: low (${low}) <= high (${high}) is now False. The search interval has collapsed with no elements remaining.`,
+    });
+
+    // Step E: Line 11 - return -1
     generated.push({
       low,
       high,
@@ -177,10 +322,10 @@ export default function BinarySearchVisualizer() {
       statusType: "danger",
       codeLine: 11,
       variables: [
-        { label: "search space", value: "exhausted (low > high)" },
-        { label: "result", value: -1, highlight: true },
+        { label: "target", value: target },
+        { label: "return", value: -1, highlight: true },
       ],
-      explanation: `Search space exhausted (low=${low} > high=${high}). Target ${target} is not in the array. Returning -1.`,
+      explanation: `Search space exhausted. Target ${target} does not exist in the array. Returning -1.`,
     });
 
     return generated;
@@ -284,46 +429,25 @@ export default function BinarySearchVisualizer() {
   };
 
   return (
-    <div className={layoutStyles.twoColumnGrid}>
-      <div className={layoutStyles.leftColumn}>
-        {/* Consolidated Inputs & Configuration Toolbar at Top */}
-        <div className={styles.configCard}>
-          {/* Pattern Header Row */}
-          <div className={styles.patternRow}>
-            <label htmlFor="bs-pattern-select" className={styles.patternLabel}>
-              Pattern:
-            </label>
-            <div className={styles.patternSelectWrapper}>
-              <CustomDropdown
-                id="bs-pattern-select"
-                value={activePattern}
-                onChange={(val) => {
-                  setActivePattern(val);
-                  setIsPlaying(false);
-                  setCurrentStepIndex(0);
-                }}
-                options={[
-                  {
-                    group: "Ready Patterns",
-                    items: [
-                      { value: "exact_search", label: "Exact Target Search", icon: "🔍" },
-                    ],
-                  },
-                  {
-                    group: "Upcoming Patterns",
-                    items: [
-                      { value: "lower_bound", label: "Lower Bound (First Occurrence)", icon: "📉", badge: "Coming Soon" },
-                      { value: "upper_bound", label: "Upper Bound (Last Occurrence)", icon: "📈", badge: "Coming Soon" },
-                      { value: "rotated_array", label: "Rotated Sorted Array Search", icon: "🔄", badge: "Coming Soon" },
-                    ],
-                  },
-                ]}
-                ariaLabel="Select Binary Search pattern"
-              />
-            </div>
-          </div>
+    <div className={styles.container}>
+      {/* Generalized Pattern Blueprint & Selector Card */}
+      <PatternBlueprintCard
+        patternId={activePattern}
+        onPatternChange={(val) => {
+          setActivePattern(val);
+          setIsPlaying(false);
+          setCurrentStepIndex(0);
+        }}
+        options={BINARY_SEARCH_PATTERN_OPTIONS}
+        blueprint={BINARY_SEARCH_BLUEPRINTS[activePattern]}
+        id="bs-pattern-select"
+      />
 
-          {activePattern === "exact_search" ? (
+      <div className={layoutStyles.twoColumnGrid}>
+        <div className={layoutStyles.leftColumn}>
+          {/* Consolidated Inputs & Configuration Toolbar at Top */}
+          <div className={styles.configCard}>
+            {activePattern === "exact_search" ? (
             <>
               {/* Row 1: Array Input & Randomize */}
               <form
@@ -584,5 +708,6 @@ export default function BinarySearchVisualizer() {
         />
       </div>
     </div>
+  </div>
   );
 }

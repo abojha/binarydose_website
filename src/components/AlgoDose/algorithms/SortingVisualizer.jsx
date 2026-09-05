@@ -3,6 +3,7 @@ import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
 import CustomDropdown from "../CustomDropdown";
 import CanvasStatusBanner from "../CanvasStatusBanner";
+import PatternBlueprintCard from "../PatternBlueprintCard";
 import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./SortingVisualizer.module.css";
 
@@ -63,6 +64,67 @@ const PATTERN_COMPLEXITIES = {
   mergesort: { tc: "O(N log N)", sc: "O(N)" },
 };
 
+const SORTING_PATTERN_OPTIONS = [
+  {
+    group: "Ready Patterns",
+    items: [
+      { value: "bubble", label: "Bubble Sort (Adjacent Swaps)", icon: "🫧" },
+      { value: "selection", label: "Selection Sort (Min Boundary Placement)", icon: "🎯" },
+    ],
+  },
+  {
+    group: "Upcoming Patterns",
+    items: [
+      { value: "insertion", label: "Insertion Sort (Sorted Partition Shift)", icon: "📥", badge: "Coming Soon" },
+      { value: "quicksort", label: "QuickSort (Lomuto Partition)", icon: "⚡", badge: "Coming Soon" },
+      { value: "mergesort", label: "Merge Sort (Divide & Conquer)", icon: "🔀", badge: "Coming Soon" },
+    ],
+  },
+];
+
+const SORTING_BLUEPRINTS = {
+  bubble: {
+    id: "bubble",
+    name: "Bubble Sort (Adjacent Swaps)",
+    icon: "🫧",
+    problem: "Order elements in non-decreasing sequence through sequential adjacent pairwise comparisons.",
+    whenToUse: "Educational baseline for swap mechanics; detects already-sorted arrays early in O(N).",
+    mechanics: "Iterate through array comparing neighbors arr[j] > arr[j+1]. Swap out-of-order pairs to bubble maximum rightward.",
+  },
+  selection: {
+    id: "selection",
+    name: "Selection Sort (Min Boundary Placement)",
+    icon: "🎯",
+    problem: "Sort array by repeatedly finding the absolute minimum element from the unsorted segment.",
+    whenToUse: "When memory writes (swaps) are expensive and need to be strictly bounded to O(N).",
+    mechanics: "Maintain sorted prefix boundary. Scan unsorted suffix to find minimum, then swap once per outer pass.",
+  },
+  insertion: {
+    id: "insertion",
+    name: "Insertion Sort (Sorted Partition Shift)",
+    icon: "📥",
+    problem: "Incrementally build a sorted array one element at a time by shifting larger elements.",
+    whenToUse: "Ideal for small datasets (N < 25) or nearly sorted streams.",
+    mechanics: "Pick next element and insert it into correct position in sorted left prefix by shifting elements right.",
+  },
+  quicksort: {
+    id: "quicksort",
+    name: "QuickSort (Lomuto Partition)",
+    icon: "⚡",
+    problem: "High-speed in-place sorting by partitioning elements around a chosen pivot value.",
+    whenToUse: "General-purpose internal sorting when average-case cache locality and O(1) space matter.",
+    mechanics: "Partition array such that elements < pivot are left and > pivot are right; recurse on partitions.",
+  },
+  mergesort: {
+    id: "mergesort",
+    name: "Merge Sort (Divide & Conquer)",
+    icon: "🔀",
+    problem: "Guaranteed O(N log N) sorting by recursive halving and merging sorted subarrays.",
+    whenToUse: "When stability is required and additional O(N) memory is acceptable.",
+    mechanics: "Recursively split array into halves until singletons, then merge two sorted halves in sorted order.",
+  },
+};
+
 export default function SortingVisualizer({
   selectedAlgoId = null,
   previewMode = false,
@@ -121,6 +183,7 @@ export default function SortingVisualizer({
     const sortedIndices = new Set();
 
     if (algo === "bubble") {
+      // Step 0: Line 2 - n = len(arr)
       generated.push({
         array: [...arr],
         comparing: [],
@@ -132,18 +195,56 @@ export default function SortingVisualizer({
         statusText: "Ready",
         statusType: "info",
         variables: [
-          { label: "Algorithm", value: "Bubble Sort" },
-          { label: "Array Length", value: n },
+          { label: "n", value: `len(arr) = ${n}` },
+          { label: "algorithm", value: "Bubble Sort" },
         ],
-        explanation: "Bubble sort initialized. Will repeatedly scan array and bubble largest elements to the end.",
+        explanation: `Bubble sort initialized: n = ${n}. Array elements will bubble into sorted positions.`,
       });
 
       for (let i = 0; i < n - 1; i++) {
         let swappedInPass = false;
+
+        // Step A: Line 3 - for i in range(n - 1):
+        generated.push({
+          array: [...arr],
+          comparing: [],
+          swapping: [],
+          sorted: new Set(sortedIndices),
+          comparisons,
+          swaps,
+          codeLine: 3,
+          statusText: `Pass ${i + 1} of ${n - 1}`,
+          statusType: "info",
+          variables: [
+            { label: "pass (i)", value: `${i} (Pass ${i + 1} of ${n - 1})`, highlight: true },
+            { label: "unsorted partition", value: `[0..${n - i - 1}]` },
+          ],
+          explanation: `Outer pass ${i + 1}: bubbling largest remaining element into position ${n - i - 1}.`,
+        });
+
         for (let j = 0; j < n - i - 1; j++) {
+          // Step B: Line 4 - for j in range(n - i - 1):
+          generated.push({
+            array: [...arr],
+            comparing: [j, j + 1],
+            swapping: [],
+            sorted: new Set(sortedIndices),
+            comparisons,
+            swaps,
+            codeLine: 4,
+            statusText: "Inspect Pair",
+            statusType: "info",
+            variables: [
+              { label: "j", value: `${j} (arr[${j}]=${arr[j]})`, highlight: true },
+              { label: "j + 1", value: `${j + 1} (arr[${j + 1}]=${arr[j + 1]})` },
+            ],
+            explanation: `Inner loop: inspecting adjacent pair arr[${j}] (${arr[j]}) and arr[${j + 1}] (${arr[j + 1]}).`,
+          });
+
           comparisons++;
           const willSwap = arr[j] > arr[j + 1];
 
+          // Step C: Line 5 - if arr[j] > arr[j + 1]:
           generated.push({
             array: [...arr],
             comparing: [j, j + 1],
@@ -152,16 +253,15 @@ export default function SortingVisualizer({
             comparisons,
             swaps,
             codeLine: 5,
-            statusText: "Comparing",
-            statusType: "warning",
+            statusText: willSwap ? "Out of Order! ⚠️" : "In Order ✓",
+            statusType: willSwap ? "warning" : "info",
             variables: [
-              { label: "arr[j]", value: arr[j] },
-              { label: "arr[j+1]", value: arr[j + 1] },
-              { label: "Condition", value: `${arr[j]} > ${arr[j + 1]} (${willSwap ? "True" : "False"})` },
+              { label: "arr[j] > arr[j + 1]", value: `${arr[j]} > ${arr[j + 1]} (${willSwap ? "True" : "False"})`, highlight: true },
+              { label: "action", value: willSwap ? "Swap elements" : "Keep relative order" },
             ],
             explanation: willSwap
-              ? `arr[${j}] (${arr[j]}) > arr[${j + 1}] (${arr[j + 1]}): Out of order! Swapping elements.`
-              : `arr[${j}] (${arr[j]}) <= arr[${j + 1}] (${arr[j + 1]}): In correct relative order.`,
+              ? `arr[${j}] (${arr[j]}) > arr[${j + 1}] (${arr[j + 1]}): Condition is True! Out of order, executing swap.`
+              : `arr[${j}] (${arr[j]}) <= arr[${j + 1}] (${arr[j + 1]}): Condition is False! Elements already in relative order.`,
           });
 
           if (willSwap) {
@@ -171,6 +271,7 @@ export default function SortingVisualizer({
             arr[j] = arr[j + 1];
             arr[j + 1] = temp;
 
+            // Step D: Line 7 - arr[j], arr[j + 1] = arr[j + 1], arr[j]
             generated.push({
               array: [...arr],
               comparing: [],
@@ -179,13 +280,13 @@ export default function SortingVisualizer({
               comparisons,
               swaps,
               codeLine: 7,
-              statusText: "Swapped",
+              statusText: "Swapped 🔄",
               statusType: "danger",
               variables: [
-                { label: "Swapped", value: `arr[${j}] ⟷ arr[${j + 1}]` },
-                { label: "Total Swaps", value: swaps },
+                { label: "swapped", value: `arr[${j}] ⟷ arr[${j + 1}]`, highlight: true },
+                { label: "total swaps", value: swaps },
               ],
-              explanation: `Swapped ${arr[j + 1]} and ${arr[j]}.`,
+              explanation: `Executed swap: swapped values ${arr[j + 1]} and ${arr[j]}.`,
             });
           }
         }
@@ -194,6 +295,7 @@ export default function SortingVisualizer({
       }
       for (let k = 0; k < n; k++) sortedIndices.add(k);
 
+      // Final Step: Line 8 - return arr
       generated.push({
         array: [...arr],
         comparing: [],
@@ -202,17 +304,18 @@ export default function SortingVisualizer({
         comparisons,
         swaps,
         codeLine: 8,
-        statusText: "✅ Sorted",
+        statusText: "✅ Fully Sorted",
         statusType: "success",
         variables: [
           { label: "Total Comparisons", value: comparisons },
           { label: "Total Swaps", value: swaps, highlight: true },
           { label: "Status", value: "Fully Sorted ✅", highlight: true },
         ],
-        explanation: `🏁 Bubble sort complete! Array is completely sorted in non-decreasing order.`,
+        explanation: `🏁 All bubble sort passes complete! Array is completely sorted in non-decreasing order. Returning arr.`,
       });
     } else {
       // Selection Sort
+      // Step 0: Line 2 - n = len(arr)
       generated.push({
         array: [...arr],
         comparing: [],
@@ -224,18 +327,73 @@ export default function SortingVisualizer({
         statusText: "Ready",
         statusType: "info",
         variables: [
+          { label: "n", value: `len(arr) = ${n}` },
           { label: "Algorithm", value: "Selection Sort" },
-          { label: "Array Length", value: n },
         ],
-        explanation: "Selection sort initialized. Will repeatedly find minimum element from unsorted boundary and place it at boundary index.",
+        explanation: `Selection sort initialized: n = ${n}. Will repeatedly place minimum element at boundary index.`,
       });
 
       for (let i = 0; i < n - 1; i++) {
+        // Step A: Line 3 - for i in range(n - 1):
+        generated.push({
+          array: [...arr],
+          comparing: [],
+          swapping: [],
+          sorted: new Set(sortedIndices),
+          comparisons,
+          swaps,
+          codeLine: 3,
+          statusText: `Pass ${i + 1} (Target idx ${i})`,
+          statusType: "info",
+          variables: [
+            { label: "pass (i)", value: `idx ${i}`, highlight: true },
+            { label: "unsorted boundary", value: `[${i}..${n - 1}]` },
+          ],
+          explanation: `Outer loop pass ${i + 1}: searching for minimum element in [${i}..${n - 1}] to place at index ${i}.`,
+        });
+
         let minIdx = i;
+
+        // Step B: Line 4 - min_idx = i
+        generated.push({
+          array: [...arr],
+          comparing: [minIdx],
+          swapping: [],
+          sorted: new Set(sortedIndices),
+          comparisons,
+          swaps,
+          codeLine: 4,
+          statusText: "Set Initial Min",
+          statusType: "info",
+          variables: [
+            { label: "min_idx", value: `${i} (val: ${arr[i]})`, highlight: true },
+          ],
+          explanation: `Executed min_idx = ${i}. Initial assumption: smallest element is arr[${i}] (${arr[i]}).`,
+        });
+
         for (let j = i + 1; j < n; j++) {
+          // Step C: Line 5 - for j in range(i + 1, n):
+          generated.push({
+            array: [...arr],
+            comparing: [minIdx, j],
+            swapping: [],
+            sorted: new Set(sortedIndices),
+            comparisons,
+            swaps,
+            codeLine: 5,
+            statusText: "Scan Candidate",
+            statusType: "info",
+            variables: [
+              { label: "j (candidate)", value: `idx ${j} (${arr[j]})`, highlight: true },
+              { label: "current min", value: `idx ${minIdx} (${arr[minIdx]})` },
+            ],
+            explanation: `Inner loop: scanning candidate arr[${j}] (${arr[j]}) against current minimum arr[${minIdx}] (${arr[minIdx]}).`,
+          });
+
           comparisons++;
           const isNewMin = arr[j] < arr[minIdx];
 
+          // Step D: Line 6 - if arr[j] < arr[min_idx]:
           generated.push({
             array: [...arr],
             comparing: [minIdx, j],
@@ -244,28 +402,68 @@ export default function SortingVisualizer({
             comparisons,
             swaps,
             codeLine: 6,
-            statusText: "Comparing",
-            statusType: "warning",
+            statusText: isNewMin ? "Smaller Found! 🔥" : "Not Smaller",
+            statusType: isNewMin ? "warning" : "info",
             variables: [
-              { label: "arr[j]", value: arr[j] },
-              { label: "min_idx", value: `${minIdx} (val: ${arr[minIdx]})`, highlight: isNewMin },
+              { label: "arr[j] < arr[min_idx]", value: `${arr[j]} < ${arr[minIdx]} (${isNewMin ? "True" : "False"})`, highlight: true },
+              { label: "action", value: isNewMin ? "Update min_idx" : "Continue scan" },
             ],
             explanation: isNewMin
-              ? `🔥 Found smaller element: ${arr[j]} < ${arr[minIdx]}. Updating min_idx = ${j}.`
-              : `${arr[j]} >= current minimum (${arr[minIdx]}). Moving to next element.`,
+              ? `🔥 Condition is True (${arr[j]} < ${arr[minIdx]})! Found smaller element at index ${j}.`
+              : `Condition is False (${arr[j]} >= ${arr[minIdx]}). Current minimum (${arr[minIdx]}) remains unchanged.`,
           });
 
           if (isNewMin) {
             minIdx = j;
+
+            // Step E: Line 7 - min_idx = j
+            generated.push({
+              array: [...arr],
+              comparing: [minIdx],
+              swapping: [],
+              sorted: new Set(sortedIndices),
+              comparisons,
+              swaps,
+              codeLine: 7,
+              statusText: "Update min_idx",
+              statusType: "info",
+              variables: [
+                { label: "min_idx", value: `${j} (val: ${arr[j]})`, highlight: true },
+              ],
+              explanation: `Executed min_idx = ${j}. New minimum element recorded at index ${j} (${arr[j]}).`,
+            });
           }
         }
 
-        if (minIdx !== i) {
+        const needsSwap = minIdx !== i;
+
+        // Step F: Line 8 - if min_idx != i:
+        generated.push({
+          array: [...arr],
+          comparing: needsSwap ? [i, minIdx] : [i],
+          swapping: [],
+          sorted: new Set(sortedIndices),
+          comparisons,
+          swaps,
+          codeLine: 8,
+          statusText: needsSwap ? "Swap Needed" : "Already in Place",
+          statusType: "info",
+          variables: [
+            { label: "min_idx != i", value: `${minIdx} != ${i} (${needsSwap ? "True" : "False"})`, highlight: true },
+            { label: "action", value: needsSwap ? `Swap arr[${i}] and arr[${minIdx}]` : "No swap needed" },
+          ],
+          explanation: needsSwap
+            ? `Condition min_idx != i is True (${minIdx} != ${i}). Minimum element is at index ${minIdx}; executing boundary swap.`
+            : `Condition min_idx != i is False (${minIdx} == ${i}). Minimum element already at boundary index ${i}; no swap needed.`,
+        });
+
+        if (needsSwap) {
           swaps++;
           const temp = arr[i];
           arr[i] = arr[minIdx];
           arr[minIdx] = temp;
 
+          // Step G: Line 10 - arr[i], arr[min_idx] = arr[min_idx], arr[i]
           generated.push({
             array: [...arr],
             comparing: [],
@@ -274,11 +472,11 @@ export default function SortingVisualizer({
             comparisons,
             swaps,
             codeLine: 10,
-            statusText: "Swapped",
+            statusText: "Swapped Min to Boundary",
             statusType: "danger",
             variables: [
-              { label: "arr[i]", value: arr[i], highlight: true },
-              { label: "Total Swaps", value: swaps },
+              { label: "placed at boundary", value: `arr[${i}] = ${arr[i]}`, highlight: true },
+              { label: "total swaps", value: swaps },
             ],
             explanation: `Placed minimum element (${arr[i]}) at sorted boundary index ${i}.`,
           });
@@ -287,6 +485,7 @@ export default function SortingVisualizer({
       }
       sortedIndices.add(n - 1);
 
+      // Final Step: Line 11 - return arr
       generated.push({
         array: [...arr],
         comparing: [],
@@ -295,14 +494,14 @@ export default function SortingVisualizer({
         comparisons,
         swaps,
         codeLine: 11,
-        statusText: "✅ Sorted",
+        statusText: "✅ Fully Sorted",
         statusType: "success",
         variables: [
           { label: "Total Comparisons", value: comparisons },
           { label: "Total Swaps", value: swaps, highlight: true },
           { label: "Status", value: "Fully Sorted ✅", highlight: true },
         ],
-        explanation: `🏁 Selection sort complete! All elements placed at sorted positions.`,
+        explanation: `🏁 Selection sort complete! All elements placed at sorted positions. Returning arr.`,
       });
     }
 
@@ -459,48 +658,26 @@ export default function SortingVisualizer({
   }
 
   return (
-    <div className={layoutStyles.twoColumnGrid}>
-      {/* Left Column: Visual Canvas & Controls */}
-      <div className={layoutStyles.leftColumn}>
-        {/* Consolidated Inputs & Configuration Toolbar at Top */}
-        <div className={styles.configCard}>
-          {/* Pattern Header Row */}
-          <div className={styles.patternRow}>
-            <label htmlFor="sort-pattern-select" className={styles.patternLabel}>
-              Pattern:
-            </label>
-            <div className={styles.patternSelectWrapper}>
-              <CustomDropdown
-                id="sort-pattern-select"
-                value={algo}
-                onChange={(val) => {
-                  setIsPlaying(false);
-                  setAlgo(val);
-                  setCurrentStepIndex(0);
-                }}
-                options={[
-                  {
-                    group: "Ready Patterns",
-                    items: [
-                      { value: "bubble", label: "Bubble Sort (Adjacent Swaps)", icon: "🫧" },
-                      { value: "selection", label: "Selection Sort (Min Boundary Placement)", icon: "🎯" },
-                    ],
-                  },
-                  {
-                    group: "Upcoming Patterns",
-                    items: [
-                      { value: "insertion", label: "Insertion Sort (Sorted Partition Shift)", icon: "⚡", badge: "Coming Soon" },
-                      { value: "quicksort", label: "QuickSort (Lomuto Partition)", icon: "🔪", badge: "Coming Soon" },
-                      { value: "mergesort", label: "Merge Sort (Divide & Conquer)", icon: "🔀", badge: "Coming Soon" },
-                    ],
-                  },
-                ]}
-                ariaLabel="Select Sorting pattern"
-              />
-            </div>
-          </div>
+    <div className={styles.container}>
+      {/* Generalized Pattern Blueprint & Selector Card */}
+      <PatternBlueprintCard
+        patternId={algo}
+        onPatternChange={(val) => {
+          setIsPlaying(false);
+          setAlgo(val);
+          setCurrentStepIndex(0);
+        }}
+        options={SORTING_PATTERN_OPTIONS}
+        blueprint={SORTING_BLUEPRINTS[algo]}
+        id="sort-pattern-select"
+      />
 
-          {isReadyAlgo ? (
+      <div className={layoutStyles.twoColumnGrid}>
+        {/* Left Column: Visual Canvas & Controls */}
+        <div className={layoutStyles.leftColumn}>
+          {/* Consolidated Inputs & Configuration Toolbar at Top */}
+          <div className={styles.configCard}>
+            {isReadyAlgo ? (
             <>
               <form
                 className={styles.inputRow}
@@ -688,5 +865,6 @@ export default function SortingVisualizer({
         />
       </div>
     </div>
+  </div>
   );
 }

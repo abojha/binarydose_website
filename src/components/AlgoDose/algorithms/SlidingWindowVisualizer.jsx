@@ -3,6 +3,7 @@ import PlayerControls from "../PlayerControls";
 import CodeSyncPanel from "../CodeSyncPanel";
 import CustomDropdown from "../CustomDropdown";
 import CanvasStatusBanner from "../CanvasStatusBanner";
+import PatternBlueprintCard from "../PatternBlueprintCard";
 import layoutStyles from "../TwoColumnLayout.module.css";
 import styles from "./SlidingWindowVisualizer.module.css";
 
@@ -51,6 +52,49 @@ const PATTERN_COMPLEXITIES = {
   longest_substr: { tc: "O(N)", sc: "O(min(N, M))" },
 };
 
+const SLIDING_WINDOW_PATTERN_OPTIONS = [
+  {
+    group: "Ready Patterns",
+    items: [
+      { value: "fixed_window", label: "Fixed Window (Max Subarray Sum)", icon: "🪟" },
+    ],
+  },
+  {
+    group: "Upcoming Patterns",
+    items: [
+      { value: "dynamic_window", label: "Dynamic Window (Min Subarray Sum)", icon: "📏", badge: "Coming Soon" },
+      { value: "longest_substr", label: "Longest Substring Without Repeating", icon: "🔤", badge: "Coming Soon" },
+    ],
+  },
+];
+
+const SLIDING_WINDOW_BLUEPRINTS = {
+  fixed_window: {
+    id: "fixed_window",
+    name: "Fixed Window (Max Subarray Sum)",
+    icon: "🪟",
+    problem: "Find maximum or minimum contiguous subarray metric of fixed length k.",
+    whenToUse: "When the target window size k is constant and consecutive elements must be evaluated.",
+    mechanics: "Compute sum of first k elements. Slide window right by adding incoming element and subtracting outgoing element in O(1).",
+  },
+  dynamic_window: {
+    id: "dynamic_window",
+    name: "Dynamic Window (Min Subarray Sum)",
+    icon: "📏",
+    problem: "Find the minimum length subarray whose sum meets or exceeds a target value.",
+    whenToUse: "When window length is variable and expanding/contracting satisfies a monotonic condition.",
+    mechanics: "Expand right pointer to satisfy target; contract left pointer to minimize window length while preserving validity.",
+  },
+  longest_substr: {
+    id: "longest_substr",
+    name: "Longest Substring Without Repeating",
+    icon: "🔤",
+    problem: "Find the length of the longest contiguous substring containing all unique characters.",
+    whenToUse: "When tracking character frequencies or last-seen indices within a dynamically stretching window.",
+    mechanics: "Expand right pointer tracking character occurrences. When duplicate detected, advance left pointer past previous occurrence.",
+  },
+};
+
 export default function SlidingWindowVisualizer() {
   const [activePattern, setActivePattern] = useState("fixed_window");
 
@@ -76,6 +120,7 @@ export default function SlidingWindowVisualizer() {
     let bestStart = 0;
     let bestEnd = k - 1;
 
+    // Step 0: Line 2 - window_sum = sum(arr[:k])
     generated.push({
       windowStart: 0,
       windowEnd: k - 1,
@@ -85,21 +130,64 @@ export default function SlidingWindowVisualizer() {
       bestEnd: k - 1,
       isNewMax: true,
       status: "initial_window",
-      statusText: "First Window",
+      statusText: "Initial Window",
       statusType: "info",
       codeLine: 2,
       variables: [
-        { label: "Window", value: `[0..${k - 1}]` },
-        { label: "Sum", value: initialSum, highlight: true },
-        { label: "Max", value: maxSum },
+        { label: "window", value: `[0..${k - 1}]` },
+        { label: "window_sum", value: `sum(arr[:${k}]) = ${initialSum}`, highlight: true },
+        { label: "k", value: k },
       ],
-      explanation: `Calculated sum of initial window [0..${k - 1}] = ${initialSum}.`,
+      explanation: `Calculated sum of initial window [0..${k - 1}]: sum(arr[:${k}]) = ${initialSum}.`,
+    });
+
+    // Step 1: Line 3 - max_sum = window_sum
+    generated.push({
+      windowStart: 0,
+      windowEnd: k - 1,
+      windowSum: initialSum,
+      maxSum: initialSum,
+      bestStart: 0,
+      bestEnd: k - 1,
+      isNewMax: true,
+      status: "initial_max",
+      statusText: "Record Initial Max",
+      statusType: "info",
+      codeLine: 3,
+      variables: [
+        { label: "max_sum", value: initialSum, highlight: true },
+        { label: "initial window", value: `[0..${k - 1}]` },
+      ],
+      explanation: `Set max_sum = window_sum = ${initialSum}. Tracking benchmark maximum for future slides.`,
     });
 
     for (let i = k; i < n; i++) {
       const added = windowArray[i];
       const removed = windowArray[i - k];
+
+      // Step A: Line 5 - for i in range(k, len(arr)):
+      generated.push({
+        windowStart: i - k,
+        windowEnd: i - 1,
+        windowSum: initialSum,
+        maxSum,
+        bestStart,
+        bestEnd,
+        isNewMax: false,
+        status: "slide_advance",
+        statusText: "Slide Ahead ➔",
+        statusType: "info",
+        codeLine: 5,
+        variables: [
+          { label: "i (incoming)", value: `idx ${i} (${added})`, highlight: true },
+          { label: "outgoing", value: `idx ${i - k} (${removed})` },
+          { label: "current max", value: `${maxSum} 🏆` },
+        ],
+        explanation: `For loop iteration: advancing window to include index ${i} (${added}) and drop index ${i - k} (${removed}).`,
+      });
+
       initialSum += added - removed;
+      const prevMax = maxSum;
       const isNewMax = initialSum > maxSum;
       if (isNewMax) {
         maxSum = initialSum;
@@ -107,6 +195,27 @@ export default function SlidingWindowVisualizer() {
         bestEnd = i;
       }
 
+      // Step B: Line 6 - window_sum += arr[i] - arr[i - k]  # Slide window
+      generated.push({
+        windowStart: i - k + 1,
+        windowEnd: i,
+        windowSum: initialSum,
+        maxSum: prevMax,
+        bestStart,
+        bestEnd,
+        isNewMax: false,
+        status: "slide_calc",
+        statusText: "Update Window Sum",
+        statusType: "warning",
+        codeLine: 6,
+        variables: [
+          { label: "window_sum", value: `${initialSum - added + removed} - ${removed} + ${added} = ${initialSum}`, highlight: true },
+          { label: "new window", value: `[${i - k + 1}..${i}]` },
+        ],
+        explanation: `Executed window_sum += arr[${i}] - arr[${i - k}]: subtracted ${removed}, added ${added}. Window sum is now ${initialSum}.`,
+      });
+
+      // Step C: Line 7 - max_sum = max(max_sum, window_sum)
       generated.push({
         windowStart: i - k + 1,
         windowEnd: i,
@@ -116,21 +225,20 @@ export default function SlidingWindowVisualizer() {
         bestEnd,
         isNewMax,
         status: isNewMax ? "new_max" : "slide",
-        statusText: isNewMax ? "New Record!" : "Slide ➔",
+        statusText: isNewMax ? "New Record! 🏆" : "Max Unchanged",
         statusType: isNewMax ? "success" : "info",
-        codeLine: 6,
+        codeLine: 7,
         variables: [
-          { label: "Window", value: `[${i - k + 1}..${i}]` },
-          { label: "Sum", value: initialSum, highlight: isNewMax },
-          { label: "Record Max", value: `${maxSum} 🏆`, highlight: isNewMax },
+          { label: "max_sum", value: `max(${prevMax}, ${initialSum}) ➔ ${maxSum}`, highlight: isNewMax },
+          { label: "record set?", value: isNewMax ? "Yes! 🏆" : "No" },
         ],
         explanation: isNewMax
-          ? `🔥 Subtracted ${removed}, added ${added}. Window sum ${initialSum} sets a new record max!`
-          : `Subtracted ${removed}, added ${added}. Window sum is ${initialSum} (max remains ${maxSum}).`,
+          ? `🔥 Executed max_sum = max(${prevMax}, ${initialSum}) = ${initialSum}. Window sum ${initialSum} sets a new record max!`
+          : `Executed max_sum = max(${prevMax}, ${initialSum}) = ${maxSum}. Current window sum does not exceed previous max (${maxSum}).`,
       });
     }
 
-    // Final Completion Step: Highlights the TRUE WINNING window!
+    // Final Step: Line 9 - return max_sum
     generated.push({
       windowStart: bestStart,
       windowEnd: bestEnd,
@@ -145,10 +253,10 @@ export default function SlidingWindowVisualizer() {
       codeLine: 9,
       variables: [
         { label: "Winning Window", value: `[${bestStart}..${bestEnd}]`, highlight: true },
-        { label: "Max Sum", value: `${maxSum} 🏆`, highlight: true },
+        { label: "return max_sum", value: `${maxSum} 🏆`, highlight: true },
         { label: "Subarray", value: `[${windowArray.slice(bestStart, bestEnd + 1).join(", ")}]` },
       ],
-      explanation: `Completed array traversal! Maximum subarray sum of size ${k} is ${maxSum} in subarray [${windowArray.slice(bestStart, bestEnd + 1).join(", ")}].`,
+      explanation: `🏁 Completed array traversal! Maximum subarray sum of size ${k} is ${maxSum} in subarray [${windowArray.slice(bestStart, bestEnd + 1).join(", ")}]. Returning ${maxSum}.`,
     });
 
     return generated;
@@ -242,46 +350,26 @@ export default function SlidingWindowVisualizer() {
   };
 
   return (
-    <div className={layoutStyles.twoColumnGrid}>
-      {/* Left Column: Visualizer Canvas & Controls */}
-      <div className={layoutStyles.leftColumn}>
-        {/* Consolidated Inputs & Configuration Toolbar at Top */}
-        <div className={styles.configCard}>
-          {/* Pattern Header Row */}
-          <div className={styles.patternRow}>
-            <label htmlFor="sw-pattern-select" className={styles.patternLabel}>
-              Pattern:
-            </label>
-            <div className={styles.patternSelectWrapper}>
-              <CustomDropdown
-                id="sw-pattern-select"
-                value={activePattern}
-                onChange={(val) => {
-                  setActivePattern(val);
-                  setIsPlaying(false);
-                  setCurrentStepIndex(0);
-                }}
-                options={[
-                  {
-                    group: "Ready Patterns",
-                    items: [
-                      { value: "fixed_window", label: "Fixed Window (Max Subarray Sum)", icon: "🪟" },
-                    ],
-                  },
-                  {
-                    group: "Upcoming Patterns",
-                    items: [
-                      { value: "dynamic_window", label: "Dynamic Window (Min Subarray Sum)", icon: "📏", badge: "Coming Soon" },
-                      { value: "longest_substr", label: "Longest Substring Without Repeating", icon: "🔤", badge: "Coming Soon" },
-                    ],
-                  },
-                ]}
-                ariaLabel="Select Sliding Window pattern"
-              />
-            </div>
-          </div>
+    <div className={styles.container}>
+      {/* Generalized Pattern Blueprint & Selector Card */}
+      <PatternBlueprintCard
+        patternId={activePattern}
+        onPatternChange={(val) => {
+          setActivePattern(val);
+          setIsPlaying(false);
+          setCurrentStepIndex(0);
+        }}
+        options={SLIDING_WINDOW_PATTERN_OPTIONS}
+        blueprint={SLIDING_WINDOW_BLUEPRINTS[activePattern]}
+        id="sw-pattern-select"
+      />
 
-          {activePattern === "fixed_window" ? (
+      <div className={layoutStyles.twoColumnGrid}>
+        {/* Left Column: Visualizer Canvas & Controls */}
+        <div className={layoutStyles.leftColumn}>
+          {/* Consolidated Inputs & Configuration Toolbar at Top */}
+          <div className={styles.configCard}>
+            {activePattern === "fixed_window" ? (
             <>
               {/* Row 1: Array Input & Randomize */}
               <form className={styles.inputRow} onSubmit={handleCustomInputSubmit}>
@@ -507,5 +595,6 @@ export default function SlidingWindowVisualizer() {
         />
       </div>
     </div>
+  </div>
   );
 }

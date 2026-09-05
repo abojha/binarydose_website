@@ -111,6 +111,7 @@ export default function CustomDropdown({
                     <div
                       key={item.value}
                       role="option"
+                      data-value={item.value}
                       aria-selected={isSelected}
                       className={`${styles.menuItem} ${
                         isSelected ? styles.menuItemSelected : ""
@@ -143,6 +144,7 @@ export default function CustomDropdown({
                 <div
                   key={item.value}
                   role="option"
+                  data-value={item.value}
                   aria-selected={isSelected}
                   className={`${styles.menuItem} ${
                     isSelected ? styles.menuItemSelected : ""
