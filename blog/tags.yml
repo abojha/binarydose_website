@@ -57,3 +57,13 @@ interview:
   label: Interview
   permalink: /interview
   description: Interview preparation topics and frequently asked questions.
+
+ai-systems:
+  label: AI Systems
+  permalink: /ai-systems
+  description: Machine learning engineering, LLM inference infrastructure, and GPU memory optimization.
+
+llm:
+  label: Large Language Models
+  permalink: /llm
+  description: Deep dives into transformer architectures, inference engines, and generative AI systems.
