@@ -3,6 +3,7 @@ title: "Why DNS is Super Fast the Second Time"
 day: 21
 category: "Computer Networks"
 summary: "The first DNS query traverses a 4-tier global hierarchy; subsequent lookups return in sub-milliseconds because results are cached with TTLs at every layer from browser to ISP."
+description: "The first DNS query traverses a 4-tier global hierarchy; subsequent lookups return in sub-milliseconds because results are cached with TTLs at every layer from browser to ISP."
 tags: ["networking", "dns", "caching", "ttl", "latency", "interview", "binary-dose"]
 youtubeId: "q_UQfoSnMVQ"
 hide_table_of_contents: true

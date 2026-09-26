@@ -3,6 +3,7 @@ title: "Mutex vs. Spinlock: Why Sleeping Kills Performance"
 day: 24
 category: "Operating Systems"
 summary: "A Mutex puts contending threads to sleep via OS context switches, while a Spinlock busy-waits on CPU; spinlocks win for microsecond critical sections, while mutexes prevent CPU burning during long waits."
+description: "A Mutex puts contending threads to sleep via OS context switches, while a Spinlock busy-waits on CPU; spinlocks win for microsecond critical sections, while mutexes prevent CPU burning during long waits."
 tags: ["os", "concurrency", "mutex", "spinlock", "multithreading", "interview", "binary-dose"]
 youtubeId: "7BWoBTerdso"
 hide_table_of_contents: true

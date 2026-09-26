@@ -3,6 +3,7 @@ title: "How Databases Handle Connection Spikes"
 day: 18
 category: "Databases"
 summary: "Databases handle connection surges using connection pooling (HikariCP) and external proxies (PgBouncer), preventing memory exhaustion from thread-per-connection architectures."
+description: "Databases handle connection surges using connection pooling (HikariCP) and external proxies (PgBouncer), preventing memory exhaustion from thread-per-connection architectures."
 tags: ["dbms", "connection-pooling", "hikaricp", "pgbouncer", "scalability", "interview", "binary-dose"]
 youtubeId: "Gh5F9OSyy-M"
 hide_table_of_contents: true

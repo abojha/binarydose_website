@@ -3,6 +3,7 @@ title: "Why Sending 1 Reads as 16,777,216 Over Sockets (Endianness)"
 day: 62
 category: "Computer Networks"
 summary: "Sending integer 1 across a raw network socket reads as 16,777,216 when byte order mismatch occurs between Little-Endian host CPUs and Big-Endian Network Byte Order."
+description: "Sending integer 1 across a raw network socket reads as 16,777,216 when byte order mismatch occurs between Little-Endian host CPUs and Big-Endian Network Byte Order."
 tags: ["networking", "endianness", "sockets", "tcp", "lowlevel", "c", "interview", "binary-dose"]
 youtubeId: "BaCD9mgdGf4"
 hide_table_of_contents: true

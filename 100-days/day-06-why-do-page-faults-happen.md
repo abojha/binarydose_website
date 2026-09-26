@@ -3,6 +3,7 @@ title: "Why Do Page Faults Happen?"
 day: 6
 category: "Operating Systems"
 summary: "A page fault is a hardware interrupt triggered by the MMU when a program accesses a virtual page that has no valid physical RAM mapping, triggering on-demand disk page allocation."
+description: "A page fault is a hardware interrupt triggered by the MMU when a program accesses a virtual page that has no valid physical RAM mapping, triggering on-demand disk page allocation."
 tags: ["os", "page-fault", "virtual-memory", "mmu", "demand-paging", "interview", "binary-dose"]
 youtubeId: "9D7N2ZHlv04"
 hide_table_of_contents: true

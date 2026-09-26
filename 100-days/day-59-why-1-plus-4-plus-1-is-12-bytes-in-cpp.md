@@ -3,6 +3,7 @@ title: "Why 1 + 4 + 1 = 12 Bytes in C/C++ (Struct Padding)"
 day: 59
 category: "OOP & Languages"
 summary: "Compilers insert padding bytes into structs so variables align with CPU word boundaries; accessing misaligned memory causes CPU performance penalties or hardware bus faults."
+description: "Compilers insert padding bytes into structs so variables align with CPU word boundaries; accessing misaligned memory causes CPU performance penalties or hardware bus faults."
 tags: ["cpp", "c", "struct-padding", "memory-alignment", "cpu-architecture", "interview", "binary-dose"]
 youtubeId: "WUkzO7R5HKs"
 hide_table_of_contents: true

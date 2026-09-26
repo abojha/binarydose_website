@@ -3,6 +3,7 @@ title: "Why Running Out of RAM Freezes Your CPU (Thrashing)"
 day: 46
 category: "Operating Systems"
 summary: "When total process working sets exceed physical RAM, the OS spends all its time swapping pages to and from disk rather than executing instructions, collapsing CPU throughput in a phenomenon called Thrashing."
+description: "When total process working sets exceed physical RAM, the OS spends all its time swapping pages to and from disk rather than executing instructions, collapsing CPU throughput in a phenomenon called Thrashing."
 tags: ["os", "virtual-memory", "thrashing", "page-fault", "swap", "interview", "binary-dose"]
 youtubeId: "l8uhIxgcPtQ"
 hide_table_of_contents: true

@@ -3,6 +3,7 @@ title: "Why Dynamic Arrays Double Their Size (ArrayList / std::vector)"
 day: 33
 category: "Data Structures & Algorithms"
 summary: "Dynamic arrays double their capacity (geometric growth) to achieve amortized O(1) push_back operations; resizing by a fixed increment causes catastrophic O(N²) reallocation thrashing."
+description: "Dynamic arrays double their capacity (geometric growth) to achieve amortized O(1) push_back operations; resizing by a fixed increment causes catastrophic O(N²) reallocation thrashing."
 tags: ["dsa", "dynamic-array", "vector", "arraylist", "amortized-analysis", "interview", "binary-dose"]
 youtubeId: "HwPxGhu8TQ8"
 hide_table_of_contents: true

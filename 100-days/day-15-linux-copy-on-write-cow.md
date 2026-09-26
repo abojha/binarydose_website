@@ -3,6 +3,7 @@ title: "Why Does Linux Use Copy-on-Write (COW)?"
 day: 15
 category: "Operating Systems"
 summary: "Linux fork() uses Copy-on-Write (COW) to make process creation instantaneous by sharing physical memory pages as read-only, only allocating new frames when a process writes to memory."
+description: "Linux fork() uses Copy-on-Write (COW) to make process creation instantaneous by sharing physical memory pages as read-only, only allocating new frames when a process writes to memory."
 tags: ["os", "linux", "fork", "copy-on-write", "virtual-memory", "interview", "binary-dose"]
 youtubeId: "i1eO3Awtp2Q"
 hide_table_of_contents: true

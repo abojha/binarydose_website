@@ -3,6 +3,7 @@ title: "Why NoSQL Sacrifices ACID for High Availability"
 day: 29
 category: "System Design"
 summary: "Under the CAP Theorem, distributed databases facing network partitions must choose between strict consistency (CP) or high availability (AP); NoSQL systems choose AP with eventual consistency to prevent downtime."
+description: "Under the CAP Theorem, distributed databases facing network partitions must choose between strict consistency (CP) or high availability (AP); NoSQL systems choose AP with eventual consistency to prevent downtime."
 tags: ["system-design", "dbms", "nosql", "cap-theorem", "acid", "availability", "interview", "binary-dose"]
 youtubeId: "OpL7btPmmQo"
 hide_table_of_contents: true

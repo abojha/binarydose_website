@@ -3,6 +3,7 @@ title: "Why Is a Process Switch Slower Than a Thread Switch?"
 day: 4
 category: "Operating Systems"
 summary: "A process switch requires switching the entire virtual address space, updating page table pointers (CR3), and invalidating the Translation Lookaside Buffer (TLB), causing massive cache misses."
+description: "A process switch requires switching the entire virtual address space, updating page table pointers (CR3), and invalidating the Translation Lookaside Buffer (TLB), causing massive cache misses."
 tags: ["os", "process", "threads", "context-switching", "tlb", "interview", "binary-dose"]
 youtubeId: "RubWTNyMTvw"
 hide_table_of_contents: true

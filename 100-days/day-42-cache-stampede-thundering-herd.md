@@ -3,6 +3,7 @@ title: "Why Expired Cache Keys CRASH Databases"
 day: 42
 category: "System Design"
 summary: "When a high-traffic cache key expires, thousands of concurrent requests miss the cache and simultaneously query the database, causing a Cache Stampede (Thundering Herd) outage."
+description: "When a high-traffic cache key expires, thousands of concurrent requests miss the cache and simultaneously query the database, causing a Cache Stampede (Thundering Herd) outage."
 tags: ["system-design", "caching", "redis", "cache-stampede", "thundering-herd", "interview", "binary-dose"]
 youtubeId: "EmorKmfITQE"
 hide_table_of_contents: true

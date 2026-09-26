@@ -3,6 +3,7 @@ title: "How SYN Cookies STOP Server Crashes"
 day: 60
 category: "Computer Networks"
 summary: "A TCP SYN Flood exhausts kernel memory by creating half-open connections; SYN Cookies defend servers by encoding connection state into the 32-bit TCP Sequence Number with zero server memory allocation."
+description: "A TCP SYN Flood exhausts kernel memory by creating half-open connections; SYN Cookies defend servers by encoding connection state into the 32-bit TCP Sequence Number with zero server memory allocation."
 tags: ["networking", "tcp", "security", "dos", "syn-cookies", "linux", "interview", "binary-dose"]
 youtubeId: "1kFUnpqlCUc"
 hide_table_of_contents: true

@@ -3,6 +3,7 @@ title: "Why Priority Queues Use Heaps Instead of Arrays"
 day: 26
 category: "Data Structures & Algorithms"
 summary: "Priority Queues use Binary Heaps because they balance insertion and extraction in O(log N) time, avoiding the O(N) element shifts of sorted arrays or O(N) scans of unsorted arrays."
+description: "Priority Queues use Binary Heaps because they balance insertion and extraction in O(log N) time, avoiding the O(N) element shifts of sorted arrays or O(N) scans of unsorted arrays."
 tags: ["dsa", "heap", "priority-queue", "binary-heap", "time-complexity", "interview", "binary-dose"]
 youtubeId: "Hac-ONh-5yU"
 hide_table_of_contents: true

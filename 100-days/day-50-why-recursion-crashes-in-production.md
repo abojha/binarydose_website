@@ -3,6 +3,7 @@ title: "College vs Production: Why Recursion CRASHES in Production"
 day: 50
 category: "Data Structures & Algorithms"
 summary: "College courses praise recursion for elegance, but production systems avoid deep recursion because fixed OS thread stacks (1MB–8MB) overflow on skewed inputs, causing unrecoverable process crashes."
+description: "College courses praise recursion for elegance, but production systems avoid deep recursion because fixed OS thread stacks (1MB–8MB) overflow on skewed inputs, causing unrecoverable process crashes."
 tags: ["dsa", "recursion", "call-stack", "stack-overflow", "iteration", "interview", "binary-dose"]
 youtubeId: "oBQebKoZTZo"
 hide_table_of_contents: true

@@ -3,6 +3,7 @@ title: "Why Static Functions Cannot Access this in C++"
 day: 36
 category: "OOP & Languages"
 summary: "Static member functions belong to the class type rather than an object instance; the compiler does not pass the implicit hidden 'this' pointer as the first parameter."
+description: "Static member functions belong to the class type rather than an object instance; the compiler does not pass the implicit hidden 'this' pointer as the first parameter."
 tags: ["cpp", "oops", "static-members", "this-pointer", "compiler-internals", "interview", "binary-dose"]
 youtubeId: "qeagqdYO4Vc"
 hide_table_of_contents: true

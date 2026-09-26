@@ -3,6 +3,7 @@ title: "Forward Proxy vs Reverse Proxy: The Only Rule You Need"
 day: 30
 category: "System Design"
 summary: "A Forward Proxy sits in front of clients to protect and anonymize users, whereas a Reverse Proxy sits in front of backend servers for load balancing, SSL termination, and caching."
+description: "A Forward Proxy sits in front of clients to protect and anonymize users, whereas a Reverse Proxy sits in front of backend servers for load balancing, SSL termination, and caching."
 tags: ["system-design", "networking", "proxy", "reverse-proxy", "nginx", "interview", "binary-dose"]
 youtubeId: "Jjwhi4I5JC4"
 hide_table_of_contents: true

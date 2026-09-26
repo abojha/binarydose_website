@@ -3,6 +3,7 @@ title: "Why Docker Boots in Milliseconds While VMs Take Minutes"
 day: 27
 category: "Operating Systems"
 summary: "Docker containers boot instantly because they are isolated processes sharing the host OS kernel via Linux Namespaces and Cgroups, whereas Virtual Machines emulate entire hardware stacks and boot full guest kernels."
+description: "Docker containers boot instantly because they are isolated processes sharing the host OS kernel via Linux Namespaces and Cgroups, whereas Virtual Machines emulate entire hardware stacks and boot full guest kernels."
 tags: ["os", "docker", "containers", "virtualization", "devops", "interview", "binary-dose"]
 youtubeId: "BTL1Nx-7TL0"
 hide_table_of_contents: true

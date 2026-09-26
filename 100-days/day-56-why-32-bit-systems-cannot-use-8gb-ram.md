@@ -3,6 +3,7 @@ title: "Why 32-Bit Systems CANNOT Use 8GB RAM"
 day: 56
 category: "Operating Systems"
 summary: "A 32-bit CPU has an address bus width limited to 2^32 distinct byte addresses, creating a hard physical ceiling of exactly 4 GiB regardless of how much physical RAM is installed."
+description: "A 32-bit CPU has an address bus width limited to 2^32 distinct byte addresses, creating a hard physical ceiling of exactly 4 GiB regardless of how much physical RAM is installed."
 tags: ["os", "computer-architecture", "memory-addressing", "32-bit", "ram", "hardware", "interview", "binary-dose"]
 youtubeId: "6sYJupYnbyk"
 hide_table_of_contents: true

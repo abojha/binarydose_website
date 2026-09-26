@@ -3,6 +3,7 @@ title: "How Message Queues Handle Traffic Spikes"
 day: 20
 category: "System Design"
 summary: "Message queues (Kafka, RabbitMQ) decouple producers from consumers, buffering flash-sale traffic surges and enabling backpressure-controlled asynchronous processing."
+description: "Message queues (Kafka, RabbitMQ) decouple producers from consumers, buffering flash-sale traffic surges and enabling backpressure-controlled asynchronous processing."
 tags: ["system-design", "message-queues", "kafka", "rabbitmq", "scalability", "async", "interview", "binary-dose"]
 youtubeId: "IvSRCgKdGOc"
 hide_table_of_contents: true

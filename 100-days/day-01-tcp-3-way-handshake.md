@@ -3,6 +3,7 @@ title: "Why Isn't a 2-Way Handshake Enough in TCP?"
 day: 1
 category: "Computer Networks"
 summary: "A 2-way handshake leaves the server in doubt if its reply reached the client. TCP uses 3 steps (SYN, SYN-ACK, ACK) for mutual bidirectional confirmation."
+description: "A 2-way handshake leaves the server in doubt if its reply reached the client. TCP uses 3 steps (SYN, SYN-ACK, ACK) for mutual bidirectional confirmation."
 tags: ["networking", "tcp", "handshake", "interview", "binary-dose"]
 youtubeId: "pnBKL-qbbBY"
 hide_table_of_contents: true

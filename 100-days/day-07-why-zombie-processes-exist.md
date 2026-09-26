@@ -3,6 +3,7 @@ title: "Why Do Zombie Processes Exist?"
 day: 7
 category: "Operating Systems"
 summary: "A zombie process is a terminated process whose Process Control Block (PCB) remains in the OS process table so its parent can read its exit status via wait()."
+description: "A zombie process is a terminated process whose Process Control Block (PCB) remains in the OS process table so its parent can read its exit status via wait()."
 tags: ["os", "process", "zombie", "orphan", "linux", "interview", "binary-dose"]
 youtubeId: "x8A57kFjEUA"
 hide_table_of_contents: true

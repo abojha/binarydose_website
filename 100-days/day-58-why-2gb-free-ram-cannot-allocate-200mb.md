@@ -3,6 +3,7 @@ title: "Why 2GB Free RAM CAN'T Allocate 200MB (External Fragmentation)"
 day: 58
 category: "Operating Systems"
 summary: "An allocation fails with ENOMEM despite gigabytes of free RAM when hardware devices or kernel drivers require physically contiguous memory that has been broken into tiny slivers by External Fragmentation."
+description: "An allocation fails with ENOMEM despite gigabytes of free RAM when hardware devices or kernel drivers require physically contiguous memory that has been broken into tiny slivers by External Fragmentation."
 tags: ["os", "kernel", "memory-management", "fragmentation", "buddy-allocator", "dma", "interview", "binary-dose"]
 youtubeId: "D57YnXj2bc0"
 hide_table_of_contents: true

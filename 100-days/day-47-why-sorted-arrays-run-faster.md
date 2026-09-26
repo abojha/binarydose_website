@@ -3,6 +3,7 @@ title: "Why Sorted Arrays Run 6x FASTER (Branch Prediction)"
 day: 47
 category: "Data Structures & Algorithms"
 summary: "Filtering a sorted array runs up to 6x faster than an unsorted array because predictable branch patterns allow the CPU's branch predictor to maintain a full instruction pipeline, avoiding costly pipeline flushes."
+description: "Filtering a sorted array runs up to 6x faster than an unsorted array because predictable branch patterns allow the CPU's branch predictor to maintain a full instruction pipeline, avoiding costly pipeline flushes."
 tags: ["dsa", "branch-prediction", "cpu-architecture", "pipelining", "performance", "interview", "binary-dose"]
 youtubeId: "3qQkVF2jfME"
 hide_table_of_contents: true

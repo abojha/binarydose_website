@@ -3,6 +3,7 @@ title: "Non-Repeatable Read vs Phantom Read"
 day: 43
 category: "Databases"
 summary: "Non-Repeatable Reads occur when an existing row is modified or deleted by another transaction; Phantom Reads occur when new rows matching a query range are inserted."
+description: "Non-Repeatable Reads occur when an existing row is modified or deleted by another transaction; Phantom Reads occur when new rows matching a query range are inserted."
 tags: ["dbms", "sql", "isolation-levels", "transactions", "mvcc", "phantom-read", "interview", "binary-dose"]
 youtubeId: "OfjCtH-lGP4"
 hide_table_of_contents: true

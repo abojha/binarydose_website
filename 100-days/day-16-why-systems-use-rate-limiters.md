@@ -3,6 +3,7 @@ title: "Why Do Systems Use Rate Limiters?"
 day: 16
 category: "System Design"
 summary: "Rate limiters protect backend services from cascading failures, DDoS attacks, brute-force exploits, and noisy neighbors by regulating incoming traffic volume."
+description: "Rate limiters protect backend services from cascading failures, DDoS attacks, brute-force exploits, and noisy neighbors by regulating incoming traffic volume."
 tags: ["system-design", "rate-limiting", "token-bucket", "redis", "scalability", "interview", "binary-dose"]
 youtubeId: "SDFi25Jc98k"
 hide_table_of_contents: true

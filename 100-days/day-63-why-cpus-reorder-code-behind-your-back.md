@@ -3,6 +3,7 @@ title: "Why CPUs Reorder Code Behind Your Back (Memory Barriers)"
 day: 63
 category: "Operating Systems"
 summary: "Modern superscalar processors reorder independent memory operations and use Store Buffers to maximize pipeline throughput, introducing subtle race conditions without Memory Barriers."
+description: "Modern superscalar processors reorder independent memory operations and use Store Buffers to maximize pipeline throughput, introducing subtle race conditions without Memory Barriers."
 tags: ["concurrency", "multithreading", "memory-barriers", "cpu-architecture", "out-of-order", "interview", "binary-dose"]
 youtubeId: "9GCmnGwHebM"
 hide_table_of_contents: true

@@ -3,6 +3,7 @@ title: "Why is UDP Used for Video Calls Instead of TCP?"
 day: 14
 category: "Computer Networks"
 summary: "Real-time communication tools (Zoom, WebRTC) use UDP because retransmitting lost packets introduces jitter and latency; human perception tolerates dropped frames but hates lag."
+description: "Real-time communication tools (Zoom, WebRTC) use UDP because retransmitting lost packets introduces jitter and latency; human perception tolerates dropped frames but hates lag."
 tags: ["networking", "udp", "tcp", "webrtc", "video-streaming", "latency", "interview", "binary-dose"]
 youtubeId: "_3t-B1YZbtI"
 hide_table_of_contents: true

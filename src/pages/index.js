@@ -133,33 +133,7 @@ export default function Home() {
         "name": "Binary Dose",
         "description": "Zero-fluff computer science fundamentals, high-yield interview preparation, and DSA mastery with clear visual intuitions and interactive visualizers.",
         "publisher": {
-          "@type": "Organization",
           "@id": `${siteUrl}/#organization`,
-          "name": "Binary Dose",
-          "url": siteUrl,
-          "logo": {
-            "@type": "ImageObject",
-            "url": `${siteUrl}/img/logo.png`,
-          },
-          "founder": {
-            "@type": "Person",
-            "name": "Abhay Ojha",
-            "jobTitle": "Software Engineer",
-            "sameAs": [
-              "https://linkedin.com/in/abhayojha0012",
-              "https://www.instagram.com/ab_slogs/",
-              "https://github.com/abojha",
-            ],
-          },
-          "sameAs": [
-            "https://www.youtube.com/@binarydose",
-            "https://www.instagram.com/binarydose",
-          ],
-        },
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": `${siteUrl}/search?q={search_term_string}`,
-          "query-input": "required name=search_term_string",
         },
       },
       {
@@ -167,8 +141,26 @@ export default function Home() {
         "@id": `${siteUrl}/#organization`,
         "name": "Binary Dose",
         "url": siteUrl,
-        "logo": `${siteUrl}/img/logo.png`,
+        "logo": {
+          "@type": "ImageObject",
+          "url": `${siteUrl}/img/logo.png`,
+        },
         "description": "Free, open-source computer science & software engineering learning hub with interactive algorithm visualizers.",
+        "founder": {
+          "@type": "Person",
+          "name": "Abhay Ojha",
+          "jobTitle": "Software Engineer",
+          "sameAs": [
+            "https://linkedin.com/in/abhayojha0012",
+            "https://www.instagram.com/ab_slogs/",
+            "https://github.com/abojha",
+          ],
+        },
+        "sameAs": [
+          "https://www.youtube.com/@binarydose",
+          "https://www.instagram.com/binarydose",
+          "https://github.com/abojha/binarydose_website",
+        ],
       },
     ],
   };

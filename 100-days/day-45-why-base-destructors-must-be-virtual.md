@@ -3,6 +3,7 @@ title: "Why Base Destructors MUST Be Virtual in C++"
 day: 45
 category: "OOP & Languages"
 summary: "Deleting a derived object through a base class pointer without a virtual destructor causes static binding, executing only the base destructor and silently leaking derived class resources."
+description: "Deleting a derived object through a base class pointer without a virtual destructor causes static binding, executing only the base destructor and silently leaking derived class resources."
 tags: ["cpp", "oops", "polymorphism", "virtual-destructor", "memory-leaks", "interview", "binary-dose"]
 youtubeId: "FuIKuqbnzZc"
 hide_table_of_contents: true

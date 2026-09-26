@@ -3,6 +3,7 @@ title: "Why QuickSort beats MergeSort (O(N²) vs O(N log N))!"
 day: 28
 category: "Data Structures & Algorithms"
 summary: "Despite having an O(N²) worst-case, QuickSort consistently beats MergeSort in real-world systems due to in-place partitioning (O(1) space), tight inner loops, and superior CPU cache locality."
+description: "Despite having an O(N²) worst-case, QuickSort consistently beats MergeSort in real-world systems due to in-place partitioning (O(1) space), tight inner loops, and superior CPU cache locality."
 tags: ["dsa", "sorting", "quicksort", "mergesort", "cache-locality", "interview", "binary-dose"]
 youtubeId: "psOnGAxKq64"
 hide_table_of_contents: true

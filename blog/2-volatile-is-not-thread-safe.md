@@ -1,5 +1,6 @@
 ---
 title: "Why `volatile` is not thread-safe in C/C++"
+description: "Understand why the volatile keyword in C/C++ prevents compiler optimization but does not provide atomicity, mutual exclusion, or thread safety."
 tags: [c++, concurrency, operating-systems]
 authors: [binarydose]
 ---

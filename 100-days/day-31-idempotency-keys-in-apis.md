@@ -3,6 +3,7 @@ title: "Why APIs Use Idempotency Keys (Prevent Double Payments)"
 day: 31
 category: "System Design"
 summary: "Payment APIs use Idempotency Keys to guarantee that network retries and timeout duplicates execute mutating transactions exactly once, preventing double charges."
+description: "Payment APIs use Idempotency Keys to guarantee that network retries and timeout duplicates execute mutating transactions exactly once, preventing double charges."
 tags: ["system-design", "api", "idempotency", "payments", "distributed-systems", "interview", "binary-dose"]
 youtubeId: "4q8yWJ2J4BM"
 hide_table_of_contents: true

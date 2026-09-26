@@ -3,6 +3,7 @@ title: "Why Distributed Systems Use Consistent Hashing"
 day: 19
 category: "System Design"
 summary: "Consistent Hashing maps both keys and servers to a virtual hash ring, ensuring that adding or removing a node only redistributes K/N keys instead of re-hashing the entire dataset."
+description: "Consistent Hashing maps both keys and servers to a virtual hash ring, ensuring that adding or removing a node only redistributes K/N keys instead of re-hashing the entire dataset."
 tags: ["system-design", "consistent-hashing", "distributed-systems", "caching", "scalability", "interview", "binary-dose"]
 youtubeId: "HLfBjxPQt5s"
 hide_table_of_contents: true

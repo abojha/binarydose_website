@@ -3,6 +3,7 @@ title: "Why Stack Memory is 10x FASTER Than Heap"
 day: 34
 category: "Operating Systems"
 summary: "Stack allocation is a single CPU register pointer adjustment (SP), while Heap allocation requires complex free-list searches, thread synchronization locks, and memory fragmentation management."
+description: "Stack allocation is a single CPU register pointer adjustment (SP), while Heap allocation requires complex free-list searches, thread synchronization locks, and memory fragmentation management."
 tags: ["os", "memory-management", "stack", "heap", "cpu-cache", "interview", "binary-dose"]
 youtubeId: "u6ibq0M6Xm0"
 hide_table_of_contents: true

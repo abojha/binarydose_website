@@ -3,6 +3,7 @@ title: "Why Do Databases Use Write-Ahead Logging (WAL)?"
 day: 11
 category: "Databases"
 summary: "Databases use Write-Ahead Logging (WAL) to ensure ACID durability by converting expensive random disk page writes into fast sequential log appends before modifying data pages."
+description: "Databases use Write-Ahead Logging (WAL) to ensure ACID durability by converting expensive random disk page writes into fast sequential log appends before modifying data pages."
 tags: ["dbms", "wal", "acid", "durability", "crash-recovery", "interview", "binary-dose"]
 youtubeId: "0W5oDEDVlGQ"
 hide_table_of_contents: true
