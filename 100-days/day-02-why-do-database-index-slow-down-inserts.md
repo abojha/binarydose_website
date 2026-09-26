@@ -3,6 +3,7 @@ title: "Why Do Database Indexes Slow Down INSERTs?"
 day: 2
 category: "Databases"
 summary: "Indexes speed up SELECT queries through sorted B+ Trees, but every INSERT requires writing to the heap table plus rebalancing and page-splitting every secondary index."
+description: "Indexes speed up SELECT queries through sorted B+ Trees, but every INSERT requires writing to the heap table plus rebalancing and page-splitting every secondary index."
 tags: ["dbms", "indexing", "b-tree", "sql", "performance", "interview", "binary-dose"]
 youtubeId: "OKCzHs3odRE"
 hide_table_of_contents: true

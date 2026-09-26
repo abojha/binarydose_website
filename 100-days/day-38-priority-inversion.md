@@ -3,6 +3,7 @@ title: "Why Low-Priority Threads FREEZE High-Priority Tasks"
 day: 38
 category: "Operating Systems"
 summary: "Priority Inversion occurs when a low-priority thread holds a shared lock, and a medium-priority thread preempts it, inadvertently starving a high-priority thread waiting on the lock."
+description: "Priority Inversion occurs when a low-priority thread holds a shared lock, and a medium-priority thread preempts it, inadvertently starving a high-priority thread waiting on the lock."
 tags: ["os", "concurrency", "priority-inversion", "real-time-systems", "priority-inheritance", "interview", "binary-dose"]
 youtubeId: "3CAR99KUyd4"
 hide_table_of_contents: true

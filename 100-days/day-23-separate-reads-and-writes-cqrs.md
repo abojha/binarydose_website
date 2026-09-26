@@ -3,6 +3,7 @@ title: "Why Production Systems Separate Reads & Writes"
 day: 23
 category: "System Design"
 summary: "High-scale systems separate reads and writes using Primary-Replica architectures and CQRS to scale read-heavy workloads (90:10 ratio) and prevent slow analytical queries from locking transactional writes."
+description: "High-scale systems separate reads and writes using Primary-Replica architectures and CQRS to scale read-heavy workloads (90:10 ratio) and prevent slow analytical queries from locking transactional writes."
 tags: ["system-design", "dbms", "cqrs", "read-replicas", "replication-lag", "interview", "binary-dose"]
 youtubeId: "Ncy-1_sE0lM"
 hide_table_of_contents: true

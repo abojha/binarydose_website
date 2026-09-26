@@ -132,7 +132,15 @@ const config = {
           lastmod: "date",
           changefreq: "weekly",
           priority: 0.8,
-          ignorePatterns: ["/tags/**"],
+          ignorePatterns: [
+            "/tags/**",
+            "/**/tags/**",
+            "**/tags/**",
+            "/search",
+            "/search/**",
+            "/courses",
+            "/markdown-page",
+          ],
           filename: "sitemap.xml",
         },
         gtag: {

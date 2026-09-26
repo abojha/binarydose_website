@@ -3,6 +3,7 @@ title: "Why Do Deadlocks Happen?"
 day: 13
 category: "Operating Systems"
 summary: "A deadlock occurs when two or more processes are permanently blocked because each holds a resource that the other requires, satisfying the 4 Coffman conditions."
+description: "A deadlock occurs when two or more processes are permanently blocked because each holds a resource that the other requires, satisfying the 4 Coffman conditions."
 tags: ["os", "concurrency", "deadlock", "multithreading", "coffman-conditions", "interview", "binary-dose"]
 youtubeId: "_1Dl-2_z-qk"
 hide_table_of_contents: true

@@ -3,6 +3,7 @@ title: "Why is HTTPS More Secure Than HTTP?"
 day: 12
 category: "Computer Networks"
 summary: "HTTPS layers TLS encryption, digital certificates, and HMAC integrity over standard HTTP, eliminating eavesdropping, tampering, and Man-in-the-Middle (MitM) attacks."
+description: "HTTPS layers TLS encryption, digital certificates, and HMAC integrity over standard HTTP, eliminating eavesdropping, tampering, and Man-in-the-Middle (MitM) attacks."
 tags: ["networking", "https", "tls", "security", "cryptography", "interview", "binary-dose"]
 youtubeId: "GgH9X2pglBk"
 hide_table_of_contents: true

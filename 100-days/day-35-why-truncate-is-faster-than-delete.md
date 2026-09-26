@@ -3,6 +3,7 @@ title: "Why TRUNCATE is 100x Faster Than DELETE"
 day: 35
 category: "Databases"
 summary: "TRUNCATE is a DDL command that deallocates entire storage pages with minimal logging, whereas DELETE is a DML command that logs every row deletion for rollback and fires row-level triggers."
+description: "TRUNCATE is a DDL command that deallocates entire storage pages with minimal logging, whereas DELETE is a DML command that logs every row deletion for rollback and fires row-level triggers."
 tags: ["dbms", "sql", "truncate", "delete", "wal", "database-performance", "interview", "binary-dose"]
 youtubeId: "pImPbfQTH2A"
 hide_table_of_contents: true

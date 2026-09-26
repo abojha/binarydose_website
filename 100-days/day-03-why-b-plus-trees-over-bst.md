@@ -3,6 +3,7 @@ title: "Why Do Databases Use B+ Trees Instead of Binary Search Trees?"
 day: 3
 category: "Databases"
 summary: "Databases use B+ Trees instead of BSTs because high fan-out packs hundreds of keys per disk block, keeping the tree flat and minimizing expensive disk I/O seeks."
+description: "Databases use B+ Trees instead of BSTs because high fan-out packs hundreds of keys per disk block, keeping the tree flat and minimizing expensive disk I/O seeks."
 tags: ["dbms", "b-plus-tree", "bst", "disk-io", "indexing", "interview", "binary-dose"]
 youtubeId: "YFWu6hYCmDU"
 hide_table_of_contents: true

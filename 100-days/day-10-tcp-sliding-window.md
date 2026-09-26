@@ -3,6 +3,7 @@ title: "Why Does TCP Use a Sliding Window?"
 day: 10
 category: "Computer Networks"
 summary: "The TCP sliding window provides high-throughput flow control by allowing the sender to transmit multiple bytes in flight before waiting for an acknowledgment."
+description: "The TCP sliding window provides high-throughput flow control by allowing the sender to transmit multiple bytes in flight before waiting for an acknowledgment."
 tags: ["networking", "tcp", "sliding-window", "flow-control", "throughput", "interview", "binary-dose"]
 youtubeId: "jHZQ41SqKsM"
 hide_table_of_contents: true

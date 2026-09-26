@@ -3,6 +3,7 @@ title: "Why Can't One Process Access Another's Memory?"
 day: 9
 category: "Operating Systems"
 summary: "Operating systems prevent cross-process memory corruption using separate virtual page tables and CPU hardware privilege rings enforced by the Memory Management Unit (MMU)."
+description: "Operating systems prevent cross-process memory corruption using separate virtual page tables and CPU hardware privilege rings enforced by the Memory Management Unit (MMU)."
 tags: ["os", "memory-protection", "mmu", "security", "virtual-memory", "interview", "binary-dose"]
 youtubeId: "psUxrloVua0"
 hide_table_of_contents: true

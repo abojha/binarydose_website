@@ -3,6 +3,7 @@ title: "Why User Apps CANNOT Touch Hardware (CPU Protection Rings)"
 day: 61
 category: "Operating Systems"
 summary: "CPUs use hardware protection rings (Ring 3 vs Ring 0) and the Current Privilege Level register to trap privileged instructions, preventing user applications from directly accessing physical hardware."
+description: "CPUs use hardware protection rings (Ring 3 vs Ring 0) and the Current Privilege Level register to trap privileged instructions, preventing user applications from directly accessing physical hardware."
 tags: ["os", "cpu-architecture", "rings", "syscall", "privilege-levels", "kernel", "interview", "binary-dose"]
 youtubeId: "U2u1kNisFEU"
 hide_table_of_contents: true

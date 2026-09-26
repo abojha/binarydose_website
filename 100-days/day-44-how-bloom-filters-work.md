@@ -3,6 +3,7 @@ title: "How Bloom Filters Actually Work"
 day: 44
 category: "System Design"
 summary: "A Bloom filter is a space-efficient probabilistic data structure that tests set membership with zero false negatives; it can definitively tell you if an element is NOT present or PROBABLY present."
+description: "A Bloom filter is a space-efficient probabilistic data structure that tests set membership with zero false negatives; it can definitively tell you if an element is NOT present or PROBABLY present."
 tags: ["system-design", "bloom-filter", "dsa", "caching", "databases", "interview", "binary-dose"]
 youtubeId: "xya00v9a7Aw"
 hide_table_of_contents: true

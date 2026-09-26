@@ -3,6 +3,7 @@ title: "Why 0.1 + 0.2 ≠ 0.3 in Programming"
 day: 57
 category: "OOP & Languages"
 summary: "Computers use binary IEEE 754 floating-point numbers where 0.1 and 0.2 become infinitely repeating binary fractions; mantissa truncation causes rounding errors that break equality checks."
+description: "Computers use binary IEEE 754 floating-point numbers where 0.1 and 0.2 become infinitely repeating binary fractions; mantissa truncation causes rounding errors that break equality checks."
 tags: ["programming", "floating-point", "ieee-754", "fintech", "precision", "interview", "binary-dose"]
 youtubeId: "fRrGv63WO7U"
 hide_table_of_contents: true

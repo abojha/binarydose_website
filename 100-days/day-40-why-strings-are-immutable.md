@@ -3,6 +3,7 @@ title: "Why Strings are IMMUTABLE (Python, JS, Java)"
 day: 40
 category: "OOP & Languages"
 summary: "Strings are immutable in major programming languages to enable String Pool memory deduplication, lock-free thread safety, cached hash codes for O(1) HashMaps, and security isolation."
+description: "Strings are immutable in major programming languages to enable String Pool memory deduplication, lock-free thread safety, cached hash codes for O(1) HashMaps, and security isolation."
 tags: ["java", "python", "javascript", "immutability", "string-pool", "hashmap", "interview", "binary-dose"]
 youtubeId: "fwWkY0nNWLo"
 hide_table_of_contents: true

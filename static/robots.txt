@@ -2,5 +2,7 @@ User-agent: *
 Allow: /
 Disallow: /search
 Disallow: /tags/
+Disallow: /*/tags/
+Disallow: /*/tags/*
 
 Sitemap: https://binarydose.in/sitemap.xml

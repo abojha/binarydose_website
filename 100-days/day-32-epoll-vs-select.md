@@ -3,6 +3,7 @@ title: "Why Epoll is 100x Faster Than Select (I/O Multiplexing)"
 day: 32
 category: "Operating Systems"
 summary: "Epoll solves the C10K concurrency bottleneck by registering file descriptors once and receiving ready event lists in O(1) time, avoiding select's O(N) full-array kernel copy and linear scan."
+description: "Epoll solves the C10K concurrency bottleneck by registering file descriptors once and receiving ready event lists in O(1) time, avoiding select's O(N) full-array kernel copy and linear scan."
 tags: ["os", "networking", "epoll", "select", "io-multiplexing", "c10k", "interview", "binary-dose"]
 youtubeId: "u1NNgKVHu2A"
 hide_table_of_contents: true

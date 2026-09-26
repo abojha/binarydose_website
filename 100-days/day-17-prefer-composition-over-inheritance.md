@@ -3,6 +3,7 @@ title: "Why Prefer Composition Over Inheritance?"
 day: 17
 category: "OOP & Design"
 summary: "Inheritance creates tight compile-time coupling and the Fragile Base Class problem, whereas composition models flexible 'has-a' relationships that can be altered dynamically at runtime."
+description: "Inheritance creates tight compile-time coupling and the Fragile Base Class problem, whereas composition models flexible 'has-a' relationships that can be altered dynamically at runtime."
 tags: ["oops", "design-patterns", "composition", "inheritance", "clean-code", "interview", "binary-dose"]
 youtubeId: "9vXqF3vg_2g"
 hide_table_of_contents: true

@@ -3,6 +3,7 @@ title: "Why malloc(1GB) DOES NOT Consume 1GB RAM"
 day: 41
 category: "Operating Systems"
 summary: "Operating systems use Virtual Memory Overcommit and Demand Paging; malloc(1GB) only allocates virtual address ranges, deferring physical RAM allocation until pages are written to."
+description: "Operating systems use Virtual Memory Overcommit and Demand Paging; malloc(1GB) only allocates virtual address ranges, deferring physical RAM allocation until pages are written to."
 tags: ["os", "linux", "malloc", "virtual-memory", "demand-paging", "overcommit", "interview", "binary-dose"]
 youtubeId: "iGbDrfXTUFQ"
 hide_table_of_contents: true

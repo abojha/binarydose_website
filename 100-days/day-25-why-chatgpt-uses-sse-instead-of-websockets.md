@@ -3,6 +3,7 @@ title: "Why ChatGPT Uses SSE Instead of WebSockets"
 day: 25
 category: "System Design"
 summary: "ChatGPT streams token-by-token LLM responses using Server-Sent Events (SSE) because token generation is strictly unidirectional, lightweight, firewall-friendly, and runs over HTTP/2 multiplexing."
+description: "ChatGPT streams token-by-token LLM responses using Server-Sent Events (SSE) because token generation is strictly unidirectional, lightweight, firewall-friendly, and runs over HTTP/2 multiplexing."
 tags: ["system-design", "sse", "websockets", "http2", "llm-streaming", "interview", "binary-dose"]
 youtubeId: "cREiW2_fijs"
 hide_table_of_contents: true

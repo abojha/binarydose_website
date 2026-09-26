@@ -3,6 +3,7 @@ title: "Why LIKE '%term' Destroys Database Performance"
 day: 22
 category: "Databases"
 summary: "Leading wildcard queries (LIKE '%term') cannot use sorted B+ Tree indexes because tree traversal requires a known prefix, forcing slow, full-table scans across millions of rows."
+description: "Leading wildcard queries (LIKE '%term') cannot use sorted B+ Tree indexes because tree traversal requires a known prefix, forcing slow, full-table scans across millions of rows."
 tags: ["dbms", "sql", "indexing", "b-tree", "performance", "interview", "binary-dose"]
 youtubeId: "A7hoxdWDKqA"
 hide_table_of_contents: true

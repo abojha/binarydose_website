@@ -3,6 +3,7 @@ title: "Why HashMaps Switch to Trees at 8 Collisions"
 day: 64
 category: "Data Structures & Algorithms"
 summary: "Java's HashMap converts collision buckets into balanced Red-Black Trees at 8 collisions because Poisson distribution shows 8 collisions have a one-in-ten-million probability under fair hashes, defending against Hash-DoS attacks."
+description: "Java's HashMap converts collision buckets into balanced Red-Black Trees at 8 collisions because Poisson distribution shows 8 collisions have a one-in-ten-million probability under fair hashes, defending against Hash-DoS attacks."
 tags: ["dsa", "hashmap", "red-black-tree", "java", "algorithms", "poisson-distribution", "interview", "binary-dose"]
 youtubeId: "JV2ktY5ALE8"
 hide_table_of_contents: true

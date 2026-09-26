@@ -3,6 +3,7 @@ title: "Why is TCP Reliable but UDP Isn't?"
 day: 8
 category: "Computer Networks"
 summary: "TCP guarantees in-order, lossless byte streams via sequence numbers, ACKs, retransmission timers, and congestion control, whereas UDP provides stateless best-effort datagram delivery."
+description: "TCP guarantees in-order, lossless byte streams via sequence numbers, ACKs, retransmission timers, and congestion control, whereas UDP provides stateless best-effort datagram delivery."
 tags: ["networking", "tcp", "udp", "transport-layer", "reliability", "interview", "binary-dose"]
 youtubeId: "UNRipjVwxAU"
 hide_table_of_contents: true

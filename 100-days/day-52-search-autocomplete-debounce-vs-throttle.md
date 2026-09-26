@@ -3,6 +3,7 @@ title: "Search Autocomplete: Debounce vs Throttle"
 day: 52
 category: "System Design"
 summary: "Debouncing resets execution timers on every keystroke to send only one API query upon typing completion, whereas throttling enforces a fixed execution rate suited for continuous scroll events."
+description: "Debouncing resets execution timers on every keystroke to send only one API query upon typing completion, whereas throttling enforces a fixed execution rate suited for continuous scroll events."
 tags: ["system-design", "frontend", "javascript", "debounce", "throttle", "performance", "interview", "binary-dose"]
 youtubeId: "PlyJcJItHYw"
 hide_table_of_contents: true

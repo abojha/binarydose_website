@@ -3,6 +3,7 @@ title: "How to Scale WebSockets Across Multiple Servers"
 day: 53
 category: "System Design"
 summary: "Unlike stateless HTTP, WebSockets maintain stateful TCP sockets in local server RAM; scaling across server fleets requires a distributed Message Broker backplane like Redis Pub/Sub."
+description: "Unlike stateless HTTP, WebSockets maintain stateful TCP sockets in local server RAM; scaling across server fleets requires a distributed Message Broker backplane like Redis Pub/Sub."
 tags: ["system-design", "websockets", "redis", "pub-sub", "scalability", "real-time", "interview", "binary-dose"]
 youtubeId: "lSJ4eZR44ok"
 hide_table_of_contents: true

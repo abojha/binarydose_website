@@ -3,6 +3,7 @@ title: "College vs Production: Why SHA-256 Fails for Passwords"
 day: 51
 category: "System Design"
 summary: "SHA-256 was designed for high-speed data integrity; modern GPUs can compute billions of SHA-256 hashes per second, making leaked password databases vulnerable to offline brute-force attacks."
+description: "SHA-256 was designed for high-speed data integrity; modern GPUs can compute billions of SHA-256 hashes per second, making leaked password databases vulnerable to offline brute-force attacks."
 tags: ["security", "cryptography", "passwords", "sha256", "bcrypt", "argon2", "interview", "binary-dose"]
 youtubeId: "IFTn26poscc"
 hide_table_of_contents: true

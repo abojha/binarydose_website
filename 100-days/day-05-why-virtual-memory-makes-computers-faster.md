@@ -3,6 +3,7 @@ title: "Why Does Virtual Memory Make Computers Faster?"
 day: 5
 category: "Operating Systems"
 summary: "Virtual memory creates an illusion of large, contiguous, isolated address space for each program, enabling lazy allocation, shared read-only libraries, and efficient physical RAM utilization."
+description: "Virtual memory creates an illusion of large, contiguous, isolated address space for each program, enabling lazy allocation, shared read-only libraries, and efficient physical RAM utilization."
 tags: ["os", "virtual-memory", "mmu", "paging", "ram", "interview", "binary-dose"]
 youtubeId: "4eC9cOT3dYw"
 hide_table_of_contents: true

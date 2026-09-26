@@ -3,6 +3,7 @@ title: "Why Random UUIDs SLOW DOWN Your Database"
 day: 54
 category: "Databases"
 summary: "Using random UUIDv4 as primary keys destroys database write throughput by triggering random disk I/O, heavy B+ Tree page splits, and buffer pool cache thrashing compared to sequential IDs."
+description: "Using random UUIDv4 as primary keys destroys database write throughput by triggering random disk I/O, heavy B+ Tree page splits, and buffer pool cache thrashing compared to sequential IDs."
 tags: ["dbms", "sql", "uuid", "indexing", "b-tree", "innodb", "performance", "interview", "binary-dose"]
 youtubeId: "nZk2ioaDfac"
 hide_table_of_contents: true

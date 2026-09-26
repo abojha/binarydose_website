@@ -3,6 +3,7 @@ title: "College vs Production: Database Locking & MVCC"
 day: 49
 category: "Databases"
 summary: "College courses teach Two-Phase Locking (2PL) where writes block reads, but modern production databases use Multi-Version Concurrency Control (MVCC) so readers never block writers and writers never block readers."
+description: "College courses teach Two-Phase Locking (2PL) where writes block reads, but modern production databases use Multi-Version Concurrency Control (MVCC) so readers never block writers and writers never block readers."
 tags: ["dbms", "mvcc", "locking", "postgresql", "mysql", "concurrency", "interview", "binary-dose"]
 youtubeId: "0Fr71sxUL4w"
 hide_table_of_contents: true

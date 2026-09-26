@@ -3,6 +3,7 @@ title: "Why Array Traversal is 10x FASTER Than Linked Lists"
 day: 37
 category: "Data Structures & Algorithms"
 summary: "Arrays store elements in contiguous memory lines loaded by CPU cache prefetchers, whereas linked lists scatter nodes across heap memory, triggering expensive cache misses on pointer dereferences."
+description: "Arrays store elements in contiguous memory lines loaded by CPU cache prefetchers, whereas linked lists scatter nodes across heap memory, triggering expensive cache misses on pointer dereferences."
 tags: ["dsa", "arrays", "linked-list", "cache-locality", "cpu-cache", "interview", "binary-dose"]
 youtubeId: "7CdxjHp1qtI"
 hide_table_of_contents: true

@@ -3,6 +3,7 @@ title: "Why NULL = NULL is FALSE in SQL"
 day: 39
 category: "Databases"
 summary: "In SQL Three-Valued Logic (3VL), NULL represents an unknown value rather than an empty value; comparing two unknowns yields UNKNOWN, which evaluates to FALSE in WHERE clauses."
+description: "In SQL Three-Valued Logic (3VL), NULL represents an unknown value rather than an empty value; comparing two unknowns yields UNKNOWN, which evaluates to FALSE in WHERE clauses."
 tags: ["dbms", "sql", "null", "three-valued-logic", "interview", "binary-dose"]
 youtubeId: "mLa_yLBSyag"
 hide_table_of_contents: true

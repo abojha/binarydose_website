@@ -3,6 +3,7 @@ title: "Why HashMap Capacity is ALWAYS a Power of 2"
 day: 55
 category: "Data Structures & Algorithms"
 summary: "HashMaps enforce power-of-2 capacities because the bitwise identity hash & (n - 1) replaces expensive integer division (%) with a single-cycle CPU bitwise AND operation."
+description: "HashMaps enforce power-of-2 capacities because the bitwise identity hash & (n - 1) replaces expensive integer division (%) with a single-cycle CPU bitwise AND operation."
 tags: ["dsa", "hashmap", "java", "bit-manipulation", "performance", "interview", "binary-dose"]
 youtubeId: "GPs1KWtC2ls"
 hide_table_of_contents: true

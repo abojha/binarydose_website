@@ -1,5 +1,6 @@
 ---
 title: "Page faults don’t always mean disk access"
+description: "Demystifying Operating Systems: Why a page fault does not always trigger a slow disk I/O, and the difference between minor and major page faults in virtual memory."
 tags: [operating-systems, memory]
 authors: [binarydose]
 ---
