@@ -124,8 +124,8 @@ export default function HomepageFeatures() {
               >
                 <span>▶</span> Subscribe on YouTube
               </a>
-              <Link to="/courses" className={styles.ytExploreBtn}>
-                Explore Video Courses
+              <Link to="/coredose" className={styles.ytExploreBtn}>
+                Explore CoreDose Notes
               </Link>
             </div>
           </div>

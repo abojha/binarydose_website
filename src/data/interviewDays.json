@@ -1,0 +1,258 @@
+{
+  "1": {
+    "slug": "day-01-tcp-3-way-handshake",
+    "title": "Why Isn't a 2-Way Handshake Enough in TCP?"
+  },
+  "2": {
+    "slug": "day-02-why-do-database-index-slow-down-inserts",
+    "title": "Why Do Database Indexes Slow Down INSERTs?"
+  },
+  "3": {
+    "slug": "day-03-why-b-plus-trees-over-bst",
+    "title": "Why Do Databases Use B+ Trees Instead of Binary Search Trees?"
+  },
+  "4": {
+    "slug": "day-04-process-switch-vs-thread-switch",
+    "title": "Why Is a Process Switch Slower Than a Thread Switch?"
+  },
+  "5": {
+    "slug": "day-05-why-virtual-memory-makes-computers-faster",
+    "title": "Why Does Virtual Memory Make Computers Faster?"
+  },
+  "6": {
+    "slug": "day-06-why-do-page-faults-happen",
+    "title": "Why Do Page Faults Happen?"
+  },
+  "7": {
+    "slug": "day-07-why-zombie-processes-exist",
+    "title": "Why Do Zombie Processes Exist?"
+  },
+  "8": {
+    "slug": "day-08-why-tcp-is-reliable-and-udp-is-not",
+    "title": "Why is TCP Reliable but UDP Isn't?"
+  },
+  "9": {
+    "slug": "day-09-process-memory-isolation",
+    "title": "Why Can't One Process Access Another's Memory?"
+  },
+  "10": {
+    "slug": "day-10-tcp-sliding-window",
+    "title": "Why Does TCP Use a Sliding Window?"
+  },
+  "11": {
+    "slug": "day-11-write-ahead-logging-wal",
+    "title": "Why Do Databases Use Write-Ahead Logging (WAL)?"
+  },
+  "12": {
+    "slug": "day-12-why-https-is-more-secure-than-http",
+    "title": "Why is HTTPS More Secure Than HTTP?"
+  },
+  "13": {
+    "slug": "day-13-why-deadlocks-happen",
+    "title": "Why Do Deadlocks Happen?"
+  },
+  "14": {
+    "slug": "day-14-why-udp-used-for-video-calls",
+    "title": "Why is UDP Used for Video Calls Instead of TCP?"
+  },
+  "15": {
+    "slug": "day-15-linux-copy-on-write-cow",
+    "title": "Why Does Linux Use Copy-on-Write (COW)?"
+  },
+  "16": {
+    "slug": "day-16-why-systems-use-rate-limiters",
+    "title": "Why Do Systems Use Rate Limiters?"
+  },
+  "17": {
+    "slug": "day-17-prefer-composition-over-inheritance",
+    "title": "Why Prefer Composition Over Inheritance?"
+  },
+  "18": {
+    "slug": "day-18-how-databases-handle-connection-spikes",
+    "title": "How Databases Handle Connection Spikes"
+  },
+  "19": {
+    "slug": "day-19-consistent-hashing",
+    "title": "Why Distributed Systems Use Consistent Hashing"
+  },
+  "20": {
+    "slug": "day-20-how-message-queues-handle-traffic-spikes",
+    "title": "How Message Queues Handle Traffic Spikes"
+  },
+  "21": {
+    "slug": "day-21-why-dns-is-fast-the-second-time",
+    "title": "Why DNS is Super Fast the Second Time"
+  },
+  "22": {
+    "slug": "day-22-why-leading-wildcard-like-destroys-index",
+    "title": "Why LIKE '%term' Destroys Database Performance"
+  },
+  "23": {
+    "slug": "day-23-separate-reads-and-writes-cqrs",
+    "title": "Why Production Systems Separate Reads & Writes"
+  },
+  "24": {
+    "slug": "day-24-mutex-vs-spinlock",
+    "title": "Mutex vs. Spinlock: Why Sleeping Kills Performance"
+  },
+  "25": {
+    "slug": "day-25-why-chatgpt-uses-sse-instead-of-websockets",
+    "title": "Why ChatGPT Uses SSE Instead of WebSockets"
+  },
+  "26": {
+    "slug": "day-26-priority-queues-heaps-vs-arrays",
+    "title": "Why Priority Queues Use Heaps Instead of Arrays"
+  },
+  "27": {
+    "slug": "day-27-docker-vs-vms",
+    "title": "Why Docker Boots in Milliseconds While VMs Take Minutes"
+  },
+  "28": {
+    "slug": "day-28-why-quicksort-beats-mergesort",
+    "title": "Why QuickSort beats MergeSort (O(N\u00b2) vs O(N log N))!"
+  },
+  "29": {
+    "slug": "day-29-nosql-acid-vs-cap-theorem",
+    "title": "Why NoSQL Sacrifices ACID for High Availability"
+  },
+  "30": {
+    "slug": "day-30-forward-proxy-vs-reverse-proxy",
+    "title": "Forward Proxy vs Reverse Proxy: The Only Rule You Need"
+  },
+  "31": {
+    "slug": "day-31-idempotency-keys-in-apis",
+    "title": "Why APIs Use Idempotency Keys (Prevent Double Payments)"
+  },
+  "32": {
+    "slug": "day-32-epoll-vs-select",
+    "title": "Why Epoll is 100x Faster Than Select (I/O Multiplexing)"
+  },
+  "33": {
+    "slug": "day-33-why-dynamic-arrays-double-capacity",
+    "title": "Why Dynamic Arrays Double Their Size (ArrayList / std::vector)"
+  },
+  "34": {
+    "slug": "day-34-stack-vs-heap-memory-performance",
+    "title": "Why Stack Memory is 10x FASTER Than Heap"
+  },
+  "35": {
+    "slug": "day-35-why-truncate-is-faster-than-delete",
+    "title": "Why TRUNCATE is 100x Faster Than DELETE"
+  },
+  "36": {
+    "slug": "day-36-why-static-functions-cannot-access-this",
+    "title": "Why Static Functions Cannot Access this in C++"
+  },
+  "37": {
+    "slug": "day-37-array-vs-linked-list-cache-locality",
+    "title": "Why Array Traversal is 10x FASTER Than Linked Lists"
+  },
+  "38": {
+    "slug": "day-38-priority-inversion",
+    "title": "Why Low-Priority Threads FREEZE High-Priority Tasks"
+  },
+  "39": {
+    "slug": "day-39-why-null-equals-null-is-false-in-sql",
+    "title": "Why NULL = NULL is FALSE in SQL"
+  },
+  "40": {
+    "slug": "day-40-why-strings-are-immutable",
+    "title": "Why Strings are IMMUTABLE (Python, JS, Java)"
+  },
+  "41": {
+    "slug": "day-41-why-malloc-does-not-immediately-consume-ram",
+    "title": "Why malloc(1GB) DOES NOT Consume 1GB RAM"
+  },
+  "42": {
+    "slug": "day-42-cache-stampede-thundering-herd",
+    "title": "Why Expired Cache Keys CRASH Databases"
+  },
+  "43": {
+    "slug": "day-43-non-repeatable-read-vs-phantom-read",
+    "title": "Non-Repeatable Read vs Phantom Read"
+  },
+  "44": {
+    "slug": "day-44-how-bloom-filters-work",
+    "title": "How Bloom Filters Actually Work"
+  },
+  "45": {
+    "slug": "day-45-why-base-destructors-must-be-virtual",
+    "title": "Why Base Destructors MUST Be Virtual in C++"
+  },
+  "46": {
+    "slug": "day-46-why-running-out-of-ram-freezes-cpu",
+    "title": "Why Running Out of RAM Freezes Your CPU (Thrashing)"
+  },
+  "47": {
+    "slug": "day-47-why-sorted-arrays-run-faster",
+    "title": "Why Sorted Arrays Run 6x FASTER (Branch Prediction)"
+  },
+  "48": {
+    "slug": "day-48-database-normalization-vs-denormalization",
+    "title": "College vs Production: Database Normalization (3NF vs Denormalization)"
+  },
+  "49": {
+    "slug": "day-49-database-locking-and-mvcc",
+    "title": "College vs Production: Database Locking & MVCC"
+  },
+  "50": {
+    "slug": "day-50-why-recursion-crashes-in-production",
+    "title": "College vs Production: Why Recursion CRASHES in Production"
+  },
+  "51": {
+    "slug": "day-51-why-sha-256-fails-for-passwords",
+    "title": "College vs Production: Why SHA-256 Fails for Passwords"
+  },
+  "52": {
+    "slug": "day-52-search-autocomplete-debounce-vs-throttle",
+    "title": "Search Autocomplete: Debounce vs Throttle"
+  },
+  "53": {
+    "slug": "day-53-scale-websockets-across-multiple-servers",
+    "title": "How to Scale WebSockets Across Multiple Servers"
+  },
+  "54": {
+    "slug": "day-54-why-random-uuids-slow-down-databases",
+    "title": "Why Random UUIDs SLOW DOWN Your Database"
+  },
+  "55": {
+    "slug": "day-55-why-hashmap-capacity-is-power-of-2",
+    "title": "Why HashMap Capacity is ALWAYS a Power of 2"
+  },
+  "56": {
+    "slug": "day-56-why-32-bit-systems-cannot-use-8gb-ram",
+    "title": "Why 32-Bit Systems CANNOT Use 8GB RAM"
+  },
+  "57": {
+    "slug": "day-57-why-0-1-plus-0-2-not-0-3",
+    "title": "Why 0.1 + 0.2 \u2260 0.3 in Programming"
+  },
+  "58": {
+    "slug": "day-58-why-2gb-free-ram-cannot-allocate-200mb",
+    "title": "Why 2GB Free RAM CAN'T Allocate 200MB (External Fragmentation)"
+  },
+  "59": {
+    "slug": "day-59-why-1-plus-4-plus-1-is-12-bytes-in-cpp",
+    "title": "Why 1 + 4 + 1 = 12 Bytes in C/C++ (Struct Padding)"
+  },
+  "60": {
+    "slug": "day-60-how-syn-cookies-stop-server-crashes",
+    "title": "How SYN Cookies STOP Server Crashes"
+  },
+  "61": {
+    "slug": "day-61-why-user-apps-cannot-touch-hardware",
+    "title": "Why User Apps CANNOT Touch Hardware (CPU Protection Rings)"
+  },
+  "62": {
+    "slug": "day-62-why-sending-1-reads-as-16777216-endianness",
+    "title": "Why Sending 1 Reads as 16,777,216 Over Sockets (Endianness)"
+  },
+  "63": {
+    "slug": "day-63-why-cpus-reorder-code-behind-your-back",
+    "title": "Why CPUs Reorder Code Behind Your Back (Memory Barriers)"
+  },
+  "64": {
+    "slug": "day-64-why-hashmaps-switch-to-trees-at-8-collisions",
+    "title": "Why HashMaps Switch to Trees at 8 Collisions"
+  }
+}

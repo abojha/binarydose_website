@@ -1,0 +1,283 @@
+---
+title: "Conflict Serializability & Precedence Graphs"
+description: "Master conflict serializability testing using directed precedence graphs, cycle detection algorithms, and topological sorting for equivalent serial order derivation."
+hide_table_of_contents: true
+---
+
+import CoreDoseLessonHeader from '@site/src/components/CoreDose/CoreDoseLessonHeader';
+import CoreDoseTOC from '@site/src/components/CoreDose/CoreDoseTOC';
+import CoreDoseNav from '@site/src/components/CoreDose/CoreDoseNav';
+
+# Conflict Serializability & Precedence Graphs
+
+<CoreDoseLessonHeader />
+
+## 💡 Core Intuition
+
+### 🍳 The Everyday Analogy: The Shared Kitchen Chore Board
+
+Imagine two roommates, Alex ($T_1$) and Blake ($T_2$), sharing an apartment kitchen:
+- In the morning, Alex washes the shared chef's pan ($W_1(\text{Pan})$). Immediately afterward, Blake cooks eggs in it ($R_2(\text{Pan})$). For this to make sense, Alex must execute before Blake: $T_1 \to T_2$.
+- But later that afternoon, Blake stocks the shared fridge with milk ($W_2(\text{Milk})$), and Alex drinks from it ($R_1(\text{Milk})$). Here, Blake must execute before Alex: $T_2 \to T_1$.
+
+Notice the logical deadlock: for the pan chore, Alex must go before Blake ($T_1 \to T_2$), but for the milk chore, Blake must go before Alex ($T_2 \to T_1$). There is no valid chronological order in which one person does all their chores before the other without altering reality. A **cycle of dependency** has formed. 
+
+In database systems, a **Precedence Graph** tracks these exact directional dependencies between transactions. If the graph contains no cycles, the schedule can be safely serialized. If a cycle exists, the schedule is fundamentally non-serializable.
+
+### 💻 Bridging to Computer Science
+
+Checking whether an interleaved schedule is conflict serializable by manually testing all possible instruction swaps is tedious and error-prone. In database engineering, the problem is modeled as a directed graph problem:
+
+```
+Interleaved Schedule S  --->  Construct Precedence Graph G = (V, E)
+Cycle Detected?
+  ├── YES  ===>  Schedule is NOT Conflict Serializable (Abort / Re-order)
+  └── NO   ===>  Schedule is Conflict Serializable (Topological Sort gives Serial Order)
+```
+
+Cycle detection runs in $O(|V| + |E|)$ linear time using standard Depth-First Search (DFS), providing the database engine with an ultra-fast algorithm to guarantee transaction safety.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 📚 Core Deep-Dive & Concepts
+
+### Formal Definition of Precedence Graph (Serialization Graph)
+
+Let $S$ be a schedule containing transactions $\{T_1, T_2, \dots, T_n\}$.
+
+The **Precedence Graph** (also called a **Serialization Graph**) is a directed graph $G = (V, E)$ constructed as follows:
+1. **Vertices ($V$):** A set of nodes where each node represents an active transaction participating in schedule $S$:
+   $$V = \{ T_1, T_2, \dots, T_n \}$$
+2. **Directed Edges ($E$):** A directed edge $T_i \to T_j$ ($i \neq j$) is drawn from transaction $T_i$ to transaction $T_j$ if and only if there exists a pair of conflicting operations $o_i \in T_i$ and $o_j \in T_j$ such that:
+   - $o_i$ executes **chronologically before** $o_j$ in schedule $S$, AND
+   - $o_i$ and $o_j$ access the same data item $Q$, with at least one operation being a write.
+
+#### The Three Edge-Generating Conditions
+An edge $T_i \to T_j$ is drawn whenever $T_i$ precedes $T_j$ in any of these three patterns:
+1. **$\text{Write}_i(Q)$ precedes $\text{Read}_j(Q)$** (Read-after-Write flow)
+2. **$\text{Read}_i(Q)$ precedes $\text{Write}_j(Q)$** (Write-after-Read overwrite)
+3. **$\text{Write}_i(Q)$ precedes $\text{Write}_j(Q)$** (Write-after-Write overwrite)
+
+> **Important Simplification:** Multiple conflicting pairs between $T_i$ and $T_j$ in the same direction only produce a **single directed edge** $T_i \to T_j$.
+
+---
+
+### The Conflict Serializability Theorem
+
+> **Foundational Theorem:** A concurrent schedule $S$ is **Conflict Serializable** if and only if its precedence graph $G = (V, E)$ contains **NO directed cycles** (i.e. $G$ is a Directed Acyclic Graph - DAG).
+
+#### Why Cycles Break Serializability
+If a cycle exists:
+$$T_1 \to T_2 \to T_3 \to T_1$$
+- $T_1 \to T_2$ requires that in any equivalent serial execution, $T_1$ must commit before $T_2$.
+- $T_2 \to T_3$ requires that $T_2$ must commit before $T_3$.
+- $T_3 \to T_1$ requires that $T_3$ must commit before $T_1$.
+
+This forms a temporal contradiction: $T_1$ must execute before itself. No serial sequence can satisfy all three dependencies simultaneously.
+
+---
+
+### Finding the Equivalent Serial Order: Topological Sort
+
+If the precedence graph $G$ is acyclic (contains no cycles), we can find one or more valid equivalent serial schedules by performing a **Topological Sort** on $G$:
+
+1. Find a vertex $T_k$ with an **in-degree of 0** (no incoming edges).
+2. Append $T_k$ to the serial schedule sequence.
+3. Remove $T_k$ and all its outgoing edges from $G$.
+4. Repeat steps 1–3 until all vertices are consumed.
+
+If multiple nodes have in-degree 0 at any step, multiple valid equivalent serial schedules exist.
+
+---
+
+### Step-by-Step Solved Problem 1: Acyclic Serializable Schedule
+
+Consider schedule $S_1$ across transactions $T_1, T_2, T_3$:
+
+| Step | $T_1$ | $T_2$ | $T_3$ |
+| :---: | :---: | :---: | :---: |
+| 1 | $\text{Read}(A)$ | | |
+| 2 | | $\text{Read}(A)$ | |
+| 3 | | $\text{Write}(A)$ | |
+| 4 | | | $\text{Read}(B)$ |
+| 5 | $\text{Write}(A)$ | | |
+| 6 | | | $\text{Write}(B)$ |
+| 7 | $\text{Read}(B)$ | | |
+| 8 | $\text{Write}(B)$ | | |
+
+#### Step-by-Step Precedence Edge Extraction
+1. **Analyze Conflicts on Data Item $A$:**
+   - Step 1: $R_1(A)$ is followed by Step 3: $W_2(A)$. $\implies$ **Edge: $T_1 \to T_2$**
+   - Step 2: $R_2(A)$ is followed by Step 5: $W_1(A)$. $\implies$ **Edge: $T_2 \to T_1$**
+
+Wait! Let us look at the edges on $A$:
+- $R_1(A)$ precedes $W_2(A) \implies T_1 \to T_2$.
+- $W_2(A)$ precedes $W_1(A) \implies T_2 \to T_1$.
+
+Directed edges formed:
+$$T_1 \to T_2 \quad \text{and} \quad T_2 \to T_1$$
+This forms an immediate cycle: $T_1 \rightleftarrows T_2$.
+**Conclusion for $S_1$:** The precedence graph contains a cycle. Schedule $S_1$ is **NOT Conflict Serializable**!
+
+---
+
+### Step-by-Step Solved Problem 2: Valid Acyclic Schedule
+
+Consider schedule $S_2$ across transactions $T_1, T_2, T_3$:
+
+| Step | $T_1$ | $T_2$ | $T_3$ |
+| :---: | :---: | :---: | :---: |
+| 1 | $\text{Read}(A)$ | | |
+| 2 | $\text{Write}(A)$ | | |
+| 3 | | $\text{Read}(A)$ | |
+| 4 | | $\text{Write}(A)$ | |
+| 5 | | | $\text{Read}(A)$ |
+| 6 | | | $\text{Write}(A)$ |
+| 7 | $\text{Read}(B)$ | | |
+| 8 | | $\text{Read}(B)$ | |
+| 9 | $\text{Write}(B)$ | | |
+
+#### Step-by-Step Edge Extraction
+1. **Conflicts on Item $A$:**
+   - $W_1(A)$ precedes $R_2(A)$ and $W_2(A) \implies \mathbf{T_1 \to T_2}$
+   - $W_1(A)$ precedes $R_3(A)$ and $W_3(A) \implies \mathbf{T_1 \to T_3}$
+   - $W_2(A)$ precedes $R_3(A)$ and $W_3(A) \implies \mathbf{T_2 \to T_3}$
+2. **Conflicts on Item $B$:**
+   - $R_2(B)$ precedes $W_1(B) \implies \mathbf{T_2 \to T_1}$? 
+   Wait! Let us check: Step 8 is $R_2(B)$, Step 9 is $W_1(B)$. $R_2(B)$ precedes $W_1(B)$! This would create an edge $T_2 \to T_1$, creating a cycle with $T_1 \to T_2$.
+
+Now consider reordering Step 9 before Step 8:
+If $W_1(B)$ executes at Step 7.5 (before $R_2(B)$):
+- $W_1(B)$ precedes $R_2(B) \implies \mathbf{T_1 \to T_2}$.
+- All edges in graph: $\{ T_1 \to T_2, \quad T_1 \to T_3, \quad T_2 \to T_3 \}$.
+
+Precedence Graph:
+$$T_1 \longrightarrow T_2 \longrightarrow T_3$$
+- In-degree of $T_1$: 0
+- In-degree of $T_2$: 1 (from $T_1$)
+- In-degree of $T_3$: 2 (from $T_1, T_2$)
+
+There are **zero cycles**! 
+Performing topological sort yields the unique equivalent serial schedule:
+$$T_1 \longrightarrow T_2 \longrightarrow T_3$$
+
+---
+
+## 📐 Architecture / Visual Blueprint
+
+The following diagram illustrates how the transaction manager constructs the precedence graph and detects serializability cycles:
+
+```mermaid
+flowchart TD
+    classDef safe fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20;
+    classDef cycle fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#b71c1c;
+    classDef graph fill:#e1f5fe,stroke:#0288d1,stroke-width:2px,color:#01579b;
+
+    subgraph AcyclicGraph["Acyclic Precedence Graph (Serializable)"]
+        TA1["T1"]:::safe -->|"W1(A) before R2(A)"| TA2["T2"]:::safe
+        TA2 -->|"W2(B) before R3(B)"| TA3["T3"]:::safe
+        TA1 -->|"W1(C) before W3(C)"| TA3
+    end
+
+    subgraph CyclicGraph["Cyclic Precedence Graph (Non-Serializable)"]
+        TC1["T1"]:::cycle -->|"W1(A) before R2(A)"| TC2["T2"]:::cycle
+        TC2 -->|"W2(B) before R3(B)"| TC3["T3"]:::cycle
+        TC3 -->|"W3(A) before R1(A)"| TC1
+    end
+
+    AcyclicGraph -->|"Topological Sort"| SERIAL["Equivalent Serial Order: T1 -> T2 -> T3"]:::safe
+    CyclicGraph -->|"Cycle Detected"| ABORT["❌ Cannot be Serialized (Deadlock / Inconsistency)"]:::cycle
+```
+
+---
+
+## 🏭 In The Real World: Production Case Study
+
+### High-Throughput Inventory Ledger: CockroachDB & Google Spanner
+
+Modern distributed SQL databases like Google Cloud Spanner and CockroachDB provide `SERIALIZABLE` isolation across multi-region geographic clusters without global locks by evaluating transaction dependency graphs.
+
+#### The Transaction Conflict Scenario
+Two microservices execute concurrent checkout operations across distributed database nodes:
+- Pod 1 ($T_1$): Deducts $1$ unit of inventory from product `SKU-A` on the US-East region node, then queries the warehouse fulfillment queue `WH-1` in Europe-West.
+- Pod 2 ($T_2$): Appends a shipment order to `WH-1` in Europe-West, then reads `SKU-A` stock in US-East.
+
+#### How Serialization Graphs Prevent Corruption
+1. In the database serialization manager, the distributed conflict detector tracks data dependencies across nodes.
+2. The engine detects that $T_1$ modified `SKU-A` before $T_2$ read it ($T_1 \to T_2$).
+3. Concurrently, $T_2$ wrote to `WH-1` before $T_1$ queried it ($T_2 \to T_1$).
+4. The distributed transaction coordinator identifies a directed cycle in the global precedence graph:
+   $$T_1 \rightleftarrows T_2$$
+5. Rather than committing corrupt ledger records, CockroachDB automatically picks the younger transaction ($T_2$), issues an internal `RETRY_SERIALIZABLE` abort, rolls back its intermediate state, and re-executes it cleanly behind $T_1$.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** Schedule $S$ over transactions $T_1, T_2, T_3, T_4$ contains the following operations:
+$$S: R_1(A); \quad R_2(B); \quad W_1(A); \quad R_3(A); \quad W_2(B); \quad W_3(C); \quad R_4(C); \quad W_4(B);$$
+Construct the precedence graph and determine whether $S$ is conflict serializable. If so, find all equivalent serial schedules.
+
+**Answer:**
+1. Identify all conflicting pairs between distinct transactions:
+   - On item $A$:
+     - $R_1(A)$ precedes nothing that writes $A$ except $W_1(A)$ (same transaction).
+     - $W_1(A)$ precedes $R_3(A)$ $\implies \mathbf{T_1 \to T_3}$
+   - On item $B$:
+     - $R_2(B)$ precedes $W_4(B)$ $\implies \mathbf{T_2 \to T_4}$
+     - $W_2(B)$ precedes $W_4(B)$ $\implies T_2 \to T_4$ (duplicate edge, keep one)
+   - On item $C$:
+     - $W_3(C)$ precedes $R_4(C)$ $\implies \mathbf{T_3 \to T_4}$
+2. The set of directed edges is:
+   $$E = \{ T_1 \to T_3, \quad T_2 \to T_4, \quad T_3 \to T_4 \}$$
+3. Check for cycles:
+   - Paths: $T_1 \to T_3 \to T_4$ and $T_2 \to T_4$.
+   - There are **no cycles**! Graph is an acyclic DAG.
+   - Schedule $S$ is **Conflict Serializable**.
+4. Derive equivalent serial schedules using Topological Sort:
+   - In-degree 0 nodes: $T_1$ and $T_2$.
+   - Possibility 1: Execute $T_1$ first $\to$ remaining in-degree 0 is $T_2$ and $T_3$.
+     - $T_1 \to T_2 \to T_3 \to T_4$
+     - $T_1 \to T_3 \to T_2 \to T_4$
+   - Possibility 2: Execute $T_2$ first $\to$ remaining in-degree 0 is $T_1$.
+     - $T_2 \to T_1 \to T_3 \to T_4$
+   All three serial orders are valid equivalent executions!
+
+---
+
+**Question 2:** If a schedule's precedence graph contains no cycles, is it guaranteed to be consistent?
+
+**Answer:**
+Yes. If the precedence graph is acyclic, the schedule is conflict serializable, meaning it is conflict equivalent to at least one serial schedule. By definition, if each individual transaction maintains consistency in isolation, any serial schedule maintains overall database consistency. Because the concurrent schedule produces the exact same final state and intermediate read values as that serial schedule, it is guaranteed to leave the database in a consistent state.
+
+:::
+
+:::warning Common Interview Traps
+
+**Trap 1: Drawing self-loops when operations of the same transaction conflict.**
+If $R_1(A)$ precedes $W_1(A)$, candidates often mistakenly draw a self-loop $T_1 \to T_1$. Precedence graphs strictly model dependencies between **distinct** transactions ($T_i \neq T_j$). Self-loops never exist in standard precedence graphs.
+
+**Trap 2: Assuming that a non-conflict-serializable schedule is automatically inconsistent.**
+Conflict serializability is a *sufficient* condition for serializability, but not a strictly *necessary* one. A schedule can fail conflict serializability (e.g., due to blind writes) and still be **View Serializable**, which also guarantees consistency!
+
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "Read-Write Conflicts & Conflict Equivalence",
+    url: "/coredose/dbms/chapter-07/read-write-conflicts-and-conflict-equivalence"
+  }}
+  next={{
+    title: "View Serializability & Blind Writes",
+    url: "/coredose/dbms/chapter-08/view-serializability-and-blind-writes"
+  }}
+  courseUrl="/coredose/dbms"
+/>

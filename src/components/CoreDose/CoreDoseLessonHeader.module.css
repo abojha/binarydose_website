@@ -1,0 +1,210 @@
+.headerContainer {
+  margin-top: 0.5rem;
+  margin-bottom: 2rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.04) 0%, rgba(248, 250, 252, 0.8) 100%);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+[data-theme="dark"] .headerContainer {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Top Back Button & Breadcrumbs Bar --- */
+.navBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .navBar {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--ifm-color-primary);
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.22);
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  text-decoration: none !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] .backButton {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+.backButton:hover {
+  background: var(--ifm-color-primary);
+  color: #ffffff !important;
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  transform: translateX(-2px);
+}
+
+[data-theme="dark"] .backButton:hover {
+  background: #3b82f6;
+  color: #ffffff !important;
+}
+
+.backArrow {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.backButton:hover .backArrow {
+  transform: translateX(-3px);
+}
+
+.breadcrumbs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 550;
+  color: var(--ifm-color-emphasis-600);
+}
+
+.crumbLink {
+  color: var(--ifm-color-emphasis-700);
+  text-decoration: none !important;
+  transition: color 0.15s ease;
+}
+
+.crumbLink:hover {
+  color: var(--ifm-color-primary);
+}
+
+.crumbSep {
+  color: var(--ifm-color-emphasis-400);
+  font-size: 0.75rem;
+}
+
+.crumbActive {
+  color: var(--ifm-font-color-base);
+  font-weight: 700;
+}
+
+/* --- Metadata Row --- */
+.metaRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.moduleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--ifm-color-primary);
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.28rem 0.75rem;
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+}
+
+.moduleIcon {
+  font-size: 0.85rem;
+}
+
+.topicBadge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--ifm-font-color-base);
+  font-size: 0.75rem;
+  font-weight: 650;
+  padding: 0.28rem 0.7rem;
+  border-radius: 9999px;
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+[data-theme="dark"] .topicBadge {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+}
+
+.readTimeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--ifm-color-emphasis-700);
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .readTimeBadge {
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.clockIcon {
+  font-size: 0.82rem;
+}
+
+/* --- Relevance Box --- */
+.relevanceBox {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  background: rgba(16, 185, 129, 0.07);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+[data-theme="dark"] .relevanceBox {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(52, 211, 153, 0.28);
+}
+
+.relevanceIcon {
+  font-size: 0.85rem;
+}
+
+.relevanceLabel {
+  font-weight: 700;
+  color: #047857;
+}
+
+[data-theme="dark"] .relevanceLabel {
+  color: #34d399;
+}
+
+.relevanceText {
+  color: var(--ifm-color-emphasis-800);
+  font-weight: 500;
+}
+
+[data-theme="dark"] .relevanceText {
+  color: #cbd5e1;
+}

@@ -37,29 +37,44 @@
 /* ---------- Card Content ---------- */
 
 .topic-card h3 {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 600;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-size: 1.1rem !important;
+  font-weight: 650 !important;
+  color: var(--ifm-font-color-base) !important;
+  line-height: 1.35 !important;
 }
 
 .topic-card p {
   margin-top: 0.45rem;
-  font-size: 0.9rem;
-  line-height: 1.4;
+  margin-bottom: 0 !important;
+  font-size: 0.88rem;
+  line-height: 1.45;
   color: var(--ifm-color-emphasis-700);
 }
 
 /* ---------- Optional Meta Line (Counts, Tags) ---------- */
 
 .topic-meta {
+  display: inline-block;
   margin-top: 0.6rem;
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--ifm-color-primary);
 }
 
 /* ---------- Dark Mode Tweaks ---------- */
 
+html[data-theme="dark"] .topic-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
 html[data-theme="dark"] .topic-card:hover {
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: #60a5fa;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
 }

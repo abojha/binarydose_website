@@ -1,0 +1,77 @@
+.scrollTopBtn {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: var(--ifm-color-primary, #2563eb);
+  cursor: pointer;
+  z-index: 999;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: fadeInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+[data-theme='dark'] .scrollTopBtn {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #38bdf8;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.scrollTopBtn:hover {
+  transform: translateY(-3px) scale(1.05);
+  background: var(--ifm-color-primary, #2563eb);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+}
+
+[data-theme='dark'] .scrollTopBtn:hover {
+  background: #38bdf8;
+  color: #0f172a;
+  box-shadow: 0 8px 24px rgba(56, 189, 248, 0.5);
+}
+
+.arrowIcon {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.2s ease;
+}
+
+.scrollTopBtn:hover .arrowIcon {
+  transform: translateY(-2px);
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .scrollTopBtn {
+    bottom: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+  }
+  
+  .arrowIcon {
+    width: 18px;
+    height: 18px;
+  }
+}
