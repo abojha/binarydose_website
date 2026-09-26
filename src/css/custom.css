@@ -263,21 +263,13 @@ body {
     white-space: nowrap !important;
   }
 
-  /* Mobile right items: ONLY search bar & color mode toggle */
+  /* Mobile right items: ONLY search bar */
   .navbar__items--right {
     display: flex !important;
     align-items: center !important;
     margin-left: auto !important;
     gap: 0.2rem !important;
     flex-shrink: 0 !important;
-  }
-
-  /* Ensure Color Mode Toggle is visible and tap-friendly on mobile navbar */
-  .navbar__items--right [class*='colorModeToggle'],
-  .navbar__items--right .colorModeToggle {
-    display: flex !important;
-    align-items: center !important;
-    margin: 0 0.15rem !important;
   }
 
   /* Compact Mobile Search Bar */
@@ -510,6 +502,13 @@ body {
 
 [data-theme='dark'] .navbar-sidebar__brand {
   border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.navbar-sidebar__brand [class*='colorModeToggle'] {
+  display: flex !important;
+  align-items: center !important;
+  margin-left: auto !important;
+  margin-right: 0.75rem !important;
 }
 
 /* Items list wrapper inside sidebar - full scrollable height */
