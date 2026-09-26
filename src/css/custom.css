@@ -2,15 +2,18 @@
  * Binary Dose Custom Global Styles
  */
 @import "katex/dist/katex.min.css";
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 html {
   scrollbar-gutter: stable;
 }
 
-/* Prevent horizontal overflow scrolling across the entire site */
+/* Prevent horizontal overflow scrolling and ensure crisp typography across entire site */
 html,
 body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   overflow-x: hidden;
   overflow-x: clip !important;
   max-width: 100vw !important;
@@ -26,8 +29,9 @@ body {
 
 :root {
   color-scheme: light;
-  /* Font Families */
-  --ifm-font-family-base: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Font Families: Inter for editorial legibility, Plus Jakarta Sans for brand titles */
+  --ifm-font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --ifm-font-family-heading: 'Plus Jakarta Sans', var(--ifm-font-family-base);
   --ifm-font-family-monospace: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Primary brand blue */
@@ -65,19 +69,21 @@ body {
   --ifm-color-primary-lighter: #bfdbfe;
   --ifm-color-primary-lightest: rgba(96, 165, 250, 0.12);
 
-  /* Backgrounds */
-  --ifm-background-color: #0b0f19;
-  --ifm-background-surface-color: #111827;
+  /* Backgrounds: Neutral, premium dark obsidian & slate */
+  --ifm-background-color: #0a0d14;
+  --ifm-background-surface-color: #121824;
 
   /* Text */
   --ifm-font-color-base: #f1f5f9;
   --ifm-font-color-secondary: #94a3b8;
 
-  --ifm-navbar-background-color: rgba(11, 15, 25, 0.85);
+  --ifm-navbar-background-color: rgba(10, 13, 20, 0.88);
 }
 
 /* Glassmorphism Navbar - only apply backdrop-filter when sidebar is closed so WebKit doesn't trap position:fixed child */
 .navbar {
+  width: 100% !important;
+  max-width: 100vw !important;
   border-bottom: 1px solid var(--ifm-color-emphasis-200);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   z-index: var(--ifm-z-index-fixed);
@@ -585,6 +591,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: calc(100vh - var(--ifm-navbar-height));
+  width: 100% !important;
 }
 
 .docPage_src-theme-DocPage-Layout-styles-module,
@@ -734,7 +741,7 @@ body {
   border-radius: 10px;
   background: var(--ifm-background-surface-color) !important;
   overflow: hidden;
-  max-width: 680px;
+  max-width: 860px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
@@ -832,26 +839,66 @@ body {
 
 .inline-toc-container a,
 .inline-toc-container .table-of-contents__link {
-  color: var(--ifm-font-color-base) !important;
+  color: var(--ifm-color-primary, #2563eb) !important;
   text-decoration: none !important;
-  font-size: 0.88rem !important;
-  line-height: 1.4 !important;
-  padding: 0.25rem 0.5rem !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  line-height: 1.45 !important;
+  padding: 0.3rem 0.6rem !important;
   border-radius: 6px;
-  display: block;
-  transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+  display: flex !important;
+  align-items: center;
+  transition: all 0.18s ease;
+}
+
+/* Clear navigation arrow before every TOC link */
+.inline-toc-container a::before,
+.inline-toc-container .table-of-contents__link::before {
+  content: "›";
+  display: inline-block;
+  margin-right: 0.45rem;
+  font-size: 1.15rem;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--ifm-color-primary, #2563eb);
+  opacity: 0.75;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+[data-theme='dark'] .inline-toc-container a,
+[data-theme='dark'] .inline-toc-container .table-of-contents__link {
+  color: #60a5fa !important;
+}
+
+[data-theme='dark'] .inline-toc-container a::before,
+[data-theme='dark'] .inline-toc-container .table-of-contents__link::before {
+  color: #60a5fa;
 }
 
 .inline-toc-container a:hover,
 .inline-toc-container .table-of-contents__link:hover {
-  color: var(--ifm-color-primary) !important;
+  color: var(--ifm-color-primary-darker, #1d4ed8) !important;
   background-color: var(--ifm-color-primary-lightest) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
   transform: translateX(3px);
 }
 
-/* =========================
-   MERMAID DIAGRAMS: Theme Alignment
-========================= */
+[data-theme='dark'] .inline-toc-container a:hover,
+[data-theme='dark'] .inline-toc-container .table-of-contents__link:hover {
+  color: #93c5fd !important;
+  background-color: rgba(96, 165, 250, 0.15) !important;
+}
+
+.inline-toc-container a:hover::before,
+.inline-toc-container .table-of-contents__link:hover::before {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+/* ===================================================
+   MERMAID DIAGRAMS: Theme Alignment & Semantic Styling
+   =================================================== */
 .docusaurus-mermaid-container {
   display: flex;
   justify-content: center;
@@ -861,12 +908,13 @@ body {
   border: 1px solid var(--ifm-color-emphasis-200);
   border-radius: 12px;
   overflow-x: auto;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
 }
 
 [data-theme='dark'] .docusaurus-mermaid-container {
-  background: #0f172a;
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  background: #0b0f19;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .docusaurus-mermaid-container svg {
@@ -874,15 +922,92 @@ body {
   height: auto;
 }
 
-/* High contrast text inside dark mode diagrams */
-[data-theme='dark'] .docusaurus-mermaid-container svg text {
-  fill: #f8fafc !important;
+/* Crisp text inside diagrams */
+.docusaurus-mermaid-container svg text {
+  font-family: var(--ifm-font-family-base) !important;
+  font-size: 13px !important;
+  letter-spacing: -0.01em !important;
 }
 
-[data-theme='dark'] .docusaurus-mermaid-container .node rect,
-[data-theme='dark'] .docusaurus-mermaid-container .node circle,
-[data-theme='dark'] .docusaurus-mermaid-container .node polygon {
-  stroke: #38bdf8 !important;
+[data-theme='dark'] .docusaurus-mermaid-container svg text {
+  fill: #f1f5f9 !important;
+}
+
+/* Base Node Styling: Modern rounded pills with balanced borders */
+.docusaurus-mermaid-container .node rect,
+.docusaurus-mermaid-container .node circle,
+.docusaurus-mermaid-container .node polygon {
+  rx: 8px !important;
+  ry: 8px !important;
+  stroke-width: 1.5px !important;
+  transition: all 0.2s ease;
+}
+
+/* Default node appearance (overridable by classDef) */
+[data-theme='dark'] .docusaurus-mermaid-container .node:not([class*='fill']) rect,
+[data-theme='dark'] .docusaurus-mermaid-container .node:not([class*='fill']) circle,
+[data-theme='dark'] .docusaurus-mermaid-container .node:not([class*='fill']) polygon {
+  fill: #131b2e;
+  stroke: #3b82f6;
+}
+
+/* Semantic Subgraphs & Clusters */
+.docusaurus-mermaid-container .cluster rect {
+  rx: 10px !important;
+  ry: 10px !important;
+  stroke-dasharray: 4 4 !important;
+}
+
+[data-theme='dark'] .docusaurus-mermaid-container .cluster rect {
+  fill: rgba(30, 41, 59, 0.45) !important;
+  stroke: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Custom Mermaid Semantic Node Classes */
+.docusaurus-mermaid-container .node.node-blue rect,
+.docusaurus-mermaid-container .node.node-blue polygon,
+.docusaurus-mermaid-container .node.node-blue path {
+  fill: rgba(37, 99, 235, 0.14) !important;
+  stroke: #3b82f6 !important;
+}
+
+.docusaurus-mermaid-container .node.node-green rect,
+.docusaurus-mermaid-container .node.node-green polygon,
+.docusaurus-mermaid-container .node.node-green path {
+  fill: rgba(16, 185, 129, 0.14) !important;
+  stroke: #10b981 !important;
+}
+
+.docusaurus-mermaid-container .node.node-amber rect,
+.docusaurus-mermaid-container .node.node-amber polygon,
+.docusaurus-mermaid-container .node.node-amber path {
+  fill: rgba(245, 158, 11, 0.14) !important;
+  stroke: #f59e0b !important;
+}
+
+.docusaurus-mermaid-container .node.node-purple rect,
+.docusaurus-mermaid-container .node.node-purple polygon,
+.docusaurus-mermaid-container .node.node-purple path {
+  fill: rgba(168, 85, 247, 0.14) !important;
+  stroke: #a855f7 !important;
+}
+
+.docusaurus-mermaid-container .node.node-red rect,
+.docusaurus-mermaid-container .node.node-red polygon,
+.docusaurus-mermaid-container .node.node-red path {
+  fill: rgba(239, 68, 68, 0.14) !important;
+  stroke: #ef4444 !important;
+}
+
+/* Smooth connector paths and arrow markers */
+[data-theme='dark'] .docusaurus-mermaid-container .edgePath .path {
+  stroke: #64748b !important;
+  stroke-width: 1.75px !important;
+}
+
+[data-theme='dark'] .docusaurus-mermaid-container .marker {
+  fill: #64748b !important;
+  stroke: #64748b !important;
 }
 
 /* ===================================================
@@ -1036,4 +1161,683 @@ body {
 [class*='dropdownMenu'] [class*='suggestion'][class*='cursor'] {
   background-color: var(--ifm-color-primary) !important;
   color: #ffffff !important;
+}
+
+/* ===================================================
+   EDITORIAL TYPOGRAPHY & MOBILE CONTENT SHIELD
+   Globally formats blogs, doc notes, and guides
+   Prevents text/table/math blowout on mobile devices
+   =================================================== */
+
+
+/* 2. Global Markdown Prose Typography */
+.theme-doc-markdown,
+.markdown {
+  font-family: var(--ifm-font-family-base) !important;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11' !important;
+  font-size: 1.02rem;
+  line-height: 1.74;
+  letter-spacing: -0.011em;
+  color: var(--ifm-font-color-base);
+}
+
+.theme-doc-markdown p,
+.markdown p {
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  text-wrap: pretty;
+}
+
+.markdown strong {
+  font-weight: 600 !important;
+  color: var(--ifm-font-color-base) !important;
+}
+
+[data-theme='dark'] .markdown strong {
+  color: #ffffff !important;
+}
+
+/* 3. Headings Hierarchy with Crisp Tracking & Proportions */
+.markdown h1 {
+  font-family: var(--ifm-font-family-heading, var(--ifm-font-family-base)) !important;
+  font-size: 2.1rem !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.25 !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 1.15rem !important;
+  color: var(--ifm-font-color-base) !important;
+  text-wrap: balance !important;
+}
+
+.markdown h2 {
+  font-family: var(--ifm-font-family-heading, var(--ifm-font-family-base)) !important;
+  font-size: 1.48rem !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.35 !important;
+  margin-top: 3.25rem !important;
+  margin-bottom: 1.25rem !important;
+  padding: 0.65rem 1rem !important;
+  border-radius: 6px 12px 12px 6px !important;
+  border-left: 4px solid var(--ifm-color-primary) !important;
+  border-bottom: 1px solid rgba(37, 99, 235, 0.12) !important;
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.08) 0%, rgba(37, 99, 235, 0.02) 80%, transparent 100%) !important;
+  color: var(--ifm-heading-color, var(--ifm-font-color-base)) !important;
+  scroll-margin-top: calc(var(--ifm-navbar-height) + 1.25rem) !important;
+  text-wrap: balance !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02) !important;
+}
+
+[data-theme='dark'] .markdown h2 {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.14) 0%, rgba(59, 130, 246, 0.03) 80%, transparent 100%) !important;
+  border-left-color: #60a5fa !important;
+  border-bottom-color: rgba(96, 165, 250, 0.18) !important;
+}
+
+.markdown h3 {
+  font-family: var(--ifm-font-family-heading, var(--ifm-font-family-base)) !important;
+  font-size: 1.22rem !important;
+  font-weight: 680 !important;
+  letter-spacing: -0.015em !important;
+  line-height: 1.4 !important;
+  margin-top: 2.25rem !important;
+  margin-bottom: 0.85rem !important;
+  padding: 0.45rem 0.85rem !important;
+  border-radius: 4px 8px 8px 4px !important;
+  border-left: 3px solid #64748b !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+  background: rgba(15, 23, 42, 0.03) !important;
+  color: var(--ifm-heading-color, var(--ifm-font-color-base)) !important;
+  scroll-margin-top: calc(var(--ifm-navbar-height) + 1.25rem) !important;
+  text-wrap: balance !important;
+}
+
+[data-theme='dark'] .markdown h3 {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-left-color: #94a3b8 !important;
+  border-bottom-color: rgba(255, 255, 255, 0.07) !important;
+}
+
+.markdown h4 {
+  font-family: var(--ifm-font-family-heading, var(--ifm-font-family-base)) !important;
+  font-size: 1.05rem !important;
+  font-weight: 650 !important;
+  margin-top: 1.6rem !important;
+  margin-bottom: 0.55rem !important;
+  padding-left: 0.65rem !important;
+  border-left: 2px solid var(--ifm-color-emphasis-400) !important;
+  scroll-margin-top: calc(var(--ifm-navbar-height) + 1.25rem) !important;
+  text-wrap: balance !important;
+}
+
+.markdown hr {
+  height: 1px !important;
+  border: none !important;
+  background: linear-gradient(90deg, transparent, var(--ifm-color-emphasis-300), transparent) !important;
+  margin: 3.5rem 0 2.75rem 0 !important;
+  opacity: 0.8 !important;
+}
+
+[data-theme='dark'] .markdown hr {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent) !important;
+}
+
+/* UI Component Heading Shield: Protect cards, widgets, and navigation grids from markdown prose heading styles */
+.markdown :is(.topic-card, .topic-grid, [class*='card'], [class*='Card'], [class*='visualizer'], [class*='Visualizer'], [class*='Hub'], [class*='Shell']) :is(h1, h2, h3, h4) {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  scroll-margin-top: 0 !important;
+  border-radius: 0 !important;
+  line-height: inherit !important;
+}
+
+.markdown .topic-card h3 {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 1.1rem !important;
+  font-weight: 650 !important;
+  color: var(--ifm-font-color-base) !important;
+}
+
+/* 4. Lists (ul, ol, li) - Perfect Alignment & Indentation */
+.markdown ul,
+.markdown ol {
+  padding-left: 1.65rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 1.35rem !important;
+}
+
+.markdown li {
+  margin-bottom: 0.45rem !important;
+  line-height: 1.72 !important;
+  padding-left: 0.2rem !important;
+}
+
+.markdown li > p {
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.35rem !important;
+}
+
+.markdown li::marker {
+  color: var(--ifm-color-primary) !important;
+  font-weight: 700;
+}
+
+.markdown ul ul,
+.markdown ol ol,
+.markdown ul ol,
+.markdown ol ul {
+  padding-left: 1.4rem !important;
+  margin-top: 0.35rem !important;
+  margin-bottom: 0.45rem !important;
+}
+
+/* 5. Blockquotes - Replaced Raw Text with Editorial Cards */
+.markdown blockquote {
+  position: relative !important;
+  margin: 1.6rem 0 !important;
+  padding: 1.05rem 1.35rem !important;
+  border-left: 4px solid var(--ifm-color-primary) !important;
+  border-radius: 0 12px 12px 0 !important;
+  background: rgba(37, 99, 235, 0.04) !important;
+  border-top: 1px solid var(--ifm-color-emphasis-200) !important;
+  border-right: 1px solid var(--ifm-color-emphasis-200) !important;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200) !important;
+  color: var(--ifm-font-color-base) !important;
+  font-style: normal !important;
+  font-size: 0.98rem !important;
+  line-height: 1.68 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+}
+
+[data-theme='dark'] .markdown blockquote {
+  background: rgba(96, 165, 250, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  border-left: 4px solid #60a5fa !important;
+}
+
+.markdown blockquote p:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* 6. Tables - Centered, Full-Width Responsive Modern Styling */
+.table-responsive-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  margin: 1.75rem auto !important;
+  display: block !important;
+}
+
+.markdown table,
+.table-responsive-wrapper table {
+  display: table !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  table-layout: auto !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  margin: 1.75rem auto !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--ifm-color-emphasis-200) !important;
+  background: var(--ifm-background-surface-color) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03) !important;
+  overflow: hidden !important;
+}
+
+.table-responsive-wrapper table {
+  margin: 0 !important;
+}
+
+.markdown table thead,
+.markdown table tbody,
+.markdown table tr {
+  width: 100% !important;
+}
+
+[data-theme='dark'] .markdown table,
+[data-theme='dark'] .table-responsive-wrapper table {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: #111827 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+}
+
+.markdown table th,
+.table-responsive-wrapper table th {
+  background: var(--ifm-color-emphasis-100) !important;
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding: 0.85rem 1.15rem !important;
+  border-bottom: 2px solid var(--ifm-color-emphasis-200) !important;
+  color: var(--ifm-font-color-base) !important;
+  text-align: left;
+}
+
+[data-theme='dark'] .markdown table th,
+[data-theme='dark'] .table-responsive-wrapper table th {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.markdown table td,
+.table-responsive-wrapper table td {
+  padding: 0.85rem 1.15rem !important;
+  font-size: 0.93rem !important;
+  line-height: 1.6 !important;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200) !important;
+  color: var(--ifm-font-color-base) !important;
+  text-align: left;
+}
+
+[data-theme='dark'] .markdown table td,
+[data-theme='dark'] .table-responsive-wrapper table td {
+  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.markdown table tr:last-child td,
+.table-responsive-wrapper table tr:last-child td {
+  border-bottom: none !important;
+}
+
+.markdown table tr:nth-child(even),
+.table-responsive-wrapper table tr:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.015) !important;
+}
+
+[data-theme='dark'] .markdown table tr:nth-child(even),
+[data-theme='dark'] .table-responsive-wrapper table tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Maintain markdown explicit cell alignments if specified (:---: or ---:) */
+.markdown table th[align="center"],
+.markdown table td[align="center"],
+.table-responsive-wrapper table th[align="center"],
+.table-responsive-wrapper table td[align="center"] {
+  text-align: center !important;
+}
+
+.markdown table th[align="right"],
+.markdown table td[align="right"],
+.table-responsive-wrapper table th[align="right"],
+.table-responsive-wrapper table td[align="right"] {
+  text-align: right !important;
+}
+
+/* 7. KaTeX Math Overflow Shield on Mobile */
+.katex-display {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding: 0.85rem 0.6rem !important;
+  margin: 1.35rem 0 !important;
+}
+
+.katex-display::-webkit-scrollbar {
+  height: 5px;
+}
+
+.katex-display::-webkit-scrollbar-thumb {
+  background: var(--ifm-color-emphasis-300);
+  border-radius: 4px;
+}
+
+/* 8. Inline Code & Code Block Refinement */
+.markdown :not(pre) > code {
+  font-family: var(--ifm-font-family-monospace) !important;
+  font-size: 0.85em !important;
+  font-weight: 500 !important;
+  padding: 0.15rem 0.38rem !important;
+  border-radius: 5px !important;
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #0284c7 !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  word-break: break-word !important;
+  vertical-align: baseline !important;
+}
+
+[data-theme='dark'] .markdown :not(pre) > code {
+  background: rgba(255, 255, 255, 0.07) !important;
+  color: #7dd3fc !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Contextual Inline Code Inside Callout Cards (Zero Clash) */
+.theme-admonition code,
+.alert code {
+  font-size: 0.86em !important;
+  border: none !important;
+  padding: 0.12rem 0.35rem !important;
+  border-radius: 4px !important;
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme='dark'] .theme-admonition code,
+[data-theme='dark'] .alert code {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.theme-admonition-tip code,
+.alert--success code {
+  color: #047857 !important;
+}
+[data-theme='dark'] .theme-admonition-tip code,
+[data-theme='dark'] .alert--success code {
+  color: #6ee7b7 !important;
+}
+
+.theme-admonition-warning code,
+.alert--warning code {
+  color: #b45309 !important;
+}
+[data-theme='dark'] .theme-admonition-warning code,
+[data-theme='dark'] .alert--warning code {
+  color: #fde047 !important;
+}
+
+.theme-admonition-info code,
+.theme-admonition-note code,
+.alert--info code {
+  color: #1d4ed8 !important;
+}
+[data-theme='dark'] .theme-admonition-info code,
+[data-theme='dark'] .theme-admonition-note code,
+[data-theme='dark'] .alert--info code {
+  color: #93c5fd !important;
+}
+
+.theme-admonition-danger code,
+.alert--danger code {
+  color: #b91c1c !important;
+}
+[data-theme='dark'] .theme-admonition-danger code,
+[data-theme='dark'] .alert--danger code {
+  color: #fca5a5 !important;
+}
+
+.markdown pre {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--ifm-color-emphasis-200) !important;
+}
+
+[data-theme='dark'] .markdown pre {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 9. Markdown Links */
+.markdown p a,
+.markdown li a {
+  color: var(--ifm-color-primary) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
+  text-decoration-thickness: 1.5px !important;
+  transition: color 0.15s ease, text-decoration-thickness 0.15s ease;
+}
+
+[data-theme='dark'] .markdown p a,
+[data-theme='dark'] .markdown li a {
+  color: #60a5fa !important;
+}
+
+.markdown p a:hover,
+.markdown li a:hover {
+  color: var(--ifm-color-primary-darker, #1d4ed8) !important;
+  text-decoration-thickness: 2.5px !important;
+}
+
+[data-theme='dark'] .markdown p a:hover,
+[data-theme='dark'] .markdown li a:hover {
+  color: #93c5fd !important;
+}
+
+/* 10. Horizontal Rules */
+.markdown hr {
+  border: none !important;
+  border-top: 1px solid var(--ifm-color-emphasis-200) !important;
+  margin: 2.4rem 0 !important;
+}
+
+[data-theme='dark'] .markdown hr {
+  border-top-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* 11. Modern Admonitions (Callout Cards) - Clean, Compact & Space-Efficient */
+.theme-admonition,
+.alert {
+  position: relative !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--ifm-color-emphasis-200) !important;
+  border-left-width: 4px !important;
+  margin: 1.15rem 0 !important;
+  padding: 0.85rem 1.15rem !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Callout Heading: Clean inline row with icon and title */
+[class*='admonitionHeading'] {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.45rem !important;
+  text-transform: none !important;
+  letter-spacing: -0.01em !important;
+  font-size: 0.94rem !important;
+  font-weight: 650 !important;
+  margin: 0 0 0.4rem 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  line-height: 1.35 !important;
+}
+
+[class*='admonitionIcon'] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  flex-shrink: 0 !important;
+}
+
+[class*='admonitionIcon'] svg {
+  width: 16px !important;
+  height: 16px !important;
+  display: block !important;
+}
+
+/* Callout Body Content - Zero inner borders, tight clean reading flow */
+[class*='admonitionContent'] {
+  color: var(--ifm-font-color-base) !important;
+  font-size: 0.93rem !important;
+  line-height: 1.62 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  text-wrap: pretty !important;
+}
+
+[class*='admonitionContent'] p {
+  margin: 0 0 0.45rem 0 !important;
+  padding: 0 !important;
+  color: var(--ifm-font-color-base) !important;
+  text-wrap: pretty !important;
+}
+
+[class*='admonitionContent'] p:last-child {
+  margin-bottom: 0 !important;
+}
+
+[class*='admonitionContent'] strong {
+  font-weight: 600 !important;
+}
+
+/* --- TIP (Semester Focus, Best Practices) --- */
+.theme-admonition-tip,
+.alert--success {
+  border-left-color: #10b981 !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+  border-left: 4px solid #10b981 !important;
+  background: rgba(16, 185, 129, 0.06) !important;
+}
+
+.theme-admonition-tip [class*='admonitionHeading'],
+.alert--success [class*='admonitionHeading'] {
+  color: #047857 !important;
+}
+
+.theme-admonition-tip [class*='admonitionIcon'] svg,
+.alert--success [class*='admonitionIcon'] svg {
+  fill: #059669 !important;
+}
+
+[data-theme='dark'] .theme-admonition-tip,
+[data-theme='dark'] .alert--success {
+  border-color: rgba(52, 211, 153, 0.22) !important;
+  border-left: 4px solid #34d399 !important;
+  background: rgba(16, 185, 129, 0.08) !important;
+}
+
+[data-theme='dark'] .theme-admonition-tip [class*='admonitionHeading'],
+[data-theme='dark'] .alert--success [class*='admonitionHeading'] {
+  color: #34d399 !important;
+}
+
+[data-theme='dark'] .theme-admonition-tip [class*='admonitionIcon'] svg,
+[data-theme='dark'] .alert--success [class*='admonitionIcon'] svg {
+  fill: #34d399 !important;
+}
+
+/* --- WARNING (Misconceptions, Edge Cases, Traps) --- */
+.theme-admonition-warning,
+.alert--warning {
+  border-left-color: #f59e0b !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+  border-left: 4px solid #f59e0b !important;
+  background: rgba(245, 158, 11, 0.06) !important;
+}
+
+.theme-admonition-warning [class*='admonitionHeading'],
+.alert--warning [class*='admonitionHeading'] {
+  color: #b45309 !important;
+}
+
+.theme-admonition-warning [class*='admonitionIcon'] svg,
+.alert--warning [class*='admonitionIcon'] svg {
+  fill: #d97706 !important;
+}
+
+[data-theme='dark'] .theme-admonition-warning,
+[data-theme='dark'] .alert--warning {
+  border-color: rgba(251, 191, 36, 0.25) !important;
+  border-left: 4px solid #fbbf24 !important;
+  background: rgba(245, 158, 11, 0.09) !important;
+}
+
+[data-theme='dark'] .theme-admonition-warning [class*='admonitionHeading'],
+[data-theme='dark'] .alert--warning [class*='admonitionHeading'] {
+  color: #fbbf24 !important;
+}
+
+[data-theme='dark'] .theme-admonition-warning [class*='admonitionIcon'] svg,
+[data-theme='dark'] .alert--warning [class*='admonitionIcon'] svg {
+  fill: #fbbf24 !important;
+}
+
+/* --- INFO / NOTE (High-Yield Concepts, Probes) --- */
+.theme-admonition-info,
+.theme-admonition-note,
+.alert--info {
+  border-left-color: #3b82f6 !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
+  border-left: 4px solid #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.06) !important;
+}
+
+.theme-admonition-info [class*='admonitionHeading'],
+.theme-admonition-note [class*='admonitionHeading'],
+.alert--info [class*='admonitionHeading'] {
+  color: #1d4ed8 !important;
+}
+
+.theme-admonition-info [class*='admonitionIcon'] svg,
+.theme-admonition-note [class*='admonitionIcon'] svg,
+.alert--info [class*='admonitionIcon'] svg {
+  fill: #2563eb !important;
+}
+
+[data-theme='dark'] .theme-admonition-info,
+[data-theme='dark'] .theme-admonition-note,
+[data-theme='dark'] .alert--info {
+  border-color: rgba(96, 165, 250, 0.25) !important;
+  border-left: 4px solid #60a5fa !important;
+  background: rgba(59, 130, 246, 0.09) !important;
+}
+
+[data-theme='dark'] .theme-admonition-info [class*='admonitionHeading'],
+[data-theme='dark'] .theme-admonition-note [class*='admonitionHeading'],
+[data-theme='dark'] .alert--info [class*='admonitionHeading'] {
+  color: #60a5fa !important;
+}
+
+[data-theme='dark'] .theme-admonition-info [class*='admonitionIcon'] svg,
+[data-theme='dark'] .theme-admonition-note [class*='admonitionIcon'] svg,
+[data-theme='dark'] .alert--info [class*='admonitionIcon'] svg {
+  fill: #60a5fa !important;
+}
+
+/* --- DANGER (Critical Exam Failures) --- */
+.theme-admonition-danger,
+.alert--danger {
+  border-left-color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+  border-left: 4px solid #ef4444 !important;
+  background: rgba(239, 68, 68, 0.06) !important;
+}
+
+.theme-admonition-danger [class*='admonitionHeading'],
+.alert--danger [class*='admonitionHeading'] {
+  color: #b91c1c !important;
+}
+
+.theme-admonition-danger [class*='admonitionIcon'] svg,
+.alert--danger [class*='admonitionIcon'] svg {
+  fill: #ef4444 !important;
+}
+
+[data-theme='dark'] .theme-admonition-danger,
+[data-theme='dark'] .alert--danger {
+  border-color: rgba(248, 113, 113, 0.25) !important;
+  border-left: 4px solid #f87171 !important;
+  background: rgba(239, 68, 68, 0.09) !important;
+}
+
+[data-theme='dark'] .theme-admonition-danger [class*='admonitionHeading'],
+[data-theme='dark'] .alert--danger [class*='admonitionHeading'] {
+  color: #f87171 !important;
+}
+
+[data-theme='dark'] .theme-admonition-danger [class*='admonitionIcon'] svg,
+[data-theme='dark'] .alert--danger [class*='admonitionIcon'] svg {
+  fill: #f87171 !important;
 }

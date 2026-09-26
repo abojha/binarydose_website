@@ -52,16 +52,14 @@ function HomepageHeader() {
           </div>
 
           <div className={styles.subCtaRow}>
-            <span>📺 4 Free Video Playlists on YouTube</span>
+            <span>🎓 Comprehensive CS Course Notes</span>
             <span className={styles.subCtaDivider}>•</span>
-            <a
-              href="https://www.youtube.com/@binarydose"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/coredose"
               className={styles.subCtaLink}
             >
-              Watch Free Channel &rarr;
-            </a>
+              Explore CoreDose &rarr;
+            </Link>
           </div>
 
           <div className={styles.statsRibbon}>

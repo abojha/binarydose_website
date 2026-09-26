@@ -1,0 +1,101 @@
+.navContainer {
+  margin-top: 3.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.roadmapReturnRow {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.roadmapReturnBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1.15rem;
+  font-size: 0.85rem;
+  font-weight: 650;
+  border-radius: 9999px;
+  background: rgba(37, 99, 235, 0.06);
+  border: 1px solid rgba(37, 99, 235, 0.22);
+  color: var(--ifm-color-primary) !important;
+  text-decoration: none !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] .roadmapReturnBtn {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa !important;
+}
+
+.roadmapReturnBtn:hover {
+  background: var(--ifm-color-primary);
+  color: #ffffff !important;
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+  transform: translateY(-2px);
+}
+
+[data-theme="dark"] .roadmapReturnBtn:hover {
+  background: #3b82f6;
+  color: #ffffff !important;
+}
+
+.roadmapIcon {
+  font-size: 0.95rem;
+}
+
+.navGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 640px) {
+  .navGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.navCardPrev,
+.navCardNext {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  background: var(--ifm-background-surface-color);
+  text-decoration: none !important;
+  transition: all 0.2s ease;
+}
+
+.navCardPrev:hover,
+.navCardNext:hover {
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.12);
+  transform: translateY(-2px);
+}
+
+.navCardNext {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.directionLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ifm-color-primary);
+  margin-bottom: 0.35rem;
+}
+
+.topicTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ifm-heading-color);
+  line-height: 1.4;
+}

@@ -46,8 +46,8 @@ const config = {
       ({
         hashed: true,
         language: ["en"],
-        docsRouteBasePath: ["100-days", "pyqs", "coding"],
-        docsDir: ["100-days", "pyqs", "coding"],
+        docsRouteBasePath: ["100-days", "pyqs", "coding", "coredose"],
+        docsDir: ["100-days", "pyqs", "coding", "coredose"],
         docsPluginIdForPreferredVersion: "coding",
         blogRouteBasePath: "blog",
         blogDir: "blog",
@@ -180,6 +180,18 @@ const config = {
         rehypePlugins: [rehypeKatex],
       },
     ],
+    [
+      "@docusaurus/plugin-content-docs",
+      {
+        id: "coredose",
+        path: "coredose",
+        routeBasePath: "coredose",
+        sidebarPath: false,
+
+        remarkPlugins: [remarkMath],
+        rehypePlugins: [rehypeKatex],
+      },
+    ],
   ],
 
   themeConfig:
@@ -231,9 +243,9 @@ const config = {
             to: "/100-days",
           },
           {
-            label: "Video Courses",
+            label: "CoreDose",
             position: "left",
-            to: "/courses",
+            to: "/coredose",
           },
           {
             to: "/blog",
@@ -365,6 +377,18 @@ const config = {
         theme: {
           light: "neutral",
           dark: "dark",
+        },
+        options: {
+          flowchart: {
+            curve: "basis",
+            nodeSpacing: 45,
+            rankSpacing: 40,
+            padding: 14,
+          },
+          themeVariables: {
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            fontSize: "13px",
+          },
         },
       },
     }),

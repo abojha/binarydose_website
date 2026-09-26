@@ -71,7 +71,7 @@ export default function InterviewHub() {
     <div className="hubContainer">
       <div className="hubHeader">
         <div className="hubBadge">
-          <span>🔥</span> Daily YouTube Shorts & Deep Dives
+          <span>⚡</span> High-Yield CS Questions & Deep Dives
         </div>
         <h1 className="hubTitle">100 Days of Interview Questions</h1>
         <p className="hubSubtitle">
