@@ -31,125 +31,156 @@ Whether you are preparing for:
 
 ---
 
-## 🗺️ The 10-Module Master Roadmap
+## 📚 Complete Course Curriculum
 
-```mermaid
-flowchart LR
-    subgraph P1["Phase 1: Foundations"]
-        direction TB
-        M1["1. Basics & 3-Schema"] --> M2["2. ER Modeling"]
-        M2 --> M3["3. Relational Model"]
-    end
-    subgraph P2["Phase 2: Query Engine"]
-        direction TB
-        M4["4. SQL Mastery"] --> M5["5. Functional Deps"]
-    end
-    subgraph P3["Phase 3: Schema Design"]
-        direction TB
-        M6["6. Normalization"] --> M7["7. Transactions & ACID"]
-    end
-    subgraph P4["Phase 4: Engine Internals"]
-        direction TB
-        M8["8. Concurrency Control"] --> M9["9. Indexing & B+ Trees"]
-        M9 --> M10["10. Storage & Optimizer"]
-    end
-    P1 --> P2 --> P3 --> P4
-```
-
----
-
-## 📚 Complete Module Directory
-
-### 🟢 Module 1: Basics of DBMS & Architecture (Active)
-* [**1.1 What is Data & DBMS? File Systems vs Database Systems**](/coredose/dbms/chapter-01/introduction-to-dbms-and-database-systems)
-* [**1.2 Three-Schema ANSI/SPARC Architecture & Data Independence**](/coredose/dbms/chapter-01/three-schema-architecture-and-data-independence)
-* [**1.3 Types of Databases, DBA Roles & Data Dictionary**](/coredose/dbms/chapter-01/types-of-databases-and-dbms-architecture)
-
----
-
-### 🟢 Module 2: Entity-Relationship (ER) Model (Active)
-* [**2.1 Entities, Attributes & Keys: Foundations of ER Modeling**](/coredose/dbms/chapter-02/entities-attributes-and-keys)
-* [**2.2 Relationship Sets, Cardinality & Participation Constraints**](/coredose/dbms/chapter-02/relationship-sets-cardinality-and-participation)
-* [**2.3 Weak Entity Sets & Identifying Relationships**](/coredose/dbms/chapter-02/weak-entity-sets-and-identifying-relationships)
-* [**2.4 Step-by-Step Rules: Converting ER Diagrams into Relational Tables**](/coredose/dbms/chapter-02/er-to-relational-mapping-and-table-reduction)
-* [**2.5 Extended ER (EER): Specialization, Generalization, Aggregation & ER Traps**](/coredose/dbms/chapter-02/extended-er-specialization-generalization-aggregation)
-
----
-
-### 🟢 Module 3: Relational Model & Relational Algebra (Active)
-* [**3.1 Relational Data Model & Terminology (Tuples, Degree, Cardinality)**](/coredose/dbms/chapter-03/relational-model-concepts-and-terminology)
-* [**3.2 Keys in DBMS: Super Key, Candidate Key, Primary Key & Foreign Key**](/coredose/dbms/chapter-03/keys-in-relational-model)
-* [**3.3 Integrity Constraints: Domain, Entity, and Referential Integrity**](/coredose/dbms/chapter-03/integrity-constraints-and-referential-actions)
-* [**3.4 Relational Algebra Operators: Selection ($\sigma$), Projection ($\pi$), Cartesian Product ($\times$), Rename ($\rho$)**](/coredose/dbms/chapter-03/fundamental-relational-algebra-operators)
-* [**3.5 Relational Joins: Natural Join, Theta Join, Outer Joins (Left, Right, Full)**](/coredose/dbms/chapter-03/derived-relational-algebra-joins-and-division)
-
----
-
-### 🟢 Module 4: Structured Query Language (SQL) (Active)
-* [**4.1 SQL Command Categories: DDL, DML, DCL, and TCL**](/coredose/dbms/chapter-04/sql-command-categories-ddl-dml-dcl-tcl)
-* [**4.2 Aggregations, GROUP BY, and HAVING Clauses**](/coredose/dbms/chapter-04/aggregations-group-by-and-having-clauses)
-* [**4.3 Nested Subqueries, Correlated Subqueries & Exists**](/coredose/dbms/chapter-04/nested-subqueries-correlated-subqueries-and-exists)
-* [**4.4 SQL Joins Master Guide with Visual Output**](/coredose/dbms/chapter-04/sql-joins-master-guide-with-visual-output)
-* [**4.5 Window Functions, CTEs, and Views**](/coredose/dbms/chapter-04/window-functions-ctes-and-views)
-
----
-
-### 🟢 Module 5: Functional Dependencies (FDs) (Active)
-* [**5.1 Introduction to Functional Dependencies & Trivial vs Non-Trivial FDs**](/coredose/dbms/chapter-05/introduction-to-functional-dependencies-and-trivial-fds)
-* [**5.2 Armstrong's Axioms (Inference Rules)**](/coredose/dbms/chapter-05/armstrongs-axioms-inference-rules)
-* [**5.3 Attribute Closure Algorithm ($X^+$)**](/coredose/dbms/chapter-05/attribute-closure-algorithm)
-* [**5.4 Algorithmic Method to Find All Candidate Keys**](/coredose/dbms/chapter-05/algorithmic-method-to-find-all-candidate-keys)
-* [**5.5 Minimal / Canonical Cover of Functional Dependencies**](/coredose/dbms/chapter-05/minimal-canonical-cover-of-functional-dependencies)
-* [**5.6 Equivalence of Functional Dependency Sets**](/coredose/dbms/chapter-05/equivalence-of-functional-dependency-sets)
-
----
-
-### 🟢 Module 6: Database Normalization (Active)
-* [**6.1 Database Anomalies: Insertion, Deletion, and Update Anomalies**](/coredose/dbms/chapter-06/database-anomalies-insertion-deletion-and-update)
-* [**6.2 First Normal Form (1NF) & Second Normal Form (2NF)**](/coredose/dbms/chapter-06/first-normal-form-1nf-and-second-normal-form-2nf)
-* [**6.3 Third Normal Form (3NF) vs Boyce-Codd Normal Form (BCNF)**](/coredose/dbms/chapter-06/third-normal-form-3nf-vs-bcnf)
-* [**6.4 Lossless Join Decomposition Testing**](/coredose/dbms/chapter-06/lossless-join-decomposition-testing)
-* [**6.5 Dependency Preserving Decomposition**](/coredose/dbms/chapter-06/dependency-preserving-decomposition)
-* [**6.6 Multi-Valued Dependencies (4NF) & Join Dependencies (5NF)**](/coredose/dbms/chapter-06/multivalued-dependencies-4nf-and-join-dependencies-5nf)
-
----
-
-### 🟢 Module 7: Transaction Management & ACID Properties (Active)
-* [**7.1 What is a Transaction? Transaction State Life Cycle**](/coredose/dbms/chapter-07/what-is-a-transaction-and-lifecycle-states)
-* [**7.2 ACID Properties Deep Dive with Banking Examples**](/coredose/dbms/chapter-07/acid-properties-deep-dive)
-* [**7.3 Schedules: Serial vs Non-Serial Schedules**](/coredose/dbms/chapter-07/schedules-serial-vs-non-serial)
-* [**7.4 Read-Write Conflicts and Conflict Equivalence**](/coredose/dbms/chapter-07/read-write-conflicts-and-conflict-equivalence)
-
----
-
-### 🟢 Module 8: Concurrency Control & Serializability (Active)
-* [**8.1 Conflict Serializability & Precedence (Serialization) Graph Testing**](/coredose/dbms/chapter-08/conflict-serializability-and-precedence-graphs)
-* [**8.2 View Serializability & Blind Writes**](/coredose/dbms/chapter-08/view-serializability-and-blind-writes)
-* [**8.3 Recoverability: Recoverable, Cascadeless (ACA), and Strict Schedules**](/coredose/dbms/chapter-08/recoverability-cascadeless-and-strict-schedules)
-* [**8.4 Two-Phase Locking (2PL): Basic 2PL, Strict 2PL, and Rigorous 2PL**](/coredose/dbms/chapter-08/two-phase-locking-protocol-2pl)
-* [**8.5 Deadlock Handling: Wait-Die vs Wound-Wait Protocols**](/coredose/dbms/chapter-08/deadlock-handling-wait-die-vs-wound-wait)
-* [**8.6 Timestamp-Based Ordering Protocol & Thomas Write Rule**](/coredose/dbms/chapter-08/timestamp-ordering-and-thomas-write-rule)
-
----
-
-### 🟢 Module 9: Indexing & File Organization (Active)
-* [**9.1 File Organizations: Heap, Sorted, and Hash Files**](/coredose/dbms/chapter-09/file-organizations-heap-sorted-hash)
-* [**9.2 Indexing Concepts: Ordered Indices (Dense vs Sparse)**](/coredose/dbms/chapter-09/ordered-indices-dense-vs-sparse)
-* [**9.3 Primary Index, Clustered Index, and Secondary Index**](/coredose/dbms/chapter-09/primary-clustering-and-secondary-index)
-* [**9.4 B-Trees: Structure, Node Capacity, and Searching**](/coredose/dbms/chapter-09/b-trees-structure-and-node-capacity)
-* [**9.5 B+ Trees: Why Database Engines Use B+ Trees Over B-Trees**](/coredose/dbms/chapter-09/b-plus-trees-structure-and-operations)
-
----
-
-### 🟢 Module 10: Advanced Topics & Storage Internals (Active)
-* [**10.1 Static vs Dynamic Hashing (Extendible & Linear Hashing)**](/coredose/dbms/chapter-10/static-vs-dynamic-hashing-extendible-and-linear)
-* [**10.2 Relational Calculus: Tuple Relational Calculus (TRC) & Domain Relational Calculus (DRC)**](/coredose/dbms/chapter-10/relational-calculus-trc-and-drc)
-* [**10.3 Query Optimization & Query Execution Plans**](/coredose/dbms/chapter-10/query-optimization-and-cost-execution-plans)
+<CourseCurriculum
+  subtitle="Comprehensive topic-by-topic curriculum covering relational algebra, SQL engines, schema normalization, ACID isolation, and storage internals"
+  modules={[
+    {
+      num: "01",
+      title: "Basics of DBMS & Architecture",
+      icon: "🏗️",
+      color: "purple",
+      description: "ANSI/SPARC 3-schema architecture, data independence, and DBMS vs File Systems.",
+      topics: [
+        { num: "1.1", title: "What is Data & DBMS? File Systems vs Database Systems", url: "/coredose/dbms/chapter-01/introduction-to-dbms-and-database-systems" },
+        { num: "1.2", title: "Three-Schema ANSI/SPARC Architecture & Data Independence", url: "/coredose/dbms/chapter-01/three-schema-architecture-and-data-independence" },
+        { num: "1.3", title: "Types of Databases, DBA Roles & Data Dictionary", url: "/coredose/dbms/chapter-01/types-of-databases-and-dbms-architecture" },
+      ],
+    },
+    {
+      num: "02",
+      title: "Entity-Relationship (ER) Model",
+      icon: "📐",
+      color: "blue",
+      description: "Entity sets, relationship cardinalities, weak entities, ER-to-relational mapping, and EER.",
+      topics: [
+        { num: "2.1", title: "Entities, Attributes & Keys: Foundations of ER Modeling", url: "/coredose/dbms/chapter-02/entities-attributes-and-keys" },
+        { num: "2.2", title: "Relationship Sets, Cardinality & Participation Constraints", url: "/coredose/dbms/chapter-02/relationship-sets-cardinality-and-participation" },
+        { num: "2.3", title: "Weak Entity Sets & Identifying Relationships", url: "/coredose/dbms/chapter-02/weak-entity-sets-and-identifying-relationships" },
+        { num: "2.4", title: "Step-by-Step Rules: Converting ER Diagrams into Relational Tables", url: "/coredose/dbms/chapter-02/er-to-relational-mapping-and-table-reduction" },
+        { num: "2.5", title: "Extended ER (EER): Specialization, Generalization, Aggregation & ER Traps", url: "/coredose/dbms/chapter-02/extended-er-specialization-generalization-aggregation" },
+      ],
+    },
+    {
+      num: "03",
+      title: "Relational Model & Relational Algebra",
+      icon: "⚡",
+      color: "cyan",
+      description: "Tuples, schemas, candidate keys, referential integrity, selection/projection, and joins.",
+      topics: [
+        { num: "3.1", title: "Relational Data Model & Terminology (Tuples, Degree, Cardinality)", url: "/coredose/dbms/chapter-03/relational-model-concepts-and-terminology" },
+        { num: "3.2", title: "Keys in DBMS: Super Key, Candidate Key, Primary Key & Foreign Key", url: "/coredose/dbms/chapter-03/keys-in-relational-model" },
+        { num: "3.3", title: "Integrity Constraints: Domain, Entity, and Referential Integrity", url: "/coredose/dbms/chapter-03/integrity-constraints-and-referential-actions" },
+        { num: "3.4", title: "Relational Algebra Operators: Selection, Projection, Cross Product, Rename", url: "/coredose/dbms/chapter-03/fundamental-relational-algebra-operators" },
+        { num: "3.5", title: "Relational Joins: Natural Join, Theta Join, Outer Joins (Left, Right, Full)", url: "/coredose/dbms/chapter-03/derived-relational-algebra-joins-and-division" },
+      ],
+    },
+    {
+      num: "04",
+      title: "Structured Query Language (SQL)",
+      icon: "🔍",
+      color: "emerald",
+      description: "DDL/DML/DCL/TCL commands, GROUP BY/HAVING aggregations, subqueries, visual joins, and CTEs.",
+      topics: [
+        { num: "4.1", title: "SQL Command Categories: DDL, DML, DCL, and TCL", url: "/coredose/dbms/chapter-04/sql-command-categories-ddl-dml-dcl-tcl" },
+        { num: "4.2", title: "Aggregations, GROUP BY, and HAVING Clauses", url: "/coredose/dbms/chapter-04/aggregations-group-by-and-having-clauses" },
+        { num: "4.3", title: "Nested Subqueries, Correlated Subqueries & Exists", url: "/coredose/dbms/chapter-04/nested-subqueries-correlated-subqueries-and-exists" },
+        { num: "4.4", title: "SQL Joins Master Guide with Visual Output", url: "/coredose/dbms/chapter-04/sql-joins-master-guide-with-visual-output" },
+        { num: "4.5", title: "Window Functions, CTEs, and Views", url: "/coredose/dbms/chapter-04/window-functions-ctes-and-views" },
+      ],
+    },
+    {
+      num: "05",
+      title: "Functional Dependencies (FDs)",
+      icon: "🔑",
+      color: "amber",
+      description: "Inference axioms, attribute closures, candidate key finding algorithms, and minimal covers.",
+      topics: [
+        { num: "5.1", title: "Introduction to Functional Dependencies & Trivial vs Non-Trivial FDs", url: "/coredose/dbms/chapter-05/introduction-to-functional-dependencies-and-trivial-fds" },
+        { num: "5.2", title: "Armstrong's Axioms (Inference Rules)", url: "/coredose/dbms/chapter-05/armstrongs-axioms-inference-rules" },
+        { num: "5.3", title: "Attribute Closure Algorithm (X+)", url: "/coredose/dbms/chapter-05/attribute-closure-algorithm" },
+        { num: "5.4", title: "Algorithmic Method to Find All Candidate Keys", url: "/coredose/dbms/chapter-05/algorithmic-method-to-find-all-candidate-keys" },
+        { num: "5.5", title: "Minimal / Canonical Cover of Functional Dependencies", url: "/coredose/dbms/chapter-05/minimal-canonical-cover-of-functional-dependencies" },
+        { num: "5.6", title: "Equivalence of Functional Dependency Sets", url: "/coredose/dbms/chapter-05/equivalence-of-functional-dependency-sets" },
+      ],
+    },
+    {
+      num: "06",
+      title: "Database Normalization (1NF-5NF)",
+      icon: "🛡️",
+      color: "rose",
+      description: "Update anomalies, 1NF to BCNF decompositions, lossless join tests, and dependency preservation.",
+      topics: [
+        { num: "6.1", title: "Database Anomalies: Insertion, Deletion, and Update Anomalies", url: "/coredose/dbms/chapter-06/database-anomalies-insertion-deletion-and-update" },
+        { num: "6.2", title: "First Normal Form (1NF) & Second Normal Form (2NF)", url: "/coredose/dbms/chapter-06/first-normal-form-1nf-and-second-normal-form-2nf" },
+        { num: "6.3", title: "Third Normal Form (3NF) vs Boyce-Codd Normal Form (BCNF)", url: "/coredose/dbms/chapter-06/third-normal-form-3nf-vs-bcnf" },
+        { num: "6.4", title: "Lossless Join Decomposition Testing", url: "/coredose/dbms/chapter-06/lossless-join-decomposition-testing" },
+        { num: "6.5", title: "Dependency Preserving Decomposition", url: "/coredose/dbms/chapter-06/dependency-preserving-decomposition" },
+        { num: "6.6", title: "Multi-Valued Dependencies (4NF) & Join Dependencies (5NF)", url: "/coredose/dbms/chapter-06/multivalued-dependencies-4nf-and-join-dependencies-5nf" },
+      ],
+    },
+    {
+      num: "07",
+      title: "Transaction Management & ACID",
+      icon: "🔄",
+      color: "purple",
+      description: "Transaction states, ACID guarantees, serial vs non-serial schedules, and conflict equivalence.",
+      topics: [
+        { num: "7.1", title: "What is a Transaction? Transaction State Life Cycle", url: "/coredose/dbms/chapter-07/what-is-a-transaction-and-lifecycle-states" },
+        { num: "7.2", title: "ACID Properties Deep Dive with Banking Examples", url: "/coredose/dbms/chapter-07/acid-properties-deep-dive" },
+        { num: "7.3", title: "Schedules: Serial vs Non-Serial Schedules", url: "/coredose/dbms/chapter-07/schedules-serial-vs-non-serial" },
+        { num: "7.4", title: "Read-Write Conflicts and Conflict Equivalence", url: "/coredose/dbms/chapter-07/read-write-conflicts-and-conflict-equivalence" },
+      ],
+    },
+    {
+      num: "08",
+      title: "Concurrency Control & Serializability",
+      icon: "🚦",
+      color: "blue",
+      description: "Precedence graph testing, view serializability, 2PL protocols, deadlock handling, and timestamps.",
+      topics: [
+        { num: "8.1", title: "Conflict Serializability & Precedence (Serialization) Graph Testing", url: "/coredose/dbms/chapter-08/conflict-serializability-and-precedence-graphs" },
+        { num: "8.2", title: "View Serializability & Blind Writes", url: "/coredose/dbms/chapter-08/view-serializability-and-blind-writes" },
+        { num: "8.3", title: "Recoverability: Recoverable, Cascadeless (ACA), and Strict Schedules", url: "/coredose/dbms/chapter-08/recoverability-cascadeless-and-strict-schedules" },
+        { num: "8.4", title: "Two-Phase Locking (2PL): Basic 2PL, Strict 2PL, and Rigorous 2PL", url: "/coredose/dbms/chapter-08/two-phase-locking-protocol-2pl" },
+        { num: "8.5", title: "Deadlock Handling: Wait-Die vs Wound-Wait Protocols", url: "/coredose/dbms/chapter-08/deadlock-handling-wait-die-vs-wound-wait" },
+        { num: "8.6", title: "Timestamp-Based Ordering Protocol & Thomas Write Rule", url: "/coredose/dbms/chapter-08/timestamp-ordering-and-thomas-write-rule" },
+      ],
+    },
+    {
+      num: "09",
+      title: "Indexing & File Organization",
+      icon: "🌳",
+      color: "emerald",
+      description: "Heap/hash files, primary vs secondary indices, B-Tree fanout, and B+ Tree range queries.",
+      topics: [
+        { num: "9.1", title: "File Organizations: Heap, Sorted, and Hash Files", url: "/coredose/dbms/chapter-09/file-organizations-heap-sorted-hash" },
+        { num: "9.2", title: "Indexing Concepts: Ordered Indices (Dense vs Sparse)", url: "/coredose/dbms/chapter-09/ordered-indices-dense-vs-sparse" },
+        { num: "9.3", title: "Primary Index, Clustered Index, and Secondary Index", url: "/coredose/dbms/chapter-09/primary-clustering-and-secondary-index" },
+        { num: "9.4", title: "B-Trees: Structure, Node Capacity, and Searching", url: "/coredose/dbms/chapter-09/b-trees-structure-and-node-capacity" },
+        { num: "9.5", title: "B+ Trees: Why Database Engines Use B+ Trees Over B-Trees", url: "/coredose/dbms/chapter-09/b-plus-trees-structure-and-operations" },
+      ],
+    },
+    {
+      num: "10",
+      title: "Advanced Topics & Storage Internals",
+      icon: "⚙️",
+      color: "amber",
+      description: "Extendible & linear dynamic hashing, relational calculus (TRC/DRC), and query execution plans.",
+      topics: [
+        { num: "10.1", title: "Static vs Dynamic Hashing (Extendible & Linear Hashing)", url: "/coredose/dbms/chapter-10/static-vs-dynamic-hashing-extendible-and-linear" },
+        { num: "10.2", title: "Relational Calculus: Tuple Relational Calculus (TRC) & Domain Relational Calculus (DRC)", url: "/coredose/dbms/chapter-10/relational-calculus-trc-and-drc" },
+        { num: "10.3", title: "Query Optimization & Query Execution Plans", url: "/coredose/dbms/chapter-10/query-optimization-and-cost-execution-plans" },
+      ],
+    },
+  ]}
+/>
 
 ---
 
 ## 🚀 Get Started
 
-Ready to master DBMS from the ground up? Start with the first lesson:
+Ready to master DBMS from the ground up? Start with the first topic:
 
-👉 [**Proceed to Module 1.1: What is Data & DBMS?**](/coredose/dbms/chapter-01/introduction-to-dbms-and-database-systems)
+👉 [**Proceed to Topic 1.1: What is Data & DBMS?**](/coredose/dbms/chapter-01/introduction-to-dbms-and-database-systems)

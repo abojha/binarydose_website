@@ -390,12 +390,15 @@ const config = {
           flowchart: {
             curve: "basis",
             nodeSpacing: 45,
-            rankSpacing: 40,
-            padding: 14,
+            rankSpacing: 50,
+            padding: 20,
+            diagramPadding: 24,
+            htmlLabels: true,
+            useMaxWidth: true,
           },
           themeVariables: {
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-            fontSize: "13px",
+            fontSize: "15px",
           },
         },
       },

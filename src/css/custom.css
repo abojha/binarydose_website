@@ -3,6 +3,7 @@
  */
 @import "katex/dist/katex.min.css";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import './diagram-tokens.css';
 
 html {
   scrollbar-gutter: stable;
@@ -921,7 +922,8 @@ body {
 }
 
 .docusaurus-mermaid-container svg {
-  display: inline-block;
+  display: block;
+  margin: 0 auto;
   vertical-align: middle;
   height: auto;
   max-width: 100%;
@@ -934,7 +936,7 @@ body {
     margin: 1.25rem 0;
   }
   .docusaurus-mermaid-container svg {
-    min-width: min(100%, 480px);
+    min-width: 100% !important;
   }
 }
 
@@ -943,11 +945,11 @@ body {
 .docusaurus-mermaid-container .nodeLabel,
 .docusaurus-mermaid-container .label,
 .docusaurus-mermaid-container .cluster-label,
-.docusaurus-mermaid-container .edgeLabel,
 .docusaurus-mermaid-container span {
   font-family: var(--ifm-font-family-base) !important;
-  font-size: 13px !important;
-  line-height: 1.4 !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  line-height: 1.5 !important;
   letter-spacing: -0.01em !important;
 }
 
@@ -1023,12 +1025,6 @@ body {
   stroke: #475569 !important;
 }
 
-:root:not([data-theme='dark']) .docusaurus-mermaid-container .edgeLabel,
-[data-theme='light'] .docusaurus-mermaid-container .edgeLabel {
-  background-color: #ffffff !important;
-  border-radius: 4px !important;
-  padding: 2px 6px !important;
-}
 
 /* Light mode Sequence Diagrams */
 :root:not([data-theme='dark']) .docusaurus-mermaid-container rect.actor,
@@ -1086,11 +1082,29 @@ body {
   stroke: rgba(148, 163, 184, 0.35) !important;
 }
 
+/* Light and Dark mode cluster labels */
+:root:not([data-theme='dark']) .docusaurus-mermaid-container .cluster-label span,
+:root:not([data-theme='dark']) .docusaurus-mermaid-container .cluster-label text,
+[data-theme='light'] .docusaurus-mermaid-container .cluster-label span,
+[data-theme='light'] .docusaurus-mermaid-container .cluster-label text {
+  color: #0f172a !important;
+  fill: #0f172a !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  letter-spacing: -0.01em !important;
+}
+
 [data-theme='dark'] .docusaurus-mermaid-container .cluster-label span,
 [data-theme='dark'] .docusaurus-mermaid-container .cluster-label text {
-  color: #93c5fd !important;
-  fill: #93c5fd !important;
+  color: #38bdf8 !important;
+  fill: #38bdf8 !important;
   font-weight: 700 !important;
+  font-size: 13px !important;
+  letter-spacing: -0.01em !important;
+}
+
+.docusaurus-mermaid-container .cluster-label {
+  transform: none !important;
 }
 
 /* Dark mode edge paths and arrow markers */
@@ -1104,12 +1118,52 @@ body {
   stroke: #94a3b8 !important;
 }
 
-/* Dark mode edge label pills */
-[data-theme='dark'] .docusaurus-mermaid-container .edgeLabel {
+/* Ensure foreignObject never clips text in any browser */
+.docusaurus-mermaid-container foreignObject {
+  overflow: visible !important;
+}
+.docusaurus-mermaid-container foreignObject div {
+  overflow: visible !important;
+}
+
+/* Edge label container (SVG group) must remain transparent */
+.docusaurus-mermaid-container g.edgeLabel {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Edge label text pill */
+.docusaurus-mermaid-container span.edgeLabel,
+.docusaurus-mermaid-container .edgeLabel span,
+.docusaurus-mermaid-container .edgeLabel p {
+  display: inline-block !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
+  white-space: nowrap !important;
+}
+
+/* Light mode edge labels */
+:root:not([data-theme='dark']) .docusaurus-mermaid-container span.edgeLabel,
+:root:not([data-theme='dark']) .docusaurus-mermaid-container .edgeLabel span,
+[data-theme='light'] .docusaurus-mermaid-container span.edgeLabel,
+[data-theme='light'] .docusaurus-mermaid-container .edgeLabel span {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Dark mode edge labels */
+[data-theme='dark'] .docusaurus-mermaid-container span.edgeLabel,
+[data-theme='dark'] .docusaurus-mermaid-container .edgeLabel span {
   background-color: #1e293b !important;
-  border-radius: 4px !important;
-  padding: 2px 6px !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45) !important;
 }
 
 /* Dark mode Sequence Diagrams (Actors & Notes) */
@@ -1133,40 +1187,71 @@ body {
   color: #fef08a !important;
 }
 
-/* Custom Semantic Node Classes (compatible with both light & dark) */
+/* Custom Semantic Node Classes (compatible with both light & dark, supporting kebab-case and camelCase) */
 .docusaurus-mermaid-container .node.node-blue rect,
+.docusaurus-mermaid-container .node.nodeBlue rect,
 .docusaurus-mermaid-container .node.node-blue polygon,
-.docusaurus-mermaid-container .node.node-blue path {
+.docusaurus-mermaid-container .node.nodeBlue polygon,
+.docusaurus-mermaid-container .node.node-blue path,
+.docusaurus-mermaid-container .node.nodeBlue path {
   fill: rgba(37, 99, 235, 0.18) !important;
   stroke: #3b82f6 !important;
+  stroke-width: 1.75px !important;
+}
+
+.docusaurus-mermaid-container .node.node-cyan rect,
+.docusaurus-mermaid-container .node.nodeCyan rect,
+.docusaurus-mermaid-container .node.node-cyan polygon,
+.docusaurus-mermaid-container .node.nodeCyan polygon,
+.docusaurus-mermaid-container .node.node-cyan path,
+.docusaurus-mermaid-container .node.nodeCyan path {
+  fill: rgba(6, 182, 212, 0.18) !important;
+  stroke: #06b6d4 !important;
+  stroke-width: 1.75px !important;
 }
 
 .docusaurus-mermaid-container .node.node-green rect,
+.docusaurus-mermaid-container .node.nodeGreen rect,
 .docusaurus-mermaid-container .node.node-green polygon,
-.docusaurus-mermaid-container .node.node-green path {
+.docusaurus-mermaid-container .node.nodeGreen polygon,
+.docusaurus-mermaid-container .node.node-green path,
+.docusaurus-mermaid-container .node.nodeGreen path {
   fill: rgba(16, 185, 129, 0.18) !important;
   stroke: #10b981 !important;
+  stroke-width: 1.75px !important;
 }
 
 .docusaurus-mermaid-container .node.node-amber rect,
+.docusaurus-mermaid-container .node.nodeAmber rect,
 .docusaurus-mermaid-container .node.node-amber polygon,
-.docusaurus-mermaid-container .node.node-amber path {
+.docusaurus-mermaid-container .node.nodeAmber polygon,
+.docusaurus-mermaid-container .node.node-amber path,
+.docusaurus-mermaid-container .node.nodeAmber path {
   fill: rgba(245, 158, 11, 0.18) !important;
   stroke: #f59e0b !important;
+  stroke-width: 1.75px !important;
 }
 
 .docusaurus-mermaid-container .node.node-purple rect,
+.docusaurus-mermaid-container .node.nodePurple rect,
 .docusaurus-mermaid-container .node.node-purple polygon,
-.docusaurus-mermaid-container .node.node-purple path {
+.docusaurus-mermaid-container .node.nodePurple polygon,
+.docusaurus-mermaid-container .node.node-purple path,
+.docusaurus-mermaid-container .node.nodePurple path {
   fill: rgba(168, 85, 247, 0.18) !important;
   stroke: #a855f7 !important;
+  stroke-width: 1.75px !important;
 }
 
 .docusaurus-mermaid-container .node.node-red rect,
+.docusaurus-mermaid-container .node.nodeRed rect,
 .docusaurus-mermaid-container .node.node-red polygon,
-.docusaurus-mermaid-container .node.node-red path {
+.docusaurus-mermaid-container .node.nodeRed polygon,
+.docusaurus-mermaid-container .node.node-red path,
+.docusaurus-mermaid-container .node.nodeRed path {
   fill: rgba(239, 68, 68, 0.18) !important;
   stroke: #ef4444 !important;
+  stroke-width: 1.75px !important;
 }
 
 /* ===================================================

@@ -7,6 +7,17 @@ import TopicTracker from '@site/src/components/TopicTracker';
 import CoreDoseTOC from '@site/src/components/CoreDose/CoreDoseTOC';
 import CoreDoseLessonHeader from '@site/src/components/CoreDose/CoreDoseLessonHeader';
 import CoreDoseNav from '@site/src/components/CoreDose/CoreDoseNav';
+import {
+  ArchitectureStack,
+  SubsystemGrid,
+  ConceptComparison,
+  DualModeDiagram,
+  ProcessFlow,
+  FlowPipeline,
+  ExecutionBlueprint,
+  CurriculumRoadmap,
+  CourseCurriculum,
+} from '@site/src/components/Diagrams';
 
 function ResponsiveTable(props) {
   return (
@@ -27,4 +38,14 @@ export default {
   CoreDoseTOC,
   CoreDoseLessonHeader,
   CoreDoseNav,
+  // Educational Diagram System (Globally available in all MDX files)
+  ArchitectureStack,
+  SubsystemGrid,
+  ConceptComparison,
+  DualModeDiagram,
+  ProcessFlow,
+  FlowPipeline,
+  ExecutionBlueprint,
+  CurriculumRoadmap,
+  CourseCurriculum,
 };

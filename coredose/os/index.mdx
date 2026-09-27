@@ -1,0 +1,182 @@
+---
+title: "Operating Systems (OS) Masterclass"
+description: "Complete module-wise tutorial and lecture notes for Operating Systems covering OS Architecture, Process Management, CPU Scheduling, Synchronization, Deadlocks, Memory Management, Virtual Memory, and File Systems."
+hide_table_of_contents: true
+---
+
+import CoreDoseLessonHeader from "@site/src/components/CoreDose/CoreDoseLessonHeader";
+import CoreDoseTOC from "@site/src/components/CoreDose/CoreDoseTOC";
+
+# Operating Systems (OS)
+
+<CoreDoseLessonHeader
+  module="Course Masterclass"
+  topic="Syllabus & Roadmap"
+  readTime="5 min read"
+  relevance="Semester Exams (All Universities) • GATE CSE • SDE Technical Interviews"
+/>
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🎯 Welcome to Operating Systems CoreDose
+
+Welcome to the **Operating Systems Complete Masterclass** on Binary Dose. 
+This curriculum is built directly from authentic, battle-tested handwritten notes and standard computer science principles, engineered to deliver **100% conceptual clarity** from bare-metal hardware up to high-concurrency production kernels.
+
+Whether you are preparing for:
+* 🎓 **University Semester Exams** (RGPV, AKTU, VTU, SPPU, Anna Univ, etc.)
+* 🚀 **GATE Computer Science (CSE)** (High-Weightage Core Subject)
+* 💼 **SDE Technical Interviews** (Concurrency, Threading, Memory & Linux Internals)
+
+---
+
+## 📚 Complete Course Curriculum
+
+<CourseCurriculum
+  subtitle="Comprehensive topic-by-topic curriculum covering all foundational principles, standard university syllabi, and production kernel internals"
+  modules={[
+    {
+      num: "01",
+      title: "Introduction & OS Architecture",
+      icon: "🏗️",
+      color: "purple",
+      description: "Core abstraction layers, dual-mode operations, kernel types, and system call traps.",
+      topics: [
+        { num: "1.1", title: "What is an OS? Definition, Abstract View & Core Goals", url: "/coredose/os/chapter-01/what-is-an-operating-system-abstract-view-and-goals" },
+        { num: "1.2", title: "Evolution of Operating Systems: Batch, Spooling & Multiprogramming", url: "/coredose/os/chapter-01/evolution-of-operating-systems-batch-spooling-multiprogramming" },
+        { num: "1.3", title: "Multitasking, Multiprocessing (SMP vs AMP) & Real-Time OS (RTOS)", url: "/coredose/os/chapter-01/multitasking-multiprocessing-smp-amp-and-rtos" },
+        { num: "1.4", title: "OS Kernel Architectures, Dual-Mode Operations & System Calls", url: "/coredose/os/chapter-01/os-kernel-architectures-dual-mode-operations-and-system-calls" },
+      ],
+    },
+    {
+      num: "02",
+      title: "Process Management & PCB",
+      icon: "⚡",
+      color: "blue",
+      description: "Process memory layout, state transitions, context switching, and schedulers.",
+      topics: [
+        { num: "2.1", title: "Program vs Process: Active Entities & Address Space Layout" },
+        { num: "2.2", title: "Process States & 5-State / 7-State Transition Models" },
+        { num: "2.3", title: "Process Control Block (PCB) Internals & Context Switching Overhead" },
+        { num: "2.4", title: "Schedulers: Long-Term, Short-Term, Medium-Term Schedulers & Dispatcher" },
+      ],
+    },
+    {
+      num: "03",
+      title: "CPU Scheduling Algorithms",
+      icon: "⏱️",
+      color: "cyan",
+      description: "Turnaround time, waiting time, Gantt charts, preemption, and starvation handling.",
+      topics: [
+        { num: "3.1", title: "Scheduling Criteria: Turnaround Time, Waiting Time, Response Time & Throughput" },
+        { num: "3.2", title: "Non-Preemptive Scheduling: First-Come, First-Served (FCFS) & Convoy Effect" },
+        { num: "3.3", title: "Shortest Job First (SJF) & Shortest Remaining Time First (SRTF)" },
+        { num: "3.4", title: "Priority Scheduling & Starvation (Aging Technique)" },
+        { num: "3.5", title: "Round Robin Scheduling & Time Quantum Trade-offs" },
+        { num: "3.6", title: "Multilevel Queue & Multilevel Feedback Queue Scheduling" },
+      ],
+    },
+    {
+      num: "04",
+      title: "Process Synchronization & Concurrency",
+      icon: "🔒",
+      color: "emerald",
+      description: "Critical section problems, Peterson's algorithm, hardware atomic locks, and semaphores.",
+      topics: [
+        { num: "4.1", title: "Race Conditions & The Critical Section Problem" },
+        { num: "4.2", title: "The 3 Mandatory Criteria: Mutual Exclusion, Progress & Bounded Waiting" },
+        { num: "4.3", title: "Software Solutions: Lock Variable, Strict Alternation & Peterson's Algorithm" },
+        { num: "4.4", title: "Hardware Synchronization: Test-and-Set Lock (TSL) & Swap Instructions" },
+        { num: "4.5", title: "Semaphores: Counting Semaphores, Binary Semaphores & Mutexes" },
+        { num: "4.6", title: "Classical Synchronization Problems: Producer-Consumer & Bounded Buffer" },
+        { num: "4.7", title: "Classical Synchronization Problems: Readers-Writers & Dining Philosophers" },
+      ],
+    },
+    {
+      num: "05",
+      title: "Deadlocks: Detection, Prevention & Avoidance",
+      icon: "🛑",
+      color: "rose",
+      description: "Coffman conditions, Resource Allocation Graphs (RAG), and Banker's algorithm.",
+      topics: [
+        { num: "5.1", title: "Deadlock Characterization: The 4 Necessary Coffman Conditions" },
+        { num: "5.2", title: "Resource Allocation Graphs (RAG) & Cycle Detection" },
+        { num: "5.3", title: "Deadlock Prevention: Eliminating Coffman Conditions" },
+        { num: "5.4", title: "Deadlock Avoidance: Safe States & Banker's Algorithm Step-by-Step" },
+        { num: "5.5", title: "Deadlock Detection & Recovery Strategies" },
+      ],
+    },
+    {
+      num: "06",
+      title: "UNIX System Calls & Fork Mechanics",
+      icon: "🌿",
+      color: "purple",
+      description: "The fork() tree hierarchy, memory copying, zombie/orphan processes, and execve().",
+      topics: [
+        { num: "6.1", title: "The fork() System Call: Duplication, Memory Copy & Return Codes" },
+        { num: "6.2", title: "Calculating Total Processes Created by n Successive fork() Calls" },
+        { num: "6.3", title: "Process Hierarchies: Tree Structures & Parent-Child Relationships" },
+        { num: "6.4", title: "Zombie Processes vs Orphan Processes & wait() Mechanics" },
+        { num: "6.5", title: "The exec() Family of System Calls: Replacing Process Memory" },
+      ],
+    },
+    {
+      num: "07",
+      title: "Main Memory Management",
+      icon: "🧠",
+      color: "blue",
+      description: "Contiguous allocation, paging architecture, TLB access time, and multi-level tables.",
+      topics: [
+        { num: "7.1", title: "Contiguous Memory Allocation: Fixed vs Dynamic Partitioning" },
+        { num: "7.2", title: "Internal vs External Fragmentation" },
+        { num: "7.3", title: "Dynamic Storage Allocation Algorithms: First-Fit, Best-Fit & Worst-Fit" },
+        { num: "7.4", title: "Compaction & Paging Architecture (Pages, Frames & Page Tables)" },
+        { num: "7.5", title: "Address Translation Mechanics: Logical Address to Physical Address" },
+        { num: "7.6", title: "Translation Lookaside Buffer (TLB) & Effective Memory Access Time (EMAT)" },
+        { num: "7.7", title: "Multi-Level Paging, Inverted Page Tables & Segmentation" },
+      ],
+    },
+    {
+      num: "08",
+      title: "Virtual Memory & Page Replacement",
+      icon: "📄",
+      color: "cyan",
+      description: "Demand paging, page fault cycles, FIFO, Belady's anomaly, LRU, and thrashing.",
+      topics: [
+        { num: "8.1", title: "Demand Paging & The Page Fault Handling Cycle" },
+        { num: "8.2", title: "Page Replacement Algorithms: First-In, First-Out (FIFO) & Belady's Anomaly" },
+        { num: "8.3", title: "Optimal Page Replacement (OPT / MIN)" },
+        { num: "8.4", title: "Least Recently Used (LRU) Page Replacement & Stack Algorithms" },
+        { num: "8.5", title: "Frame Allocation Policies & Thrashing (Working Set Model)" },
+      ],
+    },
+    {
+      num: "09",
+      title: "Storage & Disk Scheduling",
+      icon: "💿",
+      color: "amber",
+      description: "Magnetic disk anatomy, seek time calculation, FCFS, SSTF, SCAN, and LOOK.",
+      topics: [
+        { num: "9.1", title: "Magnetic Disk Anatomy: Platters, Tracks, Sectors, Seek Time & Rotational Latency" },
+        { num: "9.2", title: "FCFS & Shortest Seek Time First (SSTF) Disk Scheduling" },
+        { num: "9.3", title: "Elevator Algorithms: SCAN & C-SCAN Disk Scheduling" },
+        { num: "9.4", title: "Optimized Traversal: LOOK & C-LOOK Disk Scheduling" },
+      ],
+    },
+    {
+      num: "10",
+      title: "File Systems & Inodes",
+      icon: "📁",
+      color: "emerald",
+      description: "File attributes, directory structures, contiguous/indexed allocation, and UNIX inodes.",
+      topics: [
+        { num: "10.1", title: "File Attributes, Operations & Access Methods (Sequential vs Direct)" },
+        { num: "10.2", title: "Directory Structures: Single-Level, Two-Level & Tree-Structured Directories" },
+        { num: "10.3", title: "File Allocation Methods: Contiguous, Linked & Indexed Allocation" },
+        { num: "10.4", title: "UNIX File System Internals: Inodes, Direct Blocks & Indirect Pointers" },
+      ],
+    },
+  ]}
+/>
