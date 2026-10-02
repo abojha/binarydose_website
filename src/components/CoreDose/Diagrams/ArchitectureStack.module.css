@@ -91,6 +91,11 @@
   border-color: var(--diagram-amber-border, #fde68a);
 }
 
+.colorRose {
+  background: var(--diagram-rose-bg, #fff1f2);
+  border-color: var(--diagram-rose-border, #fecdd3);
+}
+
 /* Card Header */
 .cardHeader {
   display: flex;
@@ -121,12 +126,14 @@
 .colorBlue .badge { background: var(--diagram-blue-accent, #2563eb); color: #ffffff; }
 .colorEmerald .badge { background: var(--diagram-emerald-accent, #059669); color: #ffffff; }
 .colorAmber .badge { background: var(--diagram-amber-accent, #d97706); color: #ffffff; }
+.colorRose .badge { background: var(--diagram-rose-accent, #e11d48); color: #ffffff; }
 
 [data-theme='dark'] .colorPurple .badge { background: var(--diagram-purple-accent, #a855f7); color: #0b0f19; }
 [data-theme='dark'] .colorCyan .badge { background: var(--diagram-cyan-accent, #22d3ee); color: #0b0f19; }
 [data-theme='dark'] .colorBlue .badge { background: var(--diagram-blue-accent, #60a5fa); color: #0b0f19; }
 [data-theme='dark'] .colorEmerald .badge { background: var(--diagram-emerald-accent, #34d399); color: #0b0f19; }
 [data-theme='dark'] .colorAmber .badge { background: var(--diagram-amber-accent, #fbbf24); color: #0b0f19; }
+[data-theme='dark'] .colorRose .badge { background: var(--diagram-rose-accent, #fb7185); color: #0b0f19; }
 
 .cardTitle {
   font-size: 1.05rem;

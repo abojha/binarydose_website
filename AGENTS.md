@@ -286,37 +286,121 @@ Used as the master entry-point dashboard for course landing pages (e.g. `coredos
   />
   ```
 
+#### 10. `<FlowGraph />` (Universal Generic Architecture & Multi-Domain Flow Visualizer)
+The flagship, 100% generic diagram component for Binary Dose across ANY subject (OS, DBMS, Computer Networks, System Design, Data Structures).
+* **Features**:
+  - **Universal Geometry**: Supports horizontal, vertical, and multi-tier grid layouts with percentage positioning (`x: "20%"`, `y: "40%"`) or automatic lane/column distribution.
+  - **Collision-Free Reciprocal Edge Geometry**: Opposing edges ($A \to B$ and $B \to A$) automatically curve in opposite directions with labels placed at opposing apexes, guaranteeing zero label or card collisions.
+  - **Bidirectional Links (`direction: "bi"`)**: Native dual-arrowhead support (`<────────>`) with clean label formatting (`◀ prev • next ▶`) for Doubly-Linked Lists and symmetric interfaces.
+  - **Interactive Step Player & Stepper**: `[◀ Prev]` and `[Next ▶]` controls allow students to step through complex workflows chronologically with glowing active highlights.
+  - **Dual-Mode Mobile Layout**: On mobile ($\le 768\text{px}$), defaults to a thumb-friendly vertical **📱 Steps** card sequence with an instant toggle to the full **🗺️ Map**.
+  - **HTML `<foreignObject>` Cards**: High-DPI text cards with icons, badges, titles, and sublabels that seamlessly adapt to dark/light themes.
+
+#### 11. `<StateTransitionDiagram />` (Interactive State & Transition Matrix Explorer)
+Used for process lifecycle states, multiprogramming transitions, and virtual memory swapping models (e.g. 5-State Multiprogramming Model, 7-State Swapping Model with Blocked-Suspended and Ready-Suspended).
+* **Features**:
+  - Interactive tabs switching between standard 5-State and 7-State Swapping models.
+  - Interactive state card inspector: Clicking any state highlights its exact RAM/Disk residency, CPU dispatch status, governing scheduler (LTS, STS, MTS), and permissible forward transitions.
+  - Comprehensive Transition Matrix table detailing exact transition triggers, system calls, and interrupt handlers.
+
+#### 12. `<ProcessMemoryMap />` (Strict 4-Section Virtual Address Space Map)
+Used exclusively for process virtual memory layout, stack vs. heap expansion, and memory management architectures.
+* **Features**:
+  - **Memory Address Axis**: Visual vertical rail from `0xFFFFFFFF` (High Memory) down to `0x00000000` (Low Memory / Base).
+  - **Strict Rule of 4 Sections**: Displays the **4 official sections** (`Stack`, `Heap`, `Data`, `Text`).
+  - **Unallocated Growth Buffer (Not a Fake 5th Section)**: The space between Stack and Heap is visually rendered as a slim unallocated buffer with opposing directional indicators (`Stack grows Downward ⬇` vs `⬆ Heap grows Upward`).
+  - **Zero Vague Connectors**: No meaningless "Interacts with" labels.
+* **Usage**:
+  ```jsx
+  <ProcessMemoryMap
+    title="Process Virtual Address Space Architecture"
+    subtitle="Standard 4-Section Memory Organization from High Memory (0xFFFFFFFF) to Low Memory (0x00000000)"
+  />
+  ```
+
+#### 13. `<FlowDiagram />` (Interactive Architecture & Pipeline State Diagram)
+Used across Operating Systems (and other CoreDose subjects) for process lifecycle flows, memory-to-CPU dispatch pipelines, PCB organization, and scheduler interaction architectures.
+* **Features**:
+  - **Dynamic Subgraph Domains**: Supports grouping nodes into visual domains (e.g. `Secondary Storage`, `Main Memory (RAM)`, `CPU Core`) with configurable header placement (`position: "top"` or `position: "bottom"`). Bottom domain headers automatically receive safety headroom (`54px+`) to prevent collision with cards.
+  - **Dual-Lane & Multi-Port Routing**: Supports fractional port offsets (`fromPortOffset`, `toPortOffset` from `0.0` to `1.0`) so opposing edges (e.g. `STS Dispatch` vs `Timer Preempt`) travel along clean, non-colliding parallel lanes into different sections of a node card.
+  - **Native HD Pan on Mobile**: Defaults strictly to a 1:1 unscaled native resolution view on phones with silky-smooth horizontal swiping. Eliminates font shrinkage, unreadable text, and tiny tap targets.
+  - **Strict Zero-Vertical-Scrollbar Rule**: Built with `overflow-y: hidden !important` and `touch-action: pan-x` so vertical finger swipes pass directly to page scrolling without trapping the user's thumb.
+  - **Interactive Node & Edge Inspector**: Hovering or tapping any card or numbered transition arrow opens the dedicated bottom inspector console displaying operational mechanics, system calls, and register state transitions.
+* **Usage**:
+  ```jsx
+  <FlowDiagram
+    title="The Standard 5-State Process Lifecycle Model"
+    subtitle="End-to-end execution flow, timer preemption loop, and asynchronous I/O wait queues"
+    domains={[
+      { id: "storage", title: "Secondary Storage", color: "purple", icon: "💾", position: "bottom" },
+      { id: "ram_cpu", title: "Main Memory & CPU Core", color: "emerald", icon: "⚡", position: "bottom" }
+    ]}
+    nodes={[
+      { id: "new", domain: "storage", col: 0, row: 0, title: "New State", sublabel: "Process Created", badge: "Job Pool", icon: "💾", color: "purple" }
+    ]}
+    edges={[
+      { from: "new", to: "ready", fromPort: "right", toPort: "left", step: "1", label: "Admit (LTS)" }
+    ]}
+  />
+  ```
+
+#### 14. `<GanttChart />` (Interactive CPU Scheduling Gantt Timeline)
+Used across CPU Scheduling (and real-time systems) for visualizing process execution timelines, context-switching points, and idle intervals.
+* **Features**:
+  - Proportional duration time slots with automatic or custom color assignment (`blue`, `emerald`, `amber`, `purple`, `rose`, `cyan`, `gray`).
+  - Native idle interval support (`isIdle: true`) rendering accessible hatched diagonal stripes.
+  - Boundary time ticks cleanly aligned to slot start/end points.
+  - Optional summary metric pills strip (Average TAT, Average WT, Throughput, CPU Utilization).
+  - Mobile-responsive horizontal track with zero text clipping.
+* **Usage**:
+  ```jsx
+  <GanttChart
+    title="CPU Execution Gantt Chart"
+    subtitle="Timeline showing non-preemptive execution from t = 0 to t = 12 ms"
+    slots={[
+      { process: "P1", start: 0, end: 4, color: "blue", sublabel: "Burst: 4ms" },
+      { process: "P2", start: 4, end: 7, color: "emerald", sublabel: "Burst: 3ms" },
+      { process: "P3", start: 7, end: 12, color: "purple", sublabel: "Burst: 5ms" },
+    ]}
+    metrics={[
+      { label: "Avg TAT", value: "6.67 ms" },
+      { label: "Avg WT", value: "2.67 ms" },
+      { label: "Throughput", value: "0.25 jobs/ms" },
+      { label: "CPU Utilization", value: "100%" },
+    ]}
+  />
+  ```
+
+#### 15. `<DiskSchedulingChart />` (Interactive Disk Actuator Arm Trajectory Visualizer)
+Used across Storage & Disk Scheduling for visualizing head movement trajectories across disk cylinders (FCFS, SSTF, SCAN, C-SCAN, LOOK, C-LOOK).
+* **Features**:
+  - Horizontal cylinder ruler with auto-sorted tick marks, boundary limits, and vertical guideline columns.
+  - Step-by-step vector trajectory with directional arrowheads, seek distance delta badges (`Δ 45`, `Δ 85`), and boundary reversal markers.
+  - Express Return support (`isJump: true`) rendering dashed return flights with separate return distance badges.
+  - Summary metric pills (Total Head Movement, Average Seek Distance, Requests Serviced, Traversal Direction).
+* **Usage**:
+  ```jsx
+  <DiskSchedulingChart
+    title="FCFS Disk Head Trajectory"
+    subtitle="Erratic head oscillations across disk cylinders"
+    color="blue"
+    minCylinder={0}
+    maxCylinder={199}
+    sequence={[53, 98, 183, 37, 122, 14, 124, 65, 67]}
+  />
+  ```
+
 ---
 
-### Protocol for Creating New Diagram Component Styles
-If at any point you encounter a complex architectural concept, algorithm, or data structure whose requirements **cannot be cleanly or beautifully expressed** by the existing 9 components:
-
-> **YOU ARE FULLY EMPOWERED AND REQUIRED TO CREATE A NEW DIAGRAM COMPONENT STYLE.**
-> Do NOT compromise student learning or fall back to messy raw Mermaid diagrams. Build the exact visual tool the student needs.
-
-#### Mandatory 5-Step Process for New Diagram Components:
-1. **Create Component & CSS Module**:
-   - Location: `src/components/CoreDose/Diagrams/<NewComponentName>.jsx`
-   - Styles: `src/components/CoreDose/Diagrams/<NewComponentName>.module.css`
-2. **Hook to Central Design Tokens**:
-   - MUST use CSS variables from `src/css/diagram-tokens.css` for dimensions (`--diagram-card-radius`, `--diagram-chip-radius`, `--diagram-pill-radius`, `--diagram-transition`) and colors (`--diagram-<color>-bg`, `--diagram-<color>-border`, `--diagram-<color>-accent`, `--diagram-<color>-text`).
-   - If a new global token is needed (e.g. `--diagram-max-w-tree: 1040px;`), declare it inside `src/css/diagram-tokens.css`.
-3. **Export Universally**:
-   - Export from `src/components/CoreDose/Diagrams/index.js`
-   - Export from `src/components/Diagrams/index.js`
-4. **Auto-Register Globally in MDX**:
-   - Register the new component in `src/theme/MDXComponents.js` so it can be used across any markdown/MDX file immediately without import statements.
-5. **Document in `AGENTS.md`**:
-   - Add the new component to this list in `AGENTS.md` with its purpose, props schema, and an example JSX usage snippet so all future agents and contributors know when and how to use it.
-
----
-
-### "Less Text, Maximum Visual Punch" Design Rules
-Every diagram component (existing or newly created) MUST adhere to these rules:
-1. **Sub-3-Second Mental Model**: The student must understand the core concept just by scanning the figure.
-2. **Micro-Labels Only**: No walls of text or paragraphs inside diagram cards. Use punchy titles (2–5 words), 1-line micro-labels, and keyword chips.
-3. **100% Responsive**: Must look beautiful at 100% zoom on mobile (360px–375px) without clipping and cap cleanly on ultra-wide desktop monitors without blowing up.
-4. **Theme Synchronized**: Never hardcode colors that break in Dark Mode. All text and background colors must seamlessly adapt to Docusaurus `[data-theme='dark']`.
+### "Self-Explanatory & Zero Confusion" Pedagogical Diagram Rules
+Every diagram component (existing or newly created) MUST adhere strictly to these rules:
+1. **Never Use Vague Connector Labels (No "Interacts with")**: Every edge or connector arrow MUST state the concrete action, system call, hardware interrupt, or transition trigger (e.g. `Admit (LTS)`, `execve()`, `Timer Preempt`, `I/O Complete`). Never default to or write generic phrases like "Interacts with". If items are side-by-side or non-interactive peers, use `<SubsystemGrid />` or set `showConnectors={false}`.
+2. **Sub-3-Second Mental Model**: The student must understand the core concept just by scanning the figure.
+3. **Numbered Step Badges on Flows**: Any diagram showing a sequence, lifecycle, or multi-step execution MUST number its transitions (`1`, `2`, `3`...). Readers must never be left guessing where the flow begins.
+4. **Strict 4 Sections for Process Address Space**: A process has strictly 4 sections: `Text`, `Data`, `Heap`, and `Stack`. Never render the unallocated growth gap as an active section card.
+5. **No Looping GIFs (Vector Code Exclusively)**: Never use raw raster GIF animations. GIFs cause loop fatigue, destroy LCP page performance, clash with dark/light themes, and cannot be paused or inspected. Pure SVG/React vector components provide crisp rendering at 0.01s load times.
+6. **100% Mobile Readability**: Diagrams must default to a clean vertical card sequence on mobile ($\le 768\text{px}$) with 14px+ typography, zero text truncation, and zero horizontal scroll traps.
+7. **Theme Synchronized**: Never hardcode colors that break in Dark Mode. All text, borders, and fills must seamlessly adapt to Docusaurus `[data-theme='dark']`.
 
 ## 6. CoreDose Course & Lesson Architectural Standards
 All course lessons in `binary_dose/coredose/` (for OS, DBMS, CN, System Design, OOPs, COA, Compiler) MUST follow this locked standard:
@@ -335,8 +419,21 @@ All course lessons in `binary_dose/coredose/` (for OS, DBMS, CN, System Design, 
   **Answer:** ...
   ```
 - **Semantic H1**: Every `.mdx` lesson MUST have an explicit Markdown `# Title` heading placed directly above `<CoreDoseLessonHeader />`.
-- **Bullet Lists**: Use bullet lists (`*` or `-`) ONLY for true multi-item lists. Standalone definitions or notes MUST NEVER be prefixed with a bullet dot.
+- **Never Leak Internal Meta-Phrases**: Never use phrases like "handwritten notes", "from my notes", or "according to handwritten notes" in student-facing titles, admonitions, or body copy. The platform must read as an authoritative, timeless, professional computer science publication.
 - **Navigation**: Always terminate with `<CoreDoseNav prev={...} next={...} courseUrl="/coredose/<subject>" />` using exact clean permalinks.
+- **Navigation Robustness**: `<CoreDoseNav />` supports both `prev` and `previous`, and `next`. It must ALWAYS link backward to the exact chronological prior topic (e.g. 2.4 links to 2.3, 2.3 to 2.2, 2.2 to 2.1) and never fall back to the Master Index when a valid prior lesson exists.
+- **Operating Systems Course Progress**:
+  - **Module 01: Introduction & OS Architecture** (Topics 1.1, 1.2, 1.3, 1.4) — `COMPLETED`
+  - **Module 02: Process Management & PCB** (Topics 2.1, 2.2, 2.3, 2.4) — `COMPLETED`
+  - **Module 03: CPU Scheduling Algorithms** (Topics 3.1, 3.2, 3.3, 3.4, 3.5, 3.6) — `COMPLETED`
+  - **Module 04: Process Synchronization & Concurrency** (Topics 4.1 to 4.7) — `COMPLETED`
+  - **Module 05: Deadlocks: Detection, Prevention & Avoidance** (Topics 5.1 to 5.5) — `COMPLETED`
+  - **Module 06: UNIX System Calls & Fork Mechanics** (Topics 6.1 to 6.5) — `COMPLETED`
+  - **Module 07: Main Memory Management** (Topics 7.1 to 7.7) — `COMPLETED`
+  - **Module 08: Virtual Memory & Page Replacement** (Topics 8.1 to 8.5) — `COMPLETED`
+  - **Module 09: Storage & Disk Scheduling** (Topics 9.1 to 9.4) — `COMPLETED`
+  - **Module 10: File Systems & Inodes** (Topics 10.1 to 10.4) — `COMPLETED`
+  - **Operating Systems Full Curriculum (Modules 01 - 10)**: `100% COMPLETED` 🎉
 
 ---
 

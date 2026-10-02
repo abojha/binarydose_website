@@ -17,7 +17,14 @@ import {
   ExecutionBlueprint,
   CurriculumRoadmap,
   CourseCurriculum,
+  StateTransitionDiagram,
+  FlowGraph,
+  FlowDiagram,
+  ProcessMemoryMap,
+  GanttChart,
+  DiskSchedulingChart,
 } from '@site/src/components/Diagrams';
+
 
 function ResponsiveTable(props) {
   return (
@@ -48,4 +55,11 @@ export default {
   ExecutionBlueprint,
   CurriculumRoadmap,
   CourseCurriculum,
+  StateTransitionDiagram,
+  FlowGraph,
+  FlowDiagram,
+  ProcessMemoryMap,
+  GanttChart,
+  DiskSchedulingChart,
 };
+

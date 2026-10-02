@@ -221,3 +221,25 @@
 [data-theme='dark'] .purpleTheme .domainBlock { border-left-color: #c084fc; }
 [data-theme='dark'] .purpleTheme .domainLabel { color: #c084fc; }
 [data-theme='dark'] .purpleTheme .bulletDot { color: #c084fc; }
+
+/* Cyan Styling */
+.cyanTheme .badge { background: #0891b2; color: #ffffff; }
+.cyanTheme .domainBlock { border-left-color: #0891b2; }
+.cyanTheme .domainLabel { color: #0891b2; }
+.cyanTheme .bulletDot { color: #0891b2; }
+[data-theme='dark'] .cyanTheme { border-color: rgba(6, 182, 212, 0.4); }
+[data-theme='dark'] .cyanTheme .badge { background: #06b6d4; color: #0b0f19; }
+[data-theme='dark'] .cyanTheme .domainBlock { border-left-color: #22d3ee; }
+[data-theme='dark'] .cyanTheme .domainLabel { color: #22d3ee; }
+[data-theme='dark'] .cyanTheme .bulletDot { color: #22d3ee; }
+
+/* Rose Styling */
+.roseTheme .badge { background: #e11d48; color: #ffffff; }
+.roseTheme .domainBlock { border-left-color: #e11d48; }
+.roseTheme .domainLabel { color: #e11d48; }
+.roseTheme .bulletDot { color: #e11d48; }
+[data-theme='dark'] .roseTheme { border-color: rgba(244, 63, 94, 0.4); }
+[data-theme='dark'] .roseTheme .badge { background: #f43f5e; color: #0b0f19; }
+[data-theme='dark'] .roseTheme .domainBlock { border-left-color: #fb7185; }
+[data-theme='dark'] .roseTheme .domainLabel { color: #fb7185; }
+[data-theme='dark'] .roseTheme .bulletDot { color: #fb7185; }

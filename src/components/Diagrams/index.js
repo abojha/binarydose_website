@@ -13,4 +13,11 @@ export {
   ExecutionBlueprint,
   CurriculumRoadmap,
   CourseCurriculum,
+  StateTransitionDiagram,
+  FlowGraph,
+  FlowDiagram,
+  ProcessMemoryMap,
+  GanttChart,
+  DiskSchedulingChart,
 } from '@site/src/components/CoreDose/Diagrams';
+

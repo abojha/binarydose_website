@@ -1,0 +1,419 @@
+---
+title: "7.4 Compaction & Paging Architecture (Pages, Frames & Page Tables)"
+description: "Master the transition from compaction to non-contiguous paging: physical frames, logical pages, page tables, PTBR, status bits, and architectural tradeoffs."
+hide_table_of_contents: true
+---
+
+# 7.4 Compaction & Paging Architecture (Pages, Frames & Page Tables)
+
+<CoreDoseLessonHeader
+  module="Module 07: Main Memory Management"
+  topic="Topic 7.4"
+  courseUrl="/coredose/os"
+  readTime="20 min read"
+  relevance="Computer Science Foundations • Systems Engineering • Memory Systems"
+/>
+
+## 💡 Core Intuition
+
+### 🍳 The Everyday Analogy: The Loose-Leaf Binder vs The Bound Journal
+
+Imagine writing a comprehensive textbook across months of work:
+
+<FlowPipeline
+  title="The Textbook Binding Evolution Pipeline"
+  subtitle="From continuous bound pages to arbitrary loose-leaf distribution"
+  steps={[
+    {
+      badge: "Rigid Book",
+      title: "The Bound Leather Journal",
+      icon: "📖",
+      color: "blue",
+      sublabel: "Contiguous Allocation",
+      description: "You must reserve Chapter 3 as 50 consecutive printed pages.",
+      details: "Inflexibility: If Chapter 3 expands by 2 pages, you must tear out and rewrite every subsequent chapter to shift them back (Compaction).",
+      connectorLabel: "Painful Alternative",
+    },
+    {
+      badge: "Manual Shift",
+      title: "Tedious Page Shuffling",
+      icon: "📑",
+      color: "amber",
+      sublabel: "Compaction Overhead",
+      description: "Physically re-copying every chapter to unite all blank sheets at the back.",
+      details: "High Labor Cost: Freezes all writing for hours while pages are moved back and forth. Wastes immense effort.",
+      connectorLabel: "The Elegant Breakthrough",
+    },
+    {
+      badge: "Indexed Sheets",
+      title: "Loose-Leaf Ring Binder & Index",
+      icon: "🗂️",
+      color: "emerald",
+      sublabel: "Paging & Page Table",
+      description: "Every sheet of paper is an identical standardized size. Pages can be placed in any ring slot.",
+      details: "Effortless Indexing: An Index Card at the front lists: Page 1 is in Slot 42, Page 2 is in Slot 8, Page 3 is in Slot 119. Reading remains contiguous, while physical placement is completely free!",
+    },
+  ]}
+/>
+
+* **Compaction**: A desperate attempt to salvage contiguous allocation by physically shifting data in RAM, burning massive CPU cycles.
+* **Paging**: The foundational breakthrough of modern operating systems. By separating the **logical view** of contiguous memory from the **physical reality** of scattered placement, external fragmentation is eliminated.
+
+---
+
+### 💻 Bridging to Computer Science
+
+Contiguous memory allocation imposes an artificial and costly restriction: an entire program must occupy consecutive physical memory addresses. When free RAM becomes fragmented, the OS is faced with a dilemma:
+
+<ConceptComparison
+  title="Resolving Fragmentation: Compaction vs Non-Contiguous Paging"
+  subtitle="Brute-force memory consolidation vs hardware-assisted address virtualization"
+  left={{
+    badge: "Contiguous Compromise",
+    title: "Memory Compaction",
+    icon: "🚜",
+    color: "amber",
+    description: "Suspends all processes and physically shuffles memory to consolidate external fragments.",
+    bulletPoints: [
+      "Freezes CPU pipelines during execution-time relocation",
+      "Consumes gigabytes of system memory bus bandwidth",
+      "Requires hardware base and limit registers for dynamic binding",
+      "Temporary fix: memory quickly fragments again as processes churn",
+    ],
+  }}
+  right={{
+    badge: "Non-Contiguous Breakthrough",
+    title: "Paging Architecture",
+    icon: "📄",
+    color: "emerald",
+    description: "Decouples logical addresses into pages and maps them to scattered physical frames.",
+    bulletPoints: [
+      "Any logical page can occupy any free physical DRAM frame",
+      "Zero byte copying or bus traffic required to allocate memory",
+      "Destroys external fragmentation permanently",
+      "Hardware MMU translates addresses dynamically using page tables",
+    ],
+  }}
+  comparisonPoints={[
+    {
+      metric: "Physical Placement",
+      left: "Strictly contiguous in RAM",
+      right: "Non-contiguous scattered frames",
+    },
+    {
+      metric: "Relocation Overhead",
+      left: "Massive bus copy latency",
+      right: "Zero copy overhead",
+    },
+    {
+      metric: "External Fragmentation",
+      left: "Temporarily mitigated",
+      right: "Permanently eliminated",
+    },
+  ]}
+/>
+
+---
+
+## 📚 Core Deep-Dive & Concepts
+
+### 1. The Anatomy of Paging: Pages vs Frames
+
+Paging breaks physical and logical memory into standardized, uniform blocks:
+
+<ConceptComparison
+  title="Pages vs Frames Architectural Anatomy"
+  subtitle="Logical units in virtual space vs physical units in DRAM hardware"
+  left={{
+    badge: "Logical Dimension",
+    title: "Pages (Virtual Space)",
+    icon: "📄",
+    color: "blue",
+    description: "Fixed-size contiguous blocks into which a process's logical address space is partitioned.",
+    bulletPoints: [
+      "Generated by the compiler, linker, and CPU program counter",
+      "Resides conceptually in secondary memory / virtual storage",
+      "Number of pages = Process Size / Page Size",
+      "Power of two in size (typically 4 KB = 4096 bytes)"
+    ]
+  }}
+  right={{
+    badge: "Physical Dimension",
+    title: "Frames (Physical DRAM)",
+    icon: "🖼️",
+    color: "purple",
+    description: "Fixed-size contiguous blocks into which physical main memory (RAM) is partitioned.",
+    bulletPoints: [
+      "Direct hardware divisions of physical DRAM chips",
+      "Frame size is strictly identical to Page size: Frame Size == Page Size",
+      "Number of frames = Physical Memory Size / Frame Size",
+      "Tracked by the kernel via a global Free Frame List (Bitmap)"
+    ]
+  }}
+  comparisonPoints={[
+    {
+      metric: "Memory Realm",
+      left: "Logical / Virtual Memory (Secondary Storage)",
+      right: "Physical Main Memory (RAM Hardware)"
+    },
+    {
+      metric: "Relative Quantity",
+      left: "Significantly larger (Number of Pages >> Frames)",
+      right: "Bounded by physical DRAM installed in motherboard"
+    },
+    {
+      metric: "Size Equality",
+      left: "Must be an exact power of 2 ($2^d$ bytes)",
+      right: "Hardware-matched: $\\text{Frame Size} \\equiv \\text{Page Size}$"
+    }
+  ]}
+/>
+
+---
+
+### 2. The Paging Architecture & Mapping Engine
+
+When the CPU executes instructions, it generates a **Logical Address** split into two components:
+1. **Page Number ($p$)**: Serves as an index into the process's page table.
+2. **Page Offset ($d$)**: The displacement within the page, identifying the specific byte.
+
+<ExecutionBlueprint
+  title="Hardware MMU Paging Address Translation Blueprint"
+  subtitle="Decomposing logical addresses into page index and concatenating physical frame offsets"
+  actors={[
+    { name: "CPU Execution Core", color: "#9333ea" },
+    { name: "Hardware MMU", color: "#2563eb" },
+    { name: "Main Memory (RAM Page Table)", color: "#d97706" },
+    { name: "Physical DRAM Bus", color: "#059669" },
+  ]}
+  steps={[
+    {
+      step: 1,
+      from: "CPU Execution Core",
+      to: "Hardware MMU",
+      action: "Issue Logical Address (p, d)",
+      detail: "Instruction generates target address; high-order bits represent Page Number (p) and low-order bits represent Page Offset (d).",
+    },
+    {
+      step: 2,
+      from: "Hardware MMU",
+      to: "Main Memory (RAM Page Table)",
+      action: "Index Page Table via PTBR + (p × Entry Size)",
+      detail: "Hardware computes physical address of Page Table Entry (PTE) p in RAM using the base register.",
+    },
+    {
+      step: 3,
+      from: "Main Memory (RAM Page Table)",
+      to: "Hardware MMU",
+      action: "Return Physical Frame Number (f)",
+      detail: "PTE p yields physical frame number f along with validity, protection, and modification bits.",
+    },
+    {
+      step: 4,
+      from: "Hardware MMU",
+      to: "Physical DRAM Bus",
+      action: "Synthesize Physical Address (f, d) & Access DRAM",
+      detail: "Hardware concatenates Frame Number (f) with original Page Offset (d) and accesses target physical DRAM word.",
+    },
+  ]}
+/>
+
+#### Step-by-Step Translation Mechanics
+1. **Address Decomposition**: The CPU issues a logical address. The hardware splits the bitstring into high-order bits ($p$) and low-order bits ($d$).
+2. **Page Table Indexing**: The hardware uses the **Page Table Base Register (PTBR)** to locate the process's page table in RAM. It computes $\text{PTBR} + (p \times \text{Entry Size})$ to read entry $p$.
+3. **Frame Resolution**: From page table entry $p$, the MMU extracts the physical **Frame Number ($f$)**.
+4. **Physical Address Synthesis**: The frame number $f$ replaces $p$, while the offset $d$ is concatenated directly without modification:
+   $$\text{Physical Address} = (f \times \text{Frame Size}) + d$$
+5. **DRAM Access**: The memory controller reads/writes the physical DRAM cell at the computed address.
+
+---
+
+### 3. The Page Table: Operating System Data Structure
+
+A fundamental principle: **The Page Table is a data structure, NOT a piece of hardware.**
+* **Location**: Page tables are maintained in **Main Memory (RAM)** by the OS kernel.
+* **Per-Process Basis**: Every process running in the system possesses its own dedicated page table.
+* **Kernel Management**: During a context switch, the operating system reloads the **Page Table Base Register (PTBR)** with the physical address of the newly scheduled process's page table.
+
+#### Anatomy of a Page Table Entry (PTE)
+A Page Table Entry does not merely store the Frame Number; it contains vital hardware status bits:
+
+| Bitfield Component | Bit Width | Purpose & Operational Hardware Semantic |
+| :--- | :---: | :--- |
+| **Valid / Invalid ($V$)** | $1\text{ bit}$ | `1` = Resident in physical DRAM; `0` = Not in RAM (raises Page Fault trap). |
+| **Dirty / Modified ($M$)** | $1\text{ bit}$ | Hardware sets to `1` on write. If dirty, kernel must flush to disk on eviction. |
+| **Referenced ($R$)** | $1\text{ bit}$ | Hardware sets to `1` on read/write. Evaluated by Clock/LRU eviction heuristics. |
+| **Protection Bits** | $3\text{ bits}$ | Enforces Read, Write, and Execute (`NX / DEP`) access permissions. |
+| **Cache Disable / PWT** | $1\text{ bit}$ | Bypasses CPU L1/L2 caches for memory-mapped hardware I/O registers. |
+| **Frame Number ($f$)** | $20\text{--}52\text{ bits}$ | Base physical address of the DRAM frame backing this virtual page. |
+
+1. **Valid/Invalid Bit ($V$)**:
+   - `1` (Valid): The page is legally part of the process's address space and currently resides in physical RAM.
+   - `0` (Invalid): The page is either unmapped or currently swapped out on disk. Referencing an invalid page triggers a **Page Fault** trap.
+2. **Dirty / Modified Bit ($M$)**:
+   - Set to `1` by hardware whenever the CPU writes to any byte in that frame.
+   - When the page is evicted, if $M = 1$, the kernel must write its contents back to disk; if $M = 0$, the frame can be silently overwritten without disk I/O.
+3. **Referenced / Access Bit ($R$)**:
+   - Set to `1` by hardware whenever the page is read or written. Used by page replacement algorithms (such as Second-Chance and Clock) to approximate LRU.
+4. **Protection Bits**:
+   - Encodes access permissions: `Read-Only`, `Read-Write`, or `Execute-Disable (NX / DEP)`. Prevents malicious execution of injected code on the stack.
+
+---
+
+### 4. Trade-Offs of Pure Paging
+
+<ConceptComparison
+  title="Architectural Benefits vs Costs of Paging"
+  subtitle="Eliminating external fragmentation at the price of latency and metadata"
+  left={{
+    badge: "Advantages",
+    title: "Strengths of Paging",
+    icon: "✅",
+    color: "emerald",
+    description: "Breakthrough benefits that revolutionized multiprogrammed computing.",
+    bulletPoints: [
+      "Zero External Fragmentation: Any page can occupy any free frame anywhere in RAM",
+      "Dynamic Allocation: Pages are allocated on demand without requiring contiguous ranges",
+      "Clean Shared Memory: Multiple processes can share common libraries (libc) by pointing page table entries to the same physical frames",
+      "Fine-Grained Protection: Individual pages can be marked Read-Only or Non-Executable"
+    ]
+  }}
+  right={{
+    badge: "Disadvantages",
+    title: "Inherent Bottlenecks",
+    icon: "⚠️",
+    color: "rose",
+    description: "Critical performance penalties introduced by pure hardware paging.",
+    bulletPoints: [
+      "Doubled Memory Access Time: Every memory reference requires TWO DRAM accesses (one for Page Table, one for actual data)",
+      "Metadata Memory Footprint: Page tables for multi-gigabyte processes consume substantial RAM",
+      "Internal Fragmentation: The final page of a process is rarely fully filled (averages Page Size / 2 wasted)",
+      "Hardware Translation Complexity: Requires MMU hardware address splitters and adder circuits"
+    ]
+  }}
+  comparisonPoints={[
+    {
+      metric: "External Fragmentation",
+      left: "Completely eliminated ($0$ bytes)",
+      right: "Replaced by minimal internal fragmentation on the last page"
+    },
+    {
+      metric: "Access Speed Penalty",
+      left: "Resolved in modern architectures by adding on-chip TLB cache",
+      right: "Raw paging without TLB slows memory access by $100\\%$ ($2\\times$ latency)"
+    },
+    {
+      metric: "Memory Consumption",
+      left: "Eliminates need for contiguous heap expansion",
+      right: "Consumes RAM to store millions of Page Table Entries (PTEs)"
+    }
+  ]}
+/>
+
+---
+
+## 🏭 In The Real World: Production Case Study
+
+### Linux Page Allocation: Zero-Page Optimization & Shared Libraries
+
+Modern operating systems leverage paging to achieve massive performance gains when launching programs:
+
+<ConceptComparison
+  title="Shared Physical Frames in Virtual Memory"
+  subtitle="Multiple process virtual page tables referencing the exact same physical DRAM frame"
+  left={{
+    badge: "Process A",
+    title: "Web Browser (PID 1024)",
+    icon: "🌐",
+    color: "blue",
+    description: "Private virtual address space mapped via process page table.",
+    bulletPoints: [
+      "Virtual Page 10 mapped to Physical Frame 500",
+      "Tagged Read-Only (RX) for code execution",
+      "Private stack and heap isolated in independent frames",
+    ],
+  }}
+  right={{
+    badge: "Process B",
+    title: "Terminal Emulator (PID 2048)",
+    icon: "💻",
+    color: "emerald",
+    description: "Completely separate address space sharing identical libraries.",
+    bulletPoints: [
+      "Virtual Page 4 mapped to Physical Frame 500",
+      "Tagged Read-Only (RX) for code execution",
+      "Zero memory duplication across processes",
+    ],
+  }}
+  comparisonPoints={[
+    {
+      metric: "Shared Target",
+      left: "Physical DRAM Frame 500 (libc.so code)",
+      right: "Physical DRAM Frame 500 (libc.so code)",
+    },
+    {
+      metric: "Write Handling",
+      left: "Copy-on-Write (COW) on modification",
+      right: "Copy-on-Write (COW) on modification",
+    },
+  ]}
+/>
+
+1. **Shared Read-Only Code (`libc.so`)**:
+   - If 500 processes run on a server, each linking the standard C runtime (`libc.so`), the OS does not load 500 copies into RAM.
+   - Paging maps the identical physical frame (Frame 500) into all 500 process page tables, saving gigabytes of physical DRAM.
+2. **The Zero-Page Optimization**:
+   - When a process allocates a large uninitialized memory buffer (`calloc` or anonymous `mmap`), the kernel points all newly created virtual pages to a single global read-only physical frame called the **Zero Page**.
+   - Physical RAM is not consumed until the process writes to a specific page, at which point the MMU triggers a Copy-on-Write (COW) fault to allocate a fresh private frame.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** Why is the page size in paging systems invariably chosen as a power of two ($2^k$ bytes)?
+**Answer:**
+1. **Zero-Latency Hardware Splitting**: If the page size is a power of two ($2^k$ bytes), the lower $k$ bits of the CPU-generated logical address automatically represent the page offset ($d$), and the remaining higher bits represent the page number ($p$).
+2. **No Hardware Division or Modulo**: If the page size were not a power of two (e.g. $3000$ bytes), the MMU hardware would have to perform integer division ($\lfloor \text{Address} / 3000 \rfloor$) to compute the page number and modulo ($\text{Address} \pmod{3000}$) to compute the offset. Division and modulo circuits are slow, bulky, and consume significant power.
+3. With powers of two, address splitting is performed purely by **bit-masking and wire routing at the hardware clock cycle level**, taking effectively $0\text{ ns}$.
+
+---
+
+**Question 2:** If a process of size $72\text{ KB}$ is loaded into a paging system with page size $4\text{ KB}$, calculate:
+1. The total number of pages allocated to the process.
+2. The internal fragmentation generated.
+3. What if the process size were $73\text{ KB}$?
+
+**Answer:**
+1. **For $72\text{ KB}$ Process**:
+   - Number of pages $= \lceil 72\text{ KB} / 4\text{ KB} \rceil = 18$ pages.
+   - Total allocated memory $= 18 \times 4\text{ KB} = 72\text{ KB}$.
+   - **Internal Fragmentation** $= 72\text{ KB} - 72\text{ KB} = \mathbf{0\text{ bytes}}$ (Exact multiple).
+2. **For $73\text{ KB}$ Process**:
+   - Number of pages $= \lceil 73\text{ KB} / 4\text{ KB} \rceil = \lceil 18.25 \rceil = \mathbf{19\text{ pages}}$.
+   - Total allocated memory $= 19 \times 4\text{ KB} = 76\text{ KB}$.
+   - **Internal Fragmentation** $= 76\text{ KB} - 73\text{ KB} = \mathbf{3\text{ KB}} = 3072\text{ bytes}$.
+
+:::
+
+:::warning Common Interview Traps
+
+* **The "Page Table is Inside the CPU" Fallacy**: The page table is **NOT** a register inside the CPU! Page tables can contain millions of entries and reside in **Main Memory (DRAM)**. The CPU contains only the **Page Table Base Register (PTBR)** pointing to the page table's starting address in RAM.
+* **Confusing Page Offset with Frame Offset**: In paging, **Page Offset is identically equal to Frame Offset** ($d$). Because page size equals frame size, the relative byte offset within the page is identical to the relative byte offset within the physical frame.
+* **The "Two Memory Accesses" Trap**: Never forget that pure paging doubles memory latency: for every single instruction or variable reference, the CPU must read the page table in RAM first, and then read the actual instruction/data in RAM second.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "7.3 Dynamic Storage Allocation Algorithms",
+    url: "/coredose/os/chapter-07/dynamic-storage-allocation-algorithms-first-fit-best-fit-worst-fit"
+  }}
+  next={{
+    title: "7.5 Address Translation Mechanics",
+    url: "/coredose/os/chapter-07/address-translation-mechanics-logical-to-physical"
+  }}
+  courseUrl="/coredose/os"
+/>

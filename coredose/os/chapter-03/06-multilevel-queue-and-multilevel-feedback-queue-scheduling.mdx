@@ -1,0 +1,407 @@
+---
+title: "3.6 Multilevel Queue & Multilevel Feedback Queue"
+description: "Master Multilevel Queue (MLQ), Multilevel Feedback Queue (MLFQ), HRRN aging mechanics, scheduler permutation theorems, and mode switch invariants."
+hide_table_of_contents: true
+---
+
+# 3.6 Multilevel Queue & Multilevel Feedback Queue Scheduling
+
+<CoreDoseLessonHeader
+  module="Module 03: CPU Scheduling Algorithms"
+  topic="Topic 3.6"
+  courseUrl="/coredose/os"
+  readTime="15 min read"
+  relevance="Computer Science Foundations • Systems Engineering • Technical Interviews"
+/>
+
+## 💡 Core Intuition
+
+### 🍳 The Everyday Analogy: The Multi-Lane Bank Service Counter
+
+Imagine a metropolitan bank branch managing hundreds of diverse customer requests using **a team of specialized teller windows (the CPU)**:
+
+<FlowPipeline
+  title="The Multi-Tier Bank Queue Analogy Pipeline"
+  subtitle="Mapping multi-lane bank customer routing to Multilevel Queue CPU architecture"
+  steps={[
+    {
+      badge: "Tier 1: High Priority",
+      title: "VIP & Institutional Clients",
+      icon: "🏦",
+      color: "purple",
+      sublabel: "System & Kernel Tasks",
+      description: "Urgent wire transfers served immediately with highest priority.",
+      details: "Top Queue Priority: Dedicated window that preempts all other customer tiers. Never waits behind personal retail transactions.",
+      connectorLabel: "Lower Priority Tier",
+    },
+    {
+      badge: "Tier 2: Interactive",
+      title: "Retail Express Counters",
+      icon: "💳",
+      color: "blue",
+      sublabel: "Interactive UI Tasks",
+      description: "Quick cash withdrawals served via Round Robin token turns.",
+      details: "Time-Shared Service: Customers receive fast 2-minute turns to keep wait times low and lines moving smoothly.",
+      connectorLabel: "Lowest Priority Tier",
+    },
+    {
+      badge: "Tier 3: Batch",
+      title: "Bulk Commercial Audits",
+      icon: "📦",
+      color: "amber",
+      sublabel: "Background Batch Jobs",
+      description: "Heavy paperwork processed via FCFS only when other counters are idle.",
+      details: "Background Processing: Handled strictly when no higher-priority customers are waiting in Tier 1 or Tier 2.",
+    },
+  ]}
+/>
+
+* **Static Separation (Multilevel Queue)**: If a customer is classified as a bulk merchant, they are permanently locked into Tier 3. If VIPs arrive all day, Tier 3 customers **starve**.
+* **Dynamic Feedback (Multilevel Feedback Queue)**: If a retail customer's transaction turns out to be massive and complex, the bank demotes them to the bulk counter. Conversely, if a bulk merchant waits for three hours, the bank promotes them to the express window (**Aging**).
+
+---
+
+### 💻 Bridging to Computer Science
+
+In modern operating systems, workloads are not uniform. Interactive desktop processes require sub-millisecond response times, while background compiler jobs need sustained CPU throughput without frequent context-switching overhead.
+* **Multilevel Queue (MLQ)** partitions the Ready Queue into multiple distinct queues, permanently assigning each process to a specific queue based on its type or priority.
+* **Multilevel Feedback Queue (MLFQ)** eliminates the rigidity of MLQ by allowing processes to **migrate between queues** based on their observed runtime CPU burst behavior.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 📚 Core Deep-Dive & Concepts
+
+### 1. Multilevel Queue (MLQ) Scheduling Architecture
+
+> **Definition**: Multilevel Queue scheduling partitions the ready queue into several separate queues for situations in which processes are easily classified into different groups. Processes are permanently assigned to one queue, generally based on some property of the process (such as memory size, priority, or process type).
+
+<ArchitectureStack
+  title="Multilevel Queue (MLQ) Architectural Hierarchy"
+  subtitle="Fixed-priority partition of the Ready Queue across distinct operational domains"
+  layers={[
+    {
+      badge: "Priority 1 (Highest)",
+      title: "System Processes Queue",
+      icon: "⚙️",
+      color: "purple",
+      description: "Core kernel threads, interrupt bottom-halves, and memory balancers.",
+      items: ["Algorithm: Strict Preemptive Priority", "Preempts all lower queues instantly", "Zero latency tolerance"],
+      connectorText: "Evaluated First",
+    },
+    {
+      badge: "Priority 2 (Medium)",
+      title: "Interactive Processes Queue",
+      icon: "🖥️",
+      color: "blue",
+      description: "User-facing GUIs, shell terminals, and multimedia event handlers.",
+      items: ["Algorithm: Round Robin (Small Time Quantum)", "Guarantees rapid response time", "Runs when System Queue is empty"],
+      connectorText: "Evaluated Second",
+    },
+    {
+      badge: "Priority 3 (Lowest)",
+      title: "Batch Processes Queue",
+      icon: "📦",
+      color: "amber",
+      description: "Background compilation, scientific simulations, and database indexing.",
+      items: ["Algorithm: First-Come, First-Served (FCFS)", "Maximizes throughput with zero context thrashing", "Runs only when Queues 1 and 2 are empty"],
+    },
+  ]}
+/>
+
+#### Scheduling Among Queues:
+1. **Fixed-Priority Preemptive Scheduling**: The scheduler executes from a lower queue only if all higher queues are completely empty. If an interactive process arrives while a batch job is running, the batch job is immediately preempted.
+2. **Time-Slicing Among Queues**: To prevent total starvation, each queue receives a defined portion of total CPU time (e.g., $80\%$ of CPU cycles allocated to foreground interactive queues, and $20\%$ allocated to background batch queues).
+
+#### The Fatal Flaw of Pure MLQ:
+Because processes are **permanently assigned** to a single queue upon creation, MLQ suffers from **inflexibility**. If the system experiences a continuous stream of interactive events, batch processes suffer from **indefinite starvation**.
+
+---
+
+### 2. Multilevel Feedback Queue (MLFQ) Scheduling Architecture
+
+> **Definition**: Multilevel Feedback Queue scheduling allows processes to move between queues. The core idea is to separate processes dynamically according to the characteristics of their CPU bursts. If a process uses too much CPU time, it is demoted to a lower-priority queue. If a process waits too long in a lower-priority queue, it is promoted to a higher-priority queue via Aging.
+
+<FlowPipeline
+  title="The Standard 3-Tier MLFQ Feedback Engine"
+  subtitle="Tracing dynamic quantum exhaustion demotion and timer-based aging promotion"
+  steps={[
+    {
+      badge: "Tier 0 (Highest)",
+      title: "Queue 0: RR (q = 8 ms)",
+      icon: "⚡",
+      color: "blue",
+      sublabel: "New Arrivals Entry",
+      description: "New tasks enter here. Interactive tasks finish within 8ms and exit.",
+      details: "Immediate Response: Optimizes response time for I/O-bound jobs. If the burst exceeds 8ms, task is demoted to Queue 1.",
+      connectorLabel: "Quantum Exhausted (Demote)",
+    },
+    {
+      badge: "Tier 1 (Medium)",
+      title: "Queue 1: RR (q = 16 ms)",
+      icon: "🔄",
+      color: "purple",
+      sublabel: "Intermediate Tasks",
+      description: "Tasks requiring longer compute receive a larger 16ms slice.",
+      details: "Balanced Execution: If the process still cannot complete within 16ms, it is demoted to Queue 2.",
+      connectorLabel: "Quantum Exhausted (Demote)",
+    },
+    {
+      badge: "Tier 2 (Lowest)",
+      title: "Queue 2: FCFS",
+      icon: "📦",
+      color: "amber",
+      sublabel: "Long Compute Batch",
+      description: "CPU-bound tasks run to completion without further time-slicing.",
+      details: "High Throughput: Runs only when Q0 and Q1 are empty. Aging periodically elevates starving Q2 tasks back to Q0.",
+    },
+  ]}
+/>
+
+#### The 5 Defining Parameters of MLFQ:
+A Multilevel Feedback Queue scheduler is formally specified by five configuration parameters:
+1. **The number of queues**.
+2. **The scheduling algorithm for each queue** (e.g., RR with varying quanta, FCFS).
+3. **The method used to determine when to upgrade (promote) a process** to a higher-priority queue (Aging policy).
+4. **The method used to determine when to demote a process** to a lower-priority queue (CPU-bound penalty).
+5. **The method used to determine which queue a process enters** when it requires CPU service (default entrance tier).
+
+---
+
+### 3. Specialized Scheduling Paradigms: LJF, LRTF & HRRN
+
+Operating system theory evaluates two additional historical algorithms that illustrate scheduling extremes:
+
+#### 1. Longest Job First (LJF) & Longest Remaining Time First (LRTF)
+* **LJF (Non-Preemptive)**: The process having the **longest burst time** gets the CPU first.
+* **LRTF (Preemptive LJF)**: The running process is preempted whenever an available process has a strictly greater remaining burst time.
+* **Characteristics**: Induces pathological Convoy Effects, exhibits the absolute worst average waiting time, and completely starves short interactive tasks.
+
+#### 2. Highest Response Ratio Next (HRRN)
+> **Definition**: In Highest Response Ratio Next (HRRN), scheduling decisions are made non-preemptively based on the calculated **Response Ratio ($RR$)**:
+
+$$\mathbf{\text{Response Ratio } (RR) = \frac{W + S}{S} = 1 + \frac{W}{S}}$$
+
+Where:
+* $\mathbf{W}$: Waiting time spent by the process in the Ready Queue.
+* $\mathbf{S}$: Burst time (Service time) required by the process.
+
+<ConceptComparison
+  title="Why HRRN Perfectly Balances Short and Long Jobs"
+  subtitle="Analyzing how the mathematical response ratio prevents starvation"
+  concepts={[
+    {
+      badge: "Favors Short Jobs",
+      title: "Short Burst Behavior (Small S)",
+      icon: "🚀",
+      color: "emerald",
+      domain: "Ratio Dominated by Small Denominator",
+      points: [
+        "Because S is very small, the fraction (W / S) increases rapidly even for modest wait times.",
+        "Short jobs naturally achieve high response ratios quickly.",
+        "Provides fast turnaround times similar to Shortest Job First (SJF).",
+      ],
+      quote: "HRRN favors shorter jobs to keep average waiting times low.",
+    },
+    {
+      badge: "Protects Long Jobs",
+      title: "Long Burst Protection (Large W)",
+      icon: "🛡️",
+      color: "blue",
+      domain: "Ratio Rescued by Cumulative Wait Time",
+      points: [
+        "Even when S is large, as the process waits longer in the queue, W continually increases.",
+        "The numerator (W + S) grows steadily with time elapsed.",
+        "Eventually, its response ratio surpasses new short arrivals, guaranteeing CPU allocation.",
+      ],
+      quote: "HRRN limits the waiting time of longer jobs, completely preventing starvation.",
+    },
+  ]}
+/>
+
+---
+
+### 4. Fundamental Operating System Theorems of CPU Scheduling
+
+Formal systems architecture establishes four critical scheduling theorems governing execution bounds and kernel boundaries:
+
+<SubsystemGrid
+  title="The 4 Core Scheduling System Theorems"
+  subtitle="Foundational computer science principles governing dispatch boundaries and permutations"
+  items={[
+    {
+      title: "1. Mode Switch vs. Context Switch",
+      icon: "🔄",
+      tag: "Boundary Invariance",
+      color: "blue",
+      points: [
+        "A transition from User Mode (Ring 3) to Kernel Mode (Ring 0) does NOT inherently cause a context switch.",
+        "Non-blocking syscalls (e.g., getpid()) execute in kernel mode within the context of the SAME process.",
+        "A context switch occurs ONLY if the scheduler explicitly reassigns the CPU to a different PCB.",
+      ],
+      syscalls: ["getpid()", "time()", "trap handler"],
+    },
+    {
+      title: "2. The Blocking Syscall Invariance",
+      icon: "🛑",
+      tag: "Mandatory Switch",
+      color: "rose",
+      points: [
+        "A context switch will ALWAYS occur when a process invokes a blocking system call.",
+        "Holds universally true irrespective of whether the scheduler is preemptive or non-preemptive.",
+        "Because the running process enters WAITING state, the CPU must be reassigned.",
+      ],
+      syscalls: ["read()", "write()", "waitpid()"],
+    },
+    {
+      title: "3. Non-Preemptive Execution Invariance",
+      icon: "🔒",
+      tag: "Cooperative Protection",
+      color: "emerald",
+      points: [
+        "For non-preemptive schedulers, a process that is ready and willing to run will NEVER be context-switched out.",
+        "The process surrenders the CPU strictly through termination or voluntary I/O yielding.",
+        "External hardware timer interrupts cannot evict the task.",
+      ],
+      syscalls: ["exit()", "yield()", "voluntary release"],
+    },
+    {
+      title: "4. Schedule Permutation Theorem",
+      icon: "🔢",
+      tag: "Combinatorial Space",
+      color: "purple",
+      points: [
+        "Given n processes to be scheduled on a single CPU core:",
+        "If scheduling is Preemptive: There are INFINITE possible different valid schedules.",
+        "If scheduling is Non-Preemptive: There are strictly n! (n factorial) possible schedules.",
+      ],
+      syscalls: ["Preemptive: ∞", "Non-Preemptive: n!"],
+    },
+  ]}
+/>
+
+#### Proof of the Schedule Permutation Theorem:
+1. **Non-Preemptive Case**: Each process must run as a single contiguous, uninterrupted execution block. Any complete non-preemptive schedule is simply an ordering (permutation) of the $n$ distinct processes. The number of permutations of $n$ distinct items is:
+   $$\mathbf{\text{Total Non-Preemptive Schedules} = n! = n \times (n - 1) \times \dots \times 1}$$
+2. **Preemptive Case**: A process can be preempted at any infinitesimal time instant $t \in \mathbb{R}^+$. Because time can be partitioned into arbitrarily tiny slices across any number of interleavings, the number of distinct execution sequences is **unbounded (infinite)**.
+
+---
+
+## 📐 Architecture / Visual Blueprint
+
+### MLQ vs. MLFQ Structural Paradigm Comparison
+
+<ConceptComparison
+  title="Multilevel Queue (MLQ) vs. Multilevel Feedback Queue (MLFQ)"
+  subtitle="Static partitioning versus dynamic adaptive workload balancing"
+  concepts={[
+    {
+      badge: "Static Model",
+      title: "Multilevel Queue (MLQ)",
+      icon: "🧱",
+      color: "blue",
+      domain: "Rigid Classification",
+      points: [
+        "Queue Assignment: Static and permanent upon process creation.",
+        "Scheduler Complexity: Low; simple independent FIFO/RR pointers per queue.",
+        "Process Migration: Strictly impossible; zero queue migration.",
+        "Vulnerability: Prone to total starvation of lower queues under bursty interactive loads.",
+      ],
+      quote: "Processes are permanently locked into their designated queue.",
+    },
+    {
+      badge: "Dynamic Model",
+      title: "Multilevel Feedback Queue (MLFQ)",
+      icon: "🌊",
+      color: "emerald",
+      domain: "Adaptive Workload Optimization",
+      points: [
+        "Queue Assignment: Dynamic; adapts to actual observed CPU burst behavior.",
+        "Scheduler Complexity: High; tracks per-process cumulative CPU usage and queue dwell times.",
+        "Process Migration: Native; demotes compute-bound tasks and promotes starving tasks.",
+        "Fairness: Completely eliminates starvation via systematic Aging.",
+      ],
+      quote: "Processes migrate dynamically between queues based on CPU burst history.",
+    },
+  ]}
+/>
+
+---
+
+## 🏭 In The Real World: Production Case Study
+
+### Windows NT / 11 Priority Level Architecture
+
+Modern desktop Windows implements a 32-level Priority Multilevel Feedback Queue:
+
+<ArchitectureStack
+  title="Windows 32-Level Thread Priority Architecture"
+  subtitle="Partitioned priority tiers governing real-time kernel tasks and dynamic desktop threads"
+  layers={[
+    {
+      badge: "Priority 16 - 31",
+      title: "Real-Time Priority Tier",
+      icon: "⚡",
+      color: "purple",
+      description: "Fixed-priority threads that execute with zero dynamic priority adjustments.",
+      items: ["Zero aging or priority decay", "Reserved for audio drivers and critical kernel tasks", "Preempts all variable-tier threads"],
+      connectorText: "Strict Priority Preemption",
+    },
+    {
+      badge: "Priority 0 - 15",
+      title: "Dynamic Variable Priority Tier",
+      icon: "🖥️",
+      color: "blue",
+      description: "User applications and GUI threads that receive dynamic runtime priority boosts.",
+      items: ["Foreground Window Focus Boost (+1 to +2)", "I/O Completion Boost (Keyboard / Mouse / Disk)", "Decays gradually back to thread base priority"],
+    },
+  ]}
+/>
+
+#### Production Mechanics:
+1. **Real-Time Tier (Levels 16–31)**: Fixed-priority preemptive threads (e.g., audio engines, kernel sync) that never fluctuate in priority.
+2. **Variable Tier (Levels 0–15)**: Desktop user applications (browsers, IDEs, games):
+   * **Foreground Window Priority Boost**: When the user clicks or focuses a window, the Windows scheduler immediately grants its GUI thread a **dynamic priority boost of $+1$ to $+2$ levels**, ensuring instant responsiveness.
+   * **I/O Completion Boost**: When a thread finishes waiting on a keyboard or mouse packet, it receives a temporary priority boost to handle the user event immediately before decaying back to its base priority.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** Given $n$ independent processes ready to execute on a single CPU core, prove how many distinct schedules can be formed under non-preemptive scheduling versus preemptive scheduling.
+**Answer:**
+1. **Non-Preemptive**: In non-preemptive scheduling, each process must run to completion in a single uninterrupted burst. A valid schedule corresponds strictly to a permutation of the $n$ distinct processes. Hence, there are exactly $\mathbf{n!}$ possible schedules.
+2. **Preemptive**: In preemptive scheduling, processes may be interrupted an arbitrary number of times at any fractional time boundary. Because time intervals can be divided infinitely, there are **infinitely many** possible schedules.
+
+**Question 2:** Does a system transition from User Mode to Kernel Mode always trigger a process context switch? Explain with technical precision.
+**Answer:**
+**No.** A mode switch (User Mode $\to$ Kernel Mode) occurs whenever an interrupt, exception, or system call trap occurs. 
+If the system call is non-blocking (such as `getpid()` or `gettimeofday()`), the kernel executes the routine inside the address space and context of the *currently running process* and returns immediately via an `IRET` or `sysret` instruction. A context switch occurs **only** if the process makes a blocking system call (e.g., `read()`) or if a timer interrupt triggers the Short-Term Scheduler to dispatch a *different* process PCB.
+
+:::
+
+:::warning Common Interview Traps
+
+* **The "HRRN is Preemptive" Trap**: Highest Response Ratio Next is strictly **non-preemptive**. The response ratio is evaluated among all waiting processes only when the CPU becomes free upon process completion or blocking. Evaluating response ratios continuously at every microsecond tick would incur catastrophic mathematical computation overhead.
+* **Assuming MLFQ Always Eliminates Starvation Without Aging**: An MLFQ system that implements demotion for long jobs *but lacks an aging mechanism* will still starve lower-priority batch queues if high-priority short jobs arrive continuously. **Aging is the mandatory prerequisite** for starvation elimination in MLFQ.
+* **The "All Blocking Syscalls Trigger Context Switches" Rule**: Always remember: A blocking system call *always* triggers a context switch, regardless of whether the system's Short-Term Scheduler is preemptive or non-preemptive.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "3.5 Round Robin Scheduling & Time Quantum",
+    url: "/coredose/os/chapter-03/round-robin-scheduling-and-time-quantum-trade-offs"
+  }}
+  next={{
+    title: "4.1 Race Conditions & Critical Section Problem",
+    url: "/coredose/os/chapter-04/race-conditions-and-the-critical-section-problem"
+  }}
+  courseUrl="/coredose/os"
+/>

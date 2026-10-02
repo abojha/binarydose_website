@@ -1,0 +1,568 @@
+---
+title: "3.1 CPU Scheduling Criteria: Turnaround, Waiting & Response Time"
+description: "Master CPU scheduling criteria, preemptive vs non-preemptive paradigms, Arrival Time, Burst Time, Completion Time, Gantt chart mechanics, and optimization trade-offs."
+hide_table_of_contents: true
+---
+
+# 3.1 CPU Scheduling Criteria: Turnaround Time, Waiting Time, Response Time & Throughput
+
+<CoreDoseLessonHeader
+  module="Module 03: CPU Scheduling Algorithms"
+  topic="Topic 3.1"
+  courseUrl="/coredose/os"
+  readTime="12 min read"
+  relevance="Computer Science Foundations • Systems Engineering • Technical Interviews"
+/>
+
+## 💡 Core Intuition
+
+### 🍳 The Everyday Analogy: The Single-Doctor Outpatient Clinic
+
+Imagine a busy outpatient medical clinic managed by **one single specialist doctor (the CPU)** and an administrative receptionist:
+
+<FlowPipeline
+  title="The Outpatient Clinic Analogy Pipeline"
+  subtitle="Mapping real-world clinic workflows to CPU scheduling architecture"
+  steps={[
+    {
+      badge: "Memory Buffer",
+      title: "Clinic Waiting Room",
+      icon: "🛋️",
+      color: "blue",
+      sublabel: "Kernel Ready Queue",
+      description: "Patients (processes) queue up upon arrival awaiting checkup.",
+      details: "Main Memory Buffer: Holds PCBs of all processes currently in the READY state. Ordered by arrival timestamps or priority trees (e.g., Red-Black Tree in Linux CFS). Tasks consume RAM but 0 CPU cycles here.",
+      connectorLabel: "Receptionist Calls",
+    },
+    {
+      badge: "Kernel Arbiter",
+      title: "Head Receptionist",
+      icon: "📋",
+      color: "purple",
+      sublabel: "Short-Term Scheduler (STS)",
+      description: "Evaluates patient arrival order and medical urgency to allocate the doctor.",
+      details: "Kernel Dispatch Loop: Invoked on every hardware timer interrupt or I/O completion. Evaluates scheduling criteria (TAT, WT, RT) to pick the next optimal PCB and invoke the Dispatcher for context switching.",
+      connectorLabel: "Dispatches To",
+    },
+    {
+      badge: "Execution Unit",
+      title: "Doctor's Cabin",
+      icon: "🩺",
+      color: "emerald",
+      sublabel: "Physical CPU Core",
+      description: "The doctor (CPU) actively examines patient until prescription or lab test.",
+      details: "Silicon Execution Core: Hardware registers (PC, SP, ALU) actively execute instructions until the process yields voluntarily, blocks for peripheral I/O, or is preempted by the kernel timer.",
+    },
+  ]}
+/>
+
+* **Arrival Time ($AT$)**: Time at which patient enters the waiting room.
+* **Burst Time ($BT$)**: Amount of doctor consultation time required by the patient to finish treatment.
+* **Response Time ($RT$)**: Time it takes for the doctor to start responding to the patient for the first time.
+* **Waiting Time ($WT$)**: Sum of periods spent waiting idly in the clinic waiting room.
+* **Completion Time ($CT$)**: Time at which patient finishes treatment and exits the clinic.
+* **Turnaround Time ($TAT$)**: Total elapsed time from clinic arrival to final departure ($CT - AT$).
+
+#### The Scheduling Dilemma: Preemptive vs. Non-Preemptive Care
+* **Non-Preemptive Doctor**: Once the doctor is allocated to a patient, the patient keeps the doctor until releasing the cabin **willingly**. Even if an urgent case arrives, they must wait until the current patient finishes.
+* **Preemptive Doctor**: The doctor can be interrupted. A patient leaves the cabin willingly or can be **forced out** if a higher-priority trauma case arrives or their consultation time slice expires.
+
+---
+
+### 💻 Bridging to Computer Science
+
+In an operating system, the **Short-Term Scheduler (STS)** acts as the receptionist, evaluating the **Ready Queue** every few milliseconds to allocate the **CPU Core (the doctor)**.
+
+Because different workloads have contrasting requirements, computer scientists evaluate algorithms using precise **Scheduling Criteria**—benchmarks that quantify efficiency, responsiveness, and fairness.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 📚 Core Deep-Dive & Concepts
+
+### 1. Preemptive v/s Non-Preemptive Scheduling
+
+Every CPU scheduling algorithm belongs to one of two fundamental execution philosophies:
+
+<ConceptComparison
+  title="Preemptive v/s Non-Preemptive Scheduling"
+  subtitle="Ground truth comparison based on process CPU release behavior"
+  concepts={[
+    {
+      badge: "Cooperative",
+      title: "Non-Preemptive Scheduling",
+      icon: "🤝",
+      color: "blue",
+      domain: "Under Non-preemptive scheduling, once the CPU has been allocated to a process, the process keeps the CPU until it releases the CPU willingly.",
+      points: [
+        "A process will leave CPU only: 1. When process completes its execution [Termination State].",
+        "A process will leave CPU only: 2. When process wants to perform some I/O operation [Waiting / Blocked State].",
+        "Zero race conditions inside kernel scheduling queues.",
+        "Classical Examples: FCFS, Non-Preemptive SJF, Non-Preemptive Priority.",
+      ],
+      quote: "The process keeps the CPU until it releases the CPU willingly.",
+    },
+    {
+      badge: "Forced Out",
+      title: "Preemptive Scheduling",
+      icon: "⚡",
+      color: "amber",
+      domain: "Under Preemptive scheduling, once the CPU has been allocated to a process, a process will leave CPU willingly or it can be forced out.",
+      points: [
+        "1. When a process completes its execution [Termination].",
+        "2. When process wants to perform some I/O operation [Waiting / Blocked].",
+        "3. In case, a new process has high priority.",
+        "4. In case, the time quantum expires.",
+      ],
+      quote: "A process will leave CPU willingly or it can be forced out.",
+    },
+  ]}
+/>
+
+#### Non-Preemptive Scheduling
+> **Definition**: Under Non-preemptive scheduling, once the CPU has been allocated to a process, the process keeps the CPU until it releases the CPU **willingly**.
+
+A process will leave the CPU **only** under two conditions:
+1. When process completes its execution **[Termination state]**.
+2. When process wants to perform some I/O operation **[Waiting State / Blocked State]**.
+
+* **Classical Examples**: First-Come, First-Served (**FCFS**), Non-Preemptive Shortest Job First (**SJF**), Non-Preemptive Priority Scheduling.
+
+#### Preemptive Scheduling
+> **Definition**: Under Preemptive scheduling, once the CPU has been allocated to a process, a process will leave the CPU **willingly or it can be forced out**.
+
+A process running under preemptive scheduling will leave the CPU under four circumstances:
+1. When a process completes its execution.
+2. When process wants to perform some I/O operation.
+3. **In case, a new process has high priority**.
+4. **In case, the time quantum expires**.
+
+* **Classical Examples**: Round Robin (**RR**), Shortest Remaining Time First (**SRTF**), Preemptive Priority Scheduling, Multilevel Feedback Queue (**MLFQ**).
+
+---
+
+### 2. The 4 CPU Scheduling Decision Circumstances
+
+Formal OS theory structures the kernel dispatch points into **four distinct lifecycle transition circumstances**:
+
+<SubsystemGrid
+  title="The 4 CPU Scheduling Decision Circumstances"
+  subtitle="The four lifecycle transition points where the kernel scheduler makes a dispatch decision"
+  items={[
+    {
+      title: "1. Running ➔ Waiting",
+      icon: "⏳",
+      tag: "Non-Preemptive (Willingly)",
+      color: "blue",
+      points: [
+        "Condition: Process wants to perform some I/O operation or invokes waitpid().",
+        "Kernel Action: Process voluntarily surrenders the CPU; PCB moved to I/O queue.",
+      ],
+      syscalls: ["read()", "write()", "waitpid()"],
+    },
+    {
+      title: "2. Running ➔ Ready",
+      icon: "⏱️",
+      tag: "Preemptive (Forced Out)",
+      color: "amber",
+      points: [
+        "Condition: In case, the time quantum expires via hardware timer interrupt.",
+        "Kernel Action: Process is forced out of the CPU; PCB returned to Ready Queue.",
+      ],
+      syscalls: ["Timer Interrupt", "IRQ 0", "Time Quantum"],
+    },
+    {
+      title: "3. Waiting ➔ Ready",
+      icon: "🔔",
+      tag: "Preemptive (Higher Priority)",
+      color: "purple",
+      points: [
+        "Condition: In case, I/O completes and a new process has high priority.",
+        "Kernel Action: Newly awakened high-priority process preempts current task.",
+      ],
+      syscalls: ["I/O Interrupt", "wake_up()", "Signal Handled"],
+    },
+    {
+      title: "4. Running ➔ Terminated",
+      icon: "🏁",
+      tag: "Non-Preemptive (Willingly)",
+      color: "rose",
+      points: [
+        "Condition: When process completes its execution.",
+        "Kernel Action: Process finishes execution and calls exit(); CPU assigned to next job.",
+      ],
+      syscalls: ["exit()", "SIGKILL", "_exit()"],
+    },
+  ]}
+/>
+
+:::info The Kernel Classification Rule
+* When scheduling takes place **only under circumstances 1 and 4**, the scheduling scheme is strictly **Non-Preemptive**. The process surrenders the CPU willingly.
+* When scheduling can occur under circumstances **2 or 3**, the scheduling scheme is **Preemptive**. The process can be forced out.
+:::
+
+---
+
+### 3. Scheduling Criteria
+
+> *"Different CPU scheduling algorithms have different properties, and the choices of a particular algorithm may favour one class of process over another. So, in order to efficiently select a scheduling algorithm, the following criteria should be taken into consideration:"*
+
+1. **CPU Utilization**: Keeping the CPU as busy as possible.
+   * In a real system, CPU utilization should range from $40\%$ (lightly loaded) to $90\%$ (heavily loaded).
+2. **Throughput**: If the CPU is executing a process, then work is being done. One measure of work is the **number of processes that are completed per time unit**, called throughput.
+3. **Waiting Time**: Waiting time is the **sum of periods spent waiting in the ready queue**.
+4. **Response Time**: Is the **time it takes to start responding, not the time it takes to output the response**.
+5. **Turnaround Time**: Total time elapsed from submission to completion.
+
+:::warning The Core Invariance Rule of I/O Execution
+*"The CPU scheduling algorithm does not affect the amount of time during which a process executes I/O; it affects only the amount of time that a process spends waiting in the ready queue."*
+:::
+
+#### Desirable Optimization Goals
+It is desirable to:
+* **Maximize**: **CPU Utilization** and **Throughput**
+* **Minimize**: **Turnaround Time**, **Waiting Time**, and **Response Time**
+
+<ConceptComparison
+  title="CPU Scheduling Optimization Goals"
+  subtitle="Maximizing throughput and utilization while minimizing turnaround, waiting, and response delays"
+  concepts={[
+    {
+      badge: "Maximize",
+      title: "Maximize (Higher is Better)",
+      icon: "📈",
+      color: "emerald",
+      domain: "Work Output & Hardware Saturation",
+      points: [
+        "CPU Utilization: Keep the CPU core as busy as possible (target: 40% to 90%).",
+        "Throughput: Maximize the number of processes completed per unit time.",
+      ],
+      quote: "Maximize CPU utilization and Throughput.",
+    },
+    {
+      badge: "Minimize",
+      title: "Minimize (Lower is Better)",
+      icon: "📉",
+      color: "purple",
+      domain: "Latency & User Delay Reduction",
+      points: [
+        "Turnaround Time (TAT): Minimize total time from submission to completion.",
+        "Waiting Time (WT): Minimize total periods spent waiting in the ready queue.",
+        "Response Time (RT): Minimize the time it takes to start responding.",
+      ],
+      quote: "Minimize Turn around time, Waiting time and Response time.",
+    },
+  ]}
+/>
+
+---
+
+### 4. Terminology of CPU Scheduling
+
+Operating systems record the following standard time benchmarks for every process:
+
+#### 1. Arrival Time ($AT$)
+> **Definition**: Time at which process enters a **ready state** (enters the ready queue).
+
+#### 2. Burst Time ($BT$)
+> **Definition**: Amount of CPU time required by process to **finish its execution**.
+
+#### 3. Completion Time ($CT$)
+> **Definition**: Time at which process **finishes its execution**.
+
+#### 4. Turnaround Time ($TAT$)
+> **Definition**: Total elapsed time from arrival to completion.
+
+$$\mathbf{TAT = \text{Completion Time } (CT) - \text{Arrival Time } (AT)}$$
+$$\text{or}$$
+$$\mathbf{TAT = \text{Waiting Time } (WT) + \text{Burst Time } (BT)}$$
+
+#### 5. Waiting Time ($WT$)
+> **Definition**: Sum of periods spent waiting in the ready queue.
+
+$$\mathbf{WT = \text{Turn around time } (TAT) - \text{Burst time } (BT)}$$
+$$\mathbf{WT = (CT - AT) - BT}$$
+
+#### 6. Response Time ($RT$)
+> **Definition**: The time it takes to start responding (the interval from arrival to the first CPU allocation).
+
+$$\mathbf{RT = (\text{Time of First CPU Allocation}) - AT}$$
+
+:::note Non-Preemptive vs. Preemptive Waiting Mechanics
+* In **Non-Preemptive algorithms**, once a process gets the CPU, it runs without interruption. Therefore, **Response Time is identical to Waiting Time** ($RT = WT$).
+* In **Preemptive algorithms**, a process may get the CPU quickly but suffer preemption repeatedly, causing **Waiting Time to exceed Response Time** ($WT > RT$).
+:::
+
+---
+
+### 5. Gantt Chart Mechanics & Step-by-Step Derivation
+
+A **Gantt Chart** is a horizontal bar chart illustrating the chronological schedule of the CPU core over advancing time units.
+
+Consider three processes scheduled non-preemptively:
+
+| Process ID | Arrival Time ($AT$) | Burst Time ($BT$) |
+| :---: | :---: | :---: |
+| $P_1$ | $0\text{ ms}$ | $4\text{ ms}$ |
+| $P_2$ | $1\text{ ms}$ | $3\text{ ms}$ |
+| $P_3$ | $2\text{ ms}$ | $5\text{ ms}$ |
+
+#### Execution Order:
+* At $t = 0$: $P_1$ arrives and executes for $4\text{ ms}$ $\to$ Runs from $0$ to $4$.
+* At $t = 4$: $P_1$ finishes. Both $P_2$ (arrived at $1$) and $P_3$ (arrived at $2$) are ready. By arrival order, $P_2$ executes for $3\text{ ms}$ $\to$ Runs from $4$ to $7$.
+* At $t = 7$: $P_2$ finishes. $P_3$ executes for $5\text{ ms}$ $\to$ Runs from $7$ to $12$.
+
+<GanttChart
+  title="CPU Execution Gantt Chart: Three-Process Schedule"
+  subtitle="Timeline showing non-preemptive execution from t = 0 to t = 12 ms"
+  slots={[
+    { process: "P1", start: 0, end: 4, color: "blue", sublabel: "Burst: 4ms" },
+    { process: "P2", start: 4, end: 7, color: "emerald", sublabel: "Burst: 3ms" },
+    { process: "P3", start: 7, end: 12, color: "purple", sublabel: "Burst: 5ms" },
+  ]}
+  metrics={[
+    { label: "Avg Turnaround", value: "6.67 ms" },
+    { label: "Avg Waiting Time", value: "2.67 ms" },
+    { label: "Throughput", value: "0.25 jobs/ms" },
+    { label: "CPU Utilization", value: "100%" },
+  ]}
+/>
+
+#### Tabulation of Derived Metrics:
+
+| Process | $AT$ | $BT$ | Completion ($CT$) | Turnaround ($TAT = CT - AT$) | Waiting ($WT = TAT - BT$) | Response ($RT$) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **$P_1$** | $0$ | $4$ | $4$ | $4 - 0 = \mathbf{4}$ | $4 - 4 = \mathbf{0}$ | $0 - 0 = \mathbf{0}$ |
+| **$P_2$** | $1$ | $3$ | $7$ | $7 - 1 = \mathbf{6}$ | $6 - 3 = \mathbf{3}$ | $4 - 1 = \mathbf{3}$ |
+| **$P_3$** | $2$ | $5$ | $12$ | $12 - 2 = \mathbf{10}$ | $10 - 5 = \mathbf{5}$ | $7 - 2 = \mathbf{5}$ |
+
+* **Average Turnaround Time ($\overline{TAT}$)**:
+  $$\overline{TAT} = \frac{4 + 6 + 10}{3} = \frac{20}{3} \approx \mathbf{6.67\text{ ms}}$$
+* **Average Waiting Time ($\overline{WT}$)**:
+  $$\overline{WT} = \frac{0 + 3 + 5}{3} = \frac{8}{3} \approx \mathbf{2.67\text{ ms}}$$
+* **Throughput**:
+  $$\text{Throughput} = \frac{3\text{ processes}}{12\text{ ms}} = \mathbf{0.25\text{ processes/ms}} = \mathbf{250\text{ processes/sec}}$$
+* **CPU Utilization**:
+  $$\text{CPU Utilization} = \frac{12 - 0}{12} \times 100\% = \mathbf{100\%}$$
+
+---
+
+## 📐 Architecture / Visual Blueprint
+
+### Process Scheduling Milestones & Domain Interactions
+
+The architectural blueprint below illustrates how a process transitions across memory and execution domains, tracing the exact moments where time metrics ($AT, RT, WT, CT$) are captured:
+
+<FlowDiagram
+  title="Process Lifecycle Scheduling Milestones: Time Benchmark Architecture"
+  subtitle="Tracking Arrival, First Dispatch (Response), Ready Queue Waits, and Final Completion"
+  domains={[
+    {
+      id: "queue_domain",
+      title: "Kernel Ready Queue (Memory)",
+      color: "blue",
+      icon: "📋",
+      position: "bottom",
+    },
+    {
+      id: "cpu_domain",
+      title: "Physical CPU Core Execution",
+      color: "emerald",
+      icon: "⚡",
+      position: "bottom",
+    },
+  ]}
+  nodes={[
+    {
+      id: "at_node",
+      domain: "queue_domain",
+      col: 0,
+      row: 0,
+      title: "Arrival Time (AT)",
+      sublabel: "Enters Ready Queue",
+      badge: "Clock: t = AT",
+      icon: "📥",
+      color: "blue",
+      details: "Process image admitted into memory. Waiting Time and Turnaround Time stopwatches start ticking.",
+    },
+    {
+      id: "rt_node",
+      domain: "cpu_domain",
+      col: 1,
+      row: 0,
+      title: "First CPU Grant (RT)",
+      sublabel: "First Instruction Run",
+      badge: "RT = t - AT",
+      icon: "⚡",
+      color: "emerald",
+      details: "The Short-Term Scheduler dispatches process for the very first time. Response Time stops here.",
+    },
+    {
+      id: "preempt_node",
+      domain: "queue_domain",
+      col: 2,
+      row: 0,
+      title: "Preempt / Wait (WT)",
+      sublabel: "Accumulating Wait Time",
+      badge: "WT = TAT - BT",
+      icon: "⏳",
+      color: "amber",
+      details: "Timer preemption or I/O completion causes process to wait in queue again. Adds cumulative delay.",
+    },
+    {
+      id: "ct_node",
+      domain: "cpu_domain",
+      col: 3,
+      row: 0,
+      title: "Completion Time (CT)",
+      sublabel: "Process Terminates",
+      badge: "TAT = CT - AT",
+      icon: "🏁",
+      color: "rose",
+      details: "Final opcode executed. Exit syscall called. Total Turnaround Time (TAT) and Completion Time recorded.",
+    },
+  ]}
+  edges={[
+    {
+      from: "at_node",
+      to: "rt_node",
+      step: "1",
+      label: "First Dispatch",
+      fromPort: "right",
+      toPort: "left",
+    },
+    {
+      from: "rt_node",
+      to: "preempt_node",
+      step: "2",
+      label: "Quantum Expire",
+      fromPort: "right",
+      toPort: "left",
+      style: "dashed",
+    },
+    {
+      from: "preempt_node",
+      to: "ct_node",
+      step: "3",
+      label: "Final Run",
+      fromPort: "right",
+      toPort: "left",
+    },
+  ]}
+/>
+
+---
+
+## 🏭 In The Real World: Production Case Study
+
+### How the Linux Completely Fair Scheduler (CFS) Quantifies Scheduling Latency
+
+Modern production operating systems like Linux replace fixed time quanta with dynamic latency guarantees in the **Completely Fair Scheduler (CFS)**:
+
+<ConceptComparison
+  title="Linux CFS Production Latency Balancing Knobs"
+  subtitle="How the Linux kernel prevents context thrashing while guaranteeing bounded response time"
+  concepts={[
+    {
+      badge: "Bounded Latency",
+      title: "Target Latency (sched_latency_ns)",
+      icon: "🎯",
+      color: "blue",
+      domain: "sysctl: kernel.sched_latency_ns (Default: 6ms - 24ms)",
+      points: [
+        "Scheduling Window: Period during which all currently active tasks are guaranteed to run at least once.",
+        "Dynamic Timeslice: Each process receives roughly (sched_latency_ns / N) milliseconds.",
+        "Smooth Multi-Tasking: Scales smoothly with light to moderate system workloads.",
+      ],
+      quote: "Every runnable thread receives an equitable slice within this target window.",
+    },
+    {
+      badge: "Thrashing Guard",
+      title: "Minimum Granularity (min_granularity_ns)",
+      icon: "🛡️",
+      color: "amber",
+      domain: "sysctl: kernel.sched_min_granularity_ns (Default: 0.75ms - 3ms)",
+      points: [
+        "Context Floor: Prevents timeslices from shrinking below viable execution boundaries under heavy load.",
+        "Anti-Thrashing Barrier: Stops the CPU from burning 90% of clock cycles swapping hardware registers.",
+        "Latency Extension: When task count N is huge, target latency automatically expands to (N × min_granularity).",
+      ],
+      quote: "Guarantees a lower bound on execution so processes make measurable computational progress.",
+    },
+  ]}
+/>
+
+#### 1. Dynamic Slice Computation
+When $N$ tasks are runnable, CFS dynamically computes each process slice as:
+$$\text{Timeslice} = \frac{\text{sched\_latency\_ns}}{N}$$
+However, if $N$ grows large (e.g., 500 runnable threads), the calculated slice would shrink to microseconds, wasting excessive CPU cycles on register swapping. To prevent this, Linux enforces `sched_min_granularity_ns` as an absolute execution floor.
+
+#### 2. Cloud & Kubernetes CPU Throttling (`cfs_quota_us`)
+In container runtimes (Docker, Kubernetes), CPU limits are enforced using CFS bandwidth quotas:
+* `cpu.cfs_period_us`: The evaluation window (default: $100{,}000\,\mu\text{s} = 100\text{ ms}$).
+* `cpu.cfs_quota_us`: The maximum CPU time the container may consume within that window (e.g., $50{,}000\,\mu\text{s}$ for $0.5$ CPU core).
+
+If a container exhausts its quota before the $100\text{ ms}$ period expires, Linux **preempts and freezes** its threads until the next period, directly spiking **Response Time ($RT$)** and tail latency in production microservices.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** Define Preemptive and Non-Preemptive scheduling. Under which four specific CPU scheduling circumstances does the operating system make scheduling decisions, and which of these classify an OS as strictly non-preemptive?
+**Answer:**
+1. **Non-Preemptive**: Under Non-preemptive scheduling, once the CPU has been allocated to a process, the process keeps the CPU until it releases the CPU **willingly**.
+2. **Preemptive**: Under Preemptive scheduling, once the CPU has been allocated to a process, a process will leave the CPU **willingly or it can be forced out**.
+3. **The 4 Circumstances**:
+   - Circumstance 1: When process wants to perform some I/O operation (Running $\to$ Waiting).
+   - Circumstance 2: In case, the time quantum expires (Running $\to$ Ready).
+   - Circumstance 3: In case, a new process has high priority / I/O completes (Waiting $\to$ Ready).
+   - Circumstance 4: When process completes its execution (Running $\to$ Terminated).
+4. When scheduling occurs **strictly under Circumstances 1 and 4**, the system is non-preemptive. If decisions occur under **2 or 3**, the system is preemptive.
+
+**Question 2:** Prove mathematically why Turnaround Time ($TAT$) equals the sum of Waiting Time ($WT$) and Burst Time ($BT$). In what scenario is Response Time ($RT$) strictly equal to Waiting Time?
+**Answer:**
+1. By fundamental scheduling definitions:
+   $$TAT = CT - AT$$
+   $$WT = TAT - BT$$
+2. Rearranging:
+   $$TAT = WT + BT$$
+   Total elapsed time consists strictly of time spent waiting in the ready queue ($WT$) plus active execution time on the CPU ($BT$).
+3. **Condition for $RT = WT$**:
+   Response Time equals Waiting Time strictly in **Non-Preemptive scheduling algorithms**. Once a process gets the CPU, it runs to completion without interruption, so its first response wait equals its total waiting time.
+
+**Question 3:** What is Throughput in CPU scheduling? Why does a higher number of completed processes not always indicate a superior scheduling algorithm?
+**Answer:**
+1. **Throughput**: If the CPU is executing a process, then work is being done. One measure of work is the number of processes completed per unit time.
+2. It depends on job mix: a system completing many tiny 1ms jobs has higher numeric throughput than one completing heavy 100ms simulations, even though the latter may have higher CPU utilization. Prioritizing short jobs to boost throughput can cause starvation for larger jobs.
+
+:::
+
+:::warning Common Interview Traps
+
+* **The "CPU Scheduling Affects I/O" Trap**: Interviewers often ask: *"Does a faster CPU scheduling algorithm reduce I/O wait time?"*
+  * **Trap**: **No!** Core operating system theory dictates: *"The CPU scheduling algorithm does not affect the amount of time during which a process executes I/O; it affects only the amount of time that a process spends waiting in the ready queue."*
+* **The "Zero Arrival Time" Assumption**: In standard scheduling problems, engineers often mistakenly assume all processes arrive at $t = 0$.
+  * **Always verify $AT$**: If $P_1$ arrives at $t = 2$ and no process exists at $t = 0$, the CPU sits **idle** from $t = 0$ to $t = 2$. Forgetting idle gaps corrupts all downstream Completion Time and Average Waiting Time calculations.
+* **Response Time vs. Waiting Time in Round Robin**: In Round Robin, candidates frequently confuse $RT$ and $WT$.
+  * $RT$ stops the instant the process runs **its first time slice**.
+  * $WT$ continues to accumulate during every subsequent preemption round until final completion.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "2.4 Schedulers: LTS, STS, MTS & Dispatcher",
+    url: "/coredose/os/chapter-02/schedulers-long-term-short-term-medium-term-and-dispatcher"
+  }}
+  next={{
+    title: "3.2 First-Come, First-Served (FCFS) & Convoy Effect",
+    url: "/coredose/os/chapter-03/non-preemptive-scheduling-first-come-first-served-fcfs-and-convoy-effect"
+  }}
+  courseUrl="/coredose/os"
+/>

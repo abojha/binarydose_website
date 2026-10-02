@@ -21,8 +21,9 @@ function getCourse(courseUrl) {
   return COURSE_MAP.dbms;
 }
 
-export default function CoreDoseNav({ prev, next, courseUrl = "/coredose/dbms" }) {
+export default function CoreDoseNav({ prev, previous, next, courseUrl = "/coredose/dbms" }) {
   const course = getCourse(courseUrl);
+  const prevTopic = prev || previous;
 
   return (
     <div className={styles.navContainer}>
@@ -34,10 +35,10 @@ export default function CoreDoseNav({ prev, next, courseUrl = "/coredose/dbms" }
       </div>
 
       <div className={styles.navGrid}>
-        {prev ? (
-          <Link to={prev.url} className={styles.navCardPrev}>
+        {prevTopic ? (
+          <Link to={prevTopic.url} className={styles.navCardPrev}>
             <span className={styles.directionLabel}>&larr; Previous Topic</span>
-            <span className={styles.topicTitle}>{prev.title}</span>
+            <span className={styles.topicTitle}>{prevTopic.title}</span>
           </Link>
         ) : (
           <Link to={courseUrl} className={styles.navCardPrev}>

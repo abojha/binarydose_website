@@ -10,6 +10,19 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import getSiteStats from "./src/utils/getSiteStats.js";
 
+// Global KaTeX configuration with support for micro units and non-throwing parsing
+const katexPlugin = [
+  rehypeKatex,
+  {
+    throwOnError: false,
+    macros: {
+      "\\mus": "\\mu\\text{s}",
+      "\\micro": "\\mu",
+      "\\us": "\\mu\\text{s}",
+    },
+  },
+];
+
 // Load local .env file if present
 if (fs.existsSync(".env")) {
   try {
@@ -123,7 +136,7 @@ const config = {
           onInlineAuthors: "warn",
           onUntruncatedBlogPosts: "warn",
           remarkPlugins: [remarkMath],
-          rehypePlugins: [rehypeKatex],
+          rehypePlugins: [katexPlugin],
         },
         theme: {
           customCss: "./src/css/custom.css",
@@ -161,7 +174,7 @@ const config = {
         sidebarPath: false,
 
         remarkPlugins: [remarkMath],
-        rehypePlugins: [rehypeKatex],
+        rehypePlugins: [katexPlugin],
       },
     ],
     [
@@ -173,7 +186,7 @@ const config = {
         sidebarPath: false,
 
         remarkPlugins: [remarkMath],
-        rehypePlugins: [rehypeKatex],
+        rehypePlugins: [katexPlugin],
       },
     ],
     [
@@ -185,7 +198,7 @@ const config = {
         sidebarPath: false,
 
         remarkPlugins: [remarkMath],
-        rehypePlugins: [rehypeKatex],
+        rehypePlugins: [katexPlugin],
       },
     ],
     [
@@ -197,7 +210,7 @@ const config = {
         sidebarPath: false,
 
         remarkPlugins: [remarkMath],
-        rehypePlugins: [rehypeKatex],
+        rehypePlugins: [katexPlugin],
       },
     ],
   ],

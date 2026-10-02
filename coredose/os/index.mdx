@@ -13,7 +13,7 @@ import CoreDoseTOC from "@site/src/components/CoreDose/CoreDoseTOC";
   module="Course Masterclass"
   topic="Syllabus & Roadmap"
   readTime="5 min read"
-  relevance="Semester Exams (All Universities) • GATE CSE • SDE Technical Interviews"
+  relevance="Computer Science Foundations • Systems Engineering • Technical Interviews"
 />
 
 <CoreDoseTOC toc={toc} />
@@ -23,12 +23,12 @@ import CoreDoseTOC from "@site/src/components/CoreDose/CoreDoseTOC";
 ## 🎯 Welcome to Operating Systems CoreDose
 
 Welcome to the **Operating Systems Complete Masterclass** on Binary Dose. 
-This curriculum is built directly from authentic, battle-tested handwritten notes and standard computer science principles, engineered to deliver **100% conceptual clarity** from bare-metal hardware up to high-concurrency production kernels.
+This curriculum is built from foundational computer science principles, core operating systems theory, and battle-tested production kernel architectures, engineered to deliver **100% conceptual clarity** from bare-metal hardware up to high-concurrency production kernels.
 
-Whether you are preparing for:
-* 🎓 **University Semester Exams** (RGPV, AKTU, VTU, SPPU, Anna Univ, etc.)
-* 🚀 **GATE Computer Science (CSE)** (High-Weightage Core Subject)
-* 💼 **SDE Technical Interviews** (Concurrency, Threading, Memory & Linux Internals)
+Whether you are mastering:
+* 🎓 **Core Computer Science Foundations** (Systems Architecture & Abstractions)
+* 🚀 **Operating Systems Theory & Algorithms** (Scheduling, Concurrency & Virtual Memory)
+* 💼 **Systems Engineering & Interviews** (Concurrency, Threading, Memory & Linux Internals)
 
 ---
 
@@ -57,10 +57,10 @@ Whether you are preparing for:
       color: "blue",
       description: "Process memory layout, state transitions, context switching, and schedulers.",
       topics: [
-        { num: "2.1", title: "Program vs Process: Active Entities & Address Space Layout" },
-        { num: "2.2", title: "Process States & 5-State / 7-State Transition Models" },
-        { num: "2.3", title: "Process Control Block (PCB) Internals & Context Switching Overhead" },
-        { num: "2.4", title: "Schedulers: Long-Term, Short-Term, Medium-Term Schedulers & Dispatcher" },
+        { num: "2.1", title: "Program vs Process: Active Entities & Address Space Layout", url: "/coredose/os/chapter-02/program-vs-process-active-entities-and-address-space-layout" },
+        { num: "2.2", title: "Process States & 5-State / 7-State Transition Models", url: "/coredose/os/chapter-02/process-states-and-5-state-7-state-transition-models" },
+        { num: "2.3", title: "Process Control Block (PCB) Internals & Context Switching Overhead", url: "/coredose/os/chapter-02/process-control-block-pcb-internals-and-context-switching-overhead" },
+        { num: "2.4", title: "Schedulers: Long-Term, Short-Term, Medium-Term Schedulers & Dispatcher", url: "/coredose/os/chapter-02/schedulers-long-term-short-term-medium-term-and-dispatcher" },
       ],
     },
     {
@@ -70,12 +70,12 @@ Whether you are preparing for:
       color: "cyan",
       description: "Turnaround time, waiting time, Gantt charts, preemption, and starvation handling.",
       topics: [
-        { num: "3.1", title: "Scheduling Criteria: Turnaround Time, Waiting Time, Response Time & Throughput" },
-        { num: "3.2", title: "Non-Preemptive Scheduling: First-Come, First-Served (FCFS) & Convoy Effect" },
-        { num: "3.3", title: "Shortest Job First (SJF) & Shortest Remaining Time First (SRTF)" },
-        { num: "3.4", title: "Priority Scheduling & Starvation (Aging Technique)" },
-        { num: "3.5", title: "Round Robin Scheduling & Time Quantum Trade-offs" },
-        { num: "3.6", title: "Multilevel Queue & Multilevel Feedback Queue Scheduling" },
+        { num: "3.1", title: "Scheduling Criteria: Turnaround Time, Waiting Time, Response Time & Throughput", url: "/coredose/os/chapter-03/scheduling-criteria-turnaround-waiting-response-time-and-throughput" },
+        { num: "3.2", title: "Non-Preemptive Scheduling: First-Come, First-Served (FCFS) & Convoy Effect", url: "/coredose/os/chapter-03/non-preemptive-scheduling-first-come-first-served-fcfs-and-convoy-effect" },
+        { num: "3.3", title: "Shortest Job First (SJF) & Shortest Remaining Time First (SRTF)", url: "/coredose/os/chapter-03/shortest-job-first-sjf-and-shortest-remaining-time-first-srtf" },
+        { num: "3.4", title: "Priority Scheduling & Starvation (Aging Technique)", url: "/coredose/os/chapter-03/priority-scheduling-and-starvation-aging-technique" },
+        { num: "3.5", title: "Round Robin Scheduling & Time Quantum Trade-offs", url: "/coredose/os/chapter-03/round-robin-scheduling-and-time-quantum-trade-offs" },
+        { num: "3.6", title: "Multilevel Queue & Multilevel Feedback Queue Scheduling", url: "/coredose/os/chapter-03/multilevel-queue-and-multilevel-feedback-queue-scheduling" },
       ],
     },
     {
@@ -85,13 +85,13 @@ Whether you are preparing for:
       color: "emerald",
       description: "Critical section problems, Peterson's algorithm, hardware atomic locks, and semaphores.",
       topics: [
-        { num: "4.1", title: "Race Conditions & The Critical Section Problem" },
-        { num: "4.2", title: "The 3 Mandatory Criteria: Mutual Exclusion, Progress & Bounded Waiting" },
-        { num: "4.3", title: "Software Solutions: Lock Variable, Strict Alternation & Peterson's Algorithm" },
-        { num: "4.4", title: "Hardware Synchronization: Test-and-Set Lock (TSL) & Swap Instructions" },
-        { num: "4.5", title: "Semaphores: Counting Semaphores, Binary Semaphores & Mutexes" },
-        { num: "4.6", title: "Classical Synchronization Problems: Producer-Consumer & Bounded Buffer" },
-        { num: "4.7", title: "Classical Synchronization Problems: Readers-Writers & Dining Philosophers" },
+        { num: "4.1", title: "Race Conditions & The Critical Section Problem", url: "/coredose/os/chapter-04/race-conditions-and-the-critical-section-problem" },
+        { num: "4.2", title: "The 3 Mandatory Criteria: Mutual Exclusion, Progress & Bounded Waiting", url: "/coredose/os/chapter-04/the-3-mandatory-criteria-mutual-exclusion-progress-bounded-waiting" },
+        { num: "4.3", title: "Software Solutions: Lock Variable, Strict Alternation & Peterson's Algorithm", url: "/coredose/os/chapter-04/software-solutions-lock-variable-strict-alternation-petersons-algorithm" },
+        { num: "4.4", title: "Hardware Synchronization: Test-and-Set Lock (TSL) & Swap Instructions", url: "/coredose/os/chapter-04/hardware-synchronization-test-and-set-lock-tsl-and-swap-instructions" },
+        { num: "4.5", title: "Semaphores: Counting Semaphores, Binary Semaphores & Mutexes", url: "/coredose/os/chapter-04/semaphores-counting-semaphores-binary-semaphores-and-mutexes" },
+        { num: "4.6", title: "Classical Synchronization Problems: Producer-Consumer & Bounded Buffer", url: "/coredose/os/chapter-04/classical-synchronization-problems-producer-consumer-bounded-buffer" },
+        { num: "4.7", title: "Classical Synchronization Problems: Readers-Writers & Dining Philosophers", url: "/coredose/os/chapter-04/classical-synchronization-problems-readers-writers-and-dining-philosophers" },
       ],
     },
     {
@@ -101,11 +101,11 @@ Whether you are preparing for:
       color: "rose",
       description: "Coffman conditions, Resource Allocation Graphs (RAG), and Banker's algorithm.",
       topics: [
-        { num: "5.1", title: "Deadlock Characterization: The 4 Necessary Coffman Conditions" },
-        { num: "5.2", title: "Resource Allocation Graphs (RAG) & Cycle Detection" },
-        { num: "5.3", title: "Deadlock Prevention: Eliminating Coffman Conditions" },
-        { num: "5.4", title: "Deadlock Avoidance: Safe States & Banker's Algorithm Step-by-Step" },
-        { num: "5.5", title: "Deadlock Detection & Recovery Strategies" },
+        { num: "5.1", title: "Deadlock Characterization: The 4 Necessary Coffman Conditions", url: "/coredose/os/chapter-05/deadlock-characterization-the-4-necessary-coffman-conditions" },
+        { num: "5.2", title: "Resource Allocation Graphs (RAG) & Cycle Detection", url: "/coredose/os/chapter-05/resource-allocation-graphs-rag-and-cycle-detection" },
+        { num: "5.3", title: "Deadlock Prevention: Eliminating Coffman Conditions", url: "/coredose/os/chapter-05/deadlock-prevention-eliminating-coffman-conditions" },
+        { num: "5.4", title: "Deadlock Avoidance: Safe States & Banker's Algorithm Step-by-Step", url: "/coredose/os/chapter-05/deadlock-avoidance-safe-states-and-bankers-algorithm" },
+        { num: "5.5", title: "Deadlock Detection & Recovery Strategies", url: "/coredose/os/chapter-05/deadlock-detection-and-recovery-strategies" },
       ],
     },
     {
@@ -115,11 +115,11 @@ Whether you are preparing for:
       color: "purple",
       description: "The fork() tree hierarchy, memory copying, zombie/orphan processes, and execve().",
       topics: [
-        { num: "6.1", title: "The fork() System Call: Duplication, Memory Copy & Return Codes" },
-        { num: "6.2", title: "Calculating Total Processes Created by n Successive fork() Calls" },
-        { num: "6.3", title: "Process Hierarchies: Tree Structures & Parent-Child Relationships" },
-        { num: "6.4", title: "Zombie Processes vs Orphan Processes & wait() Mechanics" },
-        { num: "6.5", title: "The exec() Family of System Calls: Replacing Process Memory" },
+        { num: "6.1", title: "The fork() System Call: Duplication, Memory Copy & Return Codes", url: "/coredose/os/chapter-06/the-fork-system-call-duplication-memory-copy-and-return-codes" },
+        { num: "6.2", title: "Calculating Total Processes Created by n Successive fork() Calls", url: "/coredose/os/chapter-06/calculating-total-processes-created-by-n-successive-fork-calls" },
+        { num: "6.3", title: "Process Hierarchies: Tree Structures & Parent-Child Relationships", url: "/coredose/os/chapter-06/process-hierarchies-tree-structures-and-parent-child-relationships" },
+        { num: "6.4", title: "Zombie Processes vs Orphan Processes & wait() Mechanics", url: "/coredose/os/chapter-06/zombie-processes-vs-orphan-processes-and-wait-mechanics" },
+        { num: "6.5", title: "The exec() Family of System Calls: Replacing Process Memory", url: "/coredose/os/chapter-06/the-exec-family-of-system-calls-replacing-process-memory" },
       ],
     },
     {
@@ -129,13 +129,13 @@ Whether you are preparing for:
       color: "blue",
       description: "Contiguous allocation, paging architecture, TLB access time, and multi-level tables.",
       topics: [
-        { num: "7.1", title: "Contiguous Memory Allocation: Fixed vs Dynamic Partitioning" },
-        { num: "7.2", title: "Internal vs External Fragmentation" },
-        { num: "7.3", title: "Dynamic Storage Allocation Algorithms: First-Fit, Best-Fit & Worst-Fit" },
-        { num: "7.4", title: "Compaction & Paging Architecture (Pages, Frames & Page Tables)" },
-        { num: "7.5", title: "Address Translation Mechanics: Logical Address to Physical Address" },
-        { num: "7.6", title: "Translation Lookaside Buffer (TLB) & Effective Memory Access Time (EMAT)" },
-        { num: "7.7", title: "Multi-Level Paging, Inverted Page Tables & Segmentation" },
+        { num: "7.1", title: "Contiguous Memory Allocation: Fixed vs Dynamic Partitioning", url: "/coredose/os/chapter-07/contiguous-memory-allocation-fixed-vs-dynamic-partitioning" },
+        { num: "7.2", title: "Internal vs External Fragmentation", url: "/coredose/os/chapter-07/internal-vs-external-fragmentation" },
+        { num: "7.3", title: "Dynamic Storage Allocation Algorithms: First-Fit, Best-Fit & Worst-Fit", url: "/coredose/os/chapter-07/dynamic-storage-allocation-algorithms-first-fit-best-fit-worst-fit" },
+        { num: "7.4", title: "Compaction & Paging Architecture (Pages, Frames & Page Tables)", url: "/coredose/os/chapter-07/compaction-and-paging-architecture" },
+        { num: "7.5", title: "Address Translation Mechanics: Logical Address to Physical Address", url: "/coredose/os/chapter-07/address-translation-mechanics-logical-to-physical" },
+        { num: "7.6", title: "Translation Lookaside Buffer (TLB) & Effective Memory Access Time (EMAT)", url: "/coredose/os/chapter-07/translation-lookaside-buffer-tlb-and-emat" },
+        { num: "7.7", title: "Multi-Level Paging, Inverted Page Tables & Segmentation", url: "/coredose/os/chapter-07/multi-level-paging-inverted-page-tables-and-segmentation" },
       ],
     },
     {
@@ -145,11 +145,11 @@ Whether you are preparing for:
       color: "cyan",
       description: "Demand paging, page fault cycles, FIFO, Belady's anomaly, LRU, and thrashing.",
       topics: [
-        { num: "8.1", title: "Demand Paging & The Page Fault Handling Cycle" },
-        { num: "8.2", title: "Page Replacement Algorithms: First-In, First-Out (FIFO) & Belady's Anomaly" },
-        { num: "8.3", title: "Optimal Page Replacement (OPT / MIN)" },
-        { num: "8.4", title: "Least Recently Used (LRU) Page Replacement & Stack Algorithms" },
-        { num: "8.5", title: "Frame Allocation Policies & Thrashing (Working Set Model)" },
+        { num: "8.1", title: "Demand Paging & The Page Fault Handling Cycle", url: "/coredose/os/chapter-08/demand-paging-and-the-page-fault-handling-cycle" },
+        { num: "8.2", title: "Page Replacement Algorithms: First-In, First-Out (FIFO) & Belady's Anomaly", url: "/coredose/os/chapter-08/page-replacement-algorithms-fifo-and-beladys-anomaly" },
+        { num: "8.3", title: "Optimal Page Replacement (OPT / MIN)", url: "/coredose/os/chapter-08/optimal-page-replacement-opt-min" },
+        { num: "8.4", title: "Least Recently Used (LRU) Page Replacement & Stack Algorithms", url: "/coredose/os/chapter-08/least-recently-used-lru-and-stack-algorithms" },
+        { num: "8.5", title: "Frame Allocation Policies & Thrashing (Working Set Model)", url: "/coredose/os/chapter-08/frame-allocation-policies-and-thrashing" },
       ],
     },
     {
@@ -159,10 +159,10 @@ Whether you are preparing for:
       color: "amber",
       description: "Magnetic disk anatomy, seek time calculation, FCFS, SSTF, SCAN, and LOOK.",
       topics: [
-        { num: "9.1", title: "Magnetic Disk Anatomy: Platters, Tracks, Sectors, Seek Time & Rotational Latency" },
-        { num: "9.2", title: "FCFS & Shortest Seek Time First (SSTF) Disk Scheduling" },
-        { num: "9.3", title: "Elevator Algorithms: SCAN & C-SCAN Disk Scheduling" },
-        { num: "9.4", title: "Optimized Traversal: LOOK & C-LOOK Disk Scheduling" },
+        { num: "9.1", title: "Magnetic Disk Anatomy: Platters, Tracks, Sectors, Seek Time & Rotational Latency", url: "/coredose/os/chapter-09/magnetic-disk-anatomy-platters-tracks-sectors-seek-time-rotational-latency" },
+        { num: "9.2", title: "FCFS & Shortest Seek Time First (SSTF) Disk Scheduling", url: "/coredose/os/chapter-09/fcfs-and-shortest-seek-time-first-sstf-disk-scheduling" },
+        { num: "9.3", title: "Elevator Algorithms: SCAN & C-SCAN Disk Scheduling", url: "/coredose/os/chapter-09/elevator-algorithms-scan-and-c-scan-disk-scheduling" },
+        { num: "9.4", title: "Optimized Traversal: LOOK & C-LOOK Disk Scheduling", url: "/coredose/os/chapter-09/optimized-traversal-look-and-c-look-disk-scheduling" },
       ],
     },
     {
@@ -172,10 +172,10 @@ Whether you are preparing for:
       color: "emerald",
       description: "File attributes, directory structures, contiguous/indexed allocation, and UNIX inodes.",
       topics: [
-        { num: "10.1", title: "File Attributes, Operations & Access Methods (Sequential vs Direct)" },
-        { num: "10.2", title: "Directory Structures: Single-Level, Two-Level & Tree-Structured Directories" },
-        { num: "10.3", title: "File Allocation Methods: Contiguous, Linked & Indexed Allocation" },
-        { num: "10.4", title: "UNIX File System Internals: Inodes, Direct Blocks & Indirect Pointers" },
+        { num: "10.1", title: "File Attributes, Operations & Access Methods (Sequential vs Direct)", url: "/coredose/os/chapter-10/file-attributes-operations-and-access-methods-sequential-vs-direct" },
+        { num: "10.2", title: "Directory Structures: Single-Level, Two-Level & Tree-Structured Directories", url: "/coredose/os/chapter-10/directory-structures-single-level-two-level-and-tree-structured-directories" },
+        { num: "10.3", title: "File Allocation Methods: Contiguous, Linked & Indexed Allocation", url: "/coredose/os/chapter-10/file-allocation-methods-contiguous-linked-and-indexed-allocation" },
+        { num: "10.4", title: "UNIX File System Internals: Inodes, Direct Blocks & Indirect Pointers", url: "/coredose/os/chapter-10/unix-file-system-internals-inodes-direct-blocks-and-indirect-pointers" },
       ],
     },
   ]}

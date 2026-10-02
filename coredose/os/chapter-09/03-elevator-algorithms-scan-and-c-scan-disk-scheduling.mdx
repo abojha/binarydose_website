@@ -1,0 +1,364 @@
+---
+title: "9.3 Elevator Algorithms: SCAN & C-SCAN Disk Scheduling"
+description: "Master the SCAN (Elevator) and Circular-SCAN (C-SCAN) disk scheduling algorithms: directional sweeps, extremity bounds, wait-time uniformity, and complete mathematical traces."
+hide_table_of_contents: true
+---
+
+# 9.3 Elevator Algorithms: SCAN & C-SCAN Disk Scheduling
+
+<CoreDoseLessonHeader
+  module="Module 09: Storage & Disk Scheduling"
+  topic="Topic 9.3"
+  courseUrl="/coredose/os"
+  readTime="20 min read"
+  relevance="Computer Science Foundations • Systems Engineering • Disk Scheduling"
+/>
+
+## 💡 Core Intuition
+
+### 🍳 The Everyday Analogy: The Skyscraper Elevator
+
+Imagine a 50-story commercial skyscraper with hundreds of passengers waiting on diverse floors:
+
+<FlowPipeline
+  title="The Skyscraper Elevator Sweep Pipeline"
+  subtitle="Contrasting chaotic passenger hopping with structured directional sweeps"
+  steps={[
+    {
+      badge: "The Problem",
+      title: "Chaotic Passenger Hopping",
+      icon: "🛗",
+      color: "rose",
+      sublabel: "Greedy Proximity (SSTF)",
+      description: "The elevator stops on floor 10, then hops to floor 11, then back to floor 9.",
+      details: "Penthouse Starvation: Passengers on floor 48 wait 45 minutes because the elevator is trapped servicing passengers hopping between floors 8, 9, 10, and 11!",
+      connectorLabel: "The Elevator Principle",
+    },
+    {
+      badge: "Directional Sweep",
+      title: "The Upward Sweep",
+      icon: "🏢",
+      color: "blue",
+      sublabel: "SCAN Policy",
+      description: "The elevator moves strictly upward, picking up everyone who wants to go up until it reaches the top floor.",
+      details: "Predictable Reversal: Upon reaching the top floor, the motor reverses direction and sweeps downward, picking up descending passengers. No passenger ever starves!",
+      connectorLabel: "Uniform Wait Time",
+    },
+    {
+      badge: "Circular Loop",
+      title: "Express Return to Ground",
+      icon: "🔄",
+      color: "purple",
+      sublabel: "C-SCAN Policy",
+      description: "The elevator sweeps all the way to Floor 50, then rides non-stop express back to the Lobby without opening doors.",
+      details: "Equitable Service: Treats the building as a circular loop, providing identical average wait times for all floors.",
+    },
+  ]}
+/>
+
+* **SCAN (Elevator Algorithm)**: Sweeps back and forth across the disk surface, servicing requests along its current trajectory until it hits the physical extremity.
+* **C-SCAN (Circular SCAN)**: Sweeps in one direction, then immediately returns to the opposite boundary without servicing requests on the return journey, guaranteeing uniform wait times.
+
+---
+
+### 💻 Bridging to Computer Science
+
+While **Shortest Seek Time First (SSTF)** achieves impressive seek reduction, its susceptibility to **starvation** renders it unacceptable for general-purpose multi-user operating systems.
+
+Computer architects resolved this by implementing **Elevator Algorithms**:
+1. **SCAN**: Prevents starvation by maintaining a continuous sweep across cylinders.
+2. **C-SCAN**: Eliminates the density bias of SCAN by treating the cylinder tracks as a continuous circular loop.
+
+<SubsystemGrid
+  title="Elevator Benchmark Configuration"
+  subtitle="Standard reference parameters for SCAN and C-SCAN evaluation"
+  columns={3}
+  subsystems={[
+    {
+      badge: "Disk Range",
+      title: "200 Cylinders",
+      icon: "💿",
+      color: "blue",
+      description: "Platters numbered from Cylinder 0 (innermost) to Cylinder 199 (outermost).",
+      details: "Boundary Cylinders: 0 and 199"
+    },
+    {
+      badge: "Head State",
+      title: "Position 53 (Moving Down)",
+      icon: "🎯",
+      color: "amber",
+      description: "Read/write head begins at Cylinder 53, actively moving downward toward Cylinder 0.",
+      details: "Direction = Toward Cylinder 0"
+    },
+    {
+      badge: "I/O Workload",
+      title: "Pending Request Queue",
+      icon: "📥",
+      color: "purple",
+      description: "8 concurrent block requests awaiting servicing across disk platters.",
+      details: "Queue: [98, 183, 37, 122, 14, 124, 65, 67]"
+    }
+  ]}
+/>
+
+---
+
+## 📚 Core Deep-Dive & Concepts
+
+### 1. The SCAN (Elevator) Algorithm
+
+#### Algorithm Mechanics
+1. The read/write head begins at its current position and travels in a designated direction (e.g., towards lower cylinders or towards higher cylinders).
+2. It services all pending requests in its path as it encounters their cylinders.
+3. Crucially, the arm **continues traveling until it reaches the physical extremity of the disk** (Cylinder $0$ or Cylinder $199$), even if the last request occurred earlier!
+4. At the boundary, the actuator motor reverses direction, and the arm travels across the disk in the opposite direction, servicing pending requests.
+
+---
+
+### 2. Step-by-Step Mathematical Trace: SCAN
+
+* **Initial Head Position**: `53`
+* **Current Direction**: Moving towards lower cylinders (towards `0`).
+* **Request Queue**: `[ 98, 183, 37, 122, 14, 124, 65, 67 ]`
+
+<DiskSchedulingChart
+  title="SCAN (Elevator) Disk Head Trajectory"
+  subtitle="Actuator sweeps down to boundary (0), reverses, and sweeps up: 53 → 37 → 14 → 0 (Boundary) → 65 → 67 → 98 → 122 → 124 → 183"
+  color="purple"
+  minCylinder={0}
+  maxCylinder={199}
+  sequence={[
+    { cylinder: 53, isStart: true, label: "Start (53)" },
+    { cylinder: 37 },
+    { cylinder: 14 },
+    { cylinder: 0, isBoundary: true, label: "Boundary (0)" },
+    { cylinder: 65 },
+    { cylinder: 67 },
+    { cylinder: 98 },
+    { cylinder: 122 },
+    { cylinder: 124 },
+    { cylinder: 183 },
+  ]}
+  metrics={[
+    { label: "Total Head Movement", value: "236 Cylinders" },
+    { label: "Down Leg (53 → 0)", value: "53 Cylinders" },
+    { label: "Up Leg (0 → 183)", value: "183 Cylinders" },
+    { label: "Reversal Point", value: "Physical Limit (0)" },
+  ]}
+/>
+
+#### Total Head Movement Calculation
+Because the motion consists of two monotonic linear sweeps, the calculation simplifies elegantly:
+
+$$\text{Down Leg: } |53 - 0| = 53\text{ Cylinders}$$
+
+$$\text{Up Leg: } |183 - 0| = 183\text{ Cylinders}$$
+
+$$\mathbf{\text{Total Head Movement (SCAN)} = 53 + 183 = 236\text{ Cylinders}}$$
+
+*(Notice that the individual differences $|53-37| + |37-14| + |14-0| + |65-0| + \dots + |183-124|$ sum to the exact same $236$ cylinders).*
+
+#### Evaluation of SCAN
+* **Strengths**: Completely eliminates starvation. Every request is serviced within at most two full sweeps of the disk.
+* **Weaknesses**:
+  - **Boundary Waste**: Travels all the way to Cylinder $0$ even though the last requested track was $14$.
+  - **Unequal Wait Times**: When the head reverses at Cylinder $0$, the cylinders near $0$ have the lowest density of new requests (they were just visited!). Meanwhile, cylinders near $199$ have been waiting the longest.
+
+---
+
+### 3. Circular-SCAN (C-SCAN) Scheduling
+
+#### Why C-SCAN Was Invented: Uniform Wait Times
+Under SCAN, cylinders at the extremities enjoy an unfair advantage: when the head reaches an end, it reverses and immediately revisits adjacent cylinders. In contrast, cylinders in the middle of the disk must wait for the head to travel to the extremity, reverse, and travel all the way back!
+
+**C-SCAN** resolves this by treating cylinders as a continuous ring:
+
+<ConceptComparison
+  title="C-SCAN Circular Sweep Dual Phases"
+  subtitle="Treating cylinders as a continuous ring to equalize response wait times"
+  left={{
+    badge: "Forward Phase",
+    title: "Active Servicing Sweep",
+    icon: "🎯",
+    color: "emerald",
+    description: "Head traverses monotonically in one direction (Track 0 to 199).",
+    bulletPoints: [
+      "Services every pending cylinder request encountered in its path",
+      "Accumulates seek distance proportionally to distance traversed",
+      "Guarantees uniform progress across all cylinders"
+    ]
+  }}
+  right={{
+    badge: "Reset Phase",
+    title: "Express Return Trip",
+    icon: "⚡",
+    color: "purple",
+    description: "Head rapidly slews from Track 199 back to Track 0.",
+    bulletPoints: [
+      "Zero Requests Serviced during the return flight",
+      "Prevents favoring middle tracks over outer tracks",
+      "Restarts servicing immediately upon reaching Track 0"
+    ]
+  }}
+  comparisonPoints={[
+    {
+      metric: "Service Policy",
+      left: "Active I/O Servicing",
+      right: "Fast Express Repositioning (No I/O)"
+    },
+    {
+      metric: "Direction",
+      left: "Monotonically Forward (0 -> 199)",
+      right: "Instantaneous Return (199 -> 0)"
+    }
+  ]}
+/>
+
+#### Algorithm Mechanics
+1. The head moves in one direction (e.g. towards higher tracks), servicing requests along the way.
+2. Upon reaching the end of the disk (Cylinder $199$), the head **immediately returns to the opposite end (Cylinder $0$) without servicing any requests on the return trip**.
+3. Once at Cylinder $0$, it resumes servicing requests in the original forward direction.
+
+---
+
+### 4. Step-by-Step Mathematical Trace: C-SCAN
+
+* **Initial Head Position**: `53`
+* **Current Direction**: Moving towards higher cylinders (towards `199`).
+* **Request Queue**: `[ 98, 183, 37, 122, 14, 124, 65, 67 ]`
+
+<DiskSchedulingChart
+  title="C-SCAN (Circular Elevator) Disk Head Trajectory"
+  subtitle="Monotonic upward sweep to 199 followed by express return to 0: 53 → 65 → 67 → 98 → 122 → 124 → 183 → 199 ⇢ 0 → 14 → 37"
+  color="amber"
+  minCylinder={0}
+  maxCylinder={199}
+  sequence={[
+    { cylinder: 53, isStart: true, label: "Start (53)" },
+    { cylinder: 65 },
+    { cylinder: 67 },
+    { cylinder: 98 },
+    { cylinder: 122 },
+    { cylinder: 124 },
+    { cylinder: 183 },
+    { cylinder: 199, isBoundary: true, label: "Boundary (199)" },
+    { cylinder: 0, isBoundary: true, isJump: true, label: "Reset (0)" },
+    { cylinder: 14 },
+    { cylinder: 37 },
+  ]}
+  metrics={[
+    { label: "Total Head Movement", value: "382 Cylinders" },
+    { label: "Up Leg (53 → 199)", value: "146 Cylinders" },
+    { label: "Express Return (199 → 0)", value: "199 Cylinders" },
+    { label: "Resume Leg (0 → 37)", value: "37 Cylinders" },
+  ]}
+/>
+
+#### Total Head Movement Calculation
+
+$$\text{Leg 1 (Upward Sweep): } |199 - 53| = 146\text{ Cylinders}$$
+
+$$\text{Leg 2 (Return Trip): } |199 - 0| = 199\text{ Cylinders}$$
+
+$$\text{Leg 3 (Resume Sweep): } |37 - 0| = 37\text{ Cylinders}$$
+
+$$\mathbf{\text{Total Head Movement (C-SCAN)} = 146 + 199 + 37 = 382\text{ Cylinders}}$$
+
+
+*(Note: In modern disk controllers with high-speed voice coil slewing, the return trip from 199 to 0 is an uninterrupted high-velocity seek that completes in a fraction of normal stepped seek time).*
+
+---
+
+### 5. Architectural Comparison Matrix
+
+| Architectural Feature | First-Come First-Served (FCFS) | Shortest Seek Time First (SSTF) | SCAN (Elevator) | Circular-SCAN (C-SCAN) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Total Head Movement** | Very High ($640$ cyl) | **Lowest** ($236$ cyl) | Moderate ($236$ cyl) | Moderate ($382$ cyl) |
+| **Starvation Potential** | Zero ($0\%$) | **Severe Risk** | Zero ($0\%$) | Zero ($0\%$) |
+| **Wait-Time Uniformity** | Moderate | Very Poor | Moderate (Favors ends) | **Maximum (Optimal)** |
+| **Boundary Reversal** | Reverses on demand | Reverses on proximity | Reverses at disk edge | Resets to opposite edge |
+| **Implementation Complexity** | Trivial ($\mathcal{O}(1)$) | Greedy scan ($\mathcal{O}(N)$) | Ordered sweep ($\mathcal{O}(\log N)$) | Ordered sweep ($\mathcal{O}(\log N)$) |
+
+---
+
+## 🏭 In The Real World: Production Case Study
+
+### Linux I/O Schedulers: Anticipatory, Deadline, and BFQ
+
+Modern enterprise Linux servers run specialized disk scheduling frameworks inside the block I/O layer:
+
+<SubsystemGrid
+  title="Linux Block Layer I/O Schedulers"
+  subtitle="Production adaptations of elevator principles in the Linux kernel"
+  columns={3}
+  subsystems={[
+    {
+      badge: "Real-Time / Low Latency",
+      title: "Deadline Scheduler",
+      icon: "⏱️",
+      color: "blue",
+      description: "Maintains two sorted elevator queues (read and write) along with two FIFO expiration queues.",
+      details: "Zero Starvation: Services requests via elevator sweep. But if a read request sits unserviced past its 500 ms deadline, the kernel aborts the sweep and services the starving read immediately."
+    },
+    {
+      badge: "Throughput / Server",
+      title: "CFQ (Completely Fair)",
+      icon: "⚖️",
+      color: "purple",
+      description: "Assigns per-process I/O queues and uses weighted elevator sweeps across time slices.",
+      details: "Fair Sharing: Prevents a background database backup from starving interactive desktop processes."
+    },
+    {
+      badge: "Modern Storage (NVMe)",
+      title: "BFQ / None (Kyber)",
+      icon: "⚡",
+      color: "emerald",
+      description: "For solid-state NVMe drives with 64,000 hardware queues and zero mechanical seek time.",
+      details: "Multi-Queue Bypass: Replaces elevator mechanics with raw lockless multi-queue hardware submission (blk-mq)."
+    }
+  ]}
+/>
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** Why does C-SCAN generate more total cylinder movements than SCAN on the same benchmark, yet is often preferred in production systems?
+**Answer:**
+1. C-SCAN incurs the additional seek distance of returning from the highest cylinder ($199$) back to the lowest cylinder ($0$) without servicing requests. In our trace, this increased total movement from $236$ to $382$ cylinders.
+2. However, C-SCAN provides **strictly uniform waiting times**:
+   - In SCAN, requests arriving just behind the head must wait for a full double-sweep across the entire disk before the head returns.
+   - In C-SCAN, every request enjoys an almost identical expected waiting time because the head sweeps across the cylinder space cyclically in one direction.
+3. Furthermore, on physical hard drives, an uninterrupted full-stroke reset across platters executes significantly faster than multiple stop-and-start seeks.
+
+---
+
+**Question 2:** Under what specific scenario does SCAN travel to a cylinder that contains NO pending request?
+**Answer:**
+* SCAN **always** travels to the physical extremity of the disk (**Cylinder $0$ or Cylinder $199$**) before reversing direction.
+* In our benchmark, the lowest requested cylinder was **$14$**.
+* Despite no request existing at Cylinder $0$, SCAN still forced the actuator arm to travel all the way from $14$ down to $0$ before reversing direction. This unnecessary boundary traversal was the exact motivation for inventing the **LOOK algorithm**.
+
+:::
+
+:::warning Common Interview Traps
+
+* **The Missing Boundary Trap in SCAN**: When tracing SCAN on an exam, **never forget to include the boundary cylinder ($0$ or $199$)**! If the head is moving toward $0$, it must travel to $0$ before reversing. Stopping at the lowest request ($14$) is the **LOOK** algorithm, not SCAN!
+* **Direction Specification Matters**: Always verify the initial direction stated in the problem statement. Tracing SCAN moving toward $199$ produces completely different intermediate steps and seek totals than tracing toward $0$.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "9.2 FCFS & SSTF Disk Scheduling",
+    url: "/coredose/os/chapter-09/fcfs-and-shortest-seek-time-first-sstf-disk-scheduling"
+  }}
+  next={{
+    title: "9.4 LOOK & C-LOOK Disk Scheduling",
+    url: "/coredose/os/chapter-09/optimized-traversal-look-and-c-look-disk-scheduling"
+  }}
+  courseUrl="/coredose/os"
+/>

@@ -1,0 +1,371 @@
+---
+title: "3.2 Non-Preemptive Scheduling: FCFS & Convoy Effect"
+description: "Master First-Come, First-Served (FCFS) CPU scheduling, FIFO queue management, Gantt chart derivations, convoy effect mechanics, and production mitigations."
+hide_table_of_contents: true
+---
+
+# 3.2 Non-Preemptive Scheduling: First-Come, First-Served (FCFS) & Convoy Effect
+
+<CoreDoseLessonHeader
+  module="Module 03: CPU Scheduling Algorithms"
+  topic="Topic 3.2"
+  courseUrl="/coredose/os"
+  readTime="12 min read"
+  relevance="Computer Science Foundations • Systems Engineering • Technical Interviews"
+/>
+
+## 💡 Core Intuition
+
+### 🍳 The Everyday Analogy: The Single-Counter Supermarket Checkout
+
+Imagine an express grocery supermarket with **a single cashier counter (the CPU)** and a strictly enforced single-file queue:
+
+<FlowPipeline
+  title="The Supermarket Checkout Analogy Pipeline"
+  subtitle="Mapping single-line supermarket customer flows to FCFS CPU scheduling architecture"
+  steps={[
+    {
+      badge: "Arrival Stage",
+      title: "Store Queue Line",
+      icon: "🛒",
+      color: "blue",
+      sublabel: "FIFO Ready Queue",
+      description: "Shoppers join the line in order of arrival with their shopping carts.",
+      details: "Head-of-Line Principle: Customers enter the queue strictly at their arrival timestamp. No customer can jump ahead regardless of how few items they carry.",
+      connectorLabel: "Next In Line",
+    },
+    {
+      badge: "Allocation Stage",
+      title: "Cashier Counter",
+      icon: "🏪",
+      color: "purple",
+      sublabel: "CPU Core Execution",
+      description: "The cashier scans items exclusively for the customer currently at the counter.",
+      details: "Non-Preemptive Execution: Once scanning starts, the customer holds the cashier until every item is scanned, payment clears, and the receipt prints.",
+      connectorLabel: "Completion",
+    },
+    {
+      badge: "The Bottleneck",
+      title: "The Convoy Stall",
+      icon: "🚚",
+      color: "rose",
+      sublabel: "Convoy Effect Delay",
+      description: "A customer with 200 items delays five customers holding single items.",
+      details: "Pathological Queue Stalling: Tiny processes accumulate massive waiting time stuck behind a giant CPU burst, degrading overall system throughput.",
+    },
+  ]}
+/>
+
+* **Fairness without Bias**: The customer who arrives first is served first. No one is favored, and no one is bypassed.
+* **The Fatal Flaw**: If customer $A$ brings a cart overflowing with $200$ items, customer $B$ holding a single bottle of water must stand waiting for $20$ minutes. This phenomenon in computing is the **Convoy Effect**.
+
+---
+
+### 💻 Bridging to Computer Science
+
+In operating systems, **First-Come, First-Served (FCFS)** is the foundational scheduling algorithm. It manages incoming processes using a simple **First-In, First-Out (FIFO) queue**:
+1. When a process enters the **Ready State**, its Process Control Block (PCB) is linked to the tail of the Ready Queue.
+2. The Short-Term Scheduler assigns the CPU to the process at the head of the queue.
+3. Because FCFS is strictly **non-preemptive**, once a process secures the CPU, it retains exclusive control until voluntary termination or blocking for I/O.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 📚 Core Deep-Dive & Concepts
+
+### 1. FCFS Architectural Principles & Implementation
+
+> **Definition**: First-Come, First-Served (FCFS) is the simplest scheduling algorithm. As the name suggests, the process that requests the CPU first is allocated the CPU first.
+
+<ConceptComparison
+  title="FCFS Architectural Characteristics & Trade-offs"
+  subtitle="Evaluating operational simplicity against scheduling latency"
+  concepts={[
+    {
+      badge: "Operational Strengths",
+      title: "Advantages of FCFS",
+      icon: "✅",
+      color: "emerald",
+      domain: "Simplicity & Inherent Fairness",
+      points: [
+        "Easy to Understand: Intuitive mental model identical to physical real-world queues.",
+        "Easily Implemented using Queue: Managed with simple O(1) FIFO enqueue and dequeue operations.",
+        "Zero Starvation: Every process eventually reaches the head of the queue because the CPU is not biased.",
+        "Ideal for Background Tasks: Well suited for batch pipelines where execution is not time-sensitive.",
+      ],
+      quote: "In FCFS, there is no starvation because the CPU is not biased.",
+    },
+    {
+      badge: "Operational Weaknesses",
+      title: "Disadvantages of FCFS",
+      icon: "⚠️",
+      color: "rose",
+      domain: "Convoy Latency & Poor Responsiveness",
+      points: [
+        "Convoy Effect: Smaller processes wait behind larger processes, causing high average waiting time.",
+        "High Average Waiting & Turnaround Time: Slower metric benchmarks compared to SJF or Round Robin.",
+        "Poor Response Time: Interactive desktop or mobile applications become completely unresponsive.",
+        "Non-Preemptive Rigidity: Higher-priority system tasks cannot interrupt a CPU-bound loop.",
+      ],
+      quote: "Smaller processes have to wait for larger processes, resulting in large average waiting time.",
+    },
+  ]}
+/>
+
+#### Key Architectural Truths:
+1. **FIFO Queue Management**: The Ready Queue is implemented as a standard FIFO queue. Newly arriving PCBs are inserted at the tail; the dispatcher dispatches from the head.
+2. **Strictly Non-Preemptive**: A process holds the CPU until it completes execution or issues an I/O request.
+3. **No Starvation**: Because every process moves forward as earlier processes terminate, every job is guaranteed to run. The CPU does not favor any specific process profile.
+
+---
+
+### 2. Comprehensive Scheduling Problem: 5-Process Step-by-Step Derivation
+
+Consider five processes arriving at different times with varying CPU burst requirements:
+
+| Process ID | Arrival Time ($AT$) | Burst Time ($BT$) |
+| :---: | :---: | :---: |
+| $P_0$ | $2\text{ ms}$ | $4\text{ ms}$ |
+| $P_1$ | $1\text{ ms}$ | $2\text{ ms}$ |
+| $P_2$ | $0\text{ ms}$ | $3\text{ ms}$ |
+| $P_3$ | $4\text{ ms}$ | $2\text{ ms}$ |
+| $P_4$ | $3\text{ ms}$ | $1\text{ ms}$ |
+
+#### Step-by-Step Execution Sequence:
+* **At $t = 0$**: Only $P_2$ is present in the Ready Queue ($AT = 0$). The CPU executes $P_2$ for its full burst of $3\text{ ms}$ ($t = 0 \to 3$).
+* **At $t = 3$**: $P_2$ completes. During $[0, 3]$, processes $P_1$ (arrived at $1$) and $P_0$ (arrived at $2$) entered the queue. $P_4$ also arrives at $t = 3$. The FIFO queue order is $[P_1, P_0, P_4]$. The scheduler selects head process $P_1$. $P_1$ executes for $2\text{ ms}$ ($t = 3 \to 5$).
+* **At $t = 5$**: $P_1$ completes. During $[3, 5]$, $P_3$ arrived at $t = 4$. Current queue order is $[P_0, P_4, P_3]$. The scheduler selects $P_0$. $P_0$ executes for $4\text{ ms}$ ($t = 5 \to 9$).
+* **At $t = 9$**: $P_0$ completes. Current queue order is $[P_4, P_3]$. The scheduler selects $P_4$. $P_4$ executes for $1\text{ ms}$ ($t = 9 \to 10$).
+* **At $t = 10$**: $P_4$ completes. Only $P_3$ remains. $P_3$ executes for $2\text{ ms}$ ($t = 10 \to 12$).
+* **At $t = 12$**: All processes have completed execution.
+
+<GanttChart
+  title="FCFS Execution Gantt Chart (5-Process Schedule)"
+  subtitle="Timeline tracing non-preemptive execution from t = 0 to t = 12 ms"
+  slots={[
+    { process: "P2", start: 0, end: 3, color: "blue", sublabel: "Burst: 3ms" },
+    { process: "P1", start: 3, end: 5, color: "emerald", sublabel: "Burst: 2ms" },
+    { process: "P0", start: 5, end: 9, color: "purple", sublabel: "Burst: 4ms" },
+    { process: "P4", start: 9, end: 10, color: "amber", sublabel: "Burst: 1ms" },
+    { process: "P3", start: 10, end: 12, color: "rose", sublabel: "Burst: 2ms" },
+  ]}
+  metrics={[
+    { label: "Avg Turnaround", value: "5.8 ms" },
+    { label: "Avg Waiting Time", value: "3.4 ms" },
+    { label: "Throughput", value: "0.417 jobs/ms" },
+    { label: "CPU Utilization", value: "100%" },
+  ]}
+/>
+
+#### Tabulation of Derived Metrics:
+
+| Process | Arrival ($AT$) | Burst ($BT$) | Completion ($CT$) | Turnaround ($TAT = CT - AT$) | Waiting ($WT = TAT - BT$) | Response ($RT$) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **$P_0$** | $2$ | $4$ | $9$ | $9 - 2 = \mathbf{7}$ | $7 - 4 = \mathbf{3}$ | $5 - 2 = \mathbf{3}$ |
+| **$P_1$** | $1$ | $2$ | $5$ | $5 - 1 = \mathbf{4}$ | $4 - 2 = \mathbf{2}$ | $3 - 1 = \mathbf{2}$ |
+| **$P_2$** | $0$ | $3$ | $3$ | $3 - 0 = \mathbf{3}$ | $3 - 3 = \mathbf{0}$ | $0 - 0 = \mathbf{0}$ |
+| **$P_3$** | $4$ | $2$ | $12$ | $12 - 4 = \mathbf{8}$ | $8 - 2 = \mathbf{6}$ | $10 - 4 = \mathbf{6}$ |
+| **$P_4$** | $3$ | $1$ | $10$ | $10 - 3 = \mathbf{7}$ | $7 - 1 = \mathbf{6}$ | $9 - 3 = \mathbf{6}$ |
+
+#### Metric Computations:
+* **Average Turnaround Time ($\overline{TAT}$)**:
+  $$\overline{TAT} = \frac{7 + 4 + 3 + 8 + 7}{5} = \frac{29}{5} = \mathbf{5.8\text{ ms}}$$
+* **Average Waiting Time ($\overline{WT}$)**:
+  $$\overline{WT} = \frac{3 + 2 + 0 + 6 + 6}{5} = \frac{17}{5} = \mathbf{3.4\text{ ms}}$$
+* **Non-Preemptive Verification**: Notice that for every process, $RT = WT$ because the scheduler does not preempt any process once allocated.
+
+---
+
+### 3. The Convoy Effect Deep-Dive
+
+> **Definition**: If smaller processes have to wait more for the CPU because of a larger process, this effect is called the **Convoy Effect**. It results in significantly higher average waiting times and low overall device utilization.
+
+To see why the Convoy Effect cripples system throughput, consider three processes arriving simultaneously at $t = 0$:
+* $P_1$ with $BT = 20\text{ ms}$ (CPU-bound long task)
+* $P_2$ with $BT = 2\text{ ms}$ (I/O-bound short task)
+* $P_3$ with $BT = 2\text{ ms}$ (I/O-bound short task)
+
+#### Case A: Long Process Arrives First ($P_1 \to P_2 \to P_3$)
+
+<GanttChart
+  title="Case A: Convoy Effect Induced Schedule (P1 First)"
+  subtitle="Small processes P2 and P3 stalled behind long process P1"
+  slots={[
+    { process: "P1", start: 0, end: 20, color: "rose", sublabel: "Burst: 20ms" },
+    { process: "P2", start: 20, end: 22, color: "emerald", sublabel: "Burst: 2ms" },
+    { process: "P3", start: 22, end: 24, color: "blue", sublabel: "Burst: 2ms" },
+  ]}
+  metrics={[
+    { label: "Avg Waiting Time", value: "14.0 ms" },
+    { label: "Avg Turnaround", value: "22.0 ms" },
+  ]}
+/>
+
+* Waiting Times: $WT(P_1) = 0$, $WT(P_2) = 20$, $WT(P_3) = 22$.
+* **Average Waiting Time**:
+  $$\overline{WT}_{\text{Case A}} = \frac{0 + 20 + 22}{3} = \frac{42}{3} = \mathbf{14.0\text{ ms}}$$
+
+#### Case B: Short Processes Executed First ($P_2 \to P_3 \to P_1$)
+
+<GanttChart
+  title="Case B: Optimized Order (Short Jobs First)"
+  subtitle="Small processes finish instantly, drastically cutting queue wait times"
+  slots={[
+    { process: "P2", start: 0, end: 2, color: "emerald", sublabel: "Burst: 2ms" },
+    { process: "P3", start: 2, end: 4, color: "blue", sublabel: "Burst: 2ms" },
+    { process: "P1", start: 4, end: 24, color: "rose", sublabel: "Burst: 20ms" },
+  ]}
+  metrics={[
+    { label: "Avg Waiting Time", value: "2.0 ms" },
+    { label: "Avg Turnaround", value: "10.0 ms" },
+  ]}
+/>
+
+* Waiting Times: $WT(P_2) = 0$, $WT(P_3) = 2$, $WT(P_1) = 4$.
+* **Average Waiting Time**:
+  $$\overline{WT}_{\text{Case B}} = \frac{0 + 2 + 4}{3} = \frac{6}{3} = \mathbf{2.0\text{ ms}}$$
+
+:::info The Convoy Solution
+By executing smaller processes before longer processes, average waiting time drops by **$85.7\%$** (from $14.0\text{ ms}$ down to $2.0\text{ ms}$). This mathematical reality establishes the theoretical motivation for **Shortest Job First (SJF)** scheduling.
+:::
+
+---
+
+## 📐 Architecture / Visual Blueprint
+
+### The Hardware Resource Utilization Convoy Cycle
+
+The Convoy Effect degrades not just CPU latency, but also system-wide peripheral device utilization:
+
+<ExecutionBlueprint
+  title="System-Wide Device Starvation under Convoy Effect"
+  subtitle="Tracing how a long CPU-bound process causes peripheral I/O devices to sit completely idle"
+  actors={[
+    { name: "CPU Core", color: "#2563eb" },
+    { name: "Ready Queue", color: "#9333ea" },
+    { name: "I/O Devices (Disk/NIC)", color: "#059669" },
+    { name: "I/O Wait Queue", color: "#d97706" },
+  ]}
+  steps={[
+    {
+      step: 1,
+      from: "Ready Queue",
+      to: "CPU Core",
+      action: "CPU-Bound Process Monopolizes Core",
+      detail: "Heavy compute task runs a long calculation loop for 50ms without yielding.",
+    },
+    {
+      step: 2,
+      from: "I/O Devices (Disk/NIC)",
+      to: "I/O Wait Queue",
+      action: "I/O-Bound Tasks Complete Peripheral Cycles",
+      detail: "Multiple interactive tasks quickly finish their disk reads and return to the Ready Queue.",
+    },
+    {
+      step: 3,
+      from: "Ready Queue",
+      to: "CPU Core",
+      action: "Convoy Accumulation",
+      detail: "Ready Queue fills with waiting I/O-bound tasks stalled behind the CPU-bound process.",
+    },
+    {
+      step: 4,
+      from: "CPU Core",
+      to: "I/O Devices (Disk/NIC)",
+      action: "Peripheral Idling",
+      detail: "I/O devices sit completely idle because tasks waiting for CPU cannot submit their next I/O requests.",
+    },
+  ]}
+/>
+
+---
+
+## 🏭 In The Real World: Production Case Study
+
+### Head-of-Line (HoL) Blocking in Redis & Node.js Event Loops
+
+Both **Redis** (in-memory data store) and **Node.js** execute JavaScript/commands on a single main execution thread using a strict FIFO event queue:
+
+<FlowPipeline
+  title="Redis Single-Threaded Head-of-Line (HoL) Blocking"
+  subtitle="Tracing how a heavy 2.5s command stalls lightweight sub-millisecond client requests in a FIFO queue"
+  steps={[
+    {
+      badge: "Queue Tail (0.01ms)",
+      title: "SET cache:token",
+      icon: "⏸️",
+      color: "rose",
+      sublabel: "Stalled in FIFO Buffer",
+      description: "Fast in-memory cache write delayed waiting for prior tasks.",
+      details: "Client Request Latency: A 10-microsecond write operation sits trapped at the tail of the single-threaded command queue.",
+      connectorLabel: "Waiting for Predecessor",
+    },
+    {
+      badge: "Queue Head (0.02ms)",
+      title: "GET user:1042",
+      icon: "⏸️",
+      color: "rose",
+      sublabel: "Head of Line (Blocked)",
+      description: "Lightweight read operation blocked directly behind heavy task.",
+      details: "Head-of-Line Blocking: Next in line to execute, but cannot touch the CPU because Redis commands run non-preemptively.",
+      connectorLabel: "Blocked at Execution Core",
+    },
+    {
+      badge: "Active Core (2500ms)",
+      title: "KEYS * (Heavy Scan)",
+      icon: "⏳",
+      color: "purple",
+      sublabel: "Single-Threaded Engine",
+      description: "Full keyspace regex scan runs for 2.5s, locking the event loop.",
+      details: "Pathological Monopolization: A 2.5-second blocking command monopolizes the CPU core, causing upstream HTTP microservice connection timeouts.",
+    },
+  ]}
+/>
+
+#### Production Pathology:
+* A developer executes `KEYS *` or an expensive Lua script in production against a Redis cluster containing $20\text{ million}$ keys.
+* The command requires $2.5\text{ seconds}$ of continuous CPU core time.
+* Because the command engine processes requests strictly **First-Come, First-Served**, thousands of tiny `GET` and `SET` operations arriving from web servers pile up behind the `KEYS *` command.
+* **Result**: Application latency spikes, connection pools time out, and upstream HTTP microservices fail with HTTP 504 Gateway Timeouts—the textbook modern manifestation of the Convoy Effect.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** Explain why First-Come, First-Served (FCFS) scheduling is free from starvation, yet unsuitable for interactive time-sharing systems.
+**Answer:**
+1. **Free from Starvation**: In FCFS, the Short-Term Scheduler is strictly unbiased. Processes are queued in arrival order; every process eventually advances to the head of the queue as prior jobs terminate.
+2. **Unsuitable for Interactive Systems**: FCFS is non-preemptive. If a CPU-bound process executes a lengthy loop, interactive processes (e.g., keyboard input, UI rendering) cannot preempt it, making the system completely unresponsive to human users.
+
+**Question 2:** Define the Convoy Effect. What structural change to the scheduling queue eliminates it?
+**Answer:**
+1. **Convoy Effect**: A scheduling pathology where smaller (short-burst) processes are delayed for extended durations waiting for a large (long-burst) process to surrender the CPU, leading to high average waiting times and poor peripheral utilization.
+2. **Solution**: Prioritizing smaller processes ahead of larger processes (as implemented in Shortest Job First scheduling) or enforcing preemptive time-slicing (as in Round Robin scheduling).
+
+:::
+
+:::warning Common Interview Traps
+
+* **The "Zero Burst Time" Trap**: If a process has a burst time of $0$, does it consume CPU time? In operating systems theory, every runnable process requires $BT > 0$. Any task with $BT = 0$ is considered terminated immediately upon admission.
+* **The "FCFS is Preemptive if Priority is Added" Misconception**: Candidates sometimes claim FCFS can be preemptive. By formal definition, pure FCFS is **always non-preemptive**. If preemption by arrival time or priority is added, the algorithm transforms into Round Robin or Preemptive Priority scheduling.
+* **Assuming First Arrival Always Implies PID Order**: Never assume $P_1$ arrives before $P_2$ simply because of its numerical process ID. Always examine the explicit Arrival Time ($AT$) column in problem tables.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "3.1 Scheduling Criteria: TAT, WT, RT & Throughput",
+    url: "/coredose/os/chapter-03/scheduling-criteria-turnaround-waiting-response-time-and-throughput"
+  }}
+  next={{
+    title: "3.3 Shortest Job First (SJF) & SRTF",
+    url: "/coredose/os/chapter-03/shortest-job-first-sjf-and-shortest-remaining-time-first-srtf"
+  }}
+  courseUrl="/coredose/os"
+/>

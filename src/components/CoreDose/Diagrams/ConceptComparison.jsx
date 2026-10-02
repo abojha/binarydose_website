@@ -13,6 +13,8 @@ export default function ConceptComparison({ title, subtitle, concepts = [] }) {
     amber: styles.amberTheme,
     emerald: styles.emeraldTheme,
     purple: styles.purpleTheme,
+    cyan: styles.cyanTheme,
+    rose: styles.roseTheme,
   };
 
   return (

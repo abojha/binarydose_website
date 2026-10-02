@@ -4,17 +4,6 @@ description: "Foundational concepts of Operating Systems, the abstract view of a
 hide_table_of_contents: true
 ---
 
-import CoreDoseLessonHeader from "@site/src/components/CoreDose/CoreDoseLessonHeader";
-import CoreDoseTOC from "@site/src/components/CoreDose/CoreDoseTOC";
-import CoreDoseNav from "@site/src/components/CoreDose/CoreDoseNav";
-import {
-  FlowPipeline,
-  ArchitectureStack,
-  ConceptComparison,
-  SubsystemGrid,
-  ExecutionBlueprint,
-} from "@site/src/components/CoreDose/Diagrams";
-
 # 1.1 What is an OS? Definition, Abstract View & Core Goals
 
 <CoreDoseLessonHeader
@@ -295,7 +284,7 @@ To satisfy its primary and secondary goals, every operating system implements si
       icon: "💾",
       title: "Secondary Storage Management",
       tag: "Storage Pipeline & Free Space",
-      color: "green",
+      color: "emerald",
       points: [
         "Optimizes physical block placement and free-space bitmaps on SSDs and HDDs.",
         "Implements disk scheduling policies (SSTF, SCAN, C-SCAN) to reduce seek latency.",
@@ -318,31 +307,11 @@ To satisfy its primary and secondary goals, every operating system implements si
   ]}
 />
 
-### 1. Process Management
-* Tracks all active programs in execution.
-* Creates, schedules, synchronizes, and terminates processes and threads.
-* Resolves resource deadlocks and handles inter-process communication (IPC).
-
-### 2. Memory Management
-* Tracks which bytes of physical memory (RAM) are currently in use and by whom.
-* Dynamically allocates and deallocates memory blocks when programs launch or exit.
-* Provides virtual memory abstractions (paging and segmentation) so that processes cannot tamper with each other's memory spaces.
-
-### 3. I/O Device Management
-* Hides peculiar hardware device behaviors using standardized device drivers.
-* Manages device buffers, caches, and spooling queues to smooth out speed discrepancies between lightning-fast CPUs and sluggish mechanical/optical peripherals.
-
-### 4. File Management
-* Maps raw, unformatted storage sectors on secondary drives (SSDs, HDDs) into structured files and nested directories.
-* Provides access control permissions (read, write, execute) to safeguard file integrity.
-
-### 5. Network Management (Distributed Communication)
-* Manages network interface cards (NICs), packet buffers, and transport protocol stacks.
-* Enables distributed processes to share resources and communicate seamlessly over local or wide-area networks.
-
-### 6. Security and Protection
-* Enforces strict boundaries between unprivileged user code and privileged kernel subsystems.
-* Prevents errant, buggy, or malicious software from hijacking system resources or eavesdropping on other users.
+### Subsystem Interdependence in Execution
+In a running kernel, these six subsystems do not operate as isolated silos; every high-level user request demands their seamless, millisecond-by-millisecond coordination:
+1. **Security & Process Admission**: When a binary launches, `Security & Protection` validates user permissions (`UID/GID`) before `Process Management` allocates a new Process Control Block (PCB).
+2. **Virtual Memory Backing**: `Memory Management` maps the executable's virtual address space (Text, Data, Heap, Stack) using page tables, faulting in pages on demand from disk via `Secondary Storage Management`.
+3. **I/O & File Virtualization**: When the program issues `open()` or `read()`, `File Management` traverses directory inodes, `I/O Device Management` dispatches non-blocking DMA commands to peripheral controllers, and the CPU scheduler instantly context-switches to another ready task.
 
 ---
 
