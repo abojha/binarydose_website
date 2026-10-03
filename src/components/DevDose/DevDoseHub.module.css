@@ -1,0 +1,352 @@
+.wrapper {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 5rem 1.25rem;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   Search Section
+   ========================================================================== */
+
+.searchSection {
+  display: flex;
+  justify-content: center;
+  margin: 1.75rem 0 2.5rem 0;
+}
+
+/* ==========================================================================
+   Track Grid & Cards
+   ========================================================================== */
+
+.trackGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.75rem;
+}
+
+@media (max-width: 860px) {
+  .trackGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--ifm-background-surface-color);
+  border: 1.5px solid var(--ifm-color-emphasis-200);
+  border-radius: 16px;
+  padding: 1.75rem 2rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  text-decoration: none !important;
+  color: inherit !important;
+  box-sizing: border-box;
+}
+
+[data-theme='dark'] .card {
+  background: rgba(30, 41, 59, 0.35);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.cardActive {
+  cursor: pointer;
+}
+
+.cardActive:hover {
+  transform: translateY(-4px);
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.07);
+}
+
+[data-theme='dark'] .cardActive:hover {
+  border-color: #60a5fa;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.cardUpcoming {
+  opacity: 0.88;
+}
+
+.cardUpcoming:hover {
+  border-color: var(--ifm-color-emphasis-400);
+  transform: translateY(-2px);
+}
+
+[data-theme='dark'] .cardUpcoming:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Card Header */
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.15rem;
+}
+
+.iconWrapper {
+  font-size: 1.85rem;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ifm-color-emphasis-100);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+}
+
+[data-theme='dark'] .iconWrapper {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.statusBadge {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  letter-spacing: -0.01em;
+}
+
+.statusActive {
+  color: #059669;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+[data-theme='dark'] .statusActive {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.statusUpcoming {
+  color: var(--ifm-color-emphasis-600);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+[data-theme='dark'] .statusUpcoming {
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Card Typography */
+.cardTitle {
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  color: var(--ifm-font-color-base) !important;
+  margin: 0 0 0.5rem 0 !important;
+  line-height: 1.35 !important;
+  text-decoration: none !important;
+}
+
+.cardDesc {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--ifm-color-emphasis-700);
+  margin-bottom: 1.15rem;
+  flex: 1;
+}
+
+[data-theme='dark'] .cardDesc {
+  color: #94a3b8;
+}
+
+/* Chips */
+.chipsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.chip {
+  font-size: 0.73rem;
+  font-weight: 550;
+  color: var(--ifm-color-emphasis-700);
+  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+}
+
+[data-theme='dark'] .chip {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.07);
+  color: #cbd5e1;
+}
+
+/* Card Footer */
+.cardFooter {
+  display: flex;
+  align-items: center;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+[data-theme='dark'] .cardFooter {
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+.footerActive {
+  color: var(--ifm-color-primary);
+  transition: color 0.15s ease;
+}
+
+.cardActive:hover .footerActive {
+  color: var(--ifm-color-primary-darker, #1d4ed8);
+}
+
+[data-theme='dark'] .footerActive {
+  color: #60a5fa;
+}
+
+[data-theme='dark'] .cardActive:hover .footerActive {
+  color: #93c5fd;
+}
+
+.footerMuted {
+  color: var(--ifm-color-emphasis-500);
+  font-weight: 600;
+}
+
+[data-theme='dark'] .footerMuted {
+  color: #64748b;
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 3.5rem 1rem;
+}
+
+.emptyIcon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.emptyTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.emptyDesc {
+  font-size: 0.9rem;
+  color: var(--ifm-color-emphasis-600);
+  margin-bottom: 1.25rem;
+}
+
+.resetBtn {
+  background: var(--ifm-color-primary);
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.resetBtn:hover {
+  opacity: 0.9;
+}
+
+/* ==========================================================================
+   Dynamic Curriculum Roadmap Strip (Aligned with CoreDoseHub)
+   ========================================================================== */
+
+.roadmapSection {
+  margin-top: 2rem;
+}
+
+.roadmapCard {
+  background: var(--ifm-background-surface-color);
+  border: 1px dashed var(--ifm-color-emphasis-300);
+  border-radius: 14px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+[data-theme='dark'] .roadmapCard {
+  background: rgba(30, 41, 59, 0.25);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.roadmapHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.roadmapPill {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background: rgba(147, 51, 234, 0.1);
+  color: #9333ea;
+  border: 1px solid rgba(147, 51, 234, 0.2);
+}
+
+[data-theme='dark'] .roadmapPill {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+}
+
+.roadmapStatus {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ifm-color-emphasis-700);
+}
+
+[data-theme='dark'] .roadmapStatus {
+  color: #94a3b8;
+}
+
+.roadmapDesc {
+  font-size: 0.92rem;
+  color: var(--ifm-color-emphasis-700);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+[data-theme='dark'] .roadmapDesc {
+  color: #94a3b8;
+}
+
+.roadmapPillsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.roadmapSubject {
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  background: var(--ifm-color-emphasis-100);
+  color: var(--ifm-color-emphasis-800);
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+[data-theme='dark'] .roadmapSubject {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}

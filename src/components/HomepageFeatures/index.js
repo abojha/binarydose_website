@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "@docusaurus/Link";
 import Heading from "@theme/Heading";
-import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
+import useSiteStats from "@site/src/hooks/useSiteStats";
 import styles from "./styles.module.css";
 
 const CoreValues = [
@@ -18,7 +18,17 @@ const CoreValues = [
   {
     icon: "💻",
     title: "Clean, Self-Explanatory Code",
-    description: "Meaningful variable names, well-commented logic, and optimal implementations in C++ and Python.",
+    description: "Meaningful variable names, well-commented logic, and optimal implementations in modern C++ and Python.",
+  },
+  {
+    icon: "⚡",
+    title: "Interactive Algorithm Labs",
+    description: "Stop memorizing code. Watch pointers shift, arrays partition, and states transition step-by-step with zero lag.",
+  },
+  {
+    icon: "🏭",
+    title: "Real-World Production Systems",
+    description: "Bridges theory with industry engineering — Linux kernel internals, system calls, concurrency traps, and cloud scale.",
   },
   {
     icon: "🚀",
@@ -28,41 +38,40 @@ const CoreValues = [
 ];
 
 export default function HomepageFeatures() {
-  const { siteConfig } = useDocusaurusContext();
-  const stats = siteConfig.customFields?.stats || {};
+  const stats = useSiteStats();
 
   const learningTracks = [
     {
-      icon: "🕹️",
-      badge: `${stats.visualizerEnginesCount || 4} Interactive Engines`,
-      title: "AlgoDose Visualizer Lab",
-      description: "Interactive step-by-step algorithm visualizer with zero CLS, pointer indicators, and synchronized code execution.",
-      link: "/algodose",
-      linkText: "Launch Visualizer",
-    },
-    {
       icon: "⚡",
-      badge: `${stats.totalProblems || 390}+ Problems • ${stats.totalCategories || 16} Patterns`,
-      title: "CodeDose DSA Sheet",
-      description: `Curated collection of must-solve coding patterns with clean C++ and Python implementations and complexity analysis.`,
+      badge: `${stats.totalProblems}+ Problems • ${stats.totalCategories} Patterns`,
+      title: "CodeDose (DSA Sheet)",
+      description: "Curated collection of must-solve coding patterns with clean C++ and Python implementations and complexity analysis.",
       link: "/coding",
       linkText: "Start Solving",
     },
     {
-      icon: "🔥",
-      badge: `${stats.hundredDaysCount || 48}+ Interview Doses`,
-      title: "100 Days Interview Series",
-      description: "Bite-sized daily interview questions covering OS, System Design, Concurrency, and Memory with deep-dive notes.",
-      link: "/100-days",
-      linkText: "Explore 100 Days",
+      icon: "🎓",
+      badge: `${stats.coredose?.totalModules || 20} Modules • ${stats.coredose?.totalTopics || 99}+ Topics`,
+      title: "CoreDose (CS Notes)",
+      description: "Zero-fluff textbook notes, derivations, and interactive architecture diagrams for Operating Systems, DBMS, and GATE CSE.",
+      link: "/coredose",
+      linkText: "Explore CS Notes",
     },
     {
-      icon: "📺",
-      badge: `${stats.videoPlaylistsCount || 4} Video Playlists`,
-      title: "Video Courses & Playlists",
-      description: "Complete animated video courses on Operating Systems, Algorithms, Data Structures, and Object-Oriented Programming.",
-      link: "/courses",
-      linkText: "Watch Courses",
+      icon: "🛠️",
+      badge: `${stats.hundredDaysCount}+ Interview Doses • Applied Tracks`,
+      title: "DevDose (Applied Tech)",
+      description: "Curated 100 Days interview deep-dives, system design blueprints, and production-ready software engineering tracks.",
+      link: "/devdose",
+      linkText: "Explore DevDose",
+    },
+    {
+      icon: "🕹️",
+      badge: `${stats.visualizerEnginesCount} Interactive Engines`,
+      title: "AlgoDose Visualizer Lab",
+      description: "Interactive step-by-step algorithm visualizer with zero CLS, pointer indicators, and synchronized code execution.",
+      link: "/algodose",
+      linkText: "Launch Visualizer",
     },
   ];
 
@@ -155,7 +164,7 @@ export default function HomepageFeatures() {
               Built by Engineers, for Engineers
             </h2>
             <p className={styles.communityDescription}>
-              Binary Dose is built for the developer community, by the developer community. Have a clean DSA solution, an interview breakdown, or a visualizer enhancement? Contribute on GitHub and get your own verified author profile.
+              Binary Dose is built for the developer community, by the developer community. Share an engineering deep-dive, write an interview breakdown, or contribute to our learning platform on GitHub with your own verified author profile.
             </p>
             <div className={styles.communityActionButtons}>
               <a

@@ -1,40 +1,33 @@
 ---
-title: "Database Management Systems (DBMS) Masterclass"
-description: "Complete module-wise tutorial and lecture notes for DBMS covering Relational Model, ER Diagrams, SQL, Normalization, Transactions, Concurrency Control, Indexing, and Query Optimization."
+title: "Database Management Systems (DBMS) Notes & Roadmap"
+description: "Complete module-wise notes and roadmap for DBMS covering Relational Model, ER Diagrams, SQL, Normalization, Transactions, Concurrency Control, Indexing, and Query Optimization."
+hide_title: true
 hide_table_of_contents: true
 ---
 
-import CoreDoseLessonHeader from "@site/src/components/CoreDose/CoreDoseLessonHeader";
-import CoreDoseTOC from "@site/src/components/CoreDose/CoreDoseTOC";
-import Link from "@docusaurus/Link";
-
-# Database Management Systems (DBMS)
-
-<CoreDoseLessonHeader
-  module="Course Masterclass"
-  topic="Syllabus & Roadmap"
-  readTime="5 min read"
-  relevance="Semester Exams (All Universities) • GATE CSE • SDE Technical Interviews"
+<BackNav
+  backUrl="/coredose"
+  backLabel="Back to CoreDose Hub"
+  breadcrumbs={[
+    { label: "CoreDose", url: "/coredose" },
+    { label: "Database Management Systems" },
+  ]}
 />
 
-<CoreDoseTOC toc={toc} />
-
-## 🎯 Welcome to DBMS CoreDose
-
-Welcome to the **Database Management Systems (DBMS) Complete Masterclass** on Binary Dose. 
-This curriculum is built directly from authentic, battle-tested computer science notes, designed to give you **100% conceptual clarity** without academic fluff.
-
-Whether you are preparing for:
-* 🎓 **University Semester Exams** (RGPV, AKTU, VTU, SPPU, Anna Univ, etc.)
-* 🚀 **GATE Computer Science (CSE)** (High-Frequency Core Subject)
-* 💼 **SDE Technical Interviews** (Product & Service company rounds)
-
----
-
-## 📚 Complete Course Curriculum
+<HeroHeader
+  badge={{ icon: "📖", text: "DBMS Notes" }}
+  title="Database Management Systems"
+  gradient="(DBMS)"
+  subtitle="Zero-fluff engineering notes, relational algebra derivations, and high-yield interview frameworks for university semester exams, GATE CSE, and technical placement rounds."
+  stats={[
+    { number: 10, label: "Modules" },
+    { number: 48, label: "Topics" },
+    { number: "100%", label: "Free Access" },
+  ]}
+/>
 
 <CourseCurriculum
-  subtitle="Comprehensive topic-by-topic curriculum covering relational algebra, SQL engines, schema normalization, ACID isolation, and storage internals"
+  hideStats={true}
   modules={[
     {
       num: "01",

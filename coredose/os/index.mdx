@@ -1,41 +1,33 @@
 ---
-title: "Operating Systems (OS) Masterclass"
-description: "Complete module-wise tutorial and lecture notes for Operating Systems covering OS Architecture, Process Management, CPU Scheduling, Synchronization, Deadlocks, Memory Management, Virtual Memory, and File Systems."
+title: "Operating Systems (OS) Notes & Roadmap"
+description: "Complete module-wise notes and roadmap for Operating Systems covering OS Architecture, Process Management, CPU Scheduling, Concurrency, Deadlocks, Memory Management, and File Systems."
+hide_title: true
 hide_table_of_contents: true
 ---
 
-import CoreDoseLessonHeader from "@site/src/components/CoreDose/CoreDoseLessonHeader";
-import CoreDoseTOC from "@site/src/components/CoreDose/CoreDoseTOC";
-
-# Operating Systems (OS)
-
-<CoreDoseLessonHeader
-  module="Course Masterclass"
-  topic="Syllabus & Roadmap"
-  readTime="5 min read"
-  relevance="Computer Science Foundations • Systems Engineering • Technical Interviews"
+<BackNav
+  backUrl="/coredose"
+  backLabel="Back to CoreDose Hub"
+  breadcrumbs={[
+    { label: "CoreDose", url: "/coredose" },
+    { label: "Operating Systems" },
+  ]}
 />
 
-<CoreDoseTOC toc={toc} />
-
----
-
-## 🎯 Welcome to Operating Systems CoreDose
-
-Welcome to the **Operating Systems Complete Masterclass** on Binary Dose. 
-This curriculum is built from foundational computer science principles, core operating systems theory, and battle-tested production kernel architectures, engineered to deliver **100% conceptual clarity** from bare-metal hardware up to high-concurrency production kernels.
-
-Whether you are mastering:
-* 🎓 **Core Computer Science Foundations** (Systems Architecture & Abstractions)
-* 🚀 **Operating Systems Theory & Algorithms** (Scheduling, Concurrency & Virtual Memory)
-* 💼 **Systems Engineering & Interviews** (Concurrency, Threading, Memory & Linux Internals)
-
----
-
-## 📚 Complete Course Curriculum
+<HeroHeader
+  badge={{ icon: "📖", text: "Operating Systems Notes" }}
+  title="Operating Systems"
+  gradient="(OS)"
+  subtitle="Zero-fluff engineering notes, interactive architectural diagrams, and high-yield interview frameworks for university semester exams, GATE CSE, and technical placement rounds."
+  stats={[
+    { number: 10, label: "Modules" },
+    { number: 51, label: "Topics" },
+    { number: "100%", label: "Free Access" },
+  ]}
+/>
 
 <CourseCurriculum
-  subtitle="Comprehensive topic-by-topic curriculum covering all foundational principles, standard university syllabi, and production kernel internals"
+  hideStats={true}
   modules={[
     {
       num: "01",

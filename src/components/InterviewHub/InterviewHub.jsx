@@ -1,5 +1,9 @@
 import React, { useState, useMemo } from "react";
 import Link from "@docusaurus/Link";
+import HeroHeader from "@site/src/components/Common/HeroHeader";
+import NumberBadge from "@site/src/components/Common/NumberBadge";
+import SearchBar from "@site/src/components/Common/SearchBar";
+import BackNav from "@site/src/components/Common/BackNav";
 import "./InterviewHub.css";
 
 // Load frontmatter from all markdown files in 100-days via Webpack require.context
@@ -69,24 +73,31 @@ export default function InterviewHub() {
 
   return (
     <div className="hubContainer">
-      <div className="hubHeader">
-        <div className="hubBadge">
-          <span>⚡</span> High-Yield CS Questions & Deep Dives
-        </div>
-        <h1 className="hubTitle">100 Days of Interview Questions</h1>
-        <p className="hubSubtitle">
-          High-yield Computer Science, Operating Systems, System Design, and Concurrency questions explained intuitively with visual notes and code.
-        </p>
-      </div>
+      <BackNav
+        backUrl="/devdose"
+        backLabel="Back to DevDose Hub"
+        breadcrumbs={[
+          { label: "Home", url: "/" },
+          { label: "DevDose", url: "/devdose" },
+          { label: "100 Days Interview" },
+        ]}
+      />
+
+      <HeroHeader
+        badge={{ icon: "⚡", text: "High-Yield CS Questions & Deep Dives" }}
+        title="100 Days of"
+        gradient="Interview Questions"
+        subtitle="High-yield Computer Science, Operating Systems, System Design, and Concurrency questions explained intuitively with visual notes and code."
+      />
 
       {/* Search & Category Filters */}
       <div className="controlsWrapper">
-        <input
-          type="text"
-          className="searchInput"
-          placeholder="🔍 Search questions by topic, keyword, or Day number (e.g. 'TCP', 'Mutex', '#1')..."
+        <SearchBar
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={setSearchTerm}
+          placeholder="Search questions by topic, keyword, or Day number (e.g. 'TCP', 'Mutex', '#1')..."
+          maxWidth="100%"
+          ariaLabel="Search interview questions"
         />
 
         <div className="filterPills">
@@ -106,11 +117,10 @@ export default function InterviewHub() {
       {filteredDocs.length > 0 ? (
         <div className="questionList">
           {filteredDocs.map((doc) => {
-            const formattedDay = doc.day > 0 ? (doc.day < 10 ? `#0${doc.day}` : `#${doc.day}`) : "#";
             return (
               <Link key={doc.id} to={doc.path} className="questionItem">
                 <div className="itemLeft">
-                  <span className="dayNumber">{formattedDay}</span>
+                  <NumberBadge value={doc.day} />
                   <span className="itemTitle">{doc.title}</span>
                 </div>
 

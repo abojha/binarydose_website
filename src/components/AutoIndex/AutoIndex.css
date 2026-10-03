@@ -1,89 +1,190 @@
-/* Section spacing */
+/* ==========================================================================
+   AutoIndex Component: Modern DSA Sheet Section & Problem Explorer
+   ========================================================================== */
+
+.auto-index-container {
+  width: 100%;
+  margin: 0 auto;
+}
+
+.auto-index-wrapper {
+  margin-top: 1.5rem;
+}
+
 .auto-index-section {
-  margin-bottom: 2rem;
-}
-
-/* Difficulty heading */
-.auto-index-heading {
-  font-size: 1.4rem;
-  margin-bottom: 0.75rem;
-  padding-left: 0.5rem;
-  border-left: 4px solid var(--ifm-color-primary);
-}
-
-/* List reset */
-.auto-index-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-/* Each problem row */
-.auto-index-item {
-  margin-bottom: 0.5rem;
-}
-
-/* Clickable row */
-.auto-index-link {
-  display: block;
-  padding: 0.6rem 0.75rem;
-  border-radius: 6px;
+  margin-bottom: 1.15rem;
   background: var(--ifm-background-surface-color);
-  text-decoration: none;
-  color: var(--ifm-font-color-base);
-  transition: background 0.2s ease, transform 0.1s ease;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
 }
 
-/* Hover effect */
-.auto-index-link:hover {
-  background: var(--ifm-color-primary-lightest);
-  transform: translateX(4px);
+[data-theme='dark'] .auto-index-section {
+  background: rgba(30, 41, 59, 0.35);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
-
-.auto-index-section {
-  margin-bottom: 1.2rem;
+.auto-index-section:hover {
+  border-color: var(--ifm-color-emphasis-400);
 }
 
+[data-theme='dark'] .auto-index-section:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Accordion Header Toggle */
 .auto-index-toggle {
   width: 100%;
   display: flex;
   justify-content: space-between;
   align-items: center;
-
-  padding: 0.6rem 0.8rem;
-  font-size: 1rem;
-  font-weight: 600;
-
-  background: var(--ifm-background-surface-color);
-  border: 1px solid var(--ifm-color-emphasis-300);
-  border-radius: 8px;
-
+  padding: 0.95rem 1.35rem;
+  background: transparent;
+  border: none;
   cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.2s ease;
 }
 
 .auto-index-toggle:hover {
-  background: var(--ifm-color-emphasis-100);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme='dark'] .auto-index-toggle:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.auto-index-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.difficulty-indicator {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.diff-easy .difficulty-indicator {
+  color: #10b981;
+}
+
+.diff-med .difficulty-indicator {
+  color: #f59e0b;
+}
+
+.diff-hard .difficulty-indicator {
+  color: #ef4444;
+}
+
+.auto-index-heading-text {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ifm-font-color-base);
+}
+
+.auto-index-toggle-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .auto-index-meta {
-  font-size: 0.85rem;
-  opacity: 0.8;
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--ifm-color-emphasis-600);
+  background: rgba(0, 0, 0, 0.04);
+  padding: 0.22rem 0.65rem;
+  border-radius: 9999px;
 }
 
+[data-theme='dark'] .auto-index-meta {
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+}
+
+.auto-index-chevron {
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-500);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  display: inline-block;
+}
+
+.auto-index-chevron-open {
+  transform: rotate(180deg);
+}
+
+/* Problem List */
 .auto-index-list {
-  margin-top: 0.6rem;
-  padding-left: 1.2rem;
+  list-style: none !important;
+  padding: 0.65rem 0.75rem !important;
+  margin: 0 !important;
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+[data-theme='dark'] .auto-index-list {
+  border-top-color: rgba(255, 255, 255, 0.06);
 }
 
 .auto-index-item {
-  margin: 0.35rem 0;
+  margin: 0;
+  padding: 0;
+  list-style: none !important;
+}
+
+.auto-index-item::before {
+  display: none !important;
 }
 
 .auto-index-link {
-  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.95rem 1.35rem;
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  color: inherit !important;
+  text-decoration: none !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+[data-theme='dark'] .auto-index-link {
+  background: rgba(30, 41, 59, 0.3);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .auto-index-link:hover {
-  text-decoration: underline;
+  transform: translateX(4px);
+  border-color: var(--ifm-color-primary);
+  background: var(--ifm-background-color);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+  color: inherit !important;
+  text-decoration: none !important;
 }
+
+[data-theme='dark'] .auto-index-link:hover {
+  background: rgba(30, 41, 59, 0.55);
+  border-color: var(--ifm-color-primary);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+.problem-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ifm-font-color-base) !important;
+  line-height: 1.45;
+  flex: 1;
+  text-decoration: none !important;
+}
+

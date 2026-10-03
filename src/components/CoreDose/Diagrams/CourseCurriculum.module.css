@@ -372,6 +372,119 @@
   color: #0b0f19;
 }
 
+/* Search Section */
+.searchSection {
+  margin-bottom: 2.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.searchFeedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.84rem;
+  color: var(--ifm-color-emphasis-700, #475569);
+  background: var(--ifm-color-emphasis-100, #f1f5f9);
+  padding: 0.35rem 0.95rem;
+  border-radius: 9999px;
+  border: 1px solid var(--ifm-color-emphasis-300, #e2e8f0);
+}
+
+[data-theme='dark'] .searchFeedback {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+}
+
+.searchFeedback strong {
+  color: var(--ifm-color-primary, #2563eb);
+}
+
+[data-theme='dark'] .searchFeedback strong {
+  color: #60a5fa;
+}
+
+.resetSearchBtn {
+  background: none;
+  border: none;
+  color: var(--ifm-color-primary, #2563eb);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  text-decoration: underline;
+  transition: opacity 0.15s ease;
+}
+
+.resetSearchBtn:hover {
+  opacity: 0.75;
+}
+
+/* No Results Box */
+.noResultsBox {
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+  background: var(--ifm-background-surface-color, #ffffff);
+  border: 1px dashed var(--ifm-color-emphasis-300, #cbd5e1);
+  border-radius: var(--diagram-card-radius, 14px);
+  margin: 1.5rem 0 3rem 0;
+}
+
+[data-theme='dark'] .noResultsBox {
+  background: #111827;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.noResultsIcon {
+  font-size: 2.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.noResultsTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ifm-color-emphasis-900, #0f172a);
+  margin-bottom: 0.5rem;
+}
+
+[data-theme='dark'] .noResultsTitle {
+  color: #f8fafc;
+}
+
+.noResultsText {
+  font-size: 0.9rem;
+  color: var(--ifm-color-emphasis-600, #64748b);
+  max-width: 440px;
+  margin: 0 auto 1.25rem auto;
+}
+
+[data-theme='dark'] .noResultsText {
+  color: #94a3b8;
+}
+
+.clearSearchBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 8px;
+  background: var(--ifm-color-primary, #2563eb);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.clearSearchBtn:hover {
+  transform: translateY(-1px);
+  opacity: 0.92;
+}
+
 @media (max-width: 640px) {
   .modulesGrid {
     grid-template-columns: 1fr;

@@ -249,7 +249,7 @@ const config = {
         },
         items: [
           {
-            label: "CodeDose (DSA)",
+            label: "CodeDose",
             position: "left",
             to: "/coding",
           },
@@ -259,14 +259,14 @@ const config = {
             to: "/algodose",
           },
           {
-            label: "100 Days Interview",
-            position: "left",
-            to: "/100-days",
-          },
-          {
             label: "CoreDose",
             position: "left",
             to: "/coredose",
+          },
+          {
+            label: "DevDose",
+            position: "left",
+            to: "/devdose",
           },
           {
             to: "/blog",
@@ -322,6 +322,14 @@ const config = {
               {
                 label: "CodeDose (DSA Sheet)",
                 to: "/coding",
+              },
+              {
+                label: "CoreDose (CS Core)",
+                to: "/coredose",
+              },
+              {
+                label: "DevDose (Engineering)",
+                to: "/devdose",
               },
               {
                 label: "AlgoDose (Visualizer)",

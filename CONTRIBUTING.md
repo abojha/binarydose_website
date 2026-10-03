@@ -1,117 +1,108 @@
 # Contributing to Binary Dose 🚀
 
-Thank you for your interest in contributing to **Binary Dose**! We welcome technical articles, interview breakdowns, code solutions, and improvements from students, software engineers, and educators.
+Thank you for your interest in contributing to **Binary Dose**! We are an open-source, community-driven platform dedicated to providing zero-fluff, high-clarity computer science education, DSA patterns, visual algorithm labs, and interview preparation.
+
+Whether you are fixing a typo, adding an optimal DSA solution, authoring a core computer science lesson, or building an interactive visualizer, your contributions help thousands of students and software engineers worldwide.
 
 ---
 
-## ✍️ How to Write an Article / Interview Breakdown
+## 🗺️ Choose Your Contribution Track
 
-Writing for Binary Dose gives you a **dedicated author profile** with backlinks to your LinkedIn, GitHub, and portfolio, reaching thousands of computer science students and engineers.
+Binary Dose is built around **4 core pillars** and our **engineering blog**. Each area has a dedicated, highly detailed specification:
 
-### Topics We Welcome in Blogs
-- **Operating Systems** (Memory management, scheduling, kernel, Linux internals)
-- **System Design & Backend** (Scalability, caching, databases, rate limiting, microservices)
-- **Concurrency & Multithreading** (Locks, race conditions, atomic operations)
-- **Computer Networks** (TCP/IP, HTTP, sockets, DNS, protocols)
-- **Data Structures & Algorithms** (Deep-dive problem walkthroughs, patterns)
-- **Interview Questions & Round Experiences** (Breakdown of tricky problems & architectural lessons)
+| Track | Guide | Focus Area |
+| :--- | :--- | :--- |
+| 🎓 **CoreDose** | [`contributing/COREDOSE.md`](./contributing/COREDOSE.md) | University & GATE notes (OS, DBMS, CN, OOPs, Architecture) with mathematical derivations and 7-layer lesson blueprints. |
+| 🛠️ **DevDose** | [`contributing/DEVDOSE.md`](./contributing/DEVDOSE.md) | 100 Days of Tech Interview series, System Design blueprints, and applied language tracks. |
+| ⚡ **CodeDose** | [`contributing/CODEDOSE.md`](./contributing/CODEDOSE.md) | Curated DSA solutions in C++ and Python with complexity analysis and AutoIndex discovery. |
+| 🕹️ **AlgoDose** | [`contributing/ALGODOSE.md`](./contributing/ALGODOSE.md) | Interactive step-by-step visualizers with zero lag, 7-item caps, and synchronized code execution. |
+| 📐 **Diagrams** | [`contributing/DIAGRAMS.md`](./contributing/DIAGRAMS.md) | Universal React educational diagram components (`<FlowPipeline>`, `<ArchitectureStack>`, etc.). |
+| ✍️ **Blog** | [`contributing/BLOG.md`](./contributing/BLOG.md) | Standalone engineering deep-dives, interview round breakdowns, and author profile registration. |
 
 ---
 
-## 🚀 3-Step Guide to Submit via GitHub (Pull Request)
+## 🛡️ Git & Pull Request Protocol (CRITICAL)
 
-### Step 1: Fork and Clone the Repository
+To maintain platform stability, clean git history, and automated deployment pipelines, **all contributors must adhere strictly to this workflow**:
+
+### ⚠️ Golden Rule: NEVER Push Directly to `main`
+* Direct pushes to `main` are strictly protected and blocked by GitHub branch protection.
+* Never open a Pull Request directly from your fork's `main` branch. Always use a dedicated, well-named **feature branch**.
+
+---
+
+### Step-by-Step GitHub Workflow:
+
+#### 1. Fork the Repository
+Click the **Fork** button at the top right of [github.com/abojha/binarydose_website](https://github.com/abojha/binarydose_website) to create a copy under your personal account.
+
+#### 2. Clone Your Fork Locally
 ```bash
 git clone https://github.com/YOUR_USERNAME/binarydose_website.git
 cd binarydose_website
 npm install
 ```
 
-### Step 2: Add Yourself to `blog/authors.yml`
-Open `blog/authors.yml` and add your author profile at the bottom:
-
-```yaml
-your_username:
-  name: Your Full Name
-  title: Software Engineer @ Company / Student @ University
-  url: https://linkedin.com/in/your-profile
-  image_url: https://github.com/your_username.png  # or link to your photo
-  socials:
-    linkedin: https://linkedin.com/in/your-profile
-    github: https://github.com/your_username
-    twitter: https://twitter.com/your_handle
+#### 3. Create a Dedicated Feature Branch
+Always create a clean, descriptive branch off the latest `main`:
+```bash
+git checkout -b feat/coredose-cn-tcp-handshake
 ```
 
-### Step 3: Create Your Article
-Create a new file in `blog/` using the naming format: `YYYY-MM-DD-your-topic-title.md` (or `.mdx`):
+Branch naming conventions:
+* `feat/codedose-<pattern>-<problem>`
+* `feat/coredose-<subject>-<topic>`
+* `feat/devdose-<track>-<topic>`
+* `feat/algodose-<algorithm>`
+* `feat/blog-<article-slug>`
+* `fix/<area>-<description>`
 
-```markdown
----
-title: "Your Catchy Article Title Here"
-description: "A short 1-2 sentence summary of what this article covers."
-authors: [your_username]
-tags: [operating-systems, backend, interview]
-hide_table_of_contents: true
----
-
-import TOCInline from '@theme/TOCInline';
-
-Write a compelling introduction explaining what problem or concept this article covers.
-
-<!-- truncate -->
-
-<div className="inline-toc-container">
-  <details open>
-    <summary><strong>📑 Table of Contents</strong></summary>
-    <TOCInline toc={toc} />
-  </details>
-</div>
-
----
-
-## 1. Section Title
-
-Your content, code snippets, and explanations here.
-
-### Diagrams with Mermaid
-You can include interactive diagrams:
-
-```mermaid
-flowchart LR
-    Client --> API
-    API --> Cache
-    API --> Database
-```
-
----
-
-## 🎯 Key Takeaways
-- Point 1
-- Point 2
-```
-
-### Step 4: Test Locally & Open a PR
+#### 4. Run Locally & Verify
+Start the local development server:
 ```bash
 npm run start
 ```
-Check `http://localhost:3000/blog` to ensure everything looks sharp. Then push your branch and open a **Pull Request (PR)** on GitHub!
+Inspect your changes at `http://localhost:3000/`. Ensure that:
+* No console errors or hydration warnings appear in Developer Tools (`F12`).
+* All internal links and images resolve cleanly.
+* Responsive layouts look sharp on mobile viewports (360px–420px).
+
+#### 5. Commit with Clear Conventional Messages
+```bash
+git add .
+git commit -m "feat(coredose): add Module 04 lesson on TCP 3-way handshake"
+```
+
+#### 6. Push to Your Fork
+```bash
+git push -u origin feat/coredose-cn-tcp-handshake
+```
+
+#### 7. Open a Pull Request (PR)
+1. Go to your fork on GitHub and click **Compare & pull request**.
+2. Target the base repository: `abojha/binarydose_website` on branch `main`.
+3. Fill out the PR description using the checklist below.
 
 ---
 
-## 📬 Prefer Email or Instagram?
-If you're not familiar with Git, you can also submit directly:
-1. 📸 **DM us on Instagram:** [@binarydose](https://www.instagram.com/binarydose)
-2. ✉️ **Email your draft:** [dosebinary@gmail.com](mailto:dosebinary@gmail.com) with your article (Google Doc / Markdown), name, bio, and LinkedIn link.
+## ✅ Pull Request Review Checklist
+
+Before submitting your PR, verify the following:
+
+- [ ] **Follows Track Guide**: Adheres to the specific rules in [`COREDOSE.md`](./contributing/COREDOSE.md), [`DEVDOSE.md`](./contributing/DEVDOSE.md), [`CODEDOSE.md`](./contributing/CODEDOSE.md), or [`ALGODOSE.md`](./contributing/ALGODOSE.md).
+- [ ] **No Raw Mermaid SVGs**: Uses pure React diagram components from [`DIAGRAMS.md`](./contributing/DIAGRAMS.md).
+- [ ] **Clean Frontmatter**: Correct `title`, `description`, and tags without duplicate fields.
+- [ ] **No Dead Links**: All internal references and navigation links resolve with HTTP 200.
+- [ ] **Author Profile**: Added yourself to `blog/authors.yml` if contributing an article or major guide.
+- [ ] **Zero Hardcoded Stats**: Does not hardcode static problem or module counts in components.
 
 ---
 
-## 📺 Follow the 100 Days CS Series
-For daily high-yield interview deep dives, check out our signature **100 Days CS Series** on [YouTube (@binarydose)](https://www.youtube.com/@binarydose) and [Instagram (@binarydose)](https://www.instagram.com/binarydose)!
+## 🌟 Contributor Recognition & Perks
 
----
+Every merged contribution is celebrated!
+* **Author Attribution**: Articles and major guides feature your custom profile card linking to your LinkedIn, GitHub, and portfolio.
+* **Community Spotlight**: Top contributors are featured on our social channels and project repository.
+* **Open-Source Credibility**: Demonstrates verified, high-quality engineering writing and production-grade code on your resume.
 
-## ⚖️ Contributor Terms & Copyright Protection
-- **Author Credit & Attribution**: When your article is merged, you retain full author credit, backlinks to your LinkedIn, GitHub, and portfolio, and bragging rights as an official contributor to Binary Dose.
-- **Publication License**: By submitting a Pull Request, you grant Binary Dose a perpetual, worldwide, non-exclusive license to host, display, and share your article on `https://binarydose.in`.
-- **Anti-Plagiarism Protection**: Your contributed work is protected under the Binary Dose [LICENSE](LICENSE). Third parties are strictly prohibited from scraping, cloning, or commercially redistributing your articles without permission.
-
+If you have any questions or want to discuss an idea before writing, feel free to reach out via [GitHub Issues](https://github.com/abojha/binarydose_website/issues) or email `dosebinary@gmail.com`.

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "@docusaurus/Link";
 import Heading from "@theme/Heading";
+import HeroHeader from "@site/src/components/Common/HeroHeader";
 import { ENGINES_CATALOG, findEngineById } from "./algoCatalog";
 import TwoPointersVisualizer from "./algorithms/TwoPointersVisualizer";
 import SlidingWindowVisualizer from "./algorithms/SlidingWindowVisualizer";
@@ -56,23 +57,13 @@ export default function AlgoDoseShell() {
 
   return (
     <div className={styles.wrapper}>
-      {/* Hero Header Section */}
-      <header className={styles.heroHeader}>
-        <div className={styles.badge}>
-          <span className={styles.badgeIcon}>⚡</span>
-          <span className={styles.badgeText}>Interactive Algorithm Lab</span>
-        </div>
-
-        <Heading as="h1" className={styles.title}>
-          AlgoDose <span className={styles.titleGradient}>Visualizer</span>
-        </Heading>
-
-        <p className={styles.subtitle}>
-          Gain crystal-clear visual intuition for core Computer Science algorithms. Step
-          through executions, watch pointers move in real-time, and synchronize
-          line-by-line code logic.
-        </p>
-      </header>
+      {/* Universal Hero Header */}
+      <HeroHeader
+        badge={{ icon: "⚡", text: "Interactive Algorithm Lab" }}
+        title="AlgoDose"
+        gradient="Visualizer"
+        subtitle="Gain crystal-clear visual intuition for core Computer Science algorithms. Step through executions, watch pointers move in real-time, and synchronize line-by-line code logic."
+      />
 
       {/* Unified Engine Selector & Header Card */}
       <div className={styles.engineCard}>

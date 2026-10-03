@@ -7,6 +7,9 @@ import TopicTracker from '@site/src/components/TopicTracker';
 import CoreDoseTOC from '@site/src/components/CoreDose/CoreDoseTOC';
 import CoreDoseLessonHeader from '@site/src/components/CoreDose/CoreDoseLessonHeader';
 import CoreDoseNav from '@site/src/components/CoreDose/CoreDoseNav';
+import HeroHeader from '@site/src/components/Common/HeroHeader';
+import BackNav from '@site/src/components/Common/BackNav';
+import StatsRibbon from '@site/src/components/Common/StatsRibbon';
 import {
   ArchitectureStack,
   SubsystemGrid,
@@ -45,6 +48,9 @@ export default {
   CoreDoseTOC,
   CoreDoseLessonHeader,
   CoreDoseNav,
+  HeroHeader,
+  BackNav,
+  StatsRibbon,
   // Educational Diagram System (Globally available in all MDX files)
   ArchitectureStack,
   SubsystemGrid,

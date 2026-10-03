@@ -450,3 +450,103 @@ All course lessons in `binary_dose/coredose/` (for OS, DBMS, CN, System Design, 
 8. **`🏭 In The Real World: Production Case Study`** (Real-world cloud/systems engineering context).
 9. **`🎯 Exam & Interview Pitfall Check`** (`:::tip Core Conceptual Questions` + `:::warning Common Interview Traps`).
 10. **`Navigation Component`**: `<CoreDoseNav ... />`
+
+---
+
+## 8. Dynamic File-Driven Architecture & Automated Content Discovery (Mandatory Platform Standard)
+
+To maintain infinite scalability across Binary Dose (`coredose`, `coding`, `algodose`, `100-days`), the platform enforces automated, file-driven metrics and dynamic component discovery:
+
+### 1. Zero Hardcoded Topic / Module Counts
+* **Never hardcode static numbers** like `"10 Modules • 46 Topics"` or `"391 Problems"` into component markup, hero subtitles, or card descriptions.
+* All content counts must be computed dynamically at build/startup time by `src/utils/getSiteStats.js` and injected into `siteConfig.customFields.stats`.
+### 2. Dynamic Course & Content Discovery
+* **Never render large static dummy cards with disabled buttons** for upcoming or empty courses (e.g. "Notes in Production"). This dilutes site authority and degrades the user experience.
+* Course hubs (`/coredose`, `/coding`) must dynamically filter and render active cards based on filesystem presence (`topics > 0`).
+* When a new subject or module directory is added (e.g. `coredose/cn/chapter-01/`), the platform must automatically discover it, compute its metrics, and publish its card to the active grid without requiring manual edits to hub components.
+* Upcoming or unlaunched tracks must be displayed in a clean, compact, non-intrusive roadmap format (e.g. 1-line roadmap pill strip) rather than dominating the primary view with disabled cards.
+
+### 3. Universal Site Stats Hook (`useSiteStats`)
+* All components needing content statistics must import and call `useSiteStats()` from `@site/src/hooks/useSiteStats`.
+* This hook automatically blends live `siteConfig.customFields.stats` with precomputed fallback data (`siteStats.json`), ensuring numbers never render as `undefined` or `0` even during local dev-server restarts.
+
+### 4. Universal Hero Header & Stats Ribbon Standard (`HeroHeader`, `StatsRibbon`)
+* **Never duplicate hero markup or styles** across hubs. Every section hub (Homepage, AlgoDose, CoreDose, 100-Days Interview Hub) must use the universal component:
+  ```jsx
+  import HeroHeader from "@site/src/components/Common/HeroHeader";
+
+  <HeroHeader
+    badge={{ icon: "🎓", text: "Hub Badge Text" }}
+    title="Main Title"
+    gradient="Gradient Word"
+    subtitle="Crisp, executive summary of the hub's learning outcomes."
+    stats={optionalStatsArray}
+  >
+    {/* Optional CTA buttons or search controls */}
+  </HeroHeader>
+  ```
+* All stats numbers ribbons must use `<StatsRibbon />` from `@site/src/components/Common/StatsRibbon` to maintain consistent typography, letter-spacing, and responsive scaling across the platform.
+* Any changes to hero visual language, badge padding, or typography must be made in `src/components/Common/HeroHeader.module.css` so all site sections remain strictly aligned.
+
+---
+
+## 9. Universal Component Governance (`src/components/Common/`)
+
+To prevent fragmented styling and duplicate UI logic, all hubs, courses, and tracks must reuse the platform's core components:
+
+* **`HeroHeader`** (`src/components/Common/HeroHeader.jsx`): Unified header with responsive badges, gradients, subtitles, action slots, and animated stats ribbons.
+* **`StatsRibbon`** (`src/components/Common/StatsRibbon.jsx`): IntersectionObserver-driven smooth count-up ticker animation (SSR safe, respects `prefers-reduced-motion`).
+* **`SearchBar`** (`src/components/Common/SearchBar.jsx`): Reusable search input with magnifying glass icon, keyboard shortcuts, clear button, and accessible ARIA attributes. Used in CoreDoseHub, CodeDoseHub, DevDoseHub, and CourseCurriculum.
+* **`DoseCard`** (`src/components/Common/DoseCard.jsx`): Standard card for courses, tracks, and learning modules with icons, badges, titles, descriptions, and CTA links.
+* **`BackNav`** (`src/components/Common/BackNav.jsx`): Universal breadcrumb / back-navigation bar with chevron icon and semantic route targets.
+* **`NumberBadge`** (`src/components/Common/NumberBadge.jsx`): Consistent pill badge for sequence numbers and counts.
+
+---
+
+## 10. Zero-Clutter UI & Hub Layout Standards
+
+* **Active Tracks vs Upcoming Roadmap**:
+  - Active tracks (`topics > 0`) render as rich interactive `<DoseCard />` elements in the primary grid.
+  - Upcoming / planned tracks MUST NOT render as disabled or placeholder cards. They must be placed in a single-bar **Curriculum Roadmap Strip** below the active grid with dashed borders, muted badges, and topic pills.
+* **Zero Redundant Arrows**:
+  - Never combine text arrows (`&rarr;` or `→`) with CSS pseudo-element icons (`::after`). Ensure clean, single-arrow hover cues.
+* **No Link Underline Leaks**:
+  - Card wrappers and CTA buttons must enforce `text-decoration: none !important;` to prevent browser default underlines on hover.
+
+---
+
+## 11. DevDose Architecture & SEO Permalink Continuity
+
+* **Permalinks Are Sacred**:
+  - The flagship **100 Days of Tech Interview** track MUST preserve its `/100-days` route and permalinks (`/100-days/day-01`, etc.) because it is already indexed and ranking on search engines.
+* **DevDose Hub Pattern**:
+  - `/devdose` serves as the umbrella engineering hub.
+  - It follows the identical design pattern of `/coredose`: HeroHeader on top, active tracks rendered with `<DoseCard />`, and an upcoming roadmap strip below.
+  - Future applied engineering tracks (e.g. Modern C++, AI/LLM Engineering) will live under `devdose/<track>` as separate docs plugins when authored.
+
+---
+
+## 12. In-Page Curriculum Search Architecture
+
+For courses with extensive syllabi (e.g. Operating Systems with 51 topics across 10 modules, DBMS with 48 topics):
+* `<CourseCurriculum />` includes an integrated `<SearchBar />` for instant topic filtering.
+* Filtering matches across topic titles, lesson slugs, and module titles.
+* Shows real-time feedback: `"Found X topics across Y modules matching '...'"` with a quick reset button.
+* Renders a graceful empty state when no topics match the search query.
+
+---
+
+## 13. Two-Tier Contribution Governance
+
+* **Tier 1: Blog (Open Contribution)**:
+  - Technical articles, interview round experiences, and engineering deep-dives.
+  - **Creative Freedom**: Contributors choose their own structure and writing style.
+  - Required elements are strictly structural: frontmatter, `<!-- truncate -->` marker, `TOCInline` collapsible table of contents, and `blog/authors.yml` profile.
+* **Tier 2: Learning Platform (Guided Contribution)**:
+  - CoreDose, CodeDose, DevDose, and AlgoDose.
+  - Strict architectural blueprints, mandatory React diagram components (zero raw Mermaid SVGs), and platform component reuse.
+  - **Reach-out Requirement**: Contributors must discuss scope, components, and conventions with the maintainer first before starting work.
+* **Git Protocol**:
+  - **NEVER** push directly to `main`. All contributions must be submitted via dedicated feature branches from forks.
+
+

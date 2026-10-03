@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Link from "@docusaurus/Link";
+import BackNav from "../Common/BackNav";
 import styles from "./CoreDoseLessonHeader.module.css";
 
 const COURSE_MAP = {
@@ -37,7 +38,7 @@ export default function CoreDoseLessonHeader({
   const [displayReadTime, setDisplayReadTime] = useState(readTime || "5 min read");
   const [navConfig, setNavConfig] = useState({
     backUrl: backUrl || initialCourse.url,
-    backLabel: backLabel || `Back to ${initialCourse.name} Roadmap`,
+    backLabel: backLabel || `Back to ${initialCourse.name} Notes`,
     isCourseIndex: false,
     moduleNumber: null,
     courseName: initialCourse.name,
@@ -52,9 +53,9 @@ export default function CoreDoseLessonHeader({
       // Check if on course index (e.g. /coredose/dbms or /coredose/os)
       const isIndex = pathname.endsWith(currentCourse.url) || pathname.endsWith(currentCourse.url + "/");
       
-      // Detect module from path (e.g. /chapter-06/ -> Module 6)
+      // Detect module from path (e.g. /chapter-06/ -> Module 06)
       const moduleMatch = pathname.match(/chapter-(\d+)/i);
-      const modNum = moduleMatch ? `Module ${parseInt(moduleMatch[1], 10)}` : null;
+      const modNum = moduleMatch ? `Module ${String(moduleMatch[1]).padStart(2, "0")}` : null;
 
       if (isIndex) {
         setNavConfig({
@@ -68,7 +69,7 @@ export default function CoreDoseLessonHeader({
       } else {
         setNavConfig({
           backUrl: backUrl || currentCourse.url,
-          backLabel: backLabel || `Back to ${currentCourse.name} Roadmap`,
+          backLabel: backLabel || `Back to ${currentCourse.name} Notes`,
           isCourseIndex: false,
           moduleNumber: modNum,
           courseName: currentCourse.name,
@@ -102,46 +103,25 @@ export default function CoreDoseLessonHeader({
     topicLabel = `Topic ${topicLabel}`;
   }
 
+  const breadcrumbs = [
+    { label: "CoreDose", url: "/coredose" },
+    ...(navConfig.isCourseIndex
+      ? [{ label: navConfig.courseName }]
+      : [
+          { label: navConfig.courseName, url: navConfig.courseUrl },
+          ...(navConfig.moduleNumber ? [{ label: navConfig.moduleNumber }] : []),
+        ]),
+  ];
+
   return (
     <div className={styles.headerContainer}>
       {/* Top Back Button & Breadcrumbs Bar */}
-      <div className={styles.navBar}>
-        <Link to={navConfig.backUrl} className={styles.backButton}>
-          <svg
-            className={styles.backArrow}
-            viewBox="0 0 24 24"
-            width="16"
-            height="16"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-          <span className={styles.backButtonText}>{navConfig.backLabel}</span>
-        </Link>
-
-        <div className={styles.breadcrumbs}>
-          <Link to="/coredose" className={styles.crumbLink}>CoreDose</Link>
-          <span className={styles.crumbSep}>/</span>
-          {navConfig.isCourseIndex ? (
-            <span className={styles.crumbActive}>{navConfig.courseName}</span>
-          ) : (
-            <>
-              <Link to={navConfig.courseUrl} className={styles.crumbLink}>{navConfig.courseName}</Link>
-              {navConfig.moduleNumber && (
-                <>
-                  <span className={styles.crumbSep}>/</span>
-                  <span className={styles.crumbActive}>{navConfig.moduleNumber}</span>
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+      <BackNav
+        backUrl={navConfig.backUrl}
+        backLabel={navConfig.backLabel}
+        breadcrumbs={breadcrumbs}
+        className={styles.lessonBackNav}
+      />
 
       {/* Meta Badges */}
       <div className={styles.metaRow}>

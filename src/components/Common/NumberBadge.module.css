@@ -1,0 +1,24 @@
+.numberBadge {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--ifm-color-primary);
+  background: var(--ifm-color-primary-lightest);
+  padding: 0.28rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--ifm-color-primary-lighter);
+  flex-shrink: 0;
+  letter-spacing: -0.02em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+[data-theme='dark'] .numberBadge {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(96, 165, 250, 0.25);
+}
