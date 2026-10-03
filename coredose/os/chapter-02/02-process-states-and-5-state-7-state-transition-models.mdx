@@ -1,0 +1,381 @@
+---
+title: "2.2 Process States & 5-State / 7-State Transition Models"
+description: "Master the 5-state and 7-state process lifecycle models, state transition triggers, swapping to secondary storage, and mathematical min/max formulas for uniprocessor and multiprocessor systems."
+hide_table_of_contents: true
+---
+
+import CoreDoseLessonHeader from "@site/src/components/CoreDose/CoreDoseLessonHeader";
+import CoreDoseTOC from "@site/src/components/CoreDose/CoreDoseTOC";
+import CoreDoseNav from "@site/src/components/CoreDose/CoreDoseNav";
+import StateTransitionDiagram from "@site/src/components/CoreDose/Diagrams/StateTransitionDiagram";
+
+# 2.2 Process States & 5-State / 7-State Transition Models
+
+<CoreDoseLessonHeader
+  module="Module 02: Process Management & PCB"
+  topic="Topic 2.2"
+  courseUrl="/coredose/os"
+  readTime="9 min read"
+  relevance="Semester Exams (All Universities) • GATE CSE (High Weightage) • SDE Technical Interviews"
+/>
+
+## 💡 Core Intuition
+
+### 🍳 The Everyday Analogy: The Hospital Emergency Room Patient Lifecycle
+
+To understand how an operating system manages the life and death of processes, imagine the workflow of a high-volume Hospital Emergency Room (ER):
+
+* **New State (Patient Check-In)**: A patient arrives at the hospital desk. The staff collects their insurance, creates an electronic medical record (PCB), but the patient has not yet entered the treatment area.
+* **Ready State (The Waiting Room)**: The patient's file is complete. They sit in the waiting room, fully prepared for immediate medical care, simply waiting for an open doctor.
+* **Running State (In the Examination Room with the Doctor)**: The doctor (CPU) is actively examining the patient, diagnosing symptoms, and administering treatment. 
+* **Waiting / Blocked State (Awaiting Lab Tests)**: The doctor orders an urgent MRI or blood test (I/O request). The doctor cannot continue treatment until the lab results arrive. The patient is moved out of the doctor's room into the radiology queue so the doctor can treat other waiting patients.
+* **Suspended States (Transferred to Overflow Annex)**: If the main hospital runs out of beds (RAM exhaustion), patients waiting for lab results are temporarily transferred to an adjacent clinic across the street (Secondary Disk Storage). When their results arrive or hospital beds free up, they are brought back to the main hospital.
+* **Terminated State (Discharge)**: Treatment is complete. The patient is discharged, medical equipment is sanitized, and the hospital room is freed for incoming cases.
+
+### 💻 Bridging to Computer Science
+
+In an operating system:
+* The **Doctor** is the physical **CPU core**.
+* The **Main Hospital** is **Main Memory (RAM)**.
+* The **Adjacent Clinic** is **Secondary Storage (Swap Area / Disk)**.
+* The **Patient Medical Record** is the **Process Control Block (PCB)**.
+* A process dynamically cycles between states as it alternates between **CPU bursts** (active computation) and **I/O bursts** (waiting for network, disk, or user input). The CPU must never sit idle waiting for slow I/O peripherals.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 📚 Core Deep-Dive & Concepts
+
+### 1. What Defines a Process State?
+
+A process changes states continuously throughout its lifetime. The state of a process is formally defined in part by the **current activity** of that process. 
+
+At any given nanosecond, a process is either being created, waiting for CPU allocation, actively executing on a core, waiting for an external hardware device, or terminating.
+
+### 2. The Standard 5-State Process Model
+
+In standard operating system theory, a multiprogrammed system defines five primary states:
+
+The lifecycle progresses through the primary execution pipeline:
+
+$$\text{New} \xrightarrow{\text{admit}} \text{Ready} \underset{\text{interrupt / preempt}}{\overset{\text{dispatch}}{\rightleftharpoons}} \text{Running} \xrightarrow{\text{exit}} \text{Terminated}$$
+
+with I/O blocking branching into secondary waiting:
+
+$$\text{Running} \xrightarrow{\text{I/O wait}} \text{Waiting (Blocked)} \xrightarrow{\text{I/O completion}} \text{Ready}$$
+
+
+1. **New**:
+   * The process is in the process of being created.
+   * The operating system allocates its **Process Control Block (PCB)** and assigns a unique **Process ID (PID)**. It is not yet admitted to the Ready queue.
+2. **Ready**:
+   * The process is fully loaded in **main memory (RAM)** with all required resources allocated, waiting exclusively for the CPU.
+   * Multiple ready processes are organized into a linked list called the **Ready Queue**.
+3. **Running**:
+   * Instructions are actively being fetched, decoded, and executed on a physical CPU core.
+   * On a single-processor (uniprocessor) system, **at most one process** can be in the Running state at any instant.
+4. **Waiting (Blocked)**:
+   * The process cannot execute even if the CPU is 100% idle because it is waiting for an external event to occur (such as disk read completion, network packet arrival, or semaphore release).
+   * Once the event occurs, the process **never jumps directly to Running**; it transitions to the **Ready** state first.
+5. **Terminated**:
+   * The process has finished execution or was killed by an unhandled signal (`SIGKILL`).
+   * Its memory segments and open file descriptors are freed by the kernel; its PCB entry remains temporarily as a **Zombie** until the parent reads its exit code.
+
+---
+
+### 3. Transition Triggers in the 5-State Model
+
+| Transition | Name | Trigger Event | Executed By |
+| :--- | :--- | :--- | :--- |
+| **New $\to$ Ready** | `Admit` | Process memory pages allocated and PCB linked | **Long-Term Scheduler** |
+| **Ready $\to$ Running** | `Dispatch` | CPU core allocated to top process in Ready Queue | **Short-Term Scheduler & Dispatcher** |
+| **Running $\to$ Ready** | `Interrupt / Preemption` | Time quantum expires, or higher-priority process arrives | **Hardware Timer Interrupt** |
+| **Running $\to$ Waiting** | `Event Wait` | Process requests I/O, sleep, or lock | **Process System Call (`read`, `wait`)** |
+| **Waiting $\to$ Ready** | `Event Completion` | Device finishes I/O transfer; hardware interrupt fires | **Interrupt Service Routine (ISR)** |
+| **Running $\to$ Terminated** | `Exit` | Process reaches end of `main()` or calls `exit()` | **Process Exit / Kernel Signal** |
+
+---
+
+### 4. The 7-State Process Model (Adding Swapping & Suspension)
+
+In real operating systems, main memory (RAM) is finite. When dozens of large processes are loaded, the system faces severe memory pressure. If all processes in RAM become blocked waiting for I/O, the CPU would sit completely idle while RAM is fully occupied by waiting jobs.
+
+To resolve this, the **Medium-Term Scheduler (MTS)** introduces **Swapping**: it temporarily removes process address spaces from main memory and writes them to secondary storage (the **Swap Area** on disk), introducing two new suspended states:
+
+$$\text{Waiting (RAM)} \xrightarrow{\text{suspend (MTS)}} \text{Suspend Wait (Disk)} \xrightarrow{\text{I/O finish}} \text{Suspend Ready (Disk)} \xrightarrow{\text{resume / swap in}} \text{Ready (RAM)}$$
+
+
+#### The Two Suspended States
+1. **Blocked-Suspended (Suspend Wait)**:
+   * The process is waiting for an I/O event, and its memory image has been swapped out to secondary disk storage.
+   * It consumes **zero physical RAM**.
+2. **Ready-Suspended (Suspend Ready)**:
+   * The process has completed its I/O event (or was swapped out while ready), but its memory image resides on disk.
+   * It only needs to be swapped back into RAM by the Medium-Term Scheduler to enter the active Ready Queue.
+
+#### Key 7-State Transitions
+* **Waiting $\to$ Blocked-Suspended (`Suspend`)**: When RAM is depleted, the Medium-Term Scheduler swaps a blocked process out to disk to free frames for active jobs.
+* **Blocked-Suspended $\to$ Ready-Suspended (`I/O Completed while Suspended`)**: An I/O device finishes its operation while the process is on disk. Because the process was already swapped out, it moves to Ready-Suspended.
+* **Ready-Suspended $\to$ Ready (`Resume / Swap In`)**: When free memory pages become available in RAM, the Medium-Term Scheduler swaps the process back into main memory.
+* **Ready $\to$ Ready-Suspended (`Suspend`)**: Under extreme memory starvation, the OS can swap a ready process out to disk.
+
+---
+
+### 5. Memory Residency Rule
+
+A fundamental rule for university and competitive exams:
+
+$$\text{Main Memory (RAM)} = \{\text{Ready}, \text{Running}, \text{Waiting}\}$$
+
+$$\text{Secondary Storage (Disk / Swap)} = \{\text{New}, \text{Suspend Ready}, \text{Suspend Wait}, \text{Terminated}\}$$
+
+---
+
+### 6. Mathematical Analysis: Min & Max Processes per State
+
+In competitive exams (GATE, ISRO, NET), questions frequently ask for the boundary process counts across states given $n$ total processes in the system.
+
+#### Case 1: Uniprocessor System (1 CPU, $n$ Processes)
+
+| Process State | Minimum Count | Maximum Count | Derivation & Boundary Condition |
+| :--- | :---: | :---: | :--- |
+| **Ready** | $0$ | $n - 1$ | **Min**: All processes are blocked on I/O, or only 1 process exists running on the CPU.<br/>**Max**: 1 process is running on CPU, and all remaining $(n-1)$ processes wait in Ready Queue. |
+| **Running** | $0$ | $1$ | **Min**: 0 when the CPU is idle (all $n$ processes are blocked on I/O).<br/>**Max**: Exactly 1, because a uniprocessor has only a single CPU core. |
+| **Blocked / Waiting** | $0$ | $n$ | **Min**: 0 when all processes are computing without I/O.<br/>**Max**: $n$ when all $n$ processes simultaneously request I/O. |
+
+#### Case 2: Multiprocessor System ($P$ CPUs, $n$ Processes, where $P \ll n$)
+
+| Process State | Minimum Count | Maximum Count | Derivation & Boundary Condition |
+| :--- | :---: | :---: | :--- |
+| **Ready** | $0$ | $n - P$ | **Min**: 0 when all processes are either running on the $P$ CPUs or blocked on I/O.<br/>**Max**: When all $P$ CPUs are running processes, at most $(n - P)$ wait in the Ready Queue. *(Note: If all $P$ CPUs are idle, up to $n$ can be in Ready).* |
+| **Running** | $0$ | $P$ | **Min**: 0 when all CPUs are idle.<br/>**Max**: $\min(n, P)$, which equals $P$ since $P \ll n$. |
+| **Blocked / Waiting** | $0$ | $n$ | **Min**: 0 when no process requests I/O.<br/>**Max**: $n$ when all $n$ processes are waiting for peripheral devices. |
+
+---
+
+## 📐 Architecture / Visual Blueprint
+
+### 1. Process Lifecycle Flow Architecture (5-State Model)
+
+The interactive diagram below visualizes the primary lifecycle loop of a process across storage and main memory. Follow the numbered step badges (① to ⑥) to trace the execution path:
+
+<FlowDiagram
+  title="The Standard 5-State Process Lifecycle Model"
+  subtitle="End-to-end execution flow, timer preemption loop, and asynchronous I/O wait queues"
+  domains={[
+    {
+      id: "storage",
+      title: "Secondary Storage",
+      color: "purple",
+      icon: "💾",
+      position: "bottom",
+    },
+    {
+      id: "ram_cpu",
+      title: "Main Memory & CPU Core",
+      color: "emerald",
+      icon: "⚡",
+      position: "bottom",
+    },
+  ]}
+  nodes={[
+    {
+      id: "new",
+      domain: "storage",
+      col: 0,
+      row: 0,
+      title: "New State",
+      sublabel: "Process Created",
+      badge: "Job Pool",
+      icon: "💾",
+      color: "purple",
+      details: "Process image being prepared on storage. Kernel allocates PCB and assigns a unique PID.",
+    },
+    {
+      id: "ready",
+      domain: "ram_cpu",
+      col: 1,
+      row: 0,
+      title: "Ready State",
+      sublabel: "Ready Queue in RAM",
+      badge: "RAM Queue",
+      icon: "📋",
+      color: "blue",
+      details: "Loaded into main memory with all resources except the CPU core. Awaiting dispatch by Short-Term Scheduler.",
+    },
+    {
+      id: "running",
+      domain: "ram_cpu",
+      col: 2,
+      row: 0,
+      title: "Running State",
+      sublabel: "CPU Core Execution",
+      badge: "CPU Core",
+      icon: "⚡",
+      color: "emerald",
+      details: "Instructions actively fetched and executed by the CPU. At most 1 process per physical core at any instant.",
+    },
+    {
+      id: "terminated",
+      domain: "ram_cpu",
+      col: 3,
+      row: 0,
+      title: "Terminated State",
+      sublabel: "exit() Deallocated",
+      badge: "Zombie / Exit",
+      icon: "🏁",
+      color: "rose",
+      details: "Execution complete; memory and files freed. PCB remains as Zombie until parent process calls wait().",
+    },
+    {
+      id: "waiting",
+      domain: "ram_cpu",
+      col: 1.5,
+      row: 1,
+      title: "Waiting / Blocked",
+      sublabel: "Device I/O Queue",
+      badge: "Wait Queue",
+      icon: "⏳",
+      color: "amber",
+      details: "Process cannot execute even if CPU is idle because it is waiting on external I/O or a synchronization event.",
+    },
+  ]}
+  edges={[
+    {
+      from: "new",
+      to: "ready",
+      fromPort: "right",
+      toPort: "left",
+      step: "1",
+      label: "Admit (LTS)",
+    },
+    {
+      from: "ready",
+      to: "running",
+      fromPort: "right",
+      toPort: "left",
+      step: "2",
+      label: "Dispatch (STS)",
+    },
+    {
+      from: "running",
+      to: "ready",
+      fromPort: "top",
+      toPort: "top",
+      step: "3",
+      label: "Timer Preempt",
+      bend: "top",
+      style: "dashed",
+    },
+    {
+      from: "running",
+      to: "waiting",
+      fromPort: "bottom",
+      toPort: "right",
+      step: "4",
+      label: "I/O Request",
+    },
+    {
+      from: "waiting",
+      to: "ready",
+      fromPort: "left",
+      toPort: "bottom",
+      step: "5",
+      label: "I/O Finish",
+    },
+    {
+      from: "running",
+      to: "terminated",
+      fromPort: "right",
+      toPort: "left",
+      step: "6",
+      label: "exit()",
+    },
+  ]}
+/>
+
+### 2. State & Swapping Deep-Dive Inspector (5-State vs. 7-State)
+
+Use the interactive widget below to toggle between the **5-State Core Model** and the **7-State Swapping Model**. Click any state node to inspect its memory location, CPU allocation, governing scheduler, and valid transitions:
+
+<StateTransitionDiagram
+  title="Process Lifecycle: 5-State vs. 7-State Transition Models"
+  subtitle="Interactive blueprint comparing the standard multiprogramming model with the 7-state virtual memory swapping architecture"
+/>
+
+---
+
+## 🏭 In The Real World: Production Case Study
+
+### Linux Process States in `ps` and `top`
+
+In production Linux kernels, process states are represented by single-character flags in process monitoring utilities like `top`, `htop`, and `ps aux`:
+
+```bash
+$ ps aux | awk '{print $2, $8, $11}' | head -n 10
+PID  STAT COMMAND
+1    Ss   /sbin/init
+2    S    [kthreadd]
+3    I<   [rcu_gp]
+482  R+   ps
+910  D    [jbd2/sda1-8]
+```
+
+### The 5 Core Linux Process Flags
+
+| Linux Flag | Name | Kernel State Mapping | Description |
+| :--- | :--- | :--- | :--- |
+| **`R`** | Running / Runnable | `TASK_RUNNING` | Process is either currently executing on a CPU core or sitting in the runqueue ready to execute. |
+| **`S`** | Interruptible Sleep | `TASK_INTERRUPTIBLE` | Process is waiting for an event (I/O, timer, signal). Can be awakened by signals (`SIGTERM`, `Ctrl+C`). |
+| **`D`** | Uninterruptible Sleep | `TASK_UNINTERRUPTIBLE` | Process is waiting on a direct hardware driver response (typically disk I/O). **Cannot be killed, even with `kill -9`**! |
+| **`T`** | Stopped / Traced | `TASK_STOPPED` | Process has been paused via a terminal signal (`Ctrl+Z`, `SIGTSTP`) or a debugger (`gdb`). |
+| **`Z`** | Zombie | `EXIT_ZOMBIE` | Process has finished execution, but its exit record remains in the process table because the parent has not yet called `wait()`. |
+
+### Production Warning: The Unkillable `D` State Process
+In production cloud environments, developers often encounter a stuck process and run `kill -9 <PID>`, only to find the process refuses to terminate.
+* **Why**: The process is in the **`D` (Uninterruptible Sleep)** state. The Linux kernel guarantees that if a process is deep within a physical disk driver block transfer, delivering an asynchronous signal could corrupt filesystem metadata. The kernel ignores all signals until the hardware I/O request finishes or hardware timeouts fail.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** In a uniprocessor system with $n$ active processes, determine the minimum and maximum number of processes that can simultaneously exist in the Ready, Running, and Blocked states. Explain the boundary scenarios.
+**Answer:**
+1. **Running State**: $\text{Minimum} = 0$, $\text{Maximum} = 1$. The minimum occurs when all $n$ processes are blocked waiting for I/O operations, leaving the CPU idle. The maximum is 1 because a uniprocessor system possesses only a single CPU core capable of executing one instruction sequence at a time.
+2. **Ready State**: $\text{Minimum} = 0$, $\text{Maximum} = n - 1$. The minimum occurs when either 1 process is running and all other $(n-1)$ processes are blocked, or all $n$ processes are blocked. The maximum is $(n-1)$ when 1 process is actively running and all remaining $(n-1)$ processes are waiting in the Ready queue.
+3. **Blocked State**: $\text{Minimum} = 0$, $\text{Maximum} = n$. The minimum occurs when all processes are purely CPU-bound with zero I/O requests. The maximum is $n$ when all $n$ processes simultaneously request I/O or sleep operations.
+
+**Question 2:** In the 7-state process model, explain the transition sequence when a process in the Blocked-Suspended state finishes its I/O operation before main memory is freed up. Does it move directly back to the Ready queue in RAM?
+**Answer:** No, it cannot transition directly to the Ready queue in RAM. Because the process is currently swapped out to secondary disk storage and main memory is still full, it transitions from **Blocked-Suspended to Ready-Suspended** (labeled *"I/O completed but still suspended"*). It remains on disk until the Medium-Term Scheduler detects sufficient free physical frames in RAM, at which point it is swapped in and transitions from **Ready-Suspended to Ready**.
+
+**Question 3:** What structural difference in the state transition diagram distinguishes a preemptive operating system from a non-preemptive operating system?
+**Answer:** A preemptive operating system includes an explicit backward transition arrow from the **Running state back to the Ready state** (`Running \to Ready`), triggered by time quantum expiration or a hardware timer interrupt. In a strictly non-preemptive operating system, this arrow does not exist: once a process enters the Running state, it leaves only if it voluntarily yields the CPU (moving to **Waiting** for I/O) or terminates (moving to **Terminated**).
+
+:::
+
+:::warning Common Interview Traps
+
+* **The Invalid Direct Transition Trap**: Candidates often mistakenly claim that when a blocked process finishes I/O, it transitions directly from **Waiting to Running**.
+  * **Reality**: A process **NEVER** transitions directly from Waiting to Running! It must always enter the **Ready Queue** first, where it competes for CPU scheduling alongside other ready processes.
+* **Preemption vs Non-Preemption Identification**: In competitive exams, you will be shown a state diagram without labels and asked if the OS is preemptive.
+  * **The Rule**: Look exclusively for the `Running \to Ready` edge. If present $\implies$ Preemptive. If absent $\implies$ Non-Preemptive.
+:::
+
+---
+
+<CoreDoseNav
+  previous={{
+    title: "2.1 Program vs. Process & Address Space Layout",
+    url: "/coredose/os/chapter-02/program-vs-process-active-entities-and-address-space-layout"
+  }}
+  next={{
+    title: "2.3 PCB Internals & Context Switching Overhead",
+    url: "/coredose/os/chapter-02/process-control-block-pcb-internals-and-context-switching-overhead"
+  }}
+  courseUrl="/coredose/os"
+/>

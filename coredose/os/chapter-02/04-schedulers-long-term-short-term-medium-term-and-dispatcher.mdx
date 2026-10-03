@@ -1,0 +1,475 @@
+---
+title: "2.4 Schedulers: Long, Short, Medium-Term & Dispatcher"
+description: "Master the 3 CPU schedulers (LTS, STS, MTS), the Dispatcher, dispatch latency, system queues, and the optimal balance between CPU-bound and I/O-bound processes."
+hide_table_of_contents: true
+---
+
+import CoreDoseLessonHeader from "@site/src/components/CoreDose/CoreDoseLessonHeader";
+import CoreDoseTOC from "@site/src/components/CoreDose/CoreDoseTOC";
+import CoreDoseNav from "@site/src/components/CoreDose/CoreDoseNav";
+
+# 2.4 Schedulers: Long, Short, Medium-Term & Dispatcher
+
+<CoreDoseLessonHeader
+  module="Module 02: Process Management & PCB"
+  topic="Topic 2.4"
+  courseUrl="/coredose/os"
+  readTime="9 min read"
+  relevance="Semester Exams (All Universities) • GATE CSE (High Weightage) • SDE Technical Interviews"
+/>
+
+## 💡 Core Intuition
+
+### 🍳 The Everyday Analogy: The Airport Passenger Flow
+
+To understand how an operating system controls the flow of processes through memory and CPU cores, consider the security, boarding, and seating pipeline at an international airport:
+
+* **Airport Terminal Security Gate (Long-Term Scheduler)**: Controls how many travelers are permitted to enter the main departure hall. If the terminal is overcrowded, passengers are held outside in the arrival lot (mass storage spool). It controls the overall capacity of the airport (Degree of Multiprogramming).
+* **Gate Boarding Agent (Short-Term Scheduler)**: The gate agent reviews the waiting line of passengers who have cleared security and holds boarding passes. Every few seconds, the agent selects the next specific passenger in line to board the jet bridge.
+* **Flight Attendant Guiding to Seat (The Dispatcher)**: The agent merely *selects* the passenger; the flight attendant physically guides the passenger into the plane, stows their carry-on bag, and fastens their seatbelt (Context Switch). The time spent strapping in before the plane moves is the **Dispatch Latency**.
+* **Overflow Holding Lounge (Medium-Term Scheduler)**: If a blizzard delays the flight, passengers sitting inside the plane or gate are moved back out to a holding hotel (swapping out to disk) so the active gates remain clear for departing flights.
+
+### 💻 Bridging to Computer Science
+
+In an operating system:
+* The **Departure Hall** is **Main Memory (RAM)**.
+* The **Passenger Seat on the Plane** is the physical **CPU Core**.
+* The **Long-Term Scheduler (LTS)** controls how many jobs enter RAM from disk.
+* The **Short-Term Scheduler (STS)** decides *which* ready process gets the CPU next.
+* The **Dispatcher** performs the actual context switch to put the process on the core.
+* The **Medium-Term Scheduler (MTS)** swaps idle or blocked processes to secondary storage when RAM is exhausted.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 📚 Core Deep-Dive & Concepts
+
+### 1. Multiprogramming vs. Time-Sharing Objectives
+
+Operating systems maintain two primary design objectives when managing system queues:
+
+* **Objective of Multiprogramming**: To ensure that the CPU always has at least one process to execute at all times, thereby **maximizing CPU utilization** and eliminating idle hardware stalls.
+* **Objective of Time-Sharing (Multitasking)**: To switch the CPU among active processes so frequently (within milliseconds) that human users can interact with each program concurrently without perceiving delays.
+
+To achieve these objectives, the kernel organizes processes into dedicated **System Queues**.
+
+---
+
+### 2. Operating System Scheduling Queues
+
+As processes migrate through the system during their lifecycle, they inhabit three fundamental queues:
+
+| Queue Name | Storage Location | Contents & Purpose | Managed By |
+| :--- | :--- | :--- | :--- |
+| **Job Queue** | Secondary Storage (Disk) | All submitted programs waiting to enter memory | Long-Term Scheduler (LTS) |
+| **Ready Queue** | Main Memory (RAM) | All processes loaded and ready for CPU allocation | Short-Term Scheduler (STS) |
+| **Device Queues** | Main Memory (RAM) | Processes blocked waiting for a specific I/O peripheral | Device Drivers & I/O Subsystem |
+
+
+1. **Job Queue**:
+   * As jobs enter the system, they are initially spooled onto mass storage (disk), forming the Job Queue.
+2. **Ready Queue**:
+   * Processes that reside in main memory (RAM) and are ready to execute are kept in the **Ready Queue**.
+   * The Ready Queue is generally implemented as a **linked list**. The queue header stores pointers to the head and tail PCBs. Each PCB contains a pointer field linking to the next PCB in the queue.
+3. **Device Queues**:
+   * When a running process issues an I/O request to a shared device (such as a disk or network adapter), the device may be busy servicing another task.
+   * The process must wait in a **Device Queue**. Each physical hardware device maintains its own dedicated device queue.
+
+---
+
+### 3. The 3 Types of Schedulers
+
+A process migrates between queues throughout its lifetime. The kernel module responsible for selecting processes from these queues is the **Scheduler**.
+
+| Scheduler Type | Primary Role & Migration Path | Frequency of Execution | Controls Degree of Multiprogramming? |
+| :--- | :--- | :--- | :---: |
+| **Long-Term Scheduler (LTS)** | Job Queue (Disk) $\to$ Ready Queue (RAM) | Infrequent (Seconds to Minutes) | **Yes (Directly increases)** |
+| **Short-Term Scheduler (STS)** | Ready Queue (RAM) $\to$ CPU Core | Extremely Fast ($10 \text{ to } 100\text{ ms}$) | No (Maintains active allocation) |
+| **Medium-Term Scheduler (MTS)** | Swapping: RAM $\rightleftharpoons$ Swap Space (Disk) | Intermediate (Triggered on RAM pressure) | **Yes (Temporarily decreases)** |
+
+
+#### 1. Long-Term Scheduler (LTS) / Job Scheduler / Spooler
+* **Function**: In a multiprogramming system, more jobs are submitted than physical RAM can accommodate. These jobs are spooled to a mass storage disk. The Long-Term Scheduler selects jobs from this pool and loads them into main memory for execution.
+* **Controls Degree of Multiprogramming**:
+  * **Degree of Multiprogramming** is formally defined as the **total number of processes currently residing in main memory**.
+  * The LTS directly dictates this metric. If the degree of multiprogramming is stable, the average process creation rate equals the departure rate of exiting processes.
+* **Execution Frequency**: Executes **infrequently**. Minutes may separate the creation of new processes. Because of this longer interval, the LTS can afford to execute complex algorithms to pick the ideal process.
+
+#### 2. Short-Term Scheduler (STS) / CPU Scheduler
+* **Function**: Selects from among the processes residing in the Ready Queue in RAM and allocates the CPU core to one of them.
+* **Execution Frequency**: Executes **extremely frequently** (typically every $10\text{ to }100\text{ ms}$). Because processes execute for only brief periods before yielding for I/O, the STS must be blazing fast to minimize system overhead.
+
+#### 3. Medium-Term Scheduler (MTS) / Swapper
+* **Function**: Enables **Swapping**. When physical RAM is exhausted, the MTS removes processes from active contention for the CPU by writing their address spaces to disk, temporarily **reducing the degree of multiprogramming**.
+* **Reintroduction**: Later, when memory pressure subsides, the MTS swaps the process back into RAM to continue execution where it left off.
+* **Managing Suspended States**: The MTS directly manages the **Suspend Ready** and **Suspend Wait** states.
+
+---
+
+### 4. Scheduler vs. Dispatcher: The Vital Distinction
+
+In operating system terminology, students frequently confuse the Scheduler with the Dispatcher.
+
+> **"The Scheduler makes the decision; the Dispatcher carries out the action."**
+
+* **The Scheduler (STS)** is purely a **decision-making algorithm** (e.g., Round Robin, Shortest Job First). It inspects the Ready Queue and outputs: *"Process $P_3$ should run next."*
+* **The Dispatcher** is the **execution module** that physically takes the CPU away from the current process and hands it over to the process chosen by the scheduler.
+
+#### The 3 Duties of the Dispatcher
+1. **Switching Context**: Saving current registers to the old PCB, loading new registers from the new PCB.
+2. **Switching to User Mode**: Toggling the CPU hardware mode bit from Kernel Mode (Ring 0) to User Mode (Ring 3).
+3. **Jumping to Location**: Loading the Program Counter with the saved instruction address to restart the program.
+
+#### Dispatch Latency
+**Dispatch Latency** is the exact duration of time required for the Dispatcher to stop one process and start another running:
+
+$$\text{Dispatch Latency} = T_{\text{save old PCB}} + T_{\text{scheduler select}} + T_{\text{load new PCB}} + T_{\text{mode switch}}$$
+
+Because the dispatcher is invoked during **every single process switch**, dispatch latency must be minimized using optimized assembly instructions.
+
+---
+
+### 5. CPU-Bound vs. I/O-Bound Processes & The Optimal Process Mix
+
+Process execution alternates between two continuous phases: **CPU Bursts** (active calculation) and **I/O Bursts** (waiting for data transfers). Processes terminate on a CPU burst.
+
+Processes are classified by their burst characteristics:
+
+* **I/O-Bound Process**: Spends the vast majority of its time performing I/O operations rather than computations. Characterized by **many short CPU bursts** separated by long I/O waits (e.g., text editors, web browsers, database queries).
+* **CPU-Bound Process**: Spends the vast majority of its time doing heavy computations with very infrequent I/O requests. Characterized by **few, very long CPU bursts** (e.g., scientific simulations, video rendering, cryptographic hashing).
+
+| Process Type | Burst Behavior Profile | Primary Bottleneck | Everyday Example |
+| :--- | :--- | :--- | :--- |
+| **I/O-Bound** | Numerous short CPU bursts separated by prolonged I/O waits | Peripheral transfer speed & bus latency | Text editor, Web server, Database client |
+| **CPU-Bound** | Extremely long, sustained CPU bursts with negligible I/O | ALU throughput, CPU clock speed, RAM bandwidth | Matrix multiplication, Video encoding, Ray tracing |
+
+
+#### Why the LTS Must Balance the Process Mix
+* **If all admitted processes are I/O-bound**: The Ready Queue will sit completely empty. The Short-Term Scheduler has nothing to schedule, and the **CPU sits idle and wasted**.
+* **If all admitted processes are CPU-bound**: The I/O Device Queues sit empty, disk controllers and network interfaces go unused, and the **system hardware becomes severely unbalanced**.
+* **The Golden Rule**: The Long-Term Scheduler must select a **balanced combination of CPU-bound and I/O-bound processes** to ensure both the CPU cores and peripheral I/O devices operate at maximum concurrent efficiency.
+
+---
+
+## 📐 Architecture / Visual Blueprint
+
+### The Complete Operating System Queuing Pipeline
+
+The diagram below traces the end-to-end journey of processes through all three system queues and schedulers:
+
+<FlowDiagram
+  title="The Complete Operating System Queuing & Migration Architecture"
+  subtitle="How processes transition across Secondary Storage (Disk), Main Memory (RAM), and CPU execution under LTS, STS, and MTS governance"
+  domains={[
+    {
+      id: "disk_group",
+      title: "Secondary Storage (Disk)",
+      color: "purple",
+      icon: "💾",
+      position: "bottom",
+    },
+    {
+      id: "ram_group",
+      title: "Main Memory (RAM)",
+      color: "blue",
+      icon: "⚡",
+      position: "bottom",
+    },
+    {
+      id: "cpu_group",
+      title: "Processor & Termination",
+      color: "emerald",
+      icon: "🖥️",
+      position: "bottom",
+    },
+  ]}
+  nodes={[
+    {
+      id: "job_queue",
+      domain: "disk_group",
+      col: 0,
+      row: 0,
+      title: "Job Queue",
+      sublabel: "Submitted Programs",
+      badge: "Disk Pool",
+      icon: "💾",
+      color: "purple",
+      details: "Spooling area on disk holding all submitted programs waiting for the Long-Term Scheduler to admit them into RAM.",
+    },
+    {
+      id: "swap_space",
+      domain: "disk_group",
+      col: 0,
+      row: 1,
+      title: "Swap Space",
+      sublabel: "Suspended Processes",
+      badge: "Disk Swap",
+      icon: "🔄",
+      color: "rose",
+      details: "Secondary storage swap partition holding swapped-out process memory images managed by the Medium-Term Scheduler.",
+    },
+    {
+      id: "ready_queue",
+      domain: "ram_group",
+      col: 1,
+      row: 0,
+      title: "Ready Queue",
+      sublabel: "Linked List of PCBs",
+      badge: "RAM Queue",
+      icon: "📋",
+      color: "blue",
+      details: "Processes residing in main memory with all resources allocated, waiting for the Short-Term Scheduler to assign the CPU.",
+    },
+    {
+      id: "device_queues",
+      domain: "ram_group",
+      col: 1,
+      row: 1,
+      title: "Device Queues",
+      sublabel: "Blocked on I/O",
+      badge: "Wait Queue",
+      icon: "⏳",
+      color: "amber",
+      details: "Processes waiting for peripheral hardware I/O transfers (disk, network, keyboard). Relinquish CPU completely.",
+    },
+    {
+      id: "cpu",
+      domain: "cpu_group",
+      col: 2,
+      row: 0,
+      title: "CPU Core",
+      sublabel: "User Mode Execution",
+      badge: "Running",
+      icon: "⚡",
+      color: "emerald",
+      details: "Actively executing opcodes on physical hardware core. At most one process per core at any nanosecond.",
+    },
+    {
+      id: "terminated",
+      domain: "cpu_group",
+      col: 2,
+      row: 1,
+      title: "Terminated",
+      sublabel: "exit() Deallocated",
+      badge: "Zombie / Exit",
+      icon: "🏁",
+      color: "slate",
+      details: "Process finished execution. Memory freed; zombie record retained until parent executes wait() syscall.",
+    },
+  ]}
+  edges={[
+    {
+      from: "job_queue",
+      to: "ready_queue",
+      step: "1",
+      label: "LTS Admit",
+      fromPort: "right",
+      toPort: "left",
+    },
+    {
+      from: "ready_queue",
+      to: "cpu",
+      step: "2",
+      label: "STS Dispatch",
+      fromPort: "right",
+      toPort: "left",
+    },
+    {
+      from: "cpu",
+      to: "ready_queue",
+      step: "3",
+      label: "Timer Preempt",
+      bend: "top",
+      fromPort: "top",
+      toPort: "top",
+      style: "dashed",
+    },
+    {
+      from: "cpu",
+      to: "device_queues",
+      step: "4",
+      label: "I/O Request",
+      fromPort: "bottom",
+      toPort: "right",
+    },
+    {
+      from: "device_queues",
+      to: "ready_queue",
+      step: "5",
+      label: "I/O Complete",
+      fromPort: "top",
+      toPort: "bottom",
+    },
+    {
+      from: "device_queues",
+      to: "swap_space",
+      step: "6a",
+      label: "MTS Suspend",
+      fromPort: "left",
+      toPort: "right",
+      style: "dashed",
+    },
+    {
+      from: "swap_space",
+      to: "ready_queue",
+      step: "6b",
+      label: "MTS Resume",
+      fromPort: "right",
+      toPort: "left",
+      style: "dashed",
+    },
+    {
+      from: "cpu",
+      to: "terminated",
+      step: "7",
+      label: "exit()",
+      fromPort: "bottom",
+      toPort: "top",
+    },
+  ]}
+/>
+
+### Comparative Architectural Matrix: The 3 Schedulers
+
+<SubsystemGrid
+  title="Comparative Architectural Matrix: The 3 Schedulers"
+  subtitle="Contrasting responsibilities, execution frequencies, and memory control domains"
+  items={[
+    {
+      title: "Long-Term Scheduler (LTS)",
+      tag: "Job Scheduler • Minutes",
+      color: "purple",
+      icon: "🗄️",
+      points: [
+        "Selects jobs from secondary storage disk pool and admits them into the Ready Queue in RAM.",
+        "Controls the Degree of Multiprogramming (total number of processes in memory).",
+        "Key Objective: Maintain a balanced ratio of CPU-bound and I/O-bound processes.",
+        "Speed: Heavyweight and infrequent (runs every few seconds to minutes).",
+      ],
+      syscalls: ["Job Pool -> RAM", "Admit Trigger", "Multiprogramming Degree"],
+    },
+    {
+      title: "Medium-Term Scheduler (MTS)",
+      tag: "Swapper • Intermediate",
+      color: "amber",
+      icon: "💽",
+      points: [
+        "Swaps blocked or idle processes between main memory and secondary storage (swap partition).",
+        "Reduces the Degree of Multiprogramming to alleviate acute physical RAM starvation.",
+        "Governs the 2 Suspended States: Blocked-Suspended and Ready-Suspended.",
+        "Speed: Medium frequency; triggered dynamically during memory pressure.",
+      ],
+      syscalls: ["RAM <-> Swap Area", "kswapd Daemon", "Suspend & Resume"],
+    },
+    {
+      title: "Short-Term Scheduler (STS)",
+      tag: "CPU Scheduler • 10-100 ms",
+      color: "green",
+      icon: "⚡",
+      points: [
+        "Selects the next process from the Ready Queue in RAM and assigns it to an available CPU core.",
+        "Must be exceptionally fast to minimize scheduling overhead (runs every 10 to 100 ms).",
+        "Executes scheduling policies: FCFS, SJF, SRTF, Round Robin, Priority, and MLFQ.",
+        "Hands off chosen process to the Dispatcher for the physical context switch.",
+      ],
+      syscalls: ["Ready Queue -> CPU", "Timer Interrupt", "Invokes Dispatcher"],
+    },
+  ]}
+/>
+
+### Scheduler vs. Dispatcher: Architectural Division of Labor
+
+<ConceptComparison
+  title="Scheduler vs. Dispatcher: Decision vs. Execution"
+  subtitle="Separating the scheduling algorithm from the low-level hardware context switch routine"
+  left={{
+    badge: "The Algorithm",
+    title: "Scheduler (STS)",
+    color: "blue",
+    points: [
+      "Role: Decision maker; evaluates scheduling algorithms (FCFS, SJF, RR).",
+      "Input: Inspects PCBs currently waiting in the Ready Queue.",
+      "Output: Returns a pointer to the single best PCB selected for execution.",
+      "Hardware Interaction: Does not directly modify CPU hardware registers.",
+      "Hindi Intuition: 'Yeh bas decide karta hai ki konsi process ko CPU milega.'",
+    ],
+  }}
+  right={{
+    badge: "The Implementer",
+    title: "Dispatcher",
+    color: "emerald",
+    points: [
+      "Role: Action taker; physically hands control of the CPU to the chosen process.",
+      "Input: Takes the PCB pointer chosen by the Short-Term Scheduler.",
+      "Output: Performs context switch, mode switch (Ring 0 -> Ring 3), and PC jump.",
+      "Hardware Interaction: Directly loads CPU registers, stack pointers, and CR3.",
+      "Hindi Intuition: 'CPU dilane aur chalane ka kaam Dispatcher ka hai.'",
+    ],
+  }}
+  footerQuote="The scheduler decides who gets the microphone. The dispatcher walks onto the stage, turns on the microphone, and hands it to the speaker."
+/>
+
+---
+
+## 🏭 In The Real World: Production Case Study
+
+### How Modern Linux Implements Schedulers & Swapping
+
+In modern interactive operating systems (Linux, macOS, Windows), the traditional batch-era Long-Term Scheduler has evolved:
+
+1. **On-Demand Process Creation**: Users spawn processes interactively (`./app`, GUI clicks). The operating system does not hold jobs in a batch spool; instead, memory admission is managed on demand via virtual memory page tables.
+2. **The Medium-Term Scheduler in Linux (`kswapd`)**:
+   * The Linux kernel runs background kernel threads named `kswapd0`, `kswapd1`.
+   * When free physical RAM drops below a kernel watermark (`min_free_kbytes`), `kswapd` acts as the Medium-Term Scheduler: it scans memory, writes inactive anonymous pages to disk swap space, and evicts cached file pages to free up RAM frames.
+3. **Real-Time Dispatch Latency (`PREEMPT_RT`)**:
+   * In standard Linux, kernel code cannot always be immediately interrupted, resulting in variable dispatch latency ($50\text{ to }200\text{ microseconds}$).
+   * In robotics, automotive, and high-frequency trading systems, engineers deploy the **`PREEMPT_RT` patch**, transforming almost all kernel spinlocks into sleepable mutexes to guarantee deterministic dispatch latency under $10\text{ microseconds}$.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** Contrast the primary responsibilities, execution frequencies, and objectives of the Long-Term, Short-Term, and Medium-Term Schedulers. Which specific scheduler governs the Degree of Multiprogramming?
+**Answer:**
+1. **Long-Term Scheduler (LTS)**: Selects jobs from the mass storage disk pool and loads them into main memory (RAM). It executes **infrequently** (seconds to minutes) and directly governs the **Degree of Multiprogramming** (the number of processes in memory) while striving to maintain an optimal balance of CPU-bound and I/O-bound tasks.
+2. **Short-Term Scheduler (STS)**: Selects from among the processes ready to execute in the Ready Queue and assigns the CPU core. It executes **extremely frequently** (every $10\text{ to }100\text{ ms}$) and must be ultra-fast to minimize context switch overhead.
+3. **Medium-Term Scheduler (MTS)**: Manages **Swapping**. When memory is overcommitted, it temporarily removes partially executed processes from RAM to secondary disk storage, reducing the degree of multiprogramming. It restores them when memory frees up.
+
+**Question 2:** Explain the precise functional difference between the CPU Scheduler and the Dispatcher. Define dispatch latency and list the operations performed during this duration.
+**Answer:** The CPU Scheduler is purely an algorithm that selects *which* process from the Ready Queue should receive the CPU next. The Dispatcher is the low-level kernel module that *physically gives control* of the CPU to the selected process. **Dispatch Latency** is the total time elapsed while stopping one process and starting another. The operations performed during dispatch latency include:
+1. Saving the CPU context (registers, Program Counter) of the previous process into its PCB.
+2. Loading the saved context of the newly selected process from its PCB.
+3. Switching the processor hardware mode bit from Kernel Mode (Ring 0) to User Mode (Ring 3).
+4. Jumping to the appropriate instruction address indicated by the new process's Program Counter.
+
+**Question 3:** Why is it vital for the Long-Term Scheduler to maintain a balanced mix of CPU-bound and I/O-bound processes? What system imbalance occurs if all admitted processes are exclusively CPU-bound?
+**Answer:** Processes alternate between CPU execution bursts and I/O wait bursts. If the LTS admits exclusively CPU-bound processes, they will monopolize the CPU cores while issuing almost zero I/O requests. As a result, the I/O device queues sit empty, expensive peripheral hardware sits idle, and overall system throughput degrades. Conversely, if all processes are I/O-bound, the Ready Queue empties rapidly, leaving the CPU idle. A balanced mix ensures that while some processes execute on the CPU, others overlap by performing hardware I/O concurrently, maximizing overall system resource utilization.
+
+:::
+
+:::warning Common Interview Traps
+
+* **The "Scheduler Hands Over CPU" Misconception**: In technical interviews, candidates often state: *"The scheduler switches the CPU to the process."*
+  * **Trap**: The scheduler **never** touches CPU registers or switches modes! It only returns a pointer to the selected PCB. The **Dispatcher** is the sole module that performs the context switch.
+* **The "Spooler Software" Question (NET & GATE classic)**: What software is used to create a job queue on disk before loading into memory?
+  * **Answer**: A **Spooler** (Simultaneous Peripheral Operations On-Line), which works in tandem with the Long-Term Scheduler.
+:::
+
+---
+
+<CoreDoseNav
+  previous={{
+    title: "2.3 PCB Internals & Context Switching Overhead",
+    url: "/coredose/os/chapter-02/process-control-block-pcb-internals-and-context-switching-overhead"
+  }}
+  next={{
+    title: "3.1 CPU Scheduling Criteria & Algorithms Overview",
+    url: "/coredose/os/chapter-03/scheduling-criteria-turnaround-waiting-response-time-and-throughput"
+  }}
+  courseUrl="/coredose/os"
+/>

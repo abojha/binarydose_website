@@ -3,6 +3,37 @@ import Layout from "@theme/Layout";
 import Link from "@docusaurus/Link";
 import styles from "./contribute.module.css";
 
+const PLATFORM_TRACKS = [
+  {
+    icon: "🎓",
+    title: "CoreDose",
+    desc: "University & GATE-level lessons (OS, DBMS, CN, OOPs) with structured blueprints, visual diagrams, and mathematical derivations.",
+    guide: "/contributing/COREDOSE.md",
+    guideLabel: "CoreDose Guide",
+  },
+  {
+    icon: "⚡",
+    title: "CodeDose",
+    desc: "Curated DSA sheet with clean, optimal C++ and Python solutions organized by pattern with complexity analysis.",
+    guide: "/contributing/CODEDOSE.md",
+    guideLabel: "CodeDose Guide",
+  },
+  {
+    icon: "🛠️",
+    title: "DevDose",
+    desc: "100 Days of Tech Interview, System Design blueprints, Modern C++ deep-dives, and AI/LLM Engineering tracks.",
+    guide: "/contributing/DEVDOSE.md",
+    guideLabel: "DevDose Guide",
+  },
+  {
+    icon: "🕹️",
+    title: "AlgoDose",
+    desc: "Interactive algorithm visualizers with step-by-step execution, synchronized code highlighting, and zero-lag playback.",
+    guide: "/contributing/ALGODOSE.md",
+    guideLabel: "AlgoDose Guide",
+  },
+];
+
 export default function Contribute() {
   return (
     <Layout
@@ -15,8 +46,10 @@ export default function Contribute() {
           <div className={styles.badge}>🚀 Open-Source & Community Driven</div>
           <h1 className={styles.title}>Contribute to Binary Dose</h1>
           <p className={styles.subtitle}>
-            Binary Dose is built for the community, by the community. Share your technical guides,
-            interview breakdowns, or DSA solutions and get featured with your own verified author profile.
+            Binary Dose is built for the community, by the community. Whether
+            you want to share an interview experience, write a technical
+            deep-dive, or help build our learning platform — there's a place for
+            you.
           </p>
 
           <div className={styles.heroButtons}>
@@ -41,35 +74,81 @@ export default function Contribute() {
           </div>
         </section>
 
-        {/* 3 Ways to Contribute */}
+        {/* ─── Blog: Primary Open Track ─── */}
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Ways You Can Contribute</h2>
-          <div className={styles.grid}>
-            <div className={styles.card}>
-              <div className={styles.cardIcon}>✍️</div>
-              <h3>1. Technical Articles & Guides</h3>
-              <p>
-                Write in-depth engineering posts on OS, System Design, Concurrency, or Networks.
-                Get featured with your dedicated author card linking to your LinkedIn, GitHub, and portfolio.
-              </p>
+          <h2 className={styles.sectionTitle}>✍️ Write a Blog Post</h2>
+          <div className={styles.blogHighlight}>
+            <p className={styles.blogDesc}>
+              The fastest way to contribute! Write an engineering article,
+              interview breakdown, or technical deep-dive{" "}
+              <strong>in your own style</strong>. No rigid templates — just share
+              your knowledge. You'll get a{" "}
+              <strong>verified author profile</strong> linking directly to your
+              LinkedIn, GitHub, and portfolio.
+            </p>
+            <div className={styles.blogActions}>
+              <Link
+                className={styles.primaryBtn}
+                href="https://github.com/abojha/binarydose_website/blob/main/contributing/BLOG.md"
+              >
+                📖 Blog Contributor Guide
+              </Link>
             </div>
+          </div>
+        </section>
 
-            <div className={styles.card}>
-              <div className={styles.cardIcon}>🎯</div>
-              <h3>2. Interview Breakdown Blogs</h3>
-              <p>
-                Encountered tricky questions or system design problems in an interview?
-                Share your full round breakdown and solution as a published blog article!
-              </p>
-            </div>
-
-            <div className={styles.card}>
-              <div className={styles.cardIcon}>💻</div>
-              <h3>3. CodeDose DSA Solutions</h3>
-              <p>
-                Add clean, optimal code solutions in C++, Java, Python, or Go to our <strong>CodeDose Sheet</strong>, or help improve explanations.
-              </p>
-            </div>
+        {/* ─── Platform Tracks: Discuss First ─── */}
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            Contribute to the Learning Platform
+          </h2>
+          <div className={styles.discussNotice}>
+            <span className={styles.discussIcon}>💬</span>
+            <p>
+              CoreDose, CodeDose, DevDose, and AlgoDose have specific
+              architectural standards, reusable components, and strict design
+              patterns. Before starting work on any of these tracks,{" "}
+              <strong>
+                please reach out to us first
+              </strong>{" "}
+              so we can align on scope, components, and conventions. This helps
+              us maintain consistency and saves you rework.
+            </p>
+          </div>
+          <div className={styles.doseGrid}>
+            {PLATFORM_TRACKS.map((track) => (
+              <div key={track.title} className={styles.doseCard}>
+                <div className={styles.doseIcon}>{track.icon}</div>
+                <h3 className={styles.doseTitle}>{track.title}</h3>
+                <p className={styles.doseDesc}>{track.desc}</p>
+                <Link
+                  className={styles.doseLink}
+                  href={`https://github.com/abojha/binarydose_website/blob/main${track.guide}`}
+                >
+                  📖 {track.guideLabel} →
+                </Link>
+              </div>
+            ))}
+          </div>
+          <div className={styles.reachOut}>
+            <Link
+              className={styles.secondaryBtn}
+              href="https://www.instagram.com/binarydose"
+            >
+              📸 DM us on Instagram
+            </Link>
+            <Link
+              className={styles.secondaryBtn}
+              href="mailto:dosebinary@gmail.com?subject=[Platform Contribution]%20Track%20-%20Your%20Name"
+            >
+              ✉️ Email Us
+            </Link>
+            <Link
+              className={styles.secondaryBtn}
+              href="https://github.com/abojha/binarydose_website/issues"
+            >
+              💡 Open a GitHub Issue
+            </Link>
           </div>
         </section>
 
@@ -81,7 +160,8 @@ export default function Contribute() {
               <div className={styles.cardIcon}>🌟</div>
               <h3>Author Profile & Attribution</h3>
               <p>
-                Every article features your custom author card with direct links to your LinkedIn, GitHub, and portfolio.
+                Every contribution features your custom author card with direct
+                links to your LinkedIn, GitHub, and portfolio.
               </p>
             </div>
 
@@ -89,7 +169,8 @@ export default function Contribute() {
               <div className={styles.cardIcon}>👥</div>
               <h3>Reach Thousands of Developers</h3>
               <p>
-                Your work helps thousands of CS students, GATE aspirants, and developers cracking top technical interviews.
+                Your work helps thousands of CS students, GATE aspirants, and
+                developers cracking top technical interviews.
               </p>
             </div>
 
@@ -97,7 +178,8 @@ export default function Contribute() {
               <div className={styles.cardIcon}>💼</div>
               <h3>Open-Source Credibility</h3>
               <p>
-                Published technical writing and verified GitHub contributions showcase strong engineering communication on your resume.
+                Published technical writing and verified GitHub contributions
+                showcase strong engineering communication on your resume.
               </p>
             </div>
           </div>
@@ -110,9 +192,14 @@ export default function Contribute() {
             <div className={styles.step}>
               <div className={styles.stepNumber}>1</div>
               <div>
-                <h4>Fork our GitHub Repository</h4>
+                <h4>Fork & Clone the Repository</h4>
                 <p>
-                  Fork <Link href="https://github.com/abojha/binarydose_website">abojha/binarydose_website</Link> and add your profile in <code>blog/authors.yml</code>.
+                  Fork{" "}
+                  <Link href="https://github.com/abojha/binarydose_website">
+                    abojha/binarydose_website
+                  </Link>{" "}
+                  and clone it locally. Create a dedicated feature branch —
+                  never work directly on <code>main</code>.
                 </p>
               </div>
             </div>
@@ -120,9 +207,11 @@ export default function Contribute() {
             <div className={styles.step}>
               <div className={styles.stepNumber}>2</div>
               <div>
-                <h4>Add Your Blog Post or Solution</h4>
+                <h4>Follow the Track Guide & Build</h4>
                 <p>
-                  Create a markdown file in <code>blog/</code> with your explanations, code snippets, and Mermaid diagrams.
+                  Read the contributing guide for your chosen track, follow the
+                  rules, and verify your work locally with{" "}
+                  <code>npm run start</code>.
                 </p>
               </div>
             </div>
@@ -132,7 +221,9 @@ export default function Contribute() {
               <div>
                 <h4>Open a Pull Request</h4>
                 <p>
-                  Submit your PR. We will review it, provide feedback, and merge it live on the site!
+                  Push your feature branch and open a PR against{" "}
+                  <code>main</code>. We will review it, provide feedback, and
+                  merge it live on the site!
                 </p>
               </div>
             </div>
@@ -140,12 +231,15 @@ export default function Contribute() {
 
           <div className={styles.ctaBox}>
             <h3>Ready to share your knowledge?</h3>
-            <p>Check out our quick contributor guide on GitHub, or follow our signature <strong>100 Days CS Series</strong> on YouTube!</p>
+            <p>
+              Check out the full contributor guide on GitHub for the complete PR
+              protocol and review checklist.
+            </p>
             <Link
               className={styles.primaryBtn}
               href="https://github.com/abojha/binarydose_website/blob/main/CONTRIBUTING.md"
             >
-              📖 View Contributor Guide
+              📖 View Full Contributor Guide
             </Link>
           </div>
         </section>

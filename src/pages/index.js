@@ -7,35 +7,28 @@ import HomepageFeatures from "@site/src/components/HomepageFeatures";
 import SortingVisualizer from "@site/src/components/AlgoDose/algorithms/SortingVisualizer";
 import Heading from "@theme/Heading";
 import Head from "@docusaurus/Head";
+import useSiteStats from "@site/src/hooks/useSiteStats";
+import HeroHeader from "@site/src/components/Common/HeroHeader";
 import styles from "./index.module.css";
 
 function HomepageHeader() {
-  const { siteConfig } = useDocusaurusContext();
-  const stats = siteConfig.customFields?.stats || {};
+  const stats = useSiteStats();
 
   return (
-    <header className={styles.heroBanner}>
+    <div className={styles.heroBanner}>
       <div className="container">
-        <div className={styles.heroContent}>
-          <div className={styles.brandBadge}>
-            <span className={styles.badgeIcon}>🎯</span>
-            <span className={styles.badgeText}>
-              Zero-Fluff Software Engineering &amp; Coding Hub
-            </span>
-          </div>
-
-          <Heading as="h1" className={styles.heroTitle}>
-            Clear Intuitions for{" "}
-            <span className={styles.heroGradientText}>
-              Computer Science &amp; Coding
-            </span>
-          </Heading>
-
-          <p className={styles.heroSubtitle}>
-            Small, powerful doses of knowledge. Master Data Structures, Operating Systems,
-            DBMS, and Core CS with live interactive visualizers, clean code, and interview-ready notes.
-          </p>
-
+        <HeroHeader
+          badge={{ icon: "🎯", text: "Zero-Fluff Software Engineering & Coding Hub" }}
+          title="Clear Intuitions for"
+          gradient="Computer Science & Coding"
+          subtitle="Small, powerful doses of knowledge. Master Data Structures, Operating Systems, DBMS, and Core CS with live interactive visualizers, clean code, and interview-ready notes."
+          stats={[
+            { number: `${stats.totalProblems}+`, label: "DSA Problems" },
+            { number: `${stats.coredose?.totalTopics || 99}+`, label: "Core CS Notes" },
+            { number: `${stats.hundredDaysCount}+`, label: "Interview Doses" },
+            { number: stats.visualizerEnginesCount, label: "Live Visualizers" },
+          ]}
+        >
           <div className={styles.buttons}>
             <Link
               className={styles.primaryCta}
@@ -52,37 +45,23 @@ function HomepageHeader() {
           </div>
 
           <div className={styles.subCtaRow}>
-            <span>🎓 Comprehensive CS Course Notes</span>
-            <span className={styles.subCtaDivider}>•</span>
             <Link
               to="/coredose"
               className={styles.subCtaLink}
             >
-              Explore CoreDose &rarr;
+              🎓 Explore CoreDose (CS Notes) &rarr;
+            </Link>
+            <span className={styles.subCtaDivider}>•</span>
+            <Link
+              to="/devdose"
+              className={styles.subCtaLink}
+            >
+              🛠️ Explore DevDose (Applied & Interviews) &rarr;
             </Link>
           </div>
-
-          <div className={styles.statsRibbon}>
-            <div className={styles.statItem}>
-              <span className={styles.statNumber}>{stats.totalProblems || 390}+</span>
-              <span className={styles.statLabel}>Solved Problems</span>
-            </div>
-            <div className={styles.statItem}>
-              <span className={styles.statNumber}>{stats.totalCategories || 16}</span>
-              <span className={styles.statLabel}>DSA Patterns</span>
-            </div>
-            <div className={styles.statItem}>
-              <span className={styles.statNumber}>{stats.hundredDaysCount || 48}+</span>
-              <span className={styles.statLabel}>Interview Deep-Dives</span>
-            </div>
-            <div className={styles.statItem}>
-              <span className={styles.statNumber}>{stats.visualizerEnginesCount || 4}</span>
-              <span className={styles.statLabel}>Live Visualizers</span>
-            </div>
-          </div>
-        </div>
+        </HeroHeader>
       </div>
-    </header>
+    </div>
   );
 }
 

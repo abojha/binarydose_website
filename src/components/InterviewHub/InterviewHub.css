@@ -47,22 +47,6 @@
   margin-bottom: 2rem;
 }
 
-.searchInput {
-  width: 100%;
-  padding: 0.85rem 1.25rem;
-  font-size: 1rem;
-  border-radius: 12px;
-  border: 1px solid var(--ifm-color-emphasis-300);
-  background: var(--ifm-background-surface-color);
-  color: var(--ifm-font-color-base);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.searchInput:focus {
-  outline: none;
-  border-color: var(--ifm-color-primary);
-  box-shadow: 0 0 0 3px var(--ifm-color-primary-lightest);
-}
 
 .filterPills {
   display: flex;

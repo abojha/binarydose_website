@@ -1,0 +1,556 @@
+---
+title: "10.4 UNIX File System Internals: Inodes, Direct Blocks & Indirect Pointers"
+description: "Master UNIX file system internals: inode metadata structures, direct/indirect addressing mathematics, maximum file size calculations, and free space management strategies."
+hide_table_of_contents: true
+---
+
+# 10.4 UNIX File System Internals: Inodes, Direct Blocks & Indirect Pointers
+
+<CoreDoseLessonHeader
+  module="Module 10: File Systems & Inodes"
+  topic="Topic 10.4"
+  courseUrl="/coredose/os"
+  readTime="24 min read"
+  relevance="Computer Science Foundations • Systems Engineering • Kernel Internals"
+/>
+
+## 💡 Core Intuition
+
+### 🍳 The Everyday Analogy: The Central Property Registry & Title Deed
+
+Imagine a metropolitan land registry managing millions of real estate properties:
+
+<FlowPipeline
+  title="The Real Estate Deed Indirection Hierarchy"
+  subtitle="How property management scales from direct plots to multi-tier land syndicates"
+  steps={[
+    {
+      badge: "Direct Deeds",
+      title: "Direct Land Parcels",
+      icon: "📜",
+      color: "blue",
+      sublabel: "Direct Pointers (0 to 11)",
+      description: "A standard homeowner deed lists up to 12 individual plot numbers directly on the primary parchment. Looking up these plots requires zero indirection.",
+      connectorLabel: "Expand Capacity",
+    },
+    {
+      badge: "Single Indirect",
+      title: "Ledger Volume Reference",
+      icon: "📗",
+      color: "emerald",
+      sublabel: "Single Indirect Pointer",
+      description: "When an estate exceeds 12 plots, the deed points to an auxiliary ledger book containing an entire page of 1,024 plot numbers.",
+      connectorLabel: "Scale Quadratically",
+    },
+    {
+      badge: "Double Indirect",
+      title: "Catalog of Ledger Books",
+      icon: "📚",
+      color: "purple",
+      sublabel: "Double Indirect Pointer",
+      description: "For corporate estates, the deed references a Master Catalog listing 1,024 ledger volumes, each containing 1,024 plot numbers (~1,048,576 plots).",
+      connectorLabel: "Scale Cubically",
+    },
+    {
+      badge: "Triple Indirect",
+      title: "Registry Archive Building",
+      icon: "🏛️",
+      color: "amber",
+      sublabel: "Triple Indirect Pointer",
+      description: "For continental holdings, the deed points to an entire archive building of catalogs (~1 billion plots). Any size can be addressed without inflating small deeds.",
+    },
+  ]}
+/>
+
+In UNIX and POSIX-compliant operating systems (such as Linux, BSD, and macOS), the **Inode (Index Node)** is the fundamental metadata data structure representing an individual filesystem object.
+
+Crucially:
+- An inode stores **all metadata** about a file (permissions, ownership, timestamps, size, physical block locations).
+- An inode **never stores the filename**! Filenames exist exclusively as directory entries mapping human-readable strings to inode numbers: `("report.pdf", 45210)`.
+
+---
+
+## 🏛️ Inode Architecture & Internal Structure
+
+In traditional UNIX File Systems (UFS), Berkeley Fast File System (FFS), and Linux `ext2`/`ext3`, every file is governed by an on-disk `struct inode`:
+
+| Inode Field | Size / Representation | Architectural Purpose |
+| :--- | :---: | :--- |
+| **File Mode** | 16 bits (`uint16_t`) | File type (regular, directory, symlink) and POSIX permissions (`rwxr-xr-x`) |
+| **Owner Identifiers** | 32 bits each (`UID`, `GID`) | User ID and Group ID of the file owner |
+| **Timestamps** | 3 $\times$ 64 bits | `atime` (last access), `mtime` (content modification), `ctime` (metadata change) |
+| **File Size** | 64 bits (`uint64_t`) | Total logical size of the file in bytes |
+| **Hard Link Count** | 32 bits (`uint32_t`) | Number of directory entries pointing to this inode (`st_nlink`) |
+| **Block Count** | 64 bits (`uint64_t`) | Total number of 512-byte disk sectors allocated to this file |
+| **Pointer Array** | 15 Addresses (60 bytes) | 12 Direct + 1 Single Indirect + 1 Double Indirect + 1 Triple Indirect |
+
+<SubsystemGrid
+  title="The 15-Pointer Asymmetric Hierarchy"
+  subtitle="Why UNIX inodes dedicate 12 direct pointers and 3 tiers of indirection"
+  cards={[
+    {
+      badge: "Direct Pointers",
+      title: "12 Direct Block Pointers",
+      icon: "⚡",
+      color: "emerald",
+      description: "Point directly to the first 12 physical data blocks on disk. For small files (< 48 KB), file access requires exactly ONE disk read with ZERO index indirection overhead.",
+    },
+    {
+      badge: "Single Indirect",
+      title: "1 Single Indirect Pointer",
+      icon: "📗",
+      color: "blue",
+      description: "Points to a dedicated disk block containing an array of block addresses. If a block holds E pointers, this adds E data blocks (typically 1,024 blocks = 4 MB).",
+    },
+    {
+      badge: "Double Indirect",
+      title: "1 Double Indirect Pointer",
+      icon: "📚",
+      color: "purple",
+      description: "Points to an index block of index blocks. Addresses E^2 data blocks (typically 1,048,576 blocks = 4 GB). Access requires 2 index reads before data.",
+    },
+    {
+      badge: "Triple Indirect",
+      title: "1 Triple Indirect Pointer",
+      icon: "🏛️",
+      color: "amber",
+      description: "Points to a 3-level index tree. Addresses E^3 data blocks (typically > 1 billion blocks = 4 TB). Supports massive enterprise files.",
+    },
+  ]}
+/>
+
+---
+
+## 🧮 Mathematical Framework: Inode Capacity Derivations
+
+Let the filesystem parameters be defined as:
+- **Disk Block Size**: $B$ bytes
+- **Disk Block Address / Pointer Size**: $A$ bytes
+- **Number of Direct Pointers**: $d$
+- **Number of Single Indirect Pointers**: $S$
+- **Number of Double Indirect Pointers**: $D$
+- **Number of Triple Indirect Pointers**: $T$
+
+### Step 1: Number of Pointer Entries per Index Block ($E$)
+
+An index block is a regular disk block repurposed to store addresses:
+
+$$E = \frac{\text{Disk Block Size } B}{\text{Address Size } A}$$
+
+### Step 2: Total Addressable Data Blocks ($N_{\text{blocks}}$)
+
+$$N_{\text{blocks}} = \Big[ d \times 1 + S \times E + D \times E^2 + T \times E^3 \Big]$$
+
+### Step 3: Maximum File Size ($\text{Max Size}$)
+
+$$\text{Maximum File Size} = N_{\text{blocks}} \times B$$
+
+$$\text{Maximum File Size} = \Big[ d + S \cdot E + D \cdot E^2 + T \cdot E^3 \Big] \times B$$
+
+---
+
+## 📐 Detailed Worked Example: Classic Standard UNIX Inode
+
+Consider a classic UNIX-like filesystem configuration:
+- **Direct Pointers**: $d = 12$
+- **Single Indirect Pointers**: $S = 1$
+- **Double Indirect Pointers**: $D = 1$
+- **Triple Indirect Pointers**: $T = 0$
+- **Disk Block Size ($B$)**: $4\text{ KB} = 4096\text{ bytes} = 2^{12}\text{ bytes}$
+- **Disk Block Address ($A$)**: $32\text{ bits} = 4\text{ bytes}$
+
+#### 1. Calculate Pointers per Index Block ($E$):
+$$E = \frac{4\text{ KB}}{4\text{ B}} = \frac{4096}{4} = 1024 = 2^{10}\text{ pointers}$$
+
+#### 2. Tier-by-Tier Storage Breakdown:
+
+<ArchitectureStack
+  title="Storage Capacity by Indirection Tier"
+  subtitle="Exact byte calculations for 4 KB blocks with 32-bit pointers"
+  layers={[
+    {
+      level: "Tier 1: Direct Blocks",
+      title: "12 Direct Pointers",
+      detail: "12 * 4 KB = 48 KB. Covers byte offsets [0 to 49,151]. Access cost: exactly 1 disk I/O.",
+      status: "active",
+    },
+    {
+      level: "Tier 2: Single Indirect",
+      title: "1 Single Indirect Pointer",
+      detail: "1 * 1,024 * 4 KB = 4,096 KB = 4 MB. Covers offsets [48 KB to 4 MB + 48 KB]. Access cost: 1 index read + 1 data read = 2 disk I/Os.",
+      status: "optimal",
+    },
+    {
+      level: "Tier 3: Double Indirect",
+      title: "1 Double Indirect Pointer",
+      detail: "1 * (1,024)^2 * 4 KB = 1,048,576 * 4 KB = 4,194,304 KB = 4 GB. Covers offsets up to ~4.004 GB. Access cost: 2 index reads + 1 data read = 3 disk I/Os.",
+      status: "stable",
+    },
+  ]}
+/>
+
+#### 3. Total Maximum File Size:
+$$\text{Max File Size} = 48\text{ KB} + 4\text{ MB} + 4\text{ GB}$$
+
+$$\text{Max File Size} = (12 \times 4096) + (1024 \times 4096) + (1048576 \times 4096)\text{ bytes}$$
+
+$$\text{Max File Size} = 49,152 + 4,194,304 + 4,294,967,296 = 4,299,210,752\text{ bytes} \approx 4\text{ GB}$$
+
+---
+
+### Disk I/O Access Count per Byte Offset
+
+To read a specific byte offset inside a file from cold disk cache:
+
+| Byte Offset Range | Indirection Level | Disk I/O Count (Cold Cache) | Mechanics |
+| :--- | :--- | :--- | :--- |
+| **$0 \le \text{Offset} < 48\text{ KB}$** | Direct Block | **1 Disk I/O** | Read data block directly from inode pointer |
+| **$48\text{ KB} \le \text{Offset} < 4\text{ MB} + 48\text{ KB}$** | Single Indirect | **2 Disk I/Os** | 1 Index Block Read + 1 Data Block Read |
+| **$4\text{ MB} + 48\text{ KB} \le \text{Offset} < 4\text{ GB}$** | Double Indirect | **3 Disk I/Os** | 2 Index Block Reads + 1 Data Block Read |
+| **$\ge 4\text{ GB}$** | Triple Indirect | **4 Disk I/Os** | 3 Index Block Reads + 1 Data Block Read |
+
+:::tip Fast Path for Common Files
+Over $80\%$ of files in typical UNIX workloads are under $16\text{ KB}$. The asymmetric inode structure optimizes for the common case: small files never pay an indirection penalty, while multi-gigabyte database containers expand seamlessly.
+:::
+
+---
+
+## 🧹 Free Space Management
+
+Because physical disk capacity is finite, when files are truncated or deleted, their allocated disk blocks must be reclaimed for future allocations. The operating system maintains a **Free Space List** tracking all available storage blocks.
+
+$$\mathbf{\text{Total Disk Storage Capacity} = \text{Allocated Blocks} + \text{Free Blocks}}$$
+
+The four primary free space management architectures are:
+1. **Bit Vector / Bit Map**
+2. **Linked Free Space List**
+3. **Grouping**
+4. **Counting (Extents)**
+
+---
+
+### 1. Bit Vector / Bit Map
+
+Under a bit vector, the disk volume is modeled as an array of $N$ single-bit flags:
+- Bit value `1` $\implies$ Disk Block is **Free**
+- Bit value `0` $\implies$ Disk Block is **Allocated**
+
+| Block Index | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Bit Value** | `0` | `0` | `1` | `1` | `1` | `1` | `0` | `0` | `1` | `1` | `1` | `1` | `0` | `0` | `0` | `1` | `0` | `1` | `0` | `0` | `1` |
+| **State** | Alloc | Alloc | **Free** | **Free** | **Free** | **Free** | Alloc | Alloc | **Free** | **Free** | **Free** | **Free** | Alloc | Alloc | Alloc | **Free** | Alloc | **Free** | Alloc | Alloc | **Free** |
+
+#### Fundamental Bitmap Formulas:
+$$\text{Total Disk Blocks } N = \frac{\text{Total Disk Size}}{\text{Disk Block Size}}$$
+
+$$\text{Bitmap Size (in Bits)} = N$$
+
+$$\text{Bitmap Size (in Bytes)} = \frac{N}{8} = \frac{\text{Total Disk Size}}{8 \times \text{Disk Block Size}}$$
+
+---
+
+#### ⏱️ Real-World Bitmap Capacity Calculations:
+
+<ConceptComparison
+  title="Bitmap Sizing Across Storage Generations"
+  subtitle="Evaluating memory footprint for various drive and block dimensions"
+  left={{
+    title: "Legacy 1.3 GB Drive (512-byte blocks)",
+    badge: "332 KB RAM Overhead",
+    color: "amber",
+    points: [
+      "Total Disk Blocks: (1.3 * 2^30 bytes) / 512 bytes = 2,726,297 blocks.",
+      "Bitmap Size in Bits: 2,726,297 bits.",
+      "Bitmap Size in Bytes: 2,726,297 / 8 = 340,787 bytes ≈ 332.8 KB.",
+      "Trivially fits into kernel RAM, even on 1990s workstations.",
+    ],
+  }}
+  right={{
+    title: "Modern 1 TB Drive (4 KB blocks)",
+    badge: "32 MB RAM Overhead",
+    color: "blue",
+    points: [
+      "Total Disk Blocks: (1 TB) / (4 KB) = 2^40 / 2^12 = 2^28 blocks = 268,435,456 blocks.",
+      "Bitmap Size in Bits: 2^28 bits.",
+      "Bitmap Size in Bytes: 2^28 / 8 = 2^25 bytes = 32 MB.",
+      "For a 512-byte block size, the bitmap expands to 256 MB of RAM!",
+    ],
+  }}
+/>
+
+#### Algorithmic Advantage: Hardware Bit-Scan Instructions
+Finding free contiguous blocks in a bitmap is blazing fast using native CPU vector intrinsics:
+- In modern C / Linux kernels, `find_first_bit()` or `__builtin_ctzll()` inspects a 64-bit word in a **single CPU clock cycle**.
+- If a word is `0x0000000000000000`, all 64 blocks are allocated; skip instantly to the next word.
+- Finding $k$ contiguous blocks requires checking for consecutive runs of `1` bits.
+
+---
+
+### 2. Linked Free Space List
+
+All free disk blocks are chained together in a singly linked list.
+
+<FlowPipeline
+  title="Linked Free Space List Chain"
+  subtitle="Traversing reclaimed free disk blocks across storage platters"
+  steps={[
+    {
+      badge: "RAM Superblock",
+      title: "Free List Head",
+      icon: "🧠",
+      color: "blue",
+      sublabel: "Pointer to Block 2",
+      description: "Superblock maintains anchor address of first available free block in memory.",
+      connectorLabel: "Disk Link",
+    },
+    {
+      badge: "Block 2",
+      title: "First Free Block",
+      icon: "📦",
+      color: "purple",
+      sublabel: "Free Data Sector",
+      description: "Unallocated block storing link to next free disk address: Block 3.",
+      connectorLabel: "Disk Link",
+    },
+    {
+      badge: "Block 3",
+      title: "Second Free Block",
+      icon: "📦",
+      color: "purple",
+      sublabel: "Free Data Sector",
+      description: "Stores link pointing to Block 4.",
+      connectorLabel: "Disk Link",
+    },
+    {
+      badge: "Block 4",
+      title: "Third Free Block",
+      icon: "📦",
+      color: "purple",
+      sublabel: "Free Data Sector",
+      description: "Stores link pointing to Block 5.",
+      connectorLabel: "Disk Link",
+    },
+    {
+      badge: "Block 5",
+      title: "Fourth Free Block",
+      icon: "🏁",
+      color: "emerald",
+      sublabel: "Chain Continues",
+      description: "Stores link pointing to next free cluster on disk.",
+    },
+  ]}
+/>
+
+<ConceptComparison
+  title="Linked Free List Trade-Offs"
+  subtitle="Evaluating the linked list approach to space reclamation"
+  left={{
+    title: "Key Advantages",
+    badge: "Zero RAM Footprint",
+    color: "emerald",
+    points: [
+      "Zero Memory Overhead: Kernel RAM stores only a single pointer: the address of the first free block in the Superblock.",
+      "Zero Wasted Disk Space: Pointers reside inside the free data blocks themselves (which are unused anyway).",
+    ],
+  }}
+  right={{
+    title: "Catastrophic Disadvantage",
+    badge: "I/O Thrashing",
+    color: "red",
+    points: [
+      "Cannot Locate Contiguous Blocks: Allocating 1,000 contiguous blocks requires traversing 1,000 disk blocks across the platters.",
+      "High Mechanical Latency: Freeing or allocating large chunks generates massive disk I/O.",
+    ],
+  }}
+/>
+
+---
+
+### 3. Grouping & Counting (Extents)
+
+To overcome the latency of simple linked lists, modern file systems deploy two optimized variants:
+
+<SubsystemGrid
+  title="Advanced Free Space Management Variants"
+  subtitle="Grouping and extent-based tracking architectures"
+  cards={[
+    {
+      badge: "Grouping",
+      title: "Block Address Grouping",
+      icon: "📦",
+      color: "purple",
+      description: "The first free block stores the disk addresses of N free blocks. The N-th block contains the addresses of the next N free blocks. The OS can allocate N blocks with exactly ONE disk read.",
+    },
+    {
+      badge: "Counting",
+      title: "Extent Counting",
+      icon: "🔢",
+      color: "emerald",
+      description: "Takes advantage of contiguous allocation. Each entry stores: [First Free Block Address, Contiguous Block Count]. Used in modern Linux ext4 and XFS extent trees.",
+    },
+  ]}
+/>
+
+---
+
+## 💻 Systems Programming: Inspecting Linux Inodes via POSIX C
+
+Below is a systems program demonstrating how to read raw inode attributes using `stat()` and parse file types, permissions, and disk block allocations:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <unistd.h>
+
+void print_inode_info(const char *filename) {
+    struct stat st;
+    if (stat(filename, &st) == -1) {
+        perror("stat failed");
+        return;
+    }
+
+    printf("====================================================\n");
+    printf("UNIX INODE METADATA: %s\n", filename);
+    printf("====================================================\n");
+    printf("Inode Number:        %lu\n", (unsigned long)st.st_ino);
+    printf("Device ID:           %lu\n", (unsigned long)st.st_dev);
+    printf("File Mode (octal):   0%o\n", st.st_mode & 0777);
+    printf("Hard Link Count:     %lu\n", (unsigned long)st.st_nlink);
+    printf("Owner UID:           %d\n", st.st_uid);
+    printf("Owner GID:           %d\n", st.st_gid);
+    printf("Logical File Size:   %ld bytes\n", (long)st.st_size);
+    printf("Allocated 512B Blks: %ld blocks (%ld bytes allocated)\n",
+           (long)st.st_blocks, (long)st.st_blocks * 512);
+
+    // Timestamps
+    char time_buf[64];
+    strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", localtime(&st.st_mtime));
+    printf("Last Modification:   %s\n", time_buf);
+
+    // Inode Type Verification
+    if (S_ISREG(st.st_mode))  printf("Object Type:         Regular Data File\n");
+    else if (S_ISDIR(st.st_mode))  printf("Object Type:         Directory\n");
+    else if (S_ISLNK(st.st_mode))  printf("Object Type:         Symbolic Link\n");
+    printf("====================================================\n");
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Usage: %s <filename>\n", argv[0]);
+        return 1;
+    }
+    print_inode_info(argv[1]);
+    return 0;
+}
+```
+
+---
+
+## 🧮 Comprehensive Exam Numerical Problems
+
+### Problem 1: Inode Capacity with Triple Indirection & 48-bit Addresses
+
+**Question:**  
+Consider a file system with the following specifications:
+- Disk Block Size: $8\text{ KB}$ ($8192\text{ bytes}$)
+- Disk Block Pointer Address: $48\text{ bits}$ ($6\text{ bytes}$)
+- An Inode contains:
+  - 10 Direct block pointers
+  - 2 Single Indirect block pointers
+  - 1 Double Indirect block pointer
+  - 1 Triple Indirect block pointer
+
+Calculate:
+1. The number of pointers per index block.
+2. The maximum file size addressable via Single Indirect pointers.
+3. The absolute maximum file size supported by this inode.
+
+#### Step-by-Step Solution:
+
+1. **Pointers per Index Block ($E$):**
+   $$E = \left\lfloor \frac{\text{Block Size}}{\text{Pointer Size}} \right\rfloor = \left\lfloor \frac{8192}{6} \right\rfloor = 1365\text{ pointers}$$
+
+2. **Single Indirect Capacity:**
+   There are $2$ single indirect pointers:
+   $$\text{Blocks} = 2 \times E = 2 \times 1365 = 2730\text{ blocks}$$
+   $$\text{Capacity} = 2730 \times 8\text{ KB} = 21,840\text{ KB} \approx 21.33\text{ MB}$$
+
+3. **Maximum File Size Supported:**
+   - Direct: $10 \text{ blocks}$
+   - Single Indirect: $2 \times 1365 = 2,730\text{ blocks}$
+   - Double Indirect: $1 \times (1365)^2 = 1,863,225\text{ blocks}$
+   - Triple Indirect: $1 \times (1365)^3 = 2,543,302,125\text{ blocks}$
+
+   $$\text{Total Blocks} = 10 + 2,730 + 1,863,225 + 2,543,302,125 = 2,545,168,090\text{ blocks}$$
+
+   $$\text{Max File Size} = 2,545,168,090 \times 8\text{ KB} = 20,361,344,720\text{ KB} \approx 19.41\text{ TB}$$
+
+---
+
+### Problem 2: Free Space Bitmap Memory Calculation
+
+**Question:**  
+A server features a storage array of capacity $16\text{ TB}$ ($16 \times 2^{40}\text{ bytes}$). The filesystem formats the disk with $4\text{ KB}$ ($4096\text{ bytes}$) blocks.  
+1. How many total disk blocks exist on this volume?  
+2. If free space is managed using a Bit Vector (Bitmap), how much memory (in Megabytes) is required to store the bitmap?  
+3. If the block size is decreased to $1\text{ KB}$, how does the bitmap size change?
+
+#### Step-by-Step Solution:
+
+1. **Total Disk Blocks ($N$):**
+   $$N = \frac{\text{Disk Size}}{\text{Block Size}} = \frac{16 \times 2^{40}\text{ bytes}}{4 \times 2^{10}\text{ bytes}} = 4 \times 2^{30}\text{ blocks} = 4\text{ Giga-blocks} = 2^{32}\text{ blocks}$$
+
+2. **Bitmap Size with 4 KB Blocks:**
+   Each block requires $1\text{ bit}$.
+   $$\text{Bitmap Size (bits)} = 2^{32}\text{ bits}$$
+   $$\text{Bitmap Size (bytes)} = \frac{2^{32}}{8} = \frac{2^{32}}{2^3} = 2^{29}\text{ bytes} = 512\text{ MB}$$
+
+3. **Bitmap Size with 1 KB Blocks:**
+   If block size is reduced by a factor of $4$ ($1\text{ KB}$ instead of $4\text{ KB}$):
+   - Number of blocks increases $4\times$: $N' = 4 \times 2^{32} = 2^{34}\text{ blocks}$.
+   - Bitmap size increases $4\times$:
+     $$\text{Bitmap Size} = \frac{2^{34}}{8} = 2^{31}\text{ bytes} = 2048\text{ MB} = 2\text{ GB}$$
+
+:::warning Internal Fragmentation vs Bitmap Overhead Trade-Off
+Smaller disk blocks drastically reduce internal fragmentation for small files, but quadruple the kernel RAM footprint required for the free-space bitmap!
+:::
+
+---
+
+## 🏁 Summary & Mental Model
+
+<SubsystemGrid
+  title="UNIX Inodes & Free Space Taxonomy"
+  subtitle="Key architectural principles and formulas at a glance"
+  columns={2}
+  subsystems={[
+    {
+      badge: "Inode Capacity Formula",
+      title: "Asymmetric Indirection Tree",
+      icon: "🌳",
+      color: "blue",
+      description: "Small files (< 48 KB) incur zero indirection penalty.",
+      details: "Max File Size = [d + S*E + D*E^2 + T*E^3] * B, where E = Block Size / Address Size."
+    },
+    {
+      badge: "Free Space Tracking",
+      title: "Reclamation Architectures",
+      icon: "🧹",
+      color: "emerald",
+      description: "Balancing RAM overhead against allocation throughput.",
+      details: "Bitmaps: 1 bit per block, O(1) hardware scan. Linked Lists: zero RAM overhead. Extents (Counting): modern contiguous standard."
+    }
+  ]}
+/>
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "10.3 File Allocation Methods",
+    url: "/coredose/os/chapter-10/file-allocation-methods-contiguous-linked-and-indexed-allocation"
+  }}
+  courseUrl="/coredose/os"
+/>

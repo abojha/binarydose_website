@@ -52,13 +52,74 @@ function getSiteStats(rootDir = process.cwd()) {
 
   let hundredDaysCount = countFilesRecursively(hundredDaysDir, /\.md$/);
 
-  return {
+  // Dynamic CoreDose Subject and Topic Discovery
+  const coredoseDir = path.join(rootDir, "coredose");
+  const coredoseStats = {};
+  let totalCoredoseTopics = 0;
+  let totalCoredoseModules = 0;
+  let activeCoursesCount = 0;
+
+  if (fs.existsSync(coredoseDir)) {
+    const subjects = fs.readdirSync(coredoseDir, { withFileTypes: true });
+    for (const sub of subjects) {
+      if (sub.isDirectory() && !sub.name.startsWith(".") && sub.name !== "node_modules") {
+        const subDir = path.join(coredoseDir, sub.name);
+        const subEntries = fs.readdirSync(subDir, { withFileTypes: true });
+        const modules = subEntries.filter(
+          (e) => e.isDirectory() && (e.name.startsWith("chapter-") || e.name.startsWith("module-"))
+        ).length;
+
+        let topics = countFilesRecursively(subDir, /\.(md|mdx)$/);
+        if (fs.existsSync(path.join(subDir, "index.mdx"))) {
+          topics = Math.max(0, topics - 1);
+        }
+        if (fs.existsSync(path.join(subDir, "index.md"))) {
+          topics = Math.max(0, topics - 1);
+        }
+
+        if (topics > 0) {
+          activeCoursesCount++;
+          totalCoredoseTopics += topics;
+          totalCoredoseModules += modules;
+        }
+
+        coredoseStats[sub.name] = {
+          modules,
+          topics,
+        };
+      }
+    }
+  }
+
+  const stats = {
     totalProblems,
     totalCategories,
     hundredDaysCount,
     visualizerEnginesCount: 4, // Sorting, Two Pointers, Binary Search, Sliding Window
     videoPlaylistsCount: 4,    // OS, Algorithms, Data Structures, OOPs
+    coredose: {
+      activeCoursesCount,
+      totalTopics: totalCoredoseTopics,
+      totalModules: totalCoredoseModules,
+      subjects: coredoseStats,
+    },
   };
+
+  // Persist to src/data/siteStats.json so frontend components can import synchronously
+  try {
+    const dataDir = path.join(rootDir, "src", "data");
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    fs.writeFileSync(
+      path.join(dataDir, "siteStats.json"),
+      JSON.stringify(stats, null, 2)
+    );
+  } catch (err) {
+    // Non-fatal if filesystem is restricted
+  }
+
+  return stats;
 }
 
 module.exports = getSiteStats;

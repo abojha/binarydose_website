@@ -1,0 +1,22 @@
+{
+  "totalProblems": 391,
+  "totalCategories": 16,
+  "hundredDaysCount": 64,
+  "visualizerEnginesCount": 4,
+  "videoPlaylistsCount": 4,
+  "coredose": {
+    "activeCoursesCount": 2,
+    "totalTopics": 99,
+    "totalModules": 20,
+    "subjects": {
+      "dbms": {
+        "modules": 10,
+        "topics": 48
+      },
+      "os": {
+        "modules": 10,
+        "topics": 51
+      }
+    }
+  }
+}

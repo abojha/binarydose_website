@@ -1,0 +1,580 @@
+.container {
+  margin: 2.2rem auto;
+  max-width: var(--diagram-max-w-grid, 960px);
+  width: 100%;
+  background: var(--ifm-card-background-color, #0f172a);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: var(--diagram-card-radius, 14px);
+  box-shadow: 0 8px 30px -10px rgba(0, 0, 0, 0.35);
+  font-family: var(--ifm-font-family-base, system-ui, -apple-system, sans-serif);
+  overflow: visible;
+  transition: all 0.2s ease;
+}
+
+[data-theme='light'] .container {
+  background: #ffffff;
+  border-color: var(--ifm-color-emphasis-200, #e2e8f0);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.header {
+  padding: 1.2rem 1.5rem 0.9rem;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.04) 0%, rgba(248, 250, 252, 0.8) 100%);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+[data-theme='dark'] .header {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.titleBadge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  margin-bottom: 0.4rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.18rem;
+  font-weight: 750;
+  color: var(--ifm-heading-color, #f8fafc);
+  letter-spacing: -0.015em;
+}
+
+[data-theme='light'] .title {
+  color: #0f172a;
+}
+
+.subtitle {
+  margin: 0.25rem 0 0.4rem;
+  font-size: 0.84rem;
+  color: var(--ifm-color-emphasis-600, #94a3b8);
+  line-height: 1.4;
+}
+
+.hintText {
+  font-size: 0.74rem;
+  color: var(--ifm-color-emphasis-500, #94a3b8);
+  font-style: italic;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+/* Stages Wrapper */
+.stagesWrapper {
+  padding: 1.2rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Stage Card (Group Container) */
+.stageCard {
+  border-radius: 12px;
+  border: 1.5px solid rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.45);
+  padding: 1rem 1.1rem;
+  position: relative;
+  transition: border-color 0.2s ease;
+}
+
+[data-theme='light'] .stageCard {
+  background: rgba(248, 250, 252, 0.8);
+  border-color: #e2e8f0;
+}
+
+.blueStage {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.03);
+}
+
+.emeraldStage {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.03);
+}
+
+.purpleStage {
+  border-color: rgba(168, 85, 247, 0.35);
+  background: rgba(168, 85, 247, 0.03);
+}
+
+.stageHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.stageIcon {
+  font-size: 1rem;
+}
+
+.stageBadge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.stageTitle {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--ifm-heading-color, #f1f5f9);
+  letter-spacing: -0.01em;
+}
+
+[data-theme='light'] .stageTitle {
+  color: #1e293b;
+}
+
+/* Steps Pipeline */
+.pipeline {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+/* Individual Node Card */
+.nodeCard {
+  flex: 1 1 0;
+  min-width: 140px;
+  border-radius: 10px;
+  padding: 0.85rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  text-align: left;
+  border: 1.5px solid transparent;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.nodeCard:hover,
+.cardActive {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(56, 189, 248, 0.25) !important;
+  border-color: #38bdf8 !important;
+}
+
+/* Color Themes */
+.purpleTheme {
+  background: rgba(168, 85, 247, 0.1);
+  border-color: rgba(168, 85, 247, 0.4);
+}
+.blueTheme {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+.amberTheme {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.emeraldTheme {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.cyanTheme {
+  background: rgba(6, 182, 212, 0.1);
+  border-color: rgba(6, 182, 212, 0.4);
+}
+.roseTheme {
+  background: rgba(244, 63, 94, 0.1);
+  border-color: rgba(244, 63, 94, 0.4);
+}
+
+[data-theme='light'] .purpleTheme { background: #faf5ff; border-color: #d8b4fe; }
+[data-theme='light'] .blueTheme { background: #eff6ff; border-color: #bfdbfe; }
+[data-theme='light'] .amberTheme { background: #fffbeb; border-color: #fde68a; }
+[data-theme='light'] .emeraldTheme { background: #ecfdf5; border-color: #a7f3d0; }
+[data-theme='light'] .cyanTheme { background: #ecfeff; border-color: #a5f3fc; }
+[data-theme='light'] .roseTheme { background: #fff1f2; border-color: #fecdd3; }
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 0.4rem;
+}
+
+.nodeIcon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.nodeRole {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.12rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  font-family: var(--ifm-font-family-monospace, monospace);
+}
+
+.purpleTheme .nodeRole { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border-color: rgba(168, 85, 247, 0.4); }
+.blueTheme .nodeRole { background: rgba(59, 130, 246, 0.2); color: #93c5fd; border-color: rgba(59, 130, 246, 0.4); }
+.amberTheme .nodeRole { background: rgba(245, 158, 11, 0.2); color: #fde68a; border-color: rgba(245, 158, 11, 0.4); }
+.roseTheme .nodeRole { background: rgba(244, 63, 94, 0.2); color: #fecdd3; border-color: rgba(244, 63, 94, 0.4); }
+.emeraldTheme .nodeRole { background: rgba(16, 185, 129, 0.2); color: #a7f3d0; border-color: rgba(16, 185, 129, 0.4); }
+.cyanTheme .nodeRole { background: rgba(6, 182, 212, 0.2); color: #a5f3fc; border-color: rgba(6, 182, 212, 0.4); }
+
+.nodeTitle {
+  font-size: 0.88rem;
+  font-weight: 750;
+  margin: 0 0 0.2rem 0;
+  color: var(--ifm-heading-color, #f8fafc);
+  letter-spacing: -0.01em;
+}
+
+[data-theme='light'] .nodeTitle {
+  color: #0f172a;
+}
+
+.nodeSublabel {
+  font-size: 0.72rem;
+  color: var(--ifm-color-emphasis-600, #94a3b8);
+  font-family: var(--ifm-font-family-monospace, monospace);
+  margin-bottom: 0.3rem;
+}
+
+[data-theme='light'] .nodeSublabel {
+  color: #475569;
+}
+
+.nodeDesc {
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: var(--ifm-color-emphasis-700, #cbd5e1);
+  margin: 0;
+}
+
+[data-theme='light'] .nodeDesc {
+  color: #475569;
+}
+
+/* Connectors within stage */
+.connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.15rem;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.arrowPill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #1e293b;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  font-size: 0.8rem;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='light'] .arrowPill {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #2563eb;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.stepNum {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.connectorText {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #38bdf8;
+  margin-top: 0.3rem;
+  max-width: 90px;
+  line-height: 1.25;
+  font-family: var(--ifm-font-family-monospace, monospace);
+}
+
+[data-theme='light'] .connectorText {
+  color: #2563eb;
+}
+
+/* Stage Transition Connector (Between Stage 1 & Stage 2) */
+.stageTransition {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.9rem 0;
+  position: relative;
+  width: 100%;
+}
+
+.stageTransitionLine {
+  flex: 1;
+  height: 1px;
+  background: dashed 1px rgba(148, 163, 184, 0.25);
+  border-top: 1px dashed rgba(148, 163, 184, 0.25);
+}
+
+.stageTransitionPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 9999px;
+  background: #0f172a;
+  border: 1.5px solid #f59e0b;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.2);
+  margin: 0 1rem;
+}
+
+[data-theme='light'] .stageTransitionPill {
+  background: #ffffff;
+  border-color: #f59e0b;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+}
+
+.stageTransitionArrow {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #fbbf24;
+}
+
+.stageTransitionBadge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fde68a;
+}
+
+[data-theme='light'] .stageTransitionBadge {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.stageTransitionLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #f8fafc;
+  font-family: var(--ifm-font-family-monospace, monospace);
+}
+
+[data-theme='light'] .stageTransitionLabel {
+  color: #1e293b;
+}
+
+/* Floating Tooltip Beside / Above the Card */
+.floatingTooltip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 250px;
+  background: #0b1329;
+  border: 1.5px solid #38bdf8;
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  animation: tooltipFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: default;
+  pointer-events: auto;
+}
+
+[data-theme='light'] .floatingTooltip {
+  background: #ffffff;
+  border-color: #2563eb;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes tooltipFadeIn {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.tooltipHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.tooltipBadge {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #38bdf8;
+  letter-spacing: 0.05em;
+  background: rgba(56, 189, 248, 0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+[data-theme='light'] .tooltipBadge {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.tooltipClose {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.tooltipClose:hover {
+  color: #f8fafc;
+}
+
+.tooltipBody {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #cbd5e1;
+}
+
+[data-theme='light'] .tooltipBody {
+  color: #334155;
+}
+
+.tooltipArrow {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 7px solid #38bdf8;
+}
+
+[data-theme='light'] .tooltipArrow {
+  border-top-color: #2563eb;
+}
+
+/* Legend */
+.legendContainer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 0.65rem 1.4rem;
+  background: rgba(0, 0, 0, 0.08);
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+  justify-content: center;
+}
+
+[data-theme='light'] .legendContainer {
+  background: rgba(0, 0, 0, 0.02);
+  border-top-color: var(--ifm-color-emphasis-200);
+}
+
+.legendTitle {
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ifm-color-emphasis-500, #94a3b8);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  color: var(--ifm-color-emphasis-700, #cbd5e1);
+}
+
+[data-theme='light'] .legendItem {
+  color: #475569;
+}
+
+.legendDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Mobile Responsive Layout: Stacks vertically with downward arrows */
+@media (max-width: 768px) {
+  .stagesWrapper {
+    padding: 0.9rem;
+  }
+  .stageCard {
+    padding: 0.9rem;
+  }
+  .pipeline {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+  .nodeCard {
+    width: 100%;
+    min-width: 100%;
+    padding: 0.9rem;
+  }
+  .connector {
+    padding: 0.45rem 0;
+  }
+  .arrowPill {
+    transform: rotate(90deg);
+  }
+  .connectorText {
+    max-width: 260px;
+    margin-top: 0.2rem;
+  }
+  .stageTransition {
+    padding: 0.65rem 0;
+  }
+  .stageTransitionLine {
+    display: none;
+  }
+  .stageTransitionPill {
+    width: 100%;
+    justify-content: center;
+    margin: 0;
+  }
+}

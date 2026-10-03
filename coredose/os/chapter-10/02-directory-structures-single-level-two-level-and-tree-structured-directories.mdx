@@ -1,0 +1,574 @@
+---
+title: "10.2 Directory Structures: Single-Level, Two-Level & Tree-Structured Directories"
+description: "Explore directory architectures in modern operating systems: single-level, two-level, hierarchical trees, acyclic graphs, hard vs soft links, and directory search algorithms."
+hide_table_of_contents: true
+---
+
+# 10.2 Directory Structures: Single-Level, Two-Level & Tree-Structured Directories
+
+<CoreDoseLessonHeader
+  module="Module 10: File Systems & Inodes"
+  topic="Topic 10.2"
+  courseUrl="/coredose/os"
+  readTime="20 min read"
+  relevance="Computer Science Foundations • Systems Programming • Storage Hierarchy"
+/>
+
+## 💡 Core Intuition
+
+### 🍳 The Everyday Analogy: The Evolution of a Metropolitan Library Catalog
+
+Imagine the evolution of a city library that starts with a few dozen books and grows into a multi-million-volume research archive:
+
+<FlowPipeline
+  title="The Library Cataloging Evolution"
+  subtitle="How storage organization progresses from a flat heap to structured hierarchical namespaces"
+  steps={[
+    {
+      badge: "Single-Level",
+      title: "The Communal Table",
+      icon: "📚",
+      color: "red",
+      sublabel: "Global Flat Namespace",
+      description: "All books dumped on one giant table. Two authors with the same book title cause immediate collision, and finding a title requires scanning the entire pile.",
+      connectorLabel: "Divide by User",
+    },
+    {
+      badge: "Two-Level",
+      title: "Individual Member Lockers",
+      icon: "🗄️",
+      color: "amber",
+      sublabel: "Master & User Catalogs",
+      description: "Each library patron gets a dedicated locker. Author name clashes between users vanish, but users cannot create sub-folders or easily share books.",
+      connectorLabel: "Allow Sub-Folders",
+    },
+    {
+      badge: "Tree-Structured",
+      title: "Dewey Decimal Stacks",
+      icon: "🌲",
+      color: "blue",
+      sublabel: "Recursive Directory Tree",
+      description: "Floors divide into wings, aisles, shelves, and book jackets. Arbitrary sub-categorization and relative pathways allow infinite organization.",
+      connectorLabel: "Cross-Reference Links",
+    },
+    {
+      badge: "Acyclic Graph",
+      title: "Shared Cross-Reference Index",
+      icon: "🔗",
+      color: "purple",
+      sublabel: "Hard & Symbolic Pointers",
+      description: "Multiple departments reference the identical rare manuscript without duplicating paper copies, using direct reference cards (links).",
+    },
+  ]}
+/>
+
+In an operating system, a **directory** is fundamentally a **symbol table** maintained by the file system. It maps human-friendly ASCII/UTF-8 file name strings to internal kernel identifiers—specifically **File Control Blocks (FCBs)** in Windows or **Inode numbers** in UNIX.
+
+---
+
+## 🏛️ Directory Implementations & Hierarchies
+
+### 1. Single-Level Directory Structure
+
+In a single-level directory system, all files reside in a single global directory shared by all users.
+
+| File Name | Inode Pointer | File Type |
+| :--- | :---: | :---: |
+| `payroll.dat` | Inode 101 | Regular File |
+| `test.c` | Inode 102 | Regular File |
+| `report.pdf` | Inode 103 | Regular File |
+| `kernel.bin` | Inode 104 | Regular File |
+
+<ConceptComparison
+  title="Single-Level Directory Trade-Offs"
+  subtitle="Evaluating the simplest possible file namespace organization"
+  left={{
+    title: "Key Advantages",
+    badge: "Simplicity",
+    color: "emerald",
+    points: [
+      "Trivial to implement in embedded microcontrollers and early ROM operating systems.",
+      "Requires minimal memory footprint for directory metadata tables.",
+      "Direct path resolution: absolute file lookup requires exactly zero intermediate directory traversals.",
+    ],
+  }}
+  right={{
+    title: "Catastrophic Limitations",
+    badge: "Fatal Flaws",
+    color: "red",
+    points: [
+      "Naming Collisions: Two different users cannot create a file named 'main.c' or 'test.txt'.",
+      "Zero Grouping: A user cannot separate project files from vacation photos or build artifacts.",
+      "Linear Scan Bottleneck: Searching for a file in a system with 100,000 files requires an O(N) linear sweep across all entries.",
+    ],
+  }}
+/>
+
+---
+
+### 2. Two-Level Directory Structure
+
+To eliminate name collisions between different users in multi-user environments, the file system introduces a two-tier hierarchy:
+1. **Master File Directory (MFD)**: Contains an entry for each registered user on the system, storing the user ID and a pointer to that user's private catalog.
+2. **User File Directory (UFD)**: A private catalog for each user containing all files owned by that individual.
+
+<ArchitectureStack
+  title="Two-Level Directory Hierarchy (MFD -> UFD)"
+  subtitle="Isolating user namespaces to eliminate cross-user naming collisions"
+  layers={[
+    {
+      badge: "Tier 1: Master Directory",
+      title: "Master File Directory (MFD)",
+      detail: "Global user index containing pointers to each registered user's private catalog (Alice, Bob, Carol).",
+      status: "active",
+    },
+    {
+      badge: "Tier 2: User Directories",
+      title: "User File Directories (UFD: Alice, Bob, Carol)",
+      detail: "Private catalogs indexed per user. Alice and Bob can both maintain 'test.c' simultaneously with zero collision.",
+      status: "optimal",
+    },
+    {
+      badge: "Tier 3: Storage Leaves",
+      title: "User Files (test.c, lib.a, data.db, report.pdf)",
+      detail: "Individual user files addressed by compound pathnames: /Alice/test.c or /Bob/test.c.",
+      status: "stable",
+    },
+  ]}
+/>
+
+#### Operational Characteristics:
+- **Collision Resolution**: Alice and Bob can both create a file named `test.c` simultaneously without any conflict because their entries reside in distinct UFD tables.
+- **Path Resolution**: Files are addressed by prepending the username: `/Alice/test.c` or `/Bob/test.c`.
+- **System Isolation**: Security boundaries are reinforced—User A cannot accidentally overwrite User B's files.
+- **Remaining Limitation**: Users still cannot group their own files into sub-directories (e.g., separating `cs101/homework1` from `cs101/homework2`).
+
+---
+
+### 3. Tree-Structured Directory
+
+The modern industry standard general-purpose directory structure is a **hierarchical tree** of arbitrary depth.
+
+<ArchitectureStack
+  title="Tree-Structured Hierarchical Directory Topology"
+  subtitle="Recursive tree of arbitrary depth supporting absolute and relative paths"
+  layers={[
+    {
+      badge: "Root Level",
+      title: "Root Directory ('/')",
+      detail: "The global anchor node of the entire filesystem tree (Inode 2 in UNIX/ext4).",
+      status: "active",
+    },
+    {
+      badge: "Internal Nodes",
+      title: "System & User Branch Directories (/etc, /home, /home/alice, /home/bob)",
+      detail: "Branch nodes containing directory entries (dentry) pointing recursively to subordinate folders.",
+      status: "optimal",
+    },
+    {
+      badge: "Leaf Nodes",
+      title: "Leaf Data Files (hosts, src.c, paper.pdf, main.c)",
+      detail: "End files containing actual raw data bytes, addressed via absolute (/home/alice/docs/paper.pdf) or relative paths.",
+      status: "stable",
+    },
+  ]}
+/>
+
+#### Structural Rules:
+1. **Internal Nodes vs. Leaf Nodes**:
+   - Internal nodes are **Directories** (folders). They contain a list of directory entries pointing to subordinate directories or files.
+   - Leaf nodes are **Regular Files** (data blocks) or empty directories.
+2. **Directory Flag**:
+   - Every file control block (inode) maintains a type bit (`S_ISDIR` vs `S_ISREG`). If the bit is set, the operating system treats the file's data blocks as directory entries.
+
+#### Absolute vs. Relative Path Resolution
+
+<ConceptComparison
+  title="Path Resolution Mechanisms"
+  subtitle="How the kernel traverses the directory tree from different reference anchors"
+  left={{
+    title: "Absolute Path",
+    badge: "/ (Root Anchored)",
+    color: "blue",
+    points: [
+      "Begins at the filesystem root directory ('/' in UNIX, 'C:\\' in Windows).",
+      "Invariant to the executing process's current working environment.",
+      "Example: '/home/alice/docs/paper.pdf'.",
+      "Traverses: Root -> home -> alice -> docs -> paper.pdf.",
+    ],
+  }}
+  right={{
+    title: "Relative Path",
+    badge: "CWD Anchored",
+    color: "purple",
+    points: [
+      "Resolved relative to the process's Current Working Directory (CWD).",
+      "Utilizes special directory entries: '.' (current directory) and '..' (parent directory).",
+      "Example: If CWD is '/home/alice', path is './docs/paper.pdf' or '../bob/project/main.c'.",
+      "Reduces pathname parsing overhead and enables portable scripts.",
+    ],
+  }}
+/>
+
+---
+
+## 🔗 Acyclic-Graph Directories: Shared Files & Links
+
+In modern operating systems, multiple users or independent projects frequently need to collaborate on identical files or shared libraries. Copying the file wastes disk blocks and creates inconsistency when one party edits their copy.
+
+An **Acyclic-Graph Directory** allows directories to share subdirectories and files by allowing a node to have multiple parent paths, strictly prohibiting circular cycles.
+
+<ArchitectureStack
+  title="Link Abstraction Layer in POSIX Filesystems"
+  subtitle="Comparing Direct Inode Pointer Sharing vs. Path Indirection"
+  layers={[
+    {
+      level: "Layer 1: Namespace Entries",
+      title: "Directory Entries (dentry)",
+      detail: "Directory tables map human strings to targets. Hard links point directly to an Inode number; Soft links point to an Inode whose type is S_IFLNK.",
+      status: "active",
+    },
+    {
+      level: "Layer 2: Metadata Core",
+      title: "Inode Table (Index Nodes)",
+      detail: "Hard links share the identical Inode structure (identical UID, permissions, block pointers, and shared link_count). Soft links possess a brand new, separate Inode.",
+      status: "optimal",
+    },
+    {
+      level: "Layer 3: Storage Payload",
+      title: "Disk Data Blocks",
+      detail: "For hard links, file data resides in original shared blocks. For symbolic links, the data block stores the ASCII string of the destination target path.",
+      status: "stable",
+    },
+  ]}
+/>
+
+---
+
+### Hard Links vs. Soft (Symbolic) Links
+
+The two link mechanisms operate at fundamentally different architectural boundaries:
+
+<ConceptComparison
+  title="Hard Links vs. Soft (Symbolic) Links"
+  subtitle="Exhaustive architectural comparison under POSIX / UNIX semantics"
+  left={{
+    title: "Hard Links (`ln target link`)",
+    badge: "Direct Inode Reference",
+    color: "blue",
+    points: [
+      "Inode Identity: Shares the exact same Inode number as the target file.",
+      "Reference Counting: Increments the file's 'link_count' (stored inside the inode).",
+      "Deletion Semantics: Deleting ('unlink') one name decrements link_count by 1. Data blocks are freed only when link_count reaches 0 and no running process holds an open file descriptor.",
+      "Filesystem Boundary: Cannot cross filesystem partitions (an inode number is only unique within its local block device).",
+      "Directory Restrictions: Disallowed on directories to avoid infinite loops and cycles in tree traversals.",
+    ],
+  }}
+  right={{
+    title: "Soft / Symbolic Links (`ln -s target link`)",
+    badge: "Path Pointer File",
+    color: "emerald",
+    points: [
+      "Inode Identity: Allocated a completely new, independent Inode with file type S_IFLNK.",
+      "Data Payload: Its data blocks store the ASCII string of the target path (e.g., '/usr/bin/python3').",
+      "Deletion Semantics: Deleting the original file leaves the symlink intact as a 'dangling pointer' (broken link). Accessing it triggers ENOENT.",
+      "Filesystem Boundary: Can seamlessly span across different storage partitions, mount points, and network file systems (NFS).",
+      "Directory Support: Permitted on directories (e.g., '/bin -> /usr/bin').",
+    ],
+  }}
+/>
+
+---
+
+## ⚙️ Directory Implementation: Linear Lists vs. Hash Tables
+
+A directory file must support fast searches, insertions, and deletions. Operating systems employ two primary data structures to store directory entries:
+
+### 1. Linear List of Directory Entries
+
+The simplest organization is a linear array or linked list of directory entries (`struct dirent`).
+
+```c
+struct dirent {
+    uint32_t d_ino;       // Inode number (4 bytes)
+    uint16_t d_reclen;    // Length of this directory record
+    uint8_t  d_type;      // File type (regular, directory, symlink)
+    char     d_name[256]; // Null-terminated filename string
+};
+```
+
+<ExecutionBlueprint
+  title="Linear List Directory Operations"
+  subtitle="Algorithmic complexity for basic namespace maintenance"
+  steps={[
+    {
+      phase: "Search (Open / Stat)",
+      component: "Linear Scan Engine",
+      action: "Sequentially scans records from offset 0 to EOF matching d_name strings.",
+      latency: "O(N) Time",
+      state: "I/O intensive for large directories",
+    },
+    {
+      phase: "Insertion (Create / Touch)",
+      component: "Collision Verifier",
+      action: "Must scan all N records to guarantee no duplicate name exists, then appends to EOF or reuses a deleted slot.",
+      latency: "O(N) Time",
+      state: "Slow in directories with > 10,000 files",
+    },
+    {
+      phase: "Deletion (Unlink / RM)",
+      component: "Slot Reclaimer",
+      action: "Finds matching entry, sets d_ino = 0 or marks entry as free, merges unused space with adjacent record.",
+      latency: "O(N) Scan + O(1) Mark",
+      state: "Produces fragmentation in directory blocks",
+    },
+  ]}
+/>
+
+---
+
+### 2. Hash Table & Indexed Structures (ext4 HTree & B-Trees)
+
+To eliminate the $O(N)$ lookup barrier, modern enterprise file systems index directory records using hash tables or search trees:
+
+<SubsystemGrid
+  title="Advanced Directory Indexing Architectures"
+  subtitle="How modern filesystems manage millions of files inside a single folder"
+  cards={[
+    {
+      badge: "Hash Tables",
+      title: "Ext3/Ext4 HTree",
+      icon: "⚡",
+      color: "emerald",
+      description: "Uses a 32-bit hash of the filename to index a shallow, specialized B-tree of fixed depth (1 to 2 levels). Gives O(1) expected lookup and scales to millions of files.",
+    },
+    {
+      badge: "Balanced Trees",
+      title: "XFS & Btrfs B+Trees",
+      icon: "🌳",
+      color: "blue",
+      description: "Stores directory entries inside balanced B+Trees sorted by 64-bit filename hashes. Guarantees O(log N) worst-case lookups, insertions, and deletions.",
+    },
+    {
+      badge: "B-Tree Hybrids",
+      title: "NTFS $INDEX_ROOT",
+      icon: "🪟",
+      color: "purple",
+      description: "Windows NTFS stores small directories inside the Master File Table (MFT) record itself ($INDEX_ROOT). When files exceed 4 KB, it spills into an external B-tree ($INDEX_ALLOCATION).",
+    },
+    {
+      badge: "In-Memory Caches",
+      title: "Linux Dentry Cache (dcache)",
+      icon: "🚀",
+      color: "amber",
+      description: "The VFS maintains an LRU hash table of parsed 'struct dentry' nodes in RAM. Most directory lookups hit the dcache in O(1) without touching physical disk sectors.",
+    },
+  ]}
+/>
+
+---
+
+## 🧪 Real-World Engineering: POSIX Directory System Calls
+
+Below is a complete, production-grade C implementation illustrating POSIX directory operations: creating directories, navigating the hierarchy, reading directory entries, and tracking hard link counts via `stat`:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <dirent.h>
+#include <unistd.h>
+
+void inspect_directory(const char *dir_path) {
+    DIR *dir = opendir(dir_path);
+    if (!dir) {
+        perror("opendir failed");
+        return;
+    }
+
+    printf("======================================================================\n");
+    printf("Listing Directory: %s\n", dir_path);
+    printf("%-20s %-10s %-12s %-10s %-10s\n", "Name", "Inode", "Type", "Links", "Size (B)");
+    printf("======================================================================\n");
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        char full_path[1024];
+        snprintf(full_path, sizeof(full_path), "%s/%s", dir_path, entry->d_name);
+
+        struct stat st;
+        // lstat does NOT follow symbolic links, inspecting the link itself
+        if (lstat(full_path, &st) == -1) {
+            continue;
+        }
+
+        const char *type_str = "Unknown";
+        if (S_ISREG(st.st_mode))  type_str = "Regular";
+        else if (S_ISDIR(st.st_mode))  type_str = "Directory";
+        else if (S_ISLNK(st.st_mode))  type_str = "Symlink";
+        else if (S_ISCHR(st.st_mode))  type_str = "Char Device";
+        else if (S_ISBLK(st.st_mode))  type_str = "Block Device";
+
+        printf("%-20s %-10lu %-12s %-10lu %-10ld\n",
+               entry->d_name,
+               (unsigned long)entry->d_ino,
+               type_str,
+               (unsigned long)st.st_nlink,
+               (long)st.st_size);
+    }
+
+    closedir(dir);
+}
+
+int main(int argc, char *argv[]) {
+    const char *target = (argc > 1) ? argv[1] : ".";
+    inspect_directory(target);
+    return 0;
+}
+```
+
+---
+
+## 💣 Production Pathology: The Dangling Symlink and Build Cache Poisoning
+
+<ConceptComparison
+  title="Production Case Study: CI/CD Docker Cache Failure"
+  subtitle="How misunderstanding hard links vs soft links crashed a distributed build farm"
+  left={{
+    title: "The Incident",
+    badge: "Broken Symbolic Reference",
+    color: "red",
+    points: [
+      "A software pipeline cached shared C++ static libraries (`libcore.a`) across worker nodes.",
+      "The build tool created a symlink: `/build/libcore.a -> /cache/v1.4/libcore.a`.",
+      "Nightly cleanup pruned `/cache/v1.4` based on disk thresholds, deleting the real file.",
+      "The symlink remained intact pointing to a non-existent path. Subsequent builds compiled without warnings until link-time, throwing cryptic `ENOENT` / file missing panics.",
+    ],
+  }}
+  right={{
+    title: "The Architectural Fix",
+    badge: "Hard Links + Atomic Replace",
+    color: "emerald",
+    points: [
+      "The build orchestrator switched to hard links on the shared NVMe volume.",
+      "Even when the cache pruner executed `unlink(/cache/v1.4/libcore.a)`, the kernel only decremented `st_nlink` from 2 to 1.",
+      "The active build's hard link retained full, uninterrupted ownership of the underlying data blocks.",
+      "The physical storage blocks were only freed by the storage controller once all builds unlinked the library.",
+    ],
+  }}
+/>
+
+---
+
+## 🧮 Numerical & Conceptual Exam Problems
+
+### Problem 1: Hard Link Count Dynamics in Directory Trees
+
+**Question:**  
+In a standard UNIX file system, when an empty directory `/home/student/project` is created using `mkdir`, what is its initial `st_nlink` (hard link count)? If two subdirectories `src` and `tests` are subsequently created inside `project`, what does `project`'s link count become? Explain every link source precisely.
+
+#### Step-by-Step Solution:
+
+1. **Initial Directory Creation (`mkdir project`):**
+   - Link 1: The parent directory (`student`) has an entry pointing to this new directory: `student/project`.
+   - Link 2: The newly created directory contains the special entry `.` (dot) pointing to itself: `project/.`.
+   - **Initial Link Count = 2.**
+
+2. **Creating Subdirectory `project/src`:**
+   - The directory `src` contains the special entry `..` (dot-dot), which points back to its parent directory (`project`).
+   - This increments `project`'s link count by 1 (now 3).
+
+3. **Creating Subdirectory `project/tests`:**
+   - The directory `tests` also contains `..` (dot-dot), pointing back to `project`.
+   - This increments `project`'s link count by 1 (now 4).
+
+$$\text{Link Count of Directory } D = 2 + \text{Number of Subdirectories in } D$$
+
+$$\text{Final Link Count} = 2 + 2 = 4$$
+
+---
+
+### Problem 2: Disk I/O Cost in Directory Traversals
+
+**Question:**  
+Consider a hierarchical tree directory on a system where each directory entry requires 32 bytes and disk blocks are 4 KB (4096 bytes).  
+A user issues a command to read `/usr/bin/python`. Assume:
+- The root directory `/` contains 10 entries.
+- `/usr` contains 250 entries.
+- `/bin` contains 800 entries.
+- The OS disk cache is completely cold (no inodes or directory blocks are cached in RAM).
+- Each directory and file has its inode located in a separate inode disk block.
+
+How many total disk block read operations are required to open `/usr/bin/python`?
+
+#### Step-by-Step Solution:
+
+1. **Traverse Root Directory (`/`):**
+   - Read Root Inode: $1\text{ I/O}$.
+   - Number of blocks for `/` directory data: $\lceil (10 \times 32) / 4096 \rceil = \lceil 320 / 4096 \rceil = 1\text{ block} \implies 1\text{ I/O}$.
+   - Locate `usr` entry to obtain its inode number.
+
+2. **Traverse `/usr` Directory:**
+   - Read `/usr` Inode: $1\text{ I/O}$.
+   - Number of blocks for `/usr` directory data: $\lceil (250 \times 32) / 4096 \rceil = \lceil 8000 / 4096 \rceil = 2\text{ blocks}$.
+   - In the worst case (entry at the end): $2\text{ I/Os}$.
+   - Locate `bin` entry to obtain its inode number.
+
+3. **Traverse `/bin` Directory:**
+   - Read `/bin` Inode: $1\text{ I/O}$.
+   - Number of blocks for `/bin` directory data: $\lceil (800 \times 32) / 4096 \rceil = \lceil 25600 / 4096 \rceil = 7\text{ blocks}$.
+   - In the worst case: $7\text{ I/Os}$.
+   - Locate `python` entry to obtain its inode number.
+
+4. **Access Target File `python`:**
+   - Read `python` Inode: $1\text{ I/O}$.
+
+$$\text{Total Disk Reads (Worst Case)} = (1 + 1) + (1 + 2) + (1 + 7) + 1 = 2 + 3 + 8 + 1 = 14\text{ Disk I/Os}$$
+
+:::tip In-Memory Dentry Cache Eliminates Traversal Latency
+This massive mechanical disk traversal overhead (14 I/Os just to find the file inode!) explains why operating systems maintain an aggressive in-memory **Dentry Cache (dcache)** and **Inode Cache**. In warm cache environments, all 13 path resolution I/Os hit RAM instantly at sub-microsecond latencies.
+:::
+
+---
+
+## 🏁 Summary & Mental Model
+
+<SubsystemGrid
+  title="Directory Architecture Mental Model"
+  subtitle="Key characteristics and performance trade-offs at a glance"
+  columns={2}
+  subsystems={[
+    {
+      badge: "Namespace Models",
+      title: "Directory Hierarchy Evolution",
+      icon: "📁",
+      color: "blue",
+      description: "From flat global namespaces to recursive trees and DAGs.",
+      details: "Single-Level (Collisions) -> Two-Level (MFD/UFD) -> Tree (Hierarchical) -> Acyclic Graph (Hard/Soft Links)."
+    },
+    {
+      badge: "Search Algorithms",
+      title: "Directory Lookup Performance",
+      icon: "⚡",
+      color: "emerald",
+      description: "Algorithmic scalability for path and record searches.",
+      details: "Linear List: O(N) scan. Hash Table (HTree): O(1) expected lookup. B+Tree (XFS/Btrfs): O(log N) balanced search."
+    }
+  ]}
+/>
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "10.1 File Attributes & Operations",
+    url: "/coredose/os/chapter-10/file-attributes-operations-and-access-methods-sequential-vs-direct"
+  }}
+  next={{
+    title: "10.3 File Allocation Methods",
+    url: "/coredose/os/chapter-10/file-allocation-methods-contiguous-linked-and-indexed-allocation"
+  }}
+  courseUrl="/coredose/os"
+/>

@@ -1,0 +1,262 @@
+.container {
+  margin: 1.75rem 0;
+  padding: 1.25rem;
+  background: var(--ifm-card-background-color, #ffffff);
+  border: 1px solid var(--ifm-color-emphasis-200, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme='dark'] .container {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.header {
+  margin-bottom: 1.25rem;
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.chartIcon {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ifm-font-color-base, #0f172a);
+}
+
+[data-theme='dark'] .title {
+  color: #f8fafc;
+}
+
+.subtitle {
+  margin: 0.2rem 0 0 0;
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-600, #64748b);
+  line-height: 1.4;
+}
+
+[data-theme='dark'] .subtitle {
+  color: #94a3b8;
+}
+
+/* Track container with horizontal scrolling on tiny screens */
+.trackWrapper {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  min-width: 100%;
+}
+
+.timelineBar {
+  display: flex;
+  min-width: 460px;
+  height: 58px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1.5px solid var(--ifm-color-emphasis-300, #cbd5e1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='dark'] .timelineBar {
+  border-color: #334155;
+}
+
+.slotBlock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-width: 60px;
+  border-right: 1.5px solid rgba(255, 255, 255, 0.25);
+  transition: filter 0.15s ease, transform 0.15s ease;
+  user-select: none;
+  cursor: default;
+}
+
+.slotBlock:last-child {
+  border-right: none;
+}
+
+.slotBlock:hover {
+  filter: brightness(1.08);
+}
+
+.slotContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.4rem;
+  text-align: center;
+}
+
+.processName {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.slotSublabel {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  margin-top: 1px;
+}
+
+.slotDuration {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  opacity: 0.95;
+}
+
+/* Color themes */
+.slotBlue {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.slotEmerald {
+  background: linear-gradient(135deg, #059669, #047857);
+}
+
+.slotAmber {
+  background: linear-gradient(135deg, #d97706, #b45309);
+}
+
+.slotPurple {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+}
+
+.slotRose {
+  background: linear-gradient(135deg, #e11d48, #be123c);
+}
+
+.slotCyan {
+  background: linear-gradient(135deg, #0891b2, #0e7490);
+}
+
+.slotGray {
+  background: linear-gradient(135deg, #64748b, #475569);
+}
+
+/* Idle hatched pattern */
+.slotIdle {
+  background: repeating-linear-gradient(
+    45deg,
+    #475569,
+    #475569 10px,
+    #334155 10px,
+    #334155 20px
+  ) !important;
+  color: #94a3b8;
+}
+
+.slotIdle .processName {
+  color: #cbd5e1;
+  font-style: italic;
+  font-size: 0.85rem;
+}
+
+/* Time Axis & Ticks */
+.timeAxis {
+  display: flex;
+  min-width: 460px;
+  margin-top: 4px;
+  position: relative;
+}
+
+.tickSegment {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.tickLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  color: var(--ifm-color-emphasis-700, #475569);
+  transform: translateX(50%);
+  user-select: none;
+}
+
+[data-theme='dark'] .tickLabel {
+  color: #94a3b8;
+}
+
+.tickStart {
+  position: absolute;
+  left: 0;
+  transform: translateX(-50%);
+}
+
+.tickEnd {
+  position: relative;
+}
+
+/* Performance Metrics Strip */
+.metricsStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--ifm-color-emphasis-200, #e2e8f0);
+}
+
+[data-theme='dark'] .metricsStrip {
+  border-top-color: #1e293b;
+}
+
+.metricCard {
+  flex: 1 1 140px;
+  background: var(--ifm-color-emphasis-100, #f8fafc);
+  border: 1px solid var(--ifm-color-emphasis-200, #e2e8f0);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+[data-theme='dark'] .metricCard {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.metricLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ifm-color-emphasis-600, #64748b);
+}
+
+[data-theme='dark'] .metricLabel {
+  color: #94a3b8;
+}
+
+.metricValue {
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  color: var(--ifm-color-primary, #2563eb);
+}
+
+[data-theme='dark'] .metricValue {
+  color: #60a5fa;
+}

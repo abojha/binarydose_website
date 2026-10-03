@@ -1,0 +1,390 @@
+---
+title: "8.4 Least Recently Used (LRU) Page Replacement & Stack Algorithms"
+description: "Master Least Recently Used (LRU) page replacement: temporal locality grounding, 20-reference trace, counter and stack implementations, and formal stack algorithm proofs."
+hide_table_of_contents: true
+---
+
+# 8.4 Least Recently Used (LRU) Page Replacement & Stack Algorithms
+
+<CoreDoseLessonHeader
+  module="Module 08: Virtual Memory & Page Replacement"
+  topic="Topic 8.4"
+  courseUrl="/coredose/os"
+  readTime="20 min read"
+  relevance="Computer Science Foundations • Systems Engineering • Cache Architecture"
+/>
+
+## 💡 Core Intuition
+
+### 🍳 The Everyday Analogy: The Cook's Countertop
+
+Imagine a master chef preparing a complex banquet in a compact restaurant kitchen:
+
+<FlowPipeline
+  title="The Chef's Countertop Eviction Pipeline"
+  subtitle="Contrasting arrival-based clearing with recency-of-use retention"
+  steps={[
+    {
+      badge: "Limited Counter",
+      title: "Three-Item Cutting Board",
+      icon: "🍳",
+      color: "blue",
+      sublabel: "Physical Frame Budget",
+      description: "The cutting board can fit only three active ingredient containers simultaneously.",
+      details: "Full Capacity: Olive oil, sea salt, and garlic cloves currently occupy the board.",
+      connectorLabel: "Incoming Ingredient",
+    },
+    {
+      badge: "The New Arrival",
+      title: "Fresh Rosemary Arrives",
+      icon: "🌿",
+      color: "purple",
+      sublabel: "Page Fault Occurs",
+      description: "A recipe requires fresh rosemary, but the cutting board is completely packed.",
+      details: "Which Item Cleared? The chef does NOT check which item was bought first at 6 AM (FIFO). Instead, the chef checks: Which ingredient has sat untouched for the longest time?",
+      connectorLabel: "Temporal Eviction",
+    },
+    {
+      badge: "The Victim",
+      title: "Evicting the Idle Jar",
+      icon: "🧂",
+      color: "emerald",
+      sublabel: "LRU Victim Selected",
+      description: "Salt was used 10 seconds ago; garlic 30 seconds ago; olive oil has sat untouched for 20 minutes.",
+      details: "Optimal Heuristic: Olive oil is returned to the pantry shelf. The ingredient most recently used stays right at hand!",
+    },
+  ]}
+/>
+
+* **Least Recently Used (LRU)**: The premier practical approximation of the Optimal algorithm. It assumes the recent past is the best predictor of the immediate future (**Temporal Locality**).
+* **The Stack Property**: LRU is a certified **Stack Algorithm**, meaning its memory state with $m$ frames is always a subset of $m+1$ frames, rendering it mathematically immune to Belady's Anomaly.
+
+---
+
+### 💻 Bridging to Computer Science
+
+While the Optimal algorithm looks **forward into the future** (which is impossible in an online operating system), the **Least Recently Used (LRU)** algorithm looks **backward into the recent past**:
+
+<ConceptComparison
+  title="Duality of Page Replacement: Past Recency vs Future Distance"
+  subtitle="How LRU exploits historical backward locality to approximate theoretical forward optimality"
+  left={{
+    badge: "Backward History",
+    title: "LRU (Least Recently Used)",
+    icon: "⏪",
+    color: "blue",
+    description: "Evaluates the historical past known to the kernel to approximate future temporal locality.",
+    bulletPoints: [
+      "Direction: Looks backward (left) into past references",
+      "Eviction Query: Which page was accessed farthest in the past?",
+      "Feasibility: Online implementable using counters or stack pointers",
+      "Immunity: Certified stack algorithm immune to Belady's Anomaly",
+    ],
+  }}
+  right={{
+    badge: "Forward Prediction",
+    title: "OPT (Bélády's Optimal)",
+    icon: "⏩",
+    color: "purple",
+    description: "Evaluates the future timeline to achieve the absolute theoretical minimum page fault rate.",
+    bulletPoints: [
+      "Direction: Looks forward (right) into future references",
+      "Eviction Query: Which page will be accessed farthest in the future?",
+      "Feasibility: Unimplementable online; requires future oracle knowledge",
+      "Benchmark: Serves as upper bound for evaluating practical heuristics",
+    ],
+  }}
+  comparisonPoints={[
+    {
+      metric: "Time Horizon",
+      left: "Past History: $t_{access} < t_{now}$",
+      right: "Future Timeline: $t_{access} > t_{now}$",
+    },
+    {
+      metric: "Runtime Feasibility",
+      left: "Practical heuristic online",
+      right: "Theoretical offline benchmark",
+    },
+    {
+      metric: "Locality Exploitation",
+      left: "Exploits Temporal Locality",
+      right: "Exploits Perfect Prescience",
+    },
+  ]}
+/>
+
+Because program execution exhibits strong **Temporal Locality of Reference**, a page that has not been referenced for a substantial interval is statistically least likely to be referenced in the immediate future.
+
+---
+
+## 📚 Core Deep-Dive & Concepts
+
+### 1. The LRU Algorithm Mechanics
+
+#### Eviction Rule
+When a page fault occurs and no physical frame is empty:
+1. For each page resident in physical RAM, examine its most recent time of reference.
+2. Select as victim the page that has **remained unreferenced for the longest duration** (the oldest timestamp in the past).
+3. Evict the victim page, load the incoming page, and tag it with the current timestamp.
+
+---
+
+### 2. Comprehensive 20-Reference Trace
+
+Let us trace the identical 20-reference string evaluated under FIFO (15 faults) and OPT (9 faults), using **$3$ allocated physical frames**:
+
+$$\text{Reference String: } \mathbf{7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2, 1, 2, 0, 1, 7, 0, 1}$$
+
+| Step | Page Ref | Frame 1 | Frame 2 | Frame 3 | Event | Backward History of Resident Pages | Victim Selected |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **1** | **7** | **7** | — | — | **Fault** | — | None (Cold) |
+| **2** | **0** | 7 | **0** | — | **Fault** | — | None (Cold) |
+| **3** | **1** | 7 | 0 | **1** | **Fault** | — | None (Cold) |
+| **4** | **2** | **2** | 0 | 1 | **Fault** | 1 (step 3), 0 (step 2), 7 (step 1) | **7** (Least Recently Used) |
+| **5** | **0** | 2 | 0 | 1 | **Hit** | Recency order: 0 (newest), 2, 1 | None |
+| **6** | **3** | 2 | 0 | **3** | **Fault** | 0 (step 5), 2 (step 4), 1 (step 3) | **1** (Least Recently Used) |
+| **7** | **0** | 2 | 0 | 3 | **Hit** | Recency order: 0, 3, 2 | None |
+| **8** | **4** | **4** | 0 | 3 | **Fault** | 0 (step 7), 3 (step 6), 2 (step 4) | **2** (Least Recently Used) |
+| **9** | **2** | 4 | 0 | **2** | **Fault** | 4 (step 8), 0 (step 7), 3 (step 6) | **3** (Least Recently Used) |
+| **10** | **3** | 4 | **3** | 2 | **Fault** | 2 (step 9), 4 (step 8), 0 (step 7) | **0** (Least Recently Used) |
+| **11** | **0** | **0** | 3 | 2 | **Fault** | 3 (step 10), 2 (step 9), 4 (step 8) | **4** (Least Recently Used) |
+| **12** | **3** | 0 | 3 | 2 | **Hit** | Recency order: 3, 0, 2 | None |
+| **13** | **2** | 0 | 3 | 2 | **Hit** | Recency order: 2, 3, 0 | None |
+| **14** | **1** | 0 | **1** | 2 | **Fault** | 2 (step 13), 3 (step 12), 0 (step 11) | **0** (Wait: 2 at 13, 3 at 12, 0 at 11 $\implies$ 0 is oldest, but 3 was older than 1? Let's check: 0 is at 11, 3 is at 12, 2 is at 13 $\implies$ 0 replaced by 1!) |
+| **15** | **2** | 1 | 3 | 2 | **Hit** | Recency order: 2, 1, 3 | None |
+| **16** | **0** | 1 | **0** | 2 | **Fault** | 2 (step 15), 1 (step 14), 3 (step 12) | **3** (Least Recently Used) |
+| **17** | **1** | 1 | 0 | 2 | **Hit** | Recency order: 1, 0, 2 | None |
+| **18** | **7** | 1 | 0 | **7** | **Fault** | 1 (step 17), 0 (step 16), 2 (step 15) | **2** (Least Recently Used) |
+| **19** | **0** | 1 | 0 | 7 | **Hit** | Recency order: 0, 7, 1 | None |
+| **20** | **1** | 1 | 0 | 7 | **Hit** | Recency order: 1, 0, 7 | None |
+
+#### Performance Summary for 3 Frames:
+* Total References: $20$
+* **Total Page Faults**: $\mathbf{12}$
+* **Total Page Hits**: $\mathbf{8}$
+* Hit Ratio: $\frac{8}{20} = \mathbf{40\%}$
+
+#### Master Multi-Algorithm Comparison:
+* **FIFO**: $15$ Page Faults ($25\%$ hit rate)
+* **LRU**: **$12$ Page Faults** ($40\%$ hit rate)
+* **OPT (Theoretical Lower Bound)**: **$9$ Page Faults** ($55\%$ hit rate)
+
+---
+
+### 3. Implementation Schemes for Pure LRU
+
+Implementing pure LRU in hardware or software requires tracking recency on **every single memory reference**:
+
+<SubsystemGrid
+  title="Pure LRU Implementation Architectures"
+  subtitle="Hardware timers vs doubly-linked dynamic stacks"
+  columns={2}
+  subsystems={[
+    {
+      badge: "Timestamp Approach",
+      title: "Counters / Logical Timers",
+      icon: "⏱️",
+      color: "blue",
+      description: "The CPU maintains a 64-bit hardware counter incremented on every memory reference.",
+      details: "PTE Timestamp: Every time a page is accessed, the hardware copies the current counter into the PTE's time-of-use register. On page fault, the kernel must scan all frame descriptors to find the minimum timestamp (O(N) search)."
+    },
+    {
+      badge: "Stack Approach",
+      title: "Doubly-Linked Stack",
+      icon: "🥞",
+      color: "purple",
+      description: "Maintains a doubly-linked list of page numbers with a hashmap index (standard LRU Cache).",
+      details: "Fast Movement: Whenever a page is referenced, it is unlinked from the middle and spliced onto the top (most recent). The bottom of the stack always points to the LRU victim (O(1) eviction)."
+    }
+  ]}
+/>
+
+#### Why Pure LRU is Impractical in Hardware
+* In modern processors executing $4\text{ Billion}$ instructions per second, updating a 64-bit timestamp register or rewriting 6 pointers in a doubly-linked list **on every single instruction fetch** causes intolerable hardware power and latency overhead.
+* Consequently, commercial operating systems use **LRU Approximations** (such as the Second-Chance / Clock algorithm discussed in Topic 8.2).
+
+---
+
+### 4. Mathematical Proof: The Stack Property & Immunity to Belady's Anomaly
+
+LRU belongs to the elite family of **Stack Algorithms**.
+
+#### Formal Definition
+Let $B(m, t)$ denote the set of pages resident in physical memory with $m$ frames at discrete time step $t$. An algorithm satisfies the **Stack Property** if and only if:
+
+$$B(m, t) \subseteq B(m + 1, t) \quad \forall m \ge 1, \quad \forall t \ge 0$$
+
+#### Proof Sketch for LRU
+1. Under LRU, at any time $t$, the pages resident in memory are precisely the **$m$ most recently referenced unique pages** from the reference history $r_1, r_2, \dots, r_t$.
+2. In an $(m+1)$-frame system, the resident pages are the **$(m+1)$ most recently referenced unique pages**.
+3. Clearly, the set of the top $m$ most recently referenced pages is a strict subset of the top $m + 1$ most recently referenced pages:
+   $$\text{Top-}m(r_{1..t}) \subset \text{Top-}(m+1)(r_{1..t})$$
+4. Therefore, if a page reference $r_{t+1}$ hits in an $m$-frame system ($r_{t+1} \in B(m, t)$), it is **guaranteed to hit** in the $(m+1)$-frame system ($r_{t+1} \in B(m+1, t)$).
+5. A hit can **never** turn into a fault when frames are added!
+6. **Conclusion**: LRU is **provably immune to Belady's Anomaly**.
+
+---
+
+### 5. Counting-Based Page Replacement Algorithms
+
+Operating systems researchers also explored frequency-counting heuristics:
+
+<ConceptComparison
+  title="LFU vs MFU Counting Heuristics"
+  subtitle="Smallest reference count eviction vs largest count eviction"
+  left={{
+    badge: "Least Frequent",
+    title: "Least Frequently Used (LFU)",
+    icon: "📉",
+    color: "blue",
+    description: "Replaces the page with the smallest reference counter.",
+    bulletPoints: [
+      "Core Intuition: Actively used pages will possess high reference frequencies",
+      "Pathology: A page heavily used during process initialization retains a high counter forever, never getting evicted even though it is never needed again!",
+      "Remediation: Counter decay / aging (shift counters right periodically)"
+    ]
+  }}
+  right={{
+    badge: "Most Frequent",
+    title: "Most Frequently Used (MFU)",
+    icon: "📈",
+    color: "amber",
+    description: "Replaces the page with the largest reference counter.",
+    bulletPoints: [
+      "Core Intuition: Pages with the lowest count were brought in only recently and have not yet had a chance to execute!",
+      "Pathology: Extremely high implementation complexity; counter tracking across all frames",
+      "Rarely Used: Experimental in nature; inferior to LRU in almost all real-world benchmarks"
+    ]
+  }}
+  comparisonPoints={[
+    {
+      metric: "Eviction Metric",
+      left: "Smallest reference count ($\min(\\text{Count})$)",
+      right: "Largest reference count ($\max(\\text{Count})$)"
+    },
+    {
+      metric: "Theoretical Basis",
+      left: "Past frequency predicts future importance",
+      right: "Low count implies nascent, upcoming activity"
+    },
+    {
+      metric: "Industry Prevalence",
+      left: "Common in database query caches (TinyLFU, W-TinyLFU)",
+      right: "Virtually never used in production OS kernels"
+    }
+  ]}
+/>
+
+---
+
+## 🏭 In The Real World: Production Case Study
+
+### High-Performance In-Memory Caching: Redis & Caffeine
+
+While pure LRU is too expensive for hardware MMUs, it is the industry standard for application-layer memory caches (Redis, Memcached, Java Caffeine):
+
+<SubsystemGrid
+  title="Redis Cache Eviction Strategies"
+  subtitle="Production memory reclaim algorithms configured via maxmemory-policy"
+  items={[
+    {
+      icon: "⚡",
+      title: "allkeys-lru",
+      tag: "Global LRU",
+      color: "blue",
+      points: [
+        "Evicts the least recently used keys among all stored keys in the dataset.",
+        "Optimal default strategy when traffic exhibits power-law or zipfian access patterns.",
+      ],
+      syscalls: ["maxmemory-samples 5"],
+    },
+    {
+      icon: "⏳",
+      title: "volatile-lru",
+      tag: "TTL-Scoped LRU",
+      color: "amber",
+      points: [
+        "Restricts LRU eviction strictly to keys configured with an explicit expiration TTL.",
+        "Guarantees permanent non-expiring configuration keys remain untouched in memory.",
+      ],
+      syscalls: ["EXPIRE key ttl"],
+    },
+    {
+      icon: "📊",
+      title: "allkeys-lfu",
+      tag: "Frequency Counter",
+      color: "emerald",
+      points: [
+        "Evicts keys using logarithmic 8-bit frequency access counters with decay time.",
+        "Protects frequently read hot keys from being displaced by bursty temporary scans.",
+      ],
+      syscalls: ["lfu-log-factor 10"],
+    },
+  ]}
+/>
+
+1. **Approximated LRU in Redis**:
+   - Rather than maintaining an exact linked list across $100\text{ Million}$ keys (which wastes gigabytes in pointer overhead), Redis samples **5 random keys** and evicts the one with the oldest idle timestamp.
+   - This 5-sample approximation delivers **$99\%$ of the hit-rate of pure LRU** with zero extra memory overhead!
+2. **Window TinyLFU (W-TinyLFU)**:
+   - Modern systems (Caffeine cache, Cassandra) combine LRU and LFU: an admission window uses LRU to capture bursty temporal spikes, and a main space uses a Count-Min Sketch (LFU) to protect frequently accessed long-term items.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** Why is LRU classified as a Stack Algorithm, whereas FIFO is not?
+**Answer:**
+1. In LRU, the set of pages resident in memory of size $m$ is always a subset of the pages resident in memory of size $m+1$ for every reference step $t$ ($B(m, t) \subseteq B(m+1, t)$). Adding an extra frame simply extends the bottom of the recency stack by one entry without altering the order of the top $m$ pages.
+2. In FIFO, adding an extra frame alters the relative arrival eviction order of pages across subsequent steps. A page that would have been preserved in a smaller frame set might get evicted in a larger frame set, causing $B(m, t) \not\subseteq B(m+1, t)$.
+3. Because LRU satisfies the inclusion stack property, it is mathematically immune to Belady's Anomaly.
+
+---
+
+**Question 2:** Trace the LRU page replacement algorithm for the reference string:
+$$\mathbf{2, 3, 2, 1, 5, 2, 4, 5, 3, 2, 5, 2}$$
+with $3$ frames. Find the total number of page faults and page hits.
+**Answer:**
+1. **Ref `2`**: **Fault** $\implies$ `[2, —, —]`
+2. **Ref `3`**: **Fault** $\implies$ `[2, 3, —]`
+3. **Ref `2`**: **Hit** $\implies$ `[3, 2, —]` (Recency: 2 newest)
+4. **Ref `1`**: **Fault** $\implies$ `[3, 2, 1]`
+5. **Ref `5`**: **Fault**. Resident: `3, 2, 1`. Past order: 1 (at 4), 2 (at 3), 3 (at 2).
+   - Evict `3`! Frames: `[2, 1, 5]`.
+6. **Ref `2`**: **Hit**. Recency: `1, 5, 2`.
+7. **Ref `4`**: **Fault**. Resident: `2, 1, 5`. Past order: 2 (at 6), 5 (at 5), 1 (at 4).
+   - Evict `1`! Frames: `[5, 2, 4]`.
+8. **Ref `5`**: **Hit**. Recency: `2, 4, 5`.
+9. **Ref `3`**: **Fault**. Resident: `5, 2, 4`. Past order: 5 (at 8), 4 (at 7), 2 (at 6).
+   - Evict `2`! Frames: `[4, 5, 3]`.
+10. **Ref `2`**: **Fault**. Resident: `4, 5, 3`. Past order: 3 (at 9), 5 (at 8), 4 (at 7).
+    - Evict `4`! Frames: `[5, 3, 2]`.
+11. **Ref `5`**: **Hit**. Recency: `3, 2, 5`.
+12. **Ref `2`**: **Hit**. Recency: `3, 5, 2`.
+* **Total Page Faults**: $\mathbf{7\text{ Faults}}$
+* **Total Page Hits**: $\mathbf{5\text{ Hits}}$
+* Hit Ratio: $\frac{5}{12} \approx \mathbf{41.67\%}$
+
+:::
+
+:::warning Common Interview Traps
+
+* **Forgetting to Update Recency on a HIT**: In LRU, when a page reference results in a **Hit**, you MUST update its timestamp / move it to the top of the recency stack! Leaving its timestamp unchanged treats it as cold, causing you to evict a hot page erroneously.
+* **The "LRU is Implemented via Simple Linked List" Myth**: In hardware, an MMU cannot traverse a software linked list on every instruction. Hardware approximations like the **Clock Algorithm** using a single Reference Bit are what real operating systems execute.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "8.3 Optimal Page Replacement",
+    url: "/coredose/os/chapter-08/optimal-page-replacement-opt-min"
+  }}
+  next={{
+    title: "8.5 Frame Allocation & Thrashing",
+    url: "/coredose/os/chapter-08/frame-allocation-policies-and-thrashing"
+  }}
+  courseUrl="/coredose/os"
+/>

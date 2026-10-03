@@ -1,0 +1,599 @@
+---
+title: "10.3 File Allocation Methods: Contiguous, Linked & Indexed Allocation"
+description: "Master disk allocation strategies: contiguous allocation, linked list allocation, File Allocation Table (FAT), and indexed allocation, including direct access formulas and seek latency proofs."
+hide_table_of_contents: true
+---
+
+# 10.3 File Allocation Methods: Contiguous, Linked & Indexed Allocation
+
+<CoreDoseLessonHeader
+  module="Module 10: File Systems & Inodes"
+  topic="Topic 10.3"
+  courseUrl="/coredose/os"
+  readTime="22 min read"
+  relevance="Computer Science Foundations • Systems Engineering • Storage Performance"
+/>
+
+## 💡 Core Intuition
+
+### 🍳 The Everyday Analogy: The City Warehouse Storage Strategies
+
+Imagine managing a massive municipal warehouse where cargo shipments of varying sizes arrive daily:
+
+<FlowPipeline
+  title="The Warehouse Allocation Paradigms"
+  subtitle="Contrasting physical storage strategies with operating system disk allocation"
+  steps={[
+    {
+      badge: "Contiguous",
+      title: "Reserved Adjacent Aisles",
+      icon: "📦",
+      color: "blue",
+      sublabel: "Contiguous Allocation",
+      description: "Shipment A occupies consecutive bays 10 through 14. A forklift can zip down the aisle in one continuous straight line, but if bay 15 is occupied, shipment A cannot expand.",
+      connectorLabel: "Decouple Placement",
+    },
+    {
+      badge: "Linked List",
+      title: "Scattered Bays with Clue Slips",
+      icon: "🔗",
+      color: "purple",
+      sublabel: "Linked Allocation",
+      description: "Crates are placed in any empty bay. Inside crate 1 is a note with the address of crate 2. No empty space is wasted, but finding crate 10 requires visiting crates 1 through 9.",
+      connectorLabel: "Centralize Pointers",
+    },
+    {
+      badge: "Indexed",
+      title: "Master Control Ledger",
+      icon: "📑",
+      color: "emerald",
+      sublabel: "Indexed Allocation",
+      description: "A single master clipboard at the manager's desk lists the exact bay coordinates of every crate in the shipment. Any crate can be located immediately with zero searching.",
+    },
+  ]}
+/>
+
+In an operating system, the **file allocation problem** fundamentally addresses two competing engineering goals:
+1. **Effective Disk Space Utilization**: Minimizing fragmentation and eliminating wasted storage capacity.
+2. **Fast File Access Performance**: Minimizing mechanical disk seek times and rotational delays when performing both sequential and random file I/O operations.
+
+The three primary file allocation methods employed across operating systems are:
+- **Contiguous Allocation**
+- **Linked Allocation** (including the **File Allocation Table / FAT** optimization)
+- **Indexed Allocation** (including multi-level and hybrid indexing)
+
+---
+
+## 🏛️ Method 1: Contiguous Allocation
+
+### Structural Architecture
+
+Under **contiguous allocation**, each file is required to occupy a set of linearly consecutive disk blocks. Because disk block addresses define a linear ordering on the storage media, accessing block $b + 1$ immediately after block $b$ requires **zero actuator head seek movement** (assuming the blocks reside on the same cylinder/track).
+
+| File Name | Starting Block ($b$) | Length ($L$) | Physical Disk Blocks Allocated |
+| :--- | :---: | :---: | :--- |
+| `count` | **0** | 2 | Blocks `0, 1` |
+| `f` | **6** | 2 | Blocks `6, 7` |
+| `tr` | **14** | 3 | Blocks `14, 15, 16` |
+| `mail` | **19** | 6 | Blocks `19, 20, 21, 22, 23, 24` |
+| `list` | **28** | 4 | Blocks `28, 29, 30, 31` |
+
+The directory entry for a contiguously allocated file is exceptionally compact, requiring only two fields:
+- **Starting Block Address ($b$)**
+- **Length ($L$)** (number of consecutive blocks allocated)
+
+---
+
+### Access Mechanics & Formulas
+
+<SubsystemGrid
+  title="Contiguous Access Mechanics"
+  subtitle="Mathematical addressing for sequential and direct/random workloads"
+  cards={[
+    {
+      badge: "Sequential Access",
+      title: "Sequential Read/Write",
+      icon: "⏩",
+      color: "blue",
+      description: "The OS reads block b, increments the pointer to b + 1, and continues linearly. The mechanical disk head stays locked on the current track, streaming sectors at maximum physical transfer rate.",
+    },
+    {
+      badge: "Direct Access",
+      title: "Random Block Lookup",
+      icon: "🎯",
+      color: "emerald",
+      description: "To directly access logical block k (where 0 <= k < L), the physical disk block address is calculated in O(1) via: Physical Block = b + k. Exactly ONE seek is required.",
+    },
+  ]}
+/>
+
+---
+
+### Advantages and Engineering Drawbacks
+
+<ConceptComparison
+  title="Contiguous Allocation Trade-Offs"
+  subtitle="Balancing maximum sequential throughput against allocation rigidity"
+  left={{
+    title: "Advantages",
+    badge: "Maximum Performance",
+    color: "emerald",
+    points: [
+      "Optimal I/O Throughput: Contiguous blocks minimize disk head movement, delivering near-raw hardware bandwidth.",
+      "Instant Direct Access: Address of logical block k is computed by simple arithmetic (Start + k) with zero disk-bound pointer chasing.",
+      "Minimal Metadata Overhead: Directory entry requires only two numbers (start address and length).",
+    ],
+  }}
+  right={{
+    title: "Disadvantages",
+    badge: "Structural Fragility",
+    color: "red",
+    points: [
+      "Severe External Fragmentation: As files are created, updated, and deleted, free disk space breaks into small, scattered fragments.",
+      "Dynamic Allocation Overhead: Requires First-Fit, Best-Fit, or Worst-Fit free-space search algorithms.",
+      "File Expansion Barrier: If file 'count' (blocks 0-1) needs to grow to 3 blocks, but block 2 is occupied by another file, the file cannot expand in place. The OS must either allocate a larger contiguous hole and copy the entire file or fail the operation.",
+    ],
+  }}
+/>
+
+---
+
+### ⏱️ Mathematical Case Study: Contiguous vs. Non-Contiguous Read Latency
+
+Consider a disk subsystem with the following parameters:
+- **Geometry**: 8 sectors per track, 512 bytes per sector
+- **Rotational Speed**: $3000\text{ RPM}$
+- **Average Seek Time ($\text{ST}$)**: $15\text{ ms}$
+- **Workload**: Read an entire file consisting of **8 sectors**.
+
+#### 1. Fundamental Timing Derivations:
+- Time for one full rotation ($T_{\text{rot}}$):
+  $$3000\text{ RPM} = \frac{3000}{60}\text{ rev/s} = 50\text{ rev/s}$$
+  $$T_{\text{rot}} = \frac{1}{50}\text{ s} = 0.02\text{ s} = 20\text{ ms}$$
+- Average Rotational Latency ($\text{RL}$):
+  $$\text{RL} = \frac{T_{\text{rot}}}{2} = \frac{20\text{ ms}}{2} = 10\text{ ms}$$
+- Track Transfer Time ($\text{TT}$):
+  $$\text{TT} = \frac{\text{Sectors to Read}}{\text{Sectors per Track}} \times T_{\text{rot}} = \frac{8}{8} \times 20\text{ ms} = 20\text{ ms}$$
+
+---
+
+#### 2. Case I: Contiguous Allocation
+All 8 sectors are stored sequentially on the same track.
+The disk head seeks to the target cylinder **once**, waits for the initial sector to arrive underneath the head, and then streams all 8 sectors in one continuous revolution:
+
+$$\text{Total Transfer Time (TTT)} = \text{ST} + \text{RL} + \text{TT}$$
+
+$$\text{TTT} = 15\text{ ms} + 10\text{ ms} + 20\text{ ms} = 45\text{ ms}$$
+
+---
+
+#### 3. Case II: Non-Contiguous Allocation (Scattered Blocks)
+The 8 sectors are scattered randomly across different tracks across the disk platters.
+For **every individual sector**, the actuator arm must perform a separate seek and rotational wait:
+
+$$\text{TTT}_{\text{non-contiguous}} = 8 \times \big[\text{ST} + \text{RL}\big] + \text{TT}$$
+
+$$\text{TTT}_{\text{non-contiguous}} = 8 \times \big[15\text{ ms} + 10\text{ ms}\big] + 20\text{ ms}$$
+
+$$\text{TTT}_{\text{non-contiguous}} = 8 \times 25\text{ ms} + 20\text{ ms} = 200\text{ ms} + 20\text{ ms} = 220\text{ ms}$$
+
+:::warning Mechanical Penalty of Non-Contiguous Allocation
+Non-contiguous allocation takes **$220\text{ ms}$** versus **$45\text{ ms}$** for contiguous allocation—nearly a **$5\times$ performance penalty** purely due to mechanical seek and rotational overhead!
+:::
+
+---
+
+### 🌀 Sector Interleaving
+
+In early disk systems, disk controllers required a brief processing delay after reading a sector into the controller's internal SRAM buffer before it could accept the next sector. If sectors were numbered sequentially ($0, 1, 2, 3\dots$), by the time the controller finished processing sector $0$, sector $1$ had already rotated past the read head, forcing the head to wait an entire revolution ($20\text{ ms}$) to read sector $1$!
+
+To solve this, hardware engineers introduced **Sector Interleaving**:
+
+<SubsystemGrid
+  title="Sector Interleaving Patterns"
+  subtitle="Angular spacing techniques to eliminate rotational miss latency in early disk controllers"
+  columns={3}
+  subsystems={[
+    {
+      badge: "1:1 Ratio",
+      title: "No Interleaving",
+      icon: "🛑",
+      color: "rose",
+      description: "Sectors numbered strictly sequentially: [0, 1, 2, 3, 4, 5, 6, 7].",
+      details: "Head reads 0, misses 1 while controller parses buffer, waiting full revolution (20 ms) per sector."
+    },
+    {
+      badge: "1:2 Ratio",
+      title: "Single Interleaving",
+      icon: "⚡",
+      color: "emerald",
+      description: "Alternating sequence: [0, 4, 1, 5, 2, 6, 3, 7].",
+      details: "Head reads sector 0, processes during sector 4, ready for sector 1. Reads entire track in exactly 2 rotations."
+    },
+    {
+      badge: "1:3 Ratio",
+      title: "Double Interleaving",
+      icon: "🔄",
+      color: "blue",
+      description: "Skipping two sectors: [0, 3, 6, 1, 4, 7, 2, 5].",
+      details: "Accommodates slower controllers; reads entire track in ~2.75 to 3 full rotations."
+    }
+  ]}
+/>
+
+- **Single Interleaving**: Requires **2 complete rotations** to read all sectors of 1 track. $\text{Transfer Time} = 2 \times T_{\text{rot}}$.
+- **Double Interleaving**: Requires **2.75 to 3 rotations** to read 1 track. $\text{Transfer Time} \approx 2.75 \times T_{\text{rot}}$.
+
+---
+
+## 🔗 Method 2: Linked Allocation
+
+### Structural Architecture
+
+**Linked allocation** eliminates external fragmentation entirely. Each file is represented as a **linked list of disk blocks**. Disk blocks may be scattered arbitrarily across the entire storage volume.
+
+| File Name | Start Block | End Block |
+| :--- | :---: | :---: |
+| `jeep` | **9** | **25** |
+
+<FlowPipeline
+  title="Linked File Block Pointer Chain"
+  subtitle="Dynamic allocation chain for file 'jeep' (Start: Block 9, End: Block 25)"
+  steps={[
+    {
+      badge: "Block 9",
+      title: "Initial Block (Head)",
+      icon: "📦",
+      color: "blue",
+      sublabel: "Start Block = 9",
+      description: "Stores first 508 bytes of file data; tail pointer addresses Block 16.",
+      connectorLabel: "Next Block",
+    },
+    {
+      badge: "Block 16",
+      title: "Second Block",
+      icon: "📦",
+      color: "purple",
+      sublabel: "Logical Block 1",
+      description: "Stores next payload bytes; tail pointer addresses Block 1.",
+      connectorLabel: "Next Block",
+    },
+    {
+      badge: "Block 1",
+      title: "Third Block",
+      icon: "📦",
+      color: "purple",
+      sublabel: "Logical Block 2",
+      description: "Stores next payload bytes; tail pointer addresses Block 10.",
+      connectorLabel: "Next Block",
+    },
+    {
+      badge: "Block 10",
+      title: "Fourth Block",
+      icon: "📦",
+      color: "purple",
+      sublabel: "Logical Block 3",
+      description: "Stores next payload bytes; tail pointer addresses Block 25.",
+      connectorLabel: "Next Block",
+    },
+    {
+      badge: "Block 25",
+      title: "Terminal Block (Tail)",
+      icon: "🏁",
+      color: "emerald",
+      sublabel: "End Block = 25",
+      description: "Stores final payload bytes; tail pointer stores -1 (EOF / Nil).",
+    },
+  ]}
+/>
+
+The directory entry stores only two block pointers:
+- **Start Block**
+- **End Block**
+
+Each physical disk block dedicates a small portion of its internal storage (e.g., 4 or 8 bytes) to store a pointer to the next allocated block.
+
+---
+
+### Usable Data Capacity per Block
+
+If disk block size is $B$ bytes and a disk block pointer requires $P$ bytes:
+
+$$\text{Usable Payload per Block} = B - P$$
+
+For example, with $B = 512\text{ bytes}$ and $P = 4\text{ bytes}$:
+- Data payload $= 512 - 4 = 508\text{ bytes}$.
+- Pointer space overhead $= \frac{4}{512} \approx 0.78\%$.
+
+---
+
+### Advantages and Engineering Vulnerabilities
+
+<ConceptComparison
+  title="Linked Allocation Trade-Offs"
+  subtitle="Freedom from external fragmentation vs. sequential access rigidity"
+  left={{
+    title: "Key Advantages",
+    badge: "Zero Wastage",
+    color: "emerald",
+    points: [
+      "Zero External Fragmentation: Any available free block anywhere on disk can be allocated immediately.",
+      "Dynamic File Growth: A file can expand indefinitely as long as free disk blocks exist. No pre-allocation or compaction needed.",
+      "Compact Directory Entry: Only requires start and end block pointers.",
+    ],
+  }}
+  right={{
+    title: "Severe Vulnerabilities",
+    badge: "High Overhead",
+    color: "red",
+    points: [
+      "No Direct / Random Access: To access logical block k, the OS must read blocks 0, 1, 2, ..., k - 1 sequentially. Seeking to the middle of a 10 GB file requires thousands of mechanical seeks!",
+      "Pointer Storage Overhead: Dedicating 4 bytes per block means data does not align neatly with powers of 2 (508 bytes payload instead of 512), complicating buffer management.",
+      "Reliability / Fragility Problem: If a single disk sector in the middle develops a bad block error, the pointer chain is severed, permanently corrupting the entire remainder of the file.",
+    ],
+  }}
+/>
+
+---
+
+### 💾 The File Allocation Table (FAT) Solution
+
+To solve the slow random access and reliability hazards of linked allocation without reintroducing external fragmentation, MS-DOS and early Windows designed the **File Allocation Table (FAT)**:
+
+| Disk Block Number | Value (Next Block Entry) | Status / Meaning |
+| :---: | :---: | :--- |
+| `0` | `0` (Free) | Unallocated disk block |
+| ... | ... | ... |
+| `9` | `16` | Start block of `jeep` $\to$ points to Block 16 |
+| `10` | `25` | Part of `jeep` chain $\to$ points to Block 25 |
+| `16` | `1` | Part of `jeep` chain $\to$ points to Block 1 |
+| `1` | `10` | Part of `jeep` chain $\to$ points to Block 10 |
+| `25` | `-1` (`0xFFFF`) | End-of-File (EOF) marker for `jeep` |
+
+<ExecutionBlueprint
+  title="FAT Acceleration Architecture"
+  subtitle="Decoupling pointer navigation from physical disk head travel"
+  steps={[
+    {
+      phase: "1. Table Placement",
+      component: "Dedicated System Area",
+      action: "The FAT table is stored at the beginning of the volume and cached entirely in RAM during system boot.",
+      latency: "Zero disk seek",
+      state: "In-Memory Lookup",
+    },
+    {
+      phase: "2. Pointer Chasing in RAM",
+      component: "Kernel RAM Traversal",
+      action: "To find logical block k, the kernel chases pointers inside the RAM-cached FAT table at nanosecond CPU speeds.",
+      latency: "< 1 microsecond",
+      state: "Pure Memory Operation",
+    },
+    {
+      phase: "3. Direct Disk Seek",
+      component: "Storage Actuator",
+      action: "Once the physical target block address is discovered in RAM, the disk head seeks directly to that exact target block.",
+      latency: "1 mechanical seek",
+      state: "Single Disk I/O",
+    },
+  ]}
+/>
+
+---
+
+## 📑 Method 3: Indexed Allocation
+
+### Structural Architecture
+
+**Indexed allocation** completely resolves the limitations of both contiguous allocation (fragmentation, expansion limits) and linked allocation (slow random access, pointer corruption).
+
+Instead of scattering pointers across individual data blocks, indexed allocation brings **all block pointers together into a single dedicated block**: the **Index Block**.
+
+| File Name | Index Block Address |
+| :--- | :---: |
+| `jeep` | **Block 19** |
+
+| Index Block Entry | Target Physical Disk Block | File Logical Block Mapping |
+| :---: | :---: | :--- |
+| `Entry 0` | **Block 9** | Logical Block 0 (Bytes 0 – 511) |
+| `Entry 1` | **Block 16** | Logical Block 1 (Bytes 512 – 1023) |
+| `Entry 2` | **Block 1** | Logical Block 2 (Bytes 1024 – 1535) |
+| `Entry 3` | **Block 10** | Logical Block 3 (Bytes 1536 – 2047) |
+| `Entry 4` | **Block 25** | Logical Block 4 (Bytes 2048 – 2559) |
+| `Entry 5 .. N` | `-1` (Nil) | Unallocated pointer slots |
+
+- Each file has its own private **Index Block**.
+- The $i$-th entry in the index block points to the $i$-th physical data block of the file.
+- The directory entry contains only **one pointer**: the physical address of the file's index block.
+
+---
+
+### Operational Characteristics
+
+<SubsystemGrid
+  title="Indexed Allocation Properties"
+  subtitle="How centralized pointer tables deliver both flexibility and direct access"
+  cards={[
+    {
+      badge: "Direct Access",
+      title: "Fast Random Seeking",
+      icon: "🎯",
+      color: "emerald",
+      description: "To read logical block k, read entry k of the index block and jump directly to that physical address. Exactly 1 index read + 1 data read.",
+    },
+    {
+      badge: "Zero Fragmentation",
+      title: "No External Fragmentation",
+      icon: "🧹",
+      color: "blue",
+      description: "Any free disk block on the volume can satisfy an allocation request. Data blocks do not need to be contiguous.",
+    },
+    {
+      badge: "Overhead Penalty",
+      title: "Small File Overhead",
+      icon: "⚠️",
+      color: "amber",
+      description: "A 10-byte file requires a full 4 KB data block AND a full 4 KB index block! For tiny files, pointer overhead is substantial.",
+    },
+    {
+      badge: "Size Boundary",
+      title: "Index Block Capacity Limit",
+      icon: "📏",
+      color: "purple",
+      description: "A single index block can only store a finite number of pointers: Max Blocks = Block Size / Pointer Size.",
+    },
+  ]}
+/>
+
+---
+
+### Scaling to Very Large Files
+
+If a disk block is $4\text{ KB}$ and a block address is $4\text{ bytes}$, one index block holds:
+
+$$\text{Pointers per Block} = \frac{4096}{4} = 1024\text{ pointers}$$
+
+$$\text{Maximum File Size} = 1024 \times 4\text{ KB} = 4\text{ MB}$$
+
+A $4\text{ MB}$ file size ceiling is unacceptably small for modern workloads. Operating systems resolve this limitation through three indexing architectures:
+
+<ArchitectureStack
+  title="Large File Indexing Architectures"
+  subtitle="Strategies to scale index block capacity beyond a single physical block"
+  layers={[
+    {
+      level: "Architecture 1",
+      title: "Linked Indexing Scheme",
+      detail: "An index block holds 1023 data pointers. The 1024th pointer addresses another index block, creating a linked chain of index blocks.",
+      status: "active",
+    },
+    {
+      level: "Architecture 2",
+      title: "Multilevel Indexing Scheme",
+      detail: "A first-level index block points to second-level index blocks, which in turn point to data blocks. Capacity scales quadratically: (B / A)^2 * B.",
+      status: "optimal",
+    },
+    {
+      level: "Architecture 3",
+      title: "Combined Scheme (UNIX Inode)",
+      detail: "The index node stores 12 Direct pointers (for fast small-file access), 1 Single Indirect, 1 Double Indirect, and 1 Triple Indirect pointer.",
+      status: "stable",
+    },
+  ]}
+/>
+
+---
+
+## 📊 Comprehensive Allocation Methods Comparison Matrix
+
+| Architectural Feature | Contiguous Allocation | Linked Allocation | FAT (Linked in RAM) | Indexed Allocation |
+| :--- | :--- | :--- | :--- | :--- |
+| **Directory Entry** | `[Start Block, Length]` | `[Start, End]` | `[Start Block]` | `[Index Block]` |
+| **Sequential Access Speed** | **Fastest** (Zero seek between adjacent blocks) | Slow (Seeks between scattered blocks) | Moderate (Head seeks between blocks) | Moderate (Index lookup + seek) |
+| **Direct / Random Access** | **Instant** ($b + k$) | **Impossible** ($O(k)$ seeks) | **Fast** (RAM pointer chase + 1 seek) | **Fast** (1 index read + 1 seek) |
+| **External Fragmentation** | **Severe** | **Zero** | **Zero** | **Zero** |
+| **Internal Fragmentation** | Only in the final allocated block | Only in the final allocated block | Only in the final allocated block | Final block + Index block waste |
+| **File Expansion Ease** | Difficult (Requires relocation) | **Trivial** (Append to tail) | **Trivial** (Link new FAT entry) | **Trivial** (Add pointer to index block) |
+| **Metadata Space Overhead** | **Lowest** (2 integers) | $P$ bytes per block (Payload misaligned) | Table size $\propto$ total disk capacity | 1 entire block per file |
+| **Reliability / Fault Tolerance** | High | **Low** (Broken link corrupts file) | High (FAT duplicated on disk) | High (Pointers centralized) |
+
+---
+
+## 🧮 Numerical & Conceptual Exam Problems
+
+### Problem 1: Linked Allocation Pointer Capacity Calculation
+
+**Question:**  
+A storage system has a disk block size of $1\text{ KB}$ ($1024\text{ bytes}$). It employs linked allocation where each block devotes $4\text{ bytes}$ for the next-block pointer.  
+1. What is the usable payload of each disk block?  
+2. If a file has an exact size of $35\text{ KB}$ ($35 \times 1024 = 35,840\text{ bytes}$), how many total disk blocks must be allocated to store this file?  
+3. How many bytes of internal fragmentation occur in the final block?
+
+#### Step-by-Step Solution:
+
+1. **Usable Payload per Block:**
+   $$\text{Payload} = 1024\text{ bytes} - 4\text{ bytes} = 1020\text{ bytes}$$
+
+2. **Total Blocks Required:**
+   $$\text{Blocks} = \left\lceil \frac{\text{File Size}}{\text{Payload per Block}} \right\rceil = \left\lceil \frac{35840}{1020} \right\rceil = \left\lceil 35.137 \right\rceil = 36\text{ blocks}$$
+
+3. **Internal Fragmentation in Block 36:**
+   - The first 35 blocks store: $35 \times 1020 = 35,700\text{ bytes}$.
+   - Remaining bytes to store in the 36th block:
+     $$\text{Remaining Bytes} = 35,840 - 35,700 = 140\text{ bytes}$$
+   - Internal fragmentation in the 36th block:
+     $$\text{Internal Fragmentation} = 1020 - 140 = 880\text{ bytes}$$
+
+---
+
+### Problem 2: Two-Level Indexed Allocation Maximum File Size
+
+**Question:**  
+A file system uses a two-level indexed allocation scheme. The disk block size is $2\text{ KB}$ ($2048\text{ bytes}$) and disk block addresses are $32\text{ bits}$ ($4\text{ bytes}$) long.  
+The directory entry points to a Master Index Block. Each entry in the Master Index Block points to a Second-Level Index Block, and each entry in the Second-Level Index Block points to a Data Block.  
+Calculate:
+1. The number of pointers per index block.
+2. The maximum possible file size supported by this two-level scheme.
+3. How many disk block reads are required to read the first byte of data from logical block 500 (assuming cold cache)?
+
+#### Step-by-Step Solution:
+
+1. **Number of Pointers per Block ($E$):**
+   $$E = \frac{\text{Block Size}}{\text{Pointer Size}} = \frac{2048\text{ bytes}}{4\text{ bytes}} = 512\text{ pointers} = 2^9$$
+
+2. **Maximum File Size:**
+   - The Master Index Block holds 512 pointers to second-level index blocks.
+   - Each second-level index block holds 512 pointers to data blocks.
+   - Total addressable data blocks:
+     $$\text{Total Data Blocks} = E \times E = 512 \times 512 = 262,144\text{ blocks} = 2^{18}\text{ blocks}$$
+   - Maximum File Size:
+     $$\text{Max File Size} = 2^{18} \times 2\text{ KB} = 2^{18} \times 2^{11}\text{ bytes} = 2^{29}\text{ bytes} = 512\text{ MB}$$
+
+3. **Disk I/O Operations for Cold Read:**
+   To access any byte in data block 500:
+   - Read 1: Read the Master Index Block from disk into RAM.
+   - Read 2: Read the appropriate Second-Level Index Block ($\lfloor 500 / 512 \rfloor = \text{Entry 0}$) from disk.
+   - Read 3: Read the physical data block ($500 \pmod{512} = \text{Entry 500}$) from disk.
+
+$$\text{Total Disk Reads} = 3\text{ Disk I/Os}$$
+
+---
+
+## 🏁 Summary & Mental Model
+
+<SubsystemGrid
+  title="File Allocation Strategies at a Glance"
+  subtitle="Comparative summary of physical disk allocation paradigms"
+  columns={2}
+  subsystems={[
+    {
+      badge: "Allocation Trade-offs",
+      title: "Contiguous vs Linked vs Indexed",
+      icon: "💾",
+      color: "blue",
+      description: "Balancing seek performance against external fragmentation.",
+      details: "Contiguous: maximum sequential I/O, severe external fragmentation. Linked: zero fragmentation, O(k) slow seeks. Indexed: direct access via index blocks."
+    },
+    {
+      badge: "Modern Solutions",
+      title: "FAT & Multilevel Indexing",
+      icon: "⚡",
+      color: "emerald",
+      description: "Scaling capacity and accelerating random access.",
+      details: "FAT: in-memory pointer table accelerating seeks. Multilevel / Inode: hybrid direct + indirect pointers scaling to terabytes."
+    }
+  ]}
+/>
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "10.2 Directory Structures",
+    url: "/coredose/os/chapter-10/directory-structures-single-level-two-level-and-tree-structured-directories"
+  }}
+  next={{
+    title: "10.4 UNIX Inodes & Indirect Blocks",
+    url: "/coredose/os/chapter-10/unix-file-system-internals-inodes-direct-blocks-and-indirect-pointers"
+  }}
+  courseUrl="/coredose/os"
+/>

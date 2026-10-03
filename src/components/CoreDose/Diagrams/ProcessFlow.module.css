@@ -1,0 +1,191 @@
+.container {
+  margin: 2.25rem auto;
+  max-width: 900px;
+  width: 100%;
+  font-family: var(--ifm-font-family-base, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--ifm-color-emphasis-900, #0f172a);
+  margin-bottom: 0.35rem;
+}
+
+[data-theme='dark'] .title {
+  color: #f1f5f9;
+}
+
+.subtitle {
+  font-size: 0.88rem;
+  color: var(--ifm-color-emphasis-600, #64748b);
+  margin: 0;
+}
+
+[data-theme='dark'] .subtitle {
+  color: #94a3b8;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+  gap: 1.25rem;
+}
+
+/* Step Card Container */
+.stepItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  position: relative;
+}
+
+.nodeColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.stepNumber {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  font-weight: 800;
+  background: var(--ifm-color-primary, #2563eb);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  z-index: 2;
+}
+
+[data-theme='dark'] .stepNumber {
+  background: #3b82f6;
+  color: #0b0f19;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+}
+
+.connectorLine {
+  width: 2px;
+  flex-grow: 1;
+  min-height: 24px;
+  background: var(--ifm-color-emphasis-300, #cbd5e1);
+  margin: 0.4rem 0;
+}
+
+[data-theme='dark'] .connectorLine {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.contentCard {
+  background: var(--ifm-background-surface-color, #ffffff);
+  border: 1.5px solid var(--ifm-color-emphasis-200, #e2e8f0);
+  border-radius: 12px;
+  padding: 1.15rem 1.35rem;
+  flex-grow: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.contentCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.07);
+}
+
+[data-theme='dark'] .contentCard {
+  background: #111827;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] .contentCard:hover {
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.stepTitle {
+  font-size: 1.02rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ifm-color-emphasis-900, #0f172a);
+}
+
+[data-theme='dark'] .stepTitle {
+  color: #f8fafc;
+}
+
+.tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.18rem 0.5rem;
+  border-radius: 5px;
+  background: rgba(37, 99, 235, 0.1);
+  color: #2563eb;
+}
+
+[data-theme='dark'] .tag {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+}
+
+.stepDesc {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--ifm-color-emphasis-700, #334155);
+  margin: 0;
+}
+
+[data-theme='dark'] .stepDesc {
+  color: #cbd5e1;
+}
+
+.codeSnippet {
+  margin-top: 0.75rem;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.8rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  background: var(--ifm-color-emphasis-100, #f8fafc);
+  color: var(--ifm-color-primary, #2563eb);
+  border: 1px solid var(--ifm-color-emphasis-200, #e2e8f0);
+}
+
+[data-theme='dark'] .codeSnippet {
+  background: #0f172a;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #93c5fd;
+}
+
+@media (max-width: 640px) {
+  .stepItem {
+    gap: 0.75rem;
+  }
+  .stepNumber {
+    width: 34px;
+    height: 34px;
+    font-size: 0.9rem;
+  }
+  .contentCard {
+    padding: 0.95rem 1rem;
+  }
+}

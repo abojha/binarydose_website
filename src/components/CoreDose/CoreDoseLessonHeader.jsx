@@ -1,6 +1,26 @@
 import React, { useState, useEffect } from "react";
 import Link from "@docusaurus/Link";
+import BackNav from "../Common/BackNav";
 import styles from "./CoreDoseLessonHeader.module.css";
+
+const COURSE_MAP = {
+  dbms: { id: "dbms", name: "DBMS", url: "/coredose/dbms" },
+  os: { id: "os", name: "Operating Systems", url: "/coredose/os" },
+  cn: { id: "cn", name: "Computer Networks", url: "/coredose/cn" },
+  oops: { id: "oops", name: "OOPs", url: "/coredose/oops" },
+  coa: { id: "coa", name: "COA", url: "/coredose/coa" },
+  compiler: { id: "compiler", name: "Compiler Design", url: "/coredose/compiler" },
+};
+
+function resolveCourse(pathname, courseUrl) {
+  const target = courseUrl || pathname || "";
+  if (target.includes("/coredose/os")) return COURSE_MAP.os;
+  if (target.includes("/coredose/cn")) return COURSE_MAP.cn;
+  if (target.includes("/coredose/oops")) return COURSE_MAP.oops;
+  if (target.includes("/coredose/coa")) return COURSE_MAP.coa;
+  if (target.includes("/coredose/compiler")) return COURSE_MAP.compiler;
+  return COURSE_MAP.dbms;
+}
 
 export default function CoreDoseLessonHeader({
   module,
@@ -11,25 +31,31 @@ export default function CoreDoseLessonHeader({
   relevance = "Semester Exams • GATE CSE • Technical Interviews",
   backUrl,
   backLabel,
+  courseUrl,
 }) {
+  const initialCourse = resolveCourse("", courseUrl);
+
   const [displayReadTime, setDisplayReadTime] = useState(readTime || "5 min read");
   const [navConfig, setNavConfig] = useState({
-    backUrl: backUrl || "/coredose/dbms",
-    backLabel: backLabel || "Back to DBMS Roadmap",
+    backUrl: backUrl || initialCourse.url,
+    backLabel: backLabel || `Back to ${initialCourse.name} Notes`,
     isCourseIndex: false,
     moduleNumber: null,
+    courseName: initialCourse.name,
+    courseUrl: initialCourse.url,
   });
 
   useEffect(() => {
     try {
       const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+      const currentCourse = resolveCourse(pathname, courseUrl);
       
-      // Check if on course index (e.g. /coredose/dbms)
-      const isIndex = pathname.endsWith("/coredose/dbms") || pathname.endsWith("/coredose/dbms/");
+      // Check if on course index (e.g. /coredose/dbms or /coredose/os)
+      const isIndex = pathname.endsWith(currentCourse.url) || pathname.endsWith(currentCourse.url + "/");
       
-      // Detect module from path (e.g. /chapter-06/ -> Module 6)
+      // Detect module from path (e.g. /chapter-06/ -> Module 06)
       const moduleMatch = pathname.match(/chapter-(\d+)/i);
-      const modNum = moduleMatch ? `Module ${parseInt(moduleMatch[1], 10)}` : null;
+      const modNum = moduleMatch ? `Module ${String(moduleMatch[1]).padStart(2, "0")}` : null;
 
       if (isIndex) {
         setNavConfig({
@@ -37,13 +63,17 @@ export default function CoreDoseLessonHeader({
           backLabel: backLabel || "Back to CoreDose Hub",
           isCourseIndex: true,
           moduleNumber: null,
+          courseName: currentCourse.name,
+          courseUrl: currentCourse.url,
         });
       } else {
         setNavConfig({
-          backUrl: backUrl || "/coredose/dbms",
-          backLabel: backLabel || "Back to DBMS Roadmap",
+          backUrl: backUrl || currentCourse.url,
+          backLabel: backLabel || `Back to ${currentCourse.name} Notes`,
           isCourseIndex: false,
           moduleNumber: modNum,
+          courseName: currentCourse.name,
+          courseUrl: currentCourse.url,
         });
       }
 
@@ -59,53 +89,39 @@ export default function CoreDoseLessonHeader({
     } catch (e) {
       // Fallback gracefully
     }
-  }, [backUrl, backLabel]);
+  }, [backUrl, backLabel, courseUrl]);
 
   // Normalize module label to "Module XX"
   const rawLabel = module || chapter || navConfig.moduleNumber || "Module 01";
   const moduleLabel = rawLabel.replace(/^Chapter\s+/i, "Module ");
-  const topicLabel = topic || part || "Topic 1.1";
+  
+  // Normalize topic label to "Topic X.Y"
+  let topicLabel = topic || part || "Topic 1.1";
+  if (/^Lesson\s+/i.test(topicLabel)) {
+    topicLabel = topicLabel.replace(/^Lesson\s+/i, "Topic ");
+  } else if (/^\d+(\.\d+)?$/.test(topicLabel)) {
+    topicLabel = `Topic ${topicLabel}`;
+  }
+
+  const breadcrumbs = [
+    { label: "CoreDose", url: "/coredose" },
+    ...(navConfig.isCourseIndex
+      ? [{ label: navConfig.courseName }]
+      : [
+          { label: navConfig.courseName, url: navConfig.courseUrl },
+          ...(navConfig.moduleNumber ? [{ label: navConfig.moduleNumber }] : []),
+        ]),
+  ];
 
   return (
     <div className={styles.headerContainer}>
       {/* Top Back Button & Breadcrumbs Bar */}
-      <div className={styles.navBar}>
-        <Link to={navConfig.backUrl} className={styles.backButton}>
-          <svg
-            className={styles.backArrow}
-            viewBox="0 0 24 24"
-            width="16"
-            height="16"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <line x1="19" y1="12" x2="5" y2="12"></line>
-            <polyline points="12 19 5 12 12 5"></polyline>
-          </svg>
-          <span className={styles.backButtonText}>{navConfig.backLabel}</span>
-        </Link>
-
-        <div className={styles.breadcrumbs}>
-          <Link to="/coredose" className={styles.crumbLink}>CoreDose</Link>
-          <span className={styles.crumbSep}>/</span>
-          {navConfig.isCourseIndex ? (
-            <span className={styles.crumbActive}>DBMS</span>
-          ) : (
-            <>
-              <Link to="/coredose/dbms" className={styles.crumbLink}>DBMS</Link>
-              {navConfig.moduleNumber && (
-                <>
-                  <span className={styles.crumbSep}>/</span>
-                  <span className={styles.crumbActive}>{navConfig.moduleNumber}</span>
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+      <BackNav
+        backUrl={navConfig.backUrl}
+        backLabel={navConfig.backLabel}
+        breadcrumbs={breadcrumbs}
+        className={styles.lessonBackNav}
+      />
 
       {/* Meta Badges */}
       <div className={styles.metaRow}>

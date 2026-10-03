@@ -10,6 +10,19 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import getSiteStats from "./src/utils/getSiteStats.js";
 
+// Global KaTeX configuration with support for micro units and non-throwing parsing
+const katexPlugin = [
+  rehypeKatex,
+  {
+    throwOnError: false,
+    macros: {
+      "\\mus": "\\mu\\text{s}",
+      "\\micro": "\\mu",
+      "\\us": "\\mu\\text{s}",
+    },
+  },
+];
+
 // Load local .env file if present
 if (fs.existsSync(".env")) {
   try {
@@ -123,7 +136,7 @@ const config = {
           onInlineAuthors: "warn",
           onUntruncatedBlogPosts: "warn",
           remarkPlugins: [remarkMath],
-          rehypePlugins: [rehypeKatex],
+          rehypePlugins: [katexPlugin],
         },
         theme: {
           customCss: "./src/css/custom.css",
@@ -161,7 +174,7 @@ const config = {
         sidebarPath: false,
 
         remarkPlugins: [remarkMath],
-        rehypePlugins: [rehypeKatex],
+        rehypePlugins: [katexPlugin],
       },
     ],
     [
@@ -173,7 +186,7 @@ const config = {
         sidebarPath: false,
 
         remarkPlugins: [remarkMath],
-        rehypePlugins: [rehypeKatex],
+        rehypePlugins: [katexPlugin],
       },
     ],
     [
@@ -185,7 +198,7 @@ const config = {
         sidebarPath: false,
 
         remarkPlugins: [remarkMath],
-        rehypePlugins: [rehypeKatex],
+        rehypePlugins: [katexPlugin],
       },
     ],
     [
@@ -197,7 +210,7 @@ const config = {
         sidebarPath: false,
 
         remarkPlugins: [remarkMath],
-        rehypePlugins: [rehypeKatex],
+        rehypePlugins: [katexPlugin],
       },
     ],
   ],
@@ -236,7 +249,7 @@ const config = {
         },
         items: [
           {
-            label: "CodeDose (DSA)",
+            label: "CodeDose",
             position: "left",
             to: "/coding",
           },
@@ -246,14 +259,14 @@ const config = {
             to: "/algodose",
           },
           {
-            label: "100 Days Interview",
-            position: "left",
-            to: "/100-days",
-          },
-          {
             label: "CoreDose",
             position: "left",
             to: "/coredose",
+          },
+          {
+            label: "DevDose",
+            position: "left",
+            to: "/devdose",
           },
           {
             to: "/blog",
@@ -309,6 +322,14 @@ const config = {
               {
                 label: "CodeDose (DSA Sheet)",
                 to: "/coding",
+              },
+              {
+                label: "CoreDose (CS Core)",
+                to: "/coredose",
+              },
+              {
+                label: "DevDose (Engineering)",
+                to: "/devdose",
               },
               {
                 label: "AlgoDose (Visualizer)",
@@ -390,12 +411,15 @@ const config = {
           flowchart: {
             curve: "basis",
             nodeSpacing: 45,
-            rankSpacing: 40,
-            padding: 14,
+            rankSpacing: 50,
+            padding: 20,
+            diagramPadding: 24,
+            htmlLabels: true,
+            useMaxWidth: true,
           },
           themeVariables: {
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-            fontSize: "13px",
+            fontSize: "15px",
           },
         },
       },

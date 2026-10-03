@@ -1,0 +1,456 @@
+---
+title: "3.4 Priority Scheduling & Starvation (Aging Technique)"
+description: "Master Priority CPU scheduling, preemptive vs non-preemptive variants, tie-breaking rules, indefinite blocking (starvation), and the aging mitigation technique."
+hide_table_of_contents: true
+---
+
+# 3.4 Priority Scheduling & Starvation (Aging Technique)
+
+<CoreDoseLessonHeader
+  module="Module 03: CPU Scheduling Algorithms"
+  topic="Topic 3.4"
+  courseUrl="/coredose/os"
+  readTime="13 min read"
+  relevance="Computer Science Foundations • Systems Engineering • Technical Interviews"
+/>
+
+## 💡 Core Intuition
+
+### 🍳 The Everyday Analogy: Airport Boarding & VIP Express Lanes
+
+Imagine an airport boarding gate where **a single gate agent (the CPU)** validates boarding passes for hundreds of passengers waiting to board an aircraft:
+
+<FlowPipeline
+  title="The Airport Boarding Priority Pipeline"
+  subtitle="Mapping boarding class hierarchies to OS Priority CPU scheduling"
+  steps={[
+    {
+      badge: "Admission Stage",
+      title: "Passenger Queue",
+      icon: "🎫",
+      color: "blue",
+      sublabel: "Ready Queue Admissions",
+      description: "Passengers arrive at the gate holding different ticket classes.",
+      details: "Priority Labeling: Each ticket is assigned a tier—Economy (Low), Business (Medium), and First Class / Elite VIP (High).",
+      connectorLabel: "Priority Scan",
+    },
+    {
+      badge: "Non-Preemptive",
+      title: "Boarding Walkway",
+      icon: "🚶",
+      color: "purple",
+      sublabel: "Non-Preemptive Gate",
+      description: "Once a passenger steps onto the jet bridge, they board without interruption.",
+      details: "Cooperative Priority: Higher tiers are called first, but an ongoing passenger is never dragged back off the jet bridge.",
+      connectorLabel: "Preemption Check",
+    },
+    {
+      badge: "Preemptive / Aging",
+      title: "VIP Jump & Aging",
+      icon: "⭐",
+      color: "amber",
+      sublabel: "Preemption & Aging",
+      description: "VIP passengers jump the line; delayed passengers receive priority upgrades.",
+      details: "Starvation Prevention: To prevent economy travelers from being stuck at the gate forever, the airline upgrades passengers who wait past threshold delays.",
+    },
+  ]}
+/>
+
+* **Priority Assignment**: Critical passengers (crew members, medical responders, VIPs) take precedence over general travelers.
+* **The Starvation Dilemma**: If high-priority VIP passengers arrive continuously, economy passengers at the back of the line might miss the flight entirely. The solution is **Aging**—gradually boosting an economy passenger's priority the longer they stand waiting.
+
+---
+
+### 💻 Bridging to Computer Science
+
+In operating systems, **Priority Scheduling** associates a priority rank with each process.
+* At any scheduling instant, the Short-Term Scheduler allocates the CPU to the available process with the **highest priority**.
+* If two processes share identical priority values, **FCFS order is used to break the tie**.
+* Systems implement Priority Scheduling in both **Non-Preemptive** and **Preemptive** modes.
+
+:::note Priority Numbering Conventions
+In academic literature and operating system designs, two opposite numbering conventions exist:
+1. **Lower Number = Higher Priority**: Standard UNIX/Linux nice values, where $0$ is high priority and $20$ is low priority.
+2. **Higher Number = Higher Priority**: Common in real-time kernels and standard university problem sets, where a higher integer (e.g., $8$) denotes superior priority over a smaller integer (e.g., $4$).
+Always verify the declared convention before solving. In this chapter, we adopt the standard convention: **Higher Integer Value = Higher Priority**.
+:::
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 📚 Core Deep-Dive & Concepts
+
+### 1. Priority Scheduling Architectural Principles
+
+> **Definition**: A priority is associated with each process. At any instance of time out of all available processes, the CPU is allocated to the process that possesses the highest priority. Tie is broken using FCFS order. It supports both non-preemptive and preemptive versions.
+
+<ConceptComparison
+  title="Non-Preemptive vs. Preemptive Priority Scheduling"
+  subtitle="Contrasting cooperative completion against dynamic preemption"
+  concepts={[
+    {
+      badge: "Non-Preemptive",
+      title: "Non-Preemptive Priority",
+      icon: "🤝",
+      color: "blue",
+      domain: "Cooperative Priority Allocation",
+      points: [
+        "Scheduling Trigger: Evaluated only when running task completes or blocks for I/O.",
+        "Zero Preemption: A running process is never evicted, even if a higher-priority task arrives.",
+        "Low Context Switching: Eliminates cache invalidation and register thrashing.",
+        "Bounded Responsiveness: Urgent system alerts must wait until current burst finishes.",
+      ],
+      quote: "Once allocated, the process keeps the CPU until voluntary release.",
+    },
+    {
+      badge: "Preemptive",
+      title: "Preemptive Priority",
+      icon: "⚡",
+      color: "emerald",
+      domain: "Immediate Preemptive Scheduling",
+      points: [
+        "Scheduling Trigger: Evaluated immediately whenever a new process enters the Ready Queue.",
+        "Dynamic Context Switch: Evicts the running process if newcomer has higher priority.",
+        "Optimal Responsiveness: Mission-critical tasks execute with near-zero latency.",
+        "Severe Starvation Risk: Low-priority jobs can be frozen indefinitely under heavy loads.",
+      ],
+      quote: "If a newcomer has higher priority than the running process, the CPU is immediately reassigned.",
+    },
+  ]}
+/>
+
+---
+
+### 2. Comprehensive Problem: Non-Preemptive Priority Scheduling
+
+Consider six processes with their arrival times, burst times, and priorities (where **Higher Number denotes Higher Priority**, with $8$ being Highest):
+
+| Process ID | Arrival Time ($AT$) | Burst Time ($BT$) | Priority |
+| :---: | :---: | :---: | :---: |
+| $P_0$ | $1\text{ ms}$ | $4\text{ ms}$ | $4$ |
+| $P_1$ | $2\text{ ms}$ | $2\text{ ms}$ | $5$ |
+| $P_2$ | $2\text{ ms}$ | $3\text{ ms}$ | $7$ |
+| $P_3$ | $3\text{ ms}$ | $5\text{ ms}$ | $8\text{ (Highest)}$ |
+| $P_4$ | $3\text{ ms}$ | $1\text{ ms}$ | $5$ |
+| $P_5$ | $4\text{ ms}$ | $2\text{ ms}$ | $6$ |
+
+#### Step-by-Step Execution Sequence:
+* **$[0, 1]$**: CPU is idle for $1\text{ ms}$.
+* **At $t = 1$**: Only $P_0$ is present ($AT = 1, \text{Priority} = 4$). Since scheduling is **non-preemptive**, $P_0$ runs uninterrupted to completion ($t = 1 \to 5$).
+* **At $t = 5$**: $P_0$ completes ($CT = 5$). All other processes ($P_1, P_2, P_3, P_4, P_5$) are now in the Ready Queue:
+  * $P_3: \text{Priority} = 8$
+  * $P_2: \text{Priority} = 7$
+  * $P_5: \text{Priority} = 6$
+  * $P_1: \text{Priority} = 5$
+  * $P_4: \text{Priority} = 5$
+  * The scheduler chooses the highest priority: **$P_3$ (Priority 8)**. $P_3$ executes for $5\text{ ms}$ ($t = 5 \to 10$).
+* **At $t = 10$**: $P_3$ completes ($CT = 10$). Highest available priority is **$P_2$ (Priority 7)**. $P_2$ executes for $3\text{ ms}$ ($t = 10 \to 13$).
+* **At $t = 13$**: $P_2$ completes ($CT = 13$). Highest available priority is **$P_5$ (Priority 6)**. $P_5$ executes for $2\text{ ms}$ ($t = 13 \to 15$).
+* **At $t = 15$**: $P_5$ completes ($CT = 15$). Remaining processes are $P_1$ (Priority 5) and $P_4$ (Priority 5).
+  * **Tie-Breaking via FCFS**: $P_1$ arrived at $t = 2$; $P_4$ arrived at $t = 3$. Therefore, $P_1$ is scheduled first.
+  * $P_1$ executes for $2\text{ ms}$ ($t = 15 \to 17$).
+* **At $t = 17$**: $P_1$ completes ($CT = 17$). Only $P_4$ remains. $P_4$ executes for $1\text{ ms}$ ($t = 17 \to 18$).
+* **At $t = 18$**: All processes complete execution.
+
+<GanttChart
+  title="Non-Preemptive Priority Execution Gantt Chart"
+  subtitle="Timeline showing non-preemptive execution ordered strictly by priority (8 -> 7 -> 6 -> 5 -> 5)"
+  slots={[
+    { process: "IDLE", start: 0, end: 1, isIdle: true, sublabel: "Idle: 1ms" },
+    { process: "P0", start: 1, end: 5, color: "blue", sublabel: "Pri: 4" },
+    { process: "P3", start: 5, end: 10, color: "purple", sublabel: "Pri: 8 (H)" },
+    { process: "P2", start: 10, end: 13, color: "emerald", sublabel: "Pri: 7" },
+    { process: "P5", start: 13, end: 15, color: "cyan", sublabel: "Pri: 6" },
+    { process: "P1", start: 15, end: 17, color: "amber", sublabel: "Pri: 5 (Tie FCFS)" },
+    { process: "P4", start: 17, end: 18, color: "rose", sublabel: "Pri: 5" },
+  ]}
+  metrics={[
+    { label: "Avg Turnaround", value: "10.5 ms" },
+    { label: "Avg Waiting Time", value: "7.67 ms" },
+    { label: "Throughput", value: "0.333 jobs/ms" },
+    { label: "CPU Utilization", value: "94.44%" },
+  ]}
+/>
+
+#### Tabulation of Non-Preemptive Priority Metrics:
+
+| Process | $AT$ | $BT$ | Priority | Completion ($CT$) | Turnaround ($TAT = CT - AT$) | Waiting ($WT = TAT - BT$) | Response ($RT$) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **$P_0$** | $1$ | $4$ | $4$ | $5$ | $5 - 1 = \mathbf{4}$ | $4 - 4 = \mathbf{0}$ | $1 - 1 = \mathbf{0}$ |
+| **$P_1$** | $2$ | $2$ | $5$ | $17$ | $17 - 2 = \mathbf{15}$ | $15 - 2 = \mathbf{13}$ | $15 - 2 = \mathbf{13}$ |
+| **$P_2$** | $2$ | $3$ | $7$ | $13$ | $13 - 2 = \mathbf{11}$ | $11 - 3 = \mathbf{8}$ | $10 - 2 = \mathbf{8}$ |
+| **$P_3$** | $3$ | $5$ | $8$ | $10$ | $10 - 3 = \mathbf{7}$ | $7 - 5 = \mathbf{2}$ | $5 - 3 = \mathbf{2}$ |
+| **$P_4$** | $3$ | $1$ | $5$ | $18$ | $18 - 3 = \mathbf{15}$ | $15 - 1 = \mathbf{14}$ | $17 - 3 = \mathbf{14}$ |
+| **$P_5$** | $4$ | $2$ | $6$ | $15$ | $15 - 4 = \mathbf{11}$ | $11 - 2 = \mathbf{9}$ | $13 - 4 = \mathbf{9}$ |
+
+$$\overline{TAT} = \frac{4 + 15 + 11 + 7 + 15 + 11}{6} = \frac{63}{6} = \mathbf{10.5\text{ ms}}$$
+$$\overline{WT} = \frac{0 + 13 + 8 + 2 + 14 + 9}{6} = \frac{46}{6} \approx \mathbf{7.67\text{ ms}}$$
+
+---
+
+### 3. Preemptive Priority Scheduling Step-by-Step Derivation
+
+> **Definition**: In Preemptive Priority scheduling, the process with the highest priority is allocated the CPU. If a new process enters the system with a priority strictly higher than the priority of the currently running process, a **context switch** occurs and the CPU is immediately reassigned to the higher-priority newcomer.
+
+Applying preemption to the **exact same six processes**:
+
+#### Chronological Preemption Execution Walkthrough:
+* **$[0, 1]$**: CPU idle.
+* **At $t = 1$**: $P_0$ arrives (Priority 4). Begins executing.
+* **At $t = 2$**: $P_1$ (Priority 5) and $P_2$ (Priority 7) arrive.
+  * Running process $P_0$ has Priority 4.
+  * Both newcomers have higher priority, and the highest is **$P_2$ (Priority 7)**.
+  * **$P_2$ preempts $P_0$!** $P_0$ has run for $1\text{ ms}$ (remaining: $4 - 1 = 3\text{ ms}$).
+  * $P_2$ begins executing ($t = 2 \to 3$).
+* **At $t = 3$**: $P_3$ (Priority 8) and $P_4$ (Priority 5) arrive.
+  * Running process $P_2$ has Priority 7.
+  * Newcomer **$P_3$ has Priority 8**, which is strictly higher than 7!
+  * **$P_3$ preempts $P_2$!** $P_2$ has run for $1\text{ ms}$ (remaining: $3 - 1 = 2\text{ ms}$).
+  * $P_3$ begins executing ($t = 3 \to 8$).
+  * *(At $t = 4$, $P_5$ arrives with Priority 6. Since $6 < 8$, $P_3$ continues uninterrupted to completion).*
+* **At $t = 8$**: $P_3$ completes ($CT = 8$).
+  * Ready Queue candidates: $P_2$ (Priority 7, rem $2$), $P_5$ (Priority 6, rem $2$), $P_1$ (Priority 5, rem $2$), $P_4$ (Priority 5, rem $1$), $P_0$ (Priority 4, rem $3$).
+  * Highest priority is **$P_2$ (Priority 7)**. $P_2$ resumes and finishes its remaining $2\text{ ms}$ ($t = 8 \to 10$, $CT = 10$).
+* **At $t = 10$**: $P_2$ completes. Highest available priority is **$P_5$ (Priority 6)**. $P_5$ executes for $2\text{ ms}$ ($t = 10 \to 12$, $CT = 12$).
+* **At $t = 12$**: $P_5$ completes. Candidates are $P_1$ (Priority 5) and $P_4$ (Priority 5).
+  * Tie broken by FCFS arrival: $P_1 (AT=2)$ runs before $P_4 (AT=3)$.
+  * $P_1$ executes for $2\text{ ms}$ ($t = 12 \to 14$, $CT = 14$).
+* **At $t = 14$**: $P_1$ completes. $P_4$ executes for $1\text{ ms}$ ($t = 14 \to 15$, $CT = 15$).
+* **At $t = 15$**: Only $P_0$ remains (Priority 4). $P_0$ resumes and finishes its remaining $3\text{ ms}$ ($t = 15 \to 18$, $CT = 18$).
+* **At $t = 18$**: All processes complete.
+
+<GanttChart
+  title="Preemptive Priority Execution Gantt Chart"
+  subtitle="Tracing dynamic preemption points at t = 2 (P2 preempts P0) and t = 3 (P3 preempts P2)"
+  slots={[
+    { process: "IDLE", start: 0, end: 1, isIdle: true, sublabel: "Idle: 1ms" },
+    { process: "P0", start: 1, end: 2, color: "blue", sublabel: "P0 (run 1ms)" },
+    { process: "P2", start: 2, end: 3, color: "emerald", sublabel: "P2 (run 1ms)" },
+    { process: "P3", start: 3, end: 8, color: "purple", sublabel: "P3 finishes" },
+    { process: "P2", start: 8, end: 10, color: "emerald", sublabel: "P2 finishes" },
+    { process: "P5", start: 10, end: 12, color: "cyan", sublabel: "P5 finishes" },
+    { process: "P1", start: 12, end: 14, color: "amber", sublabel: "P1 finishes" },
+    { process: "P4", start: 14, end: 15, color: "rose", sublabel: "P4 finishes" },
+    { process: "P0", start: 15, end: 18, color: "blue", sublabel: "P0 finishes" },
+  ]}
+  metrics={[
+    { label: "Avg Turnaround", value: "10.33 ms" },
+    { label: "Avg Waiting Time", value: "7.5 ms" },
+    { label: "P3 Waiting Time", value: "0.0 ms" },
+    { label: "CPU Utilization", value: "94.44%" },
+  ]}
+/>
+
+#### Tabulation of Preemptive Priority Metrics:
+
+| Process | $AT$ | $BT$ | Priority | Completion ($CT$) | Turnaround ($TAT = CT - AT$) | Waiting ($WT = TAT - BT$) | Response ($RT$) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **$P_0$** | $1$ | $4$ | $4$ | $18$ | $18 - 1 = \mathbf{17}$ | $17 - 4 = \mathbf{13}$ | $1 - 1 = \mathbf{0}$ |
+| **$P_1$** | $2$ | $2$ | $5$ | $14$ | $14 - 2 = \mathbf{12}$ | $12 - 2 = \mathbf{10}$ | $12 - 2 = \mathbf{10}$ |
+| **$P_2$** | $2$ | $3$ | $7$ | $10$ | $10 - 2 = \mathbf{8}$ | $8 - 3 = \mathbf{5}$ | $2 - 2 = \mathbf{0}$ |
+| **$P_3$** | $3$ | $5$ | $8$ | $8$ | $8 - 3 = \mathbf{5}$ | $5 - 5 = \mathbf{0}$ | $3 - 3 = \mathbf{0}$ |
+| **$P_4$** | $3$ | $1$ | $5$ | $15$ | $15 - 3 = \mathbf{12}$ | $12 - 1 = \mathbf{11}$ | $14 - 3 = \mathbf{11}$ |
+| **$P_5$** | $4$ | $2$ | $6$ | $12$ | $12 - 4 = \mathbf{8}$ | $8 - 2 = \mathbf{6}$ | $10 - 4 = \mathbf{6}$ |
+
+$$\overline{TAT} = \frac{17 + 12 + 8 + 5 + 12 + 8}{6} = \frac{62}{6} \approx \mathbf{10.33\text{ ms}}$$
+$$\overline{WT} = \frac{13 + 10 + 5 + 0 + 11 + 6}{6} = \frac{45}{6} = \mathbf{7.5\text{ ms}}$$
+
+---
+
+### 4. Advantages, Disadvantages & Starvation
+
+#### Advantages of Priority Scheduling:
+1. **Preferential Facility for System Processes**: Provides dedicated priority execution to critical kernel daemons, device interrupt services, and audio/graphics drivers.
+2. **Allows Important Service Execution**: Ensures urgent batch or security workloads preempt standard user applications whenever necessary.
+
+#### Disadvantages of Priority Scheduling:
+1. **Indefinite Blocking (Starvation)**: Processes with lower priorities may sit in the Ready Queue forever if higher-priority processes arrive continuously.
+2. **Unpredictable Latency**: No mathematical guarantee on turnaround time or waiting time for lower-tier processes.
+
+---
+
+### 5. Starvation Mitigation: The Aging Technique
+
+> **Definition**: **Aging** is a technique of gradually increasing the priority of processes that wait in the system for a long time.
+
+<FlowPipeline
+  title="The Starvation Elimination Aging Pipeline"
+  subtitle="How periodic timer-driven priority boosts guarantee progress for low-priority processes"
+  steps={[
+    {
+      badge: "Arrival",
+      title: "Low Priority Process",
+      icon: "⏳",
+      color: "blue",
+      sublabel: "Priority = 1 (Awaiting CPU)",
+      description: "Process enters Ready Queue with lowest initial priority.",
+      details: "Initial Status: Task is repeatedly passed over by Short-Term Scheduler as higher-priority tasks execute.",
+      connectorLabel: "10 Minutes Elapse",
+    },
+    {
+      badge: "Aging Step 1",
+      title: "First Priority Boost",
+      icon: "📈",
+      color: "purple",
+      sublabel: "Priority Incremented (+1)",
+      description: "Kernel timer handler detects threshold wait and increments priority.",
+      details: "Gradual Escalation: The PCB priority integer increases, moving the task closer to the head of the queue.",
+      connectorLabel: "Continued Waiting",
+    },
+    {
+      badge: "Final Promotion",
+      title: "Highest Priority Run",
+      icon: "⭐",
+      color: "emerald",
+      sublabel: "Priority = Highest Tier",
+      description: "Eventually matches highest priority and is guaranteed CPU dispatch.",
+      details: "Starvation Solved: Aging guarantees an upper bound on waiting time, ensuring formal progress for every process.",
+    },
+  ]}
+/>
+
+#### Aging Mechanics:
+* For example, the kernel can increase a waiting process's priority by **$1$ every $10\text{ minutes}$** (or every few hundred timer interrupts).
+* A process that entered with a minimal priority of $1$ will, after $70\text{ minutes}$ of waiting, reach priority $8$, competing on equal terms with the highest-priority tasks in the system.
+* **Result**: Starvation is mathematically eliminated.
+
+---
+
+## 📐 Architecture / Visual Blueprint
+
+### Priority Inversion Architecture & Priority Inheritance Solution
+
+A critical concurrency flaw in real-time priority systems is **Priority Inversion**, where a low-priority task holds a lock needed by a high-priority task, while medium-priority tasks prevent the low-priority task from finishing:
+
+<ExecutionBlueprint
+  title="The Priority Inversion Problem & Priority Inheritance Fix"
+  subtitle="Tracing how an un-inverted priority schedule protects high-priority real-time deadlines"
+  actors={[
+    { name: "High-Priority Task (T_H)", color: "#dc2626" },
+    { name: "Medium-Priority Task (T_M)", color: "#d97706" },
+    { name: "Low-Priority Task (T_L)", color: "#2563eb" },
+    { name: "Shared Mutex Lock", color: "#9333ea" },
+  ]}
+  steps={[
+    {
+      step: 1,
+      from: "Low-Priority Task (T_L)",
+      to: "Shared Mutex Lock",
+      action: "T_L Acquires Mutex Lock",
+      detail: "Low-priority task claims exclusive access to shared hardware or memory resource.",
+    },
+    {
+      step: 2,
+      from: "High-Priority Task (T_H)",
+      to: "Shared Mutex Lock",
+      action: "T_H Blocks on Mutex",
+      detail: "High-priority task awakens and requests lock; kernel forces T_H into sleep state.",
+    },
+    {
+      step: 3,
+      from: "Medium-Priority Task (T_M)",
+      to: "Low-Priority Task (T_L)",
+      action: "Priority Inversion Occurs!",
+      detail: "T_M preempts T_L because Pri(T_M) > Pri(T_L). T_L cannot finish, indirectly starving T_H!",
+    },
+    {
+      step: 4,
+      from: "High-Priority Task (T_H)",
+      to: "Low-Priority Task (T_L)",
+      action: "Priority Inheritance Protocol Applied",
+      detail: "Kernel temporarily elevates T_L's priority to Pri(T_H) until it releases the mutex.",
+    },
+  ]}
+/>
+
+---
+
+## 🏭 In The Real World: Production Case Study
+
+### The Mars Pathfinder Priority Inversion Glitch (1997)
+
+One of the most famous real-world systems software bugs occurred during NASA's **Mars Pathfinder** mission:
+
+<ArchitectureStack
+  title="Mars Pathfinder VxWorks Real-Time Thread Hierarchy"
+  subtitle="The three concurrent threads that triggered the historic 1997 Martian system reset"
+  layers={[
+    {
+      badge: "High Priority Tier",
+      title: "Information Bus Thread (bc_dist)",
+      icon: "🚨",
+      color: "rose",
+      description: "Critical spacecraft attitude control thread starved while awaiting the shared bus mutex.",
+      items: ["Critical flight telemetry task", "Blocked awaiting mutex held by low-priority task", "Starvation tripped watchdog timer to reboot spacecraft"],
+      connectorText: "Blocked on Mutex Held by Low Task",
+    },
+    {
+      badge: "Medium Priority Tier",
+      title: "Communications Thread (ASI/MET)",
+      icon: "📡",
+      color: "amber",
+      description: "Long-running radio transmitter tasks that preempted low-priority tasks freely.",
+      items: ["No mutex dependency", "Ran continuously, starving the low-priority thread", "Indirectly caused high-priority thread starvation"],
+      connectorText: "Preempts Low Task Indefinitely",
+    },
+    {
+      badge: "Low Priority Tier",
+      title: "Meteorological Sensor Task",
+      icon: "🌡️",
+      color: "blue",
+      description: "Background science measurement thread that held the contended shared memory mutex.",
+      items: ["Acquired shared information bus lock", "Preempted by medium tasks before releasing lock", "Resolved permanently via Priority Inheritance Protocol"],
+    },
+  ]}
+/>
+
+#### Incident Breakdown:
+1. A low-priority meteorological sensor task acquired an information bus mutex.
+2. A high-priority attitude control thread requested the mutex and was blocked.
+3. Multiple medium-priority communications tasks arrived and ran uninterrupted, preventing the low-priority task from finishing and releasing the lock.
+4. An automated watchdog timer detected that the high-priority attitude task was stalled, assumed total system failure, and triggered a full spacecraft computer reset.
+5. **The Fix**: Engineers uploaded a patch enabling the **Priority Inheritance Protocol** on the mutex, ensuring any task holding a contended lock temporarily inherits the priority of the highest blocked thread.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** Define Priority Scheduling. Explain the fundamental difference in dispatcher behavior between its non-preemptive and preemptive forms.
+**Answer:**
+1. **Definition**: A scheduling scheme where each process is assigned a priority integer, and the Short-Term Scheduler dispatches the available process with the highest priority. FCFS resolves ties.
+2. **Dispatcher Differences**:
+   - In **Non-Preemptive Priority**, when a high-priority process arrives, the dispatcher takes no action; the currently running process retains the CPU until it voluntarily yields or finishes.
+   - In **Preemptive Priority**, the arrival of a higher-priority process triggers an immediate interrupt, saving the running process's registers to its PCB and context-switching to the newcomer.
+
+**Question 2:** What is Starvation, and how does the Aging technique resolve it?
+**Answer:**
+1. **Starvation**: The permanent or indefinite denial of CPU resources to low-priority processes caused by a steady stream of higher-priority arrivals.
+2. **Aging**: The gradual increment of an awaiting process's priority over time (e.g., $+1$ priority every $10\text{ minutes}$). Eventually, every starving process reaches the highest priority tier and executes.
+
+:::
+
+:::warning Common Interview Traps
+
+* **The Number Direction Trap**: Always verify whether $0$ represents the highest or lowest priority before calculating $CT, TAT, WT$. Assuming $0$ is highest when a problem defines higher integers as higher priority inverts the entire Gantt chart.
+* **Assuming Preemption Happens on Equal Priority**: If process $A$ with priority 5 is executing and process $B$ arrives with priority 5, **no preemption occurs**. Context switching introduces overhead; the running process continues under the FCFS tie-breaking rule.
+* **Confusing Aging with Dynamic Priority**: While aging is a form of dynamic priority adjustment, general dynamic priority may fluctuate based on I/O burst ratios or CPU consumption. Aging strictly moves in the direction that *increases* dispatch urgency to eliminate starvation.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "3.3 Shortest Job First (SJF) & SRTF",
+    url: "/coredose/os/chapter-03/shortest-job-first-sjf-and-shortest-remaining-time-first-srtf"
+  }}
+  next={{
+    title: "3.5 Round Robin Scheduling & Time Quantum",
+    url: "/coredose/os/chapter-03/round-robin-scheduling-and-time-quantum-trade-offs"
+  }}
+  courseUrl="/coredose/os"
+/>
