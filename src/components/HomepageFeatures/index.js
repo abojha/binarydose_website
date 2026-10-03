@@ -59,7 +59,7 @@ export default function HomepageFeatures() {
     },
     {
       icon: "🛠️",
-      badge: `${stats.hundredDaysCount}+ Interview Doses • Applied Tracks`,
+      badge: `${stats.hundredDaysCount}+ Interview Doses`,
       title: "DevDose (Applied Tech)",
       description: "Curated 100 Days interview deep-dives, system design blueprints, and production-ready software engineering tracks.",
       link: "/devdose",
