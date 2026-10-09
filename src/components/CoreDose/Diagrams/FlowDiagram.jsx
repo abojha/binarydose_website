@@ -40,6 +40,7 @@ export default function FlowDiagram({
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
   const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
   const [activeEdgeId, setActiveEdgeId] = useState(null);
+  const [currentStepIdx, setCurrentStepIdx] = useState(0);
 
   // Measure container sandbox width in real-time
   useEffect(() => {
@@ -89,22 +90,29 @@ export default function FlowDiagram({
     let maxCol = 0;
     let maxRow = 0;
 
-    // Check if any edge arches across top or bottom
+    // Check if any edge arches across top, bottom, or outer sides
     const hasTopArches = rawEdges.some(
       (e) => e.bend === 'top' || (e.fromPort === 'top' && e.toPort === 'top')
     );
     const hasBottomArches = rawEdges.some(
       (e) => e.bend === 'bottom' || (e.fromPort === 'bottom' && e.toPort === 'bottom')
     );
+    const hasOuterLeft = rawEdges.some(
+      (e) => (e.fromPort === 'left' && (e.toPort === 'left' || e.toPort === 'top')) || e.bend === 'left'
+    );
+    const hasOuterRight = rawEdges.some(
+      (e) => (e.fromPort === 'right' && (e.toPort === 'right' || e.toPort === 'top')) || e.bend === 'right'
+    );
 
     // Dynamic padding:
+    const hasTopHeaders = (domains || []).some((d) => d.position !== 'bottom');
     const hasBottomHeaders = (domains || []).some((d) => d.position === 'bottom');
-    const topPad = hasTopArches ? 76 : (hasBottomHeaders ? 48 : 52);
-    const bottomPad = hasBottomHeaders ? 72 : (hasBottomArches ? 64 : 44);
-    const leftPad = 22;
-    const rightPad = 22;
+    const topPad = hasTopArches ? 92 : (hasTopHeaders ? 84 : 52);
+    const bottomPad = hasBottomHeaders ? 76 : (hasBottomArches ? 64 : 44);
+    const leftPad = hasOuterLeft ? 52 : 28;
+    const rightPad = hasOuterRight ? 52 : 28;
     const cardH = 78; // 78px for abundant vertical text breathing room
-    const rowGap = 92; // 92px generous vertical gap between rows
+    const rowGap = 96; // 96px generous vertical gap between rows
 
     const hasExplicitGrid = rawNodes.some((n) => typeof n.col === 'number');
     const hasDomains = domains && domains.length > 0;
@@ -136,7 +144,7 @@ export default function FlowDiagram({
     const availableW = width || (containerWidth > 0 ? containerWidth : 800);
 
     // Mobile Base Width (unscaled target for phone screens)
-    // Ensures every column gets comfortable space for both a 120-135px card AND a 115-125px transition gap
+    // Ensures every column gets comfortable space for both a 120-175px card AND a 115-125px transition gap
     const mobileBaseWidth = Math.max(860, numCols * 225);
     const isMobileViewport = containerWidth > 0 && containerWidth < 660;
 
@@ -153,8 +161,8 @@ export default function FlowDiagram({
     if (numCols > 1) {
       // Allocate ~48% of usable space to cards, ~52% to transition gaps
       const idealCardW = (usableW * 0.48) / numCols;
-      // Clamp cardW to comfortable bounds [120px, 145px]
-      cardW = Math.round(Math.min(145, Math.max(120, idealCardW)));
+      // Clamp cardW to comfortable bounds [120px, 175px]
+      cardW = Math.round(Math.min(175, Math.max(120, idealCardW)));
       const remainingForGaps = usableW - (numCols * cardW);
       colGap = remainingForGaps / numGaps;
     } else {
@@ -227,7 +235,7 @@ export default function FlowDiagram({
       const minX = Math.min(...domNodes.map((n) => n.x)) - 10;
       const maxX = Math.max(...domNodes.map((n) => n.x + n.w)) + 10;
       const domMinY = Math.min(...domNodes.map((n) => n.y));
-      const domTopMargin = dom.position === 'bottom' ? 14 : 22;
+      const domTopMargin = dom.position === 'bottom' ? 14 : 46;
       const minY = Math.max(10, domMinY - domTopMargin);
       const domBottomMargin = dom.position === 'bottom' ? 54 : 14;
       const maxY = Math.max(...domNodes.map((n) => n.y + n.h)) + domBottomMargin;
@@ -342,7 +350,8 @@ export default function FlowDiagram({
       } else if (fromPort === 'bottom' && toPort === 'top') {
         if (Math.abs(start.x - end.x) < 5) {
           pathD = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
-          labelX = start.x + 36;
+          const isRightHalf = start.x > (svgWidth / 2);
+          labelX = isRightHalf ? start.x - 48 : start.x + 48;
           labelY = (start.y + end.y) / 2;
         } else {
           const midY = (start.y + end.y) / 2;
@@ -353,7 +362,8 @@ export default function FlowDiagram({
       } else if (fromPort === 'top' && toPort === 'bottom') {
         if (Math.abs(start.x - end.x) < 5) {
           pathD = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
-          labelX = start.x - 36;
+          const isRightHalf = start.x > (svgWidth / 2);
+          labelX = isRightHalf ? start.x - 48 : start.x + 48;
           labelY = (start.y + end.y) / 2;
         } else {
           const midY = (start.y + end.y) / 2;
@@ -405,6 +415,30 @@ export default function FlowDiagram({
           labelX = midX;
           labelY = (start.y + end.y) / 2 - 18;
         }
+      } else if (fromPort === 'left' && toPort === 'top') {
+        const outerOffset = typeof edge.gutterOffset === 'number' ? edge.gutterOffset : 28;
+        const gutterX = Math.min(start.x, end.x) - outerOffset;
+        pathD = `M ${start.x} ${start.y} C ${gutterX} ${start.y}, ${gutterX} ${end.y - 24}, ${end.x} ${end.y}`;
+        labelX = Math.round((gutterX + end.x) / 2);
+        labelY = Math.round(end.y + 90);
+      } else if (fromPort === 'right' && toPort === 'top') {
+        const outerOffset = typeof edge.gutterOffset === 'number' ? edge.gutterOffset : 28;
+        const gutterX = Math.max(start.x, end.x) + outerOffset;
+        pathD = `M ${start.x} ${start.y} C ${gutterX} ${start.y}, ${gutterX} ${end.y - 24}, ${end.x} ${end.y}`;
+        labelX = Math.round((end.x + gutterX) / 2);
+        labelY = Math.round(end.y + 90);
+      } else if (fromPort === 'left' && toPort === 'left') {
+        const archWidth = typeof edge.bend === 'number' ? Math.abs(edge.bend) : 38;
+        const gutterX = Math.min(start.x, end.x) - archWidth;
+        pathD = `M ${start.x} ${start.y} C ${gutterX} ${start.y}, ${gutterX} ${end.y}, ${end.x} ${end.y}`;
+        labelX = gutterX - 12;
+        labelY = (start.y + end.y) / 2;
+      } else if (fromPort === 'right' && toPort === 'right') {
+        const archWidth = typeof edge.bend === 'number' ? Math.abs(edge.bend) : 38;
+        const gutterX = Math.max(start.x, end.x) + archWidth;
+        pathD = `M ${start.x} ${start.y} C ${gutterX} ${start.y}, ${gutterX} ${end.y}, ${end.x} ${end.y}`;
+        labelX = gutterX + 12;
+        labelY = (start.y + end.y) / 2;
       } else {
         const midX = (start.x + end.x) / 2;
         const midY = (start.y + end.y) / 2;
@@ -413,17 +447,34 @@ export default function FlowDiagram({
         labelY = midY - 14;
       }
 
+      if (edge.pathD) {
+        pathD = edge.pathD;
+      }
+      const finalLabelX = typeof edge.labelX === 'number' ? edge.labelX : labelX;
+      const finalLabelY = typeof edge.labelY === 'number' ? edge.labelY : labelY;
+
+      // Content-aware boundary clamping so NO edge badge can ever bleed past viewport edges:
+      const labelText = edge.label || '';
+      const badgeHalfWidth = Math.max(48, Math.round((labelText.length * 7.5) / 2) + 16);
+      const minSafeX = badgeHalfWidth + 12;
+      const maxSafeX = Math.max(minSafeX, svgWidth - badgeHalfWidth - 12);
+
+      const rawBadgeX = Math.round(finalLabelX + (edge.labelOffsetX || 0));
+      const safeBadgeX = Math.max(minSafeX, Math.min(maxSafeX, rawBadgeX));
+      const rawBadgeY = Math.round(finalLabelY + (edge.labelOffsetY || 0));
+      const safeBadgeY = Math.max(16, Math.min(svgHeight - 16, rawBadgeY));
+
       return {
         id: `e-${idx}`,
         from: sourceId,
         to: targetId,
         ...edge,
         pathD,
-        labelX: Math.round(labelX + (edge.labelOffsetX || 0)),
-        labelY: Math.round(labelY + (edge.labelOffsetY || 0)),
+        labelX: safeBadgeX,
+        labelY: safeBadgeY,
       };
     }).filter(Boolean);
-  }, [rawEdges, nodeMap]);
+  }, [rawEdges, nodeMap, svgWidth, svgHeight]);
 
   // Active details calculation for the dedicated inspector console strip below
   const activeDetails = useMemo(() => {
@@ -458,12 +509,65 @@ export default function FlowDiagram({
     return null;
   }, [activeNodeId, hoveredNodeId, activeEdgeId, hoveredEdgeId, nodeMap, layoutEdges]);
 
+  // Step-by-step edge sequencing if edges have a step property
+  const steppedEdges = useMemo(() => {
+    return layoutEdges
+      .filter((e) => typeof e.step === 'number' || (typeof e.step === 'string' && e.step.trim() !== ''))
+      .sort((a, b) => {
+        const numA = parseFloat(a.step);
+        const numB = parseFloat(b.step);
+        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+        return String(a.step).localeCompare(String(b.step));
+      });
+  }, [layoutEdges]);
+
+  const handlePrevStep = () => {
+    const nextIdx = Math.max(0, currentStepIdx - 1);
+    setCurrentStepIdx(nextIdx);
+    if (steppedEdges[nextIdx]) {
+      setActiveEdgeId(steppedEdges[nextIdx].id);
+      setActiveNodeId(null);
+    }
+  };
+
+  const handleNextStep = () => {
+    const nextIdx = Math.min(steppedEdges.length - 1, currentStepIdx + 1);
+    setCurrentStepIdx(nextIdx);
+    if (steppedEdges[nextIdx]) {
+      setActiveEdgeId(steppedEdges[nextIdx].id);
+      setActiveNodeId(null);
+    }
+  };
+
   return (
     <div className={styles.container} ref={sandboxRef}>
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerTopRow}>
           <div className={styles.titleBadge}>Architecture Flow</div>
+          {steppedEdges.length > 0 && (
+            <div className={styles.stepperContainer}>
+              <button
+                type="button"
+                className={styles.stepBtn}
+                disabled={currentStepIdx === 0}
+                onClick={handlePrevStep}
+              >
+                ◀ Prev
+              </button>
+              <span className={styles.stepCounter}>
+                Step {currentStepIdx + 1} of {steppedEdges.length}
+              </span>
+              <button
+                type="button"
+                className={styles.stepBtn}
+                disabled={currentStepIdx === steppedEdges.length - 1}
+                onClick={handleNextStep}
+              >
+                Next ▶
+              </button>
+            </div>
+          )}
         </div>
         {title && <h3 className={styles.title}>{title}</h3>}
         {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
@@ -549,17 +653,46 @@ export default function FlowDiagram({
               >
                 <path d="M 0 1.2 L 9 5 L 0 8.8 z" fill="#38bdf8" />
               </marker>
+
+              {/* Bidirectional Arrowhead Markers (Start) */}
+              <marker
+                id="arrowhead-cyan-start"
+                viewBox="0 0 10 10"
+                refX="3"
+                refY="5"
+                markerWidth="7"
+                markerHeight="7"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#38bdf8" />
+              </marker>
+              <marker
+                id="arrowhead-cyan-start-glow"
+                viewBox="0 0 10 10"
+                refX="3"
+                refY="5"
+                markerWidth="8.5"
+                markerHeight="8.5"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 1.2 L 9 5 L 0 8.8 z" fill="#38bdf8" />
+              </marker>
             </defs>
 
             {/* Edge Paths with Interactive Hover Hit-Area & Animated Pulse */}
             {layoutEdges.map((edge) => {
+              const isSteppedCurrent = steppedEdges.length > 0 && steppedEdges[currentStepIdx]?.id === edge.id;
               const isEdgeActive =
+                isSteppedCurrent ||
                 hoveredEdgeId === edge.id ||
                 activeEdgeId === edge.id ||
                 hoveredNodeId === edge.from ||
                 hoveredNodeId === edge.to ||
                 activeNodeId === edge.from ||
                 activeNodeId === edge.to;
+
+              const isUndirected = edge.direction === 'none' || edge.direction === 'undirected';
+              const isBidirectional = edge.direction === 'bi';
 
               return (
                 <g
@@ -576,7 +709,20 @@ export default function FlowDiagram({
                   <path
                     d={edge.pathD}
                     className={`${styles.edgePath} ${edge.style === 'dashed' ? styles.edgePathDashed : ''} ${isEdgeActive ? styles.edgePathActive : ''}`}
-                    markerEnd={isEdgeActive ? 'url(#arrowhead-cyan-glow)' : 'url(#arrowhead-cyan)'}
+                    markerStart={
+                      isBidirectional
+                        ? isEdgeActive
+                          ? 'url(#arrowhead-cyan-start-glow)'
+                          : 'url(#arrowhead-cyan-start)'
+                        : undefined
+                    }
+                    markerEnd={
+                      isUndirected
+                        ? undefined
+                        : isEdgeActive
+                        ? 'url(#arrowhead-cyan-glow)'
+                        : 'url(#arrowhead-cyan)'
+                    }
                   />
                 </g>
               );
@@ -589,7 +735,9 @@ export default function FlowDiagram({
               const labelText = edge.label;
               if (!labelText) return null;
 
+              const isSteppedCurrent = steppedEdges.length > 0 && steppedEdges[currentStepIdx]?.id === edge.id;
               const isEdgeActive =
+                isSteppedCurrent ||
                 hoveredEdgeId === edge.id ||
                 activeEdgeId === edge.id ||
                 hoveredNodeId === edge.from ||

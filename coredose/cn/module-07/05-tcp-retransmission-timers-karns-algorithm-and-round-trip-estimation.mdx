@@ -1,0 +1,438 @@
+---
+title: "7.5 TCP Retransmission Timers, Karn's Algorithm & Round Trip Estimation"
+description: "Mathematical formulation of TCP round-trip time estimation, RFC 793 EWMA, Jacobson's variance-adaptive algorithm, the retransmission ambiguity problem, and Karn's exponential backoff."
+hide_table_of_contents: true
+---
+
+# 7.5 TCP Retransmission Timers, Karn's Algorithm & Round Trip Estimation
+
+<CoreDoseLessonHeader
+  module="Module 07: Transport Layer: Congestion Control & Reliability"
+  topic="Topic 7.5"
+  courseUrl="/coredose/cn"
+  readTime="16 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Commuter Train and the Unpredictable Storm
+
+### 🍳 The Everyday Analogy: When Should You Assume Your Friend is Lost?
+Imagine waiting at a train station for a friend arriving on an evening train:
+1. **The Static Timer Blunder**: If you decide in advance: *"I will wait exactly 10 minutes. If they do not step off the platform in 10 minutes, I will assume they were kidnapped and call the police."* On a sunny Tuesday when the train takes 8 minutes, this works. But on a rainy Friday with track maintenance, the train normally takes 30 minutes! Your 10-minute timer will trigger false panics every single week. Conversely, setting a 3-hour timer means you will sit freezing on the platform long after a real emergency occurred.
+2. **The Variance-Adaptive Timer (Jacobson's Insight)**: A smart person measures the train's arrival time over many weeks to calculate the **average commute time** ($SRTT$). But they also track the **weather and delay volatility** ($RTTVAR$). When the train schedule is rock-solid ($\pm 1\text{ minute}$ variance), they set their timeout tightly. When weather makes the schedule volatile ($\pm 20\text{ minutes}$ variance), they expand their patience buffer proportionally.
+3. **The Lost Ticket Dilemma (Karn's Insight)**: If your friend's original train was delayed, and they texted you that they boarded a second train, and suddenly they arrive at the station—did they arrive on the first train delayed, or the second train on time? If you cannot tell which trip their arrival represents, you cannot use this journey to measure train speeds! You must discard the sample, and if delays continue, you **double your patience timer** ($2\times$) with each missed train.
+
+### 💻 Bridging to Computer Science
+In TCP:
+* The **Retransmission Timeout ($RTO$)** must continuously track fluctuating network conditions.
+* A static timer is impossible on the global internet, where round-trip times ($RTT$) range from $0.2\text{ ms}$ (data center LAN) to $600\text{ ms}$ (geostationary satellite).
+* **Jacobson's Algorithm** (RFC 6298) dynamically couples $RTO$ to both the **smoothed average $RTT$** and the **variance ($RTTVAR$)**.
+* **Karn's Algorithm** solves the **retransmission ambiguity dilemma**: never update $RTT$ estimators using retransmitted segments, and exponentially double the timeout on successive failures.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## ⏱️ The Four Architectural Timers of TCP
+
+A fully conformant TCP implementation maintains four distinct timers to govern reliability, flow control, connection liveness, and socket cleanup:
+
+| TCP Timer | Governing Trigger | Primary Operational Purpose |
+| :--- | :--- | :--- |
+| **1. Retransmission Timer ($RTO$)** | Armed whenever a data segment is transmitted onto the wire. | Detects lost segments and triggers automatic retransmission upon expiration. |
+| **2. Persistence Timer** | Armed when the receiver advertises $\text{rwnd} = 0$. | Periodically transmits 1-byte Zero Window Probes (ZWP) to prevent deadlock from lost window update ACKs. |
+| **3. Keep-Alive Timer** | Armed when a connection sits idle with zero data exchange. | Transmits periodic probe segments (typically after 2 hours) to detect peer crashes or dead client links. |
+| **4. TIME_WAIT Timer ($2\text{ MSL}$)** | Armed when an active closer transitions to `TIME_WAIT`. | Waits 60 to 240 seconds to drain wandering duplicate segments and guarantee delivery of the final ACK. |
+
+---
+
+## 🎯 The Delicate Balance of Retransmission Timeout (RTO)
+
+Setting the $RTO$ value presents a fundamental engineering trade-off:
+
+<SubsystemGrid
+  title="The Retransmission Timeout (RTO) Calibration Trilemma"
+  subtitle="Analyzing the delicate architectural trade-offs between underestimating and overestimating RTO"
+  items={[
+    {
+      icon: "⚡",
+      title: "Underestimated RTO (RTO < RTT)",
+      tag: "Spurious Retransmissions",
+      color: "rose",
+      points: [
+        "Timer expires before legitimate return ACK can arrive back at the sender.",
+        "Floods bottleneck queues with duplicate packets, wasting transit capacity.",
+        "Triggers false packet loss signals and unnecessary window cuts."
+      ]
+    },
+    {
+      icon: "🎯",
+      title: "Optimal RTO (RTO ≈ SRTT + 4×RTTVAR)",
+      tag: "Dynamic Statistical Balance",
+      color: "emerald",
+      points: [
+        "Tolerates typical statistical queueing jitter without false timeouts.",
+        "Guarantees prompt loss detection within a small variance safety margin.",
+        "Sustains maximum channel utilization and stable throughput."
+      ]
+    },
+    {
+      icon: "⏳",
+      title: "Overestimated RTO (RTO >> RTT)",
+      tag: "Sluggish Recovery Penalty",
+      color: "amber",
+      points: [
+        "Sender sits idle for excessive intervals waiting for timer expiration.",
+        "Introduces massive interactive latency and stutter on lost packets.",
+        "Degrades user experience while holding socket buffer memory hostage."
+      ]
+    }
+  ]}
+/>
+
+* **If $RTO$ is too small ($RTO < RTT$)**: The timer expires before the legitimate acknowledgment can return from the receiver. The sender floods the network with unnecessary duplicate retransmissions, exacerbating buffer queues.
+* **If $RTO$ is too large ($RTO \gg RTT$)**: When a packet is genuinely lost, the sender sits idle waiting for a sluggish timer, degrading interactive throughput and user experience.
+
+---
+
+## 📈 RFC 793 Basic Algorithm: Exponential Weighted Moving Average (EWMA)
+
+The original TCP specification (RFC 793) used a simple Exponential Weighted Moving Average (EWMA) to smooth raw $RTT$ samples:
+
+### The Mathematical Formulation
+Let $M$ be the newly measured Round-Trip Time sample for a transmitted segment. The **Smoothed RTT ($SRTT$)** was updated as:
+
+$$\mathbf{SRTT_{\text{new}} = \alpha \cdot SRTT_{\text{old}} + (1 - \alpha) \cdot M}$$
+
+Where:
+* $\alpha$ is the smoothing weighting factor, typically chosen between $0.8$ and $0.9$ (standard RFC 793 recommends $\alpha = 0.875 = 7/8$).
+* A higher $\alpha$ gives greater weight to historical stability; a lower $\alpha$ responds faster to sudden changes.
+
+The Retransmission Timeout ($RTO$) was then set as a fixed multiple of $SRTT$:
+
+$$\mathbf{RTO = \beta \cdot SRTT} \quad (\text{where } \beta = 2)$$
+
+### Why the Basic Algorithm Collapses Under High Variance
+RFC 793 assumes that round-trip times are normally distributed around $SRTT$. However:
+* In the real-world internet, network latency exhibits **heavy-tailed variance and extreme jitter** due to bursty cross-traffic and router queueing.
+* When variance spikes, a fixed factor of $\beta = 2$ is completely inadequate. If $RTT$ fluctuates by more than $100\%$, premature timeouts trigger a cascade of spurious retransmissions.
+
+---
+
+## 🔬 Jacobson's Algorithm (RFC 6298): Variance-Adaptive Estimation
+
+In 1988, Van Jacobson revolutionized internet reliability by introducing **Variance-Aware Estimation** (codified in RFC 2988 and RFC 6298). Instead of a fixed multiplier, Jacobson dynamically computes both the **mean $RTT$** and the **mean deviation ($RTTVAR$)**.
+
+<ConceptComparison
+  title="RFC 793 Basic Algorithm vs RFC 6298 Jacobson's Algorithm"
+  subtitle="Contrasting fixed-multiplier EWMA against dual-variable variance-adaptive estimation"
+  concepts={[
+    {
+      badge: "RFC 793",
+      title: "Basic Algorithm (EWMA)",
+      icon: "📜",
+      color: "amber",
+      domain: "Static Multiplier Model",
+      points: [
+        "Tracks single variable: Smoothed RTT (SRTT).",
+        "RTO formula: RTO = 2 * SRTT.",
+        "Blind to network jitter and variance swings.",
+        "Triggers massive spurious retransmissions when queue delay spikes."
+      ],
+      quote: "A fixed 2x safety multiplier is insufficient for volatile internet paths."
+    },
+    {
+      badge: "RFC 6298",
+      title: "Jacobson's Algorithm (Production Standard)",
+      icon: "🔬",
+      color: "emerald",
+      domain: "Dual-Variable Adaptive Envelope",
+      points: [
+        "Tracks two variables: Smoothed RTT (SRTT) and Mean Deviation (RTTVAR).",
+        "RTO formula: RTO = SRTT + 4 * RTTVAR.",
+        "Safety margin dynamically expands during high jitter and contracts when stable.",
+        "Backed by Chebyshev's inequality to provide 93%+ statistical confidence."
+      ],
+      quote: "Adapting the timeout envelope proportionally to measured channel variance."
+    }
+  ]}
+/>
+
+### The Complete RFC 6298 Algorithm Formulation
+
+#### 1. Initialization (First RTT Measurement $M_1$)
+When the very first $RTT$ sample $M_1$ is measured on a new connection:
+
+$$SRTT = M_1$$
+
+$$RTTVAR = \frac{M_1}{2}$$
+
+$$RTO = SRTT + \max\big(G, \; 4 \cdot RTTVAR\big)$$
+
+*(where $G$ is the clock granularity of the OS kernel, typically $\le 1\text{ ms}$).*
+
+#### 2. Subsequent Measurements (For each new sample $M$)
+For every subsequent valid $RTT$ sample $M$:
+1. Compute the estimation error:
+   $$Error = M - SRTT_{\text{old}}$$
+2. Update the Smoothed RTT ($SRTT$) with gain $g = \frac{1}{8} = 0.125$:
+   $$\mathbf{SRTT_{\text{new}} = SRTT_{\text{old}} + \frac{1}{8} \cdot Error = \frac{7}{8} SRTT_{\text{old}} + \frac{1}{8} M}$$
+3. Update the Round-Trip Time Variation ($RTTVAR$) with gain $h = \frac{1}{4} = 0.25$:
+   $$\mathbf{RTTVAR_{\text{new}} = \frac{3}{4} RTTVAR_{\text{old}} + \frac{1}{4} \big|Error\big|}$$
+4. Calculate the new Retransmission Timeout ($RTO$):
+   $$\mathbf{RTO = SRTT_{\text{new}} + 4 \cdot RTTVAR_{\text{new}}}$$
+
+#### 3. Bounding Constraints
+* **Minimum $RTO$**: If calculated $RTO < 1.0\text{ second}$, clamp to:
+  $$RTO = \max(RTO, \; 1.0\text{ second})$$
+  *(Modern Linux systems clamp down to a lower $200\text{ ms}$ minimum).*
+* **Maximum $RTO$**: Clamped at a maximum limit (typically $60\text{ seconds}$).
+
+### Why the Factor of 4? Chebyshev's Inequality
+By Chebyshev's statistical inequality, for any random variable with mean $\mu$ and standard deviation $\sigma$, the probability of a sample deviating by more than $k$ standard deviations is:
+
+$$P\big(|X - \mu| \ge k\sigma\big) \le \frac{1}{k^2}$$
+
+For mean deviation, setting $k = 4$ ensures that **over $93.75\%$ of legitimate packet arrivals fall safely within the $RTO$ window**, eliminating almost all premature retransmissions!
+
+---
+
+## ❓ The Retransmission Ambiguity Problem & Karn's Algorithm
+
+Even with Jacobson's algorithm, a severe mathematical paradox threatens $RTT$ estimation whenever a segment is retransmitted.
+
+| Ambiguity Dimension | Scenario A: Original Delayed, Retry Redundant | Scenario B: Original Dropped, Retry Delivered |
+| :--- | :--- | :--- |
+| **Physical Reality** | Segment 1 was delayed in transit; sender retransmitted prematurely. Receiver receives both and acknowledges. | Segment 1 was dropped by a congested router. Retransmit reached receiver safely; receiver sends ACK. |
+| **Arriving ACK Signatures** | Cumulative `ACK 2` (contains **no** timestamp or transmission ID without RFC 1323 options). | Cumulative `ACK 2` (contains **no** timestamp or transmission ID without RFC 1323 options). |
+| **If Associated with Transmission 1** | $RTT = t_{\text{ACK}} - t_{\text{Orig}}$: **Correct measurement** of true queueing delay. | $RTT = t_{\text{ACK}} - t_{\text{Orig}}$: **Drastically OVERESTIMATES** $RTT$ by measuring entire drop + timeout duration. |
+| **If Associated with Transmission 2** | $RTT = t_{\text{ACK}} - t_{\text{Retry}}$: **Drastically UNDERESTIMATES** $RTT$ (near zero!), falsely shrinking RTO. | $RTT = t_{\text{ACK}} - t_{\text{Retry}}$: **Correct measurement** of retransmitted segment's transit time. |
+| **The Insoluble Dilemma** | Standard TCP headers cannot distinguish whether ACK 2 answers transmission 1 or 2. | Standard TCP headers cannot distinguish whether ACK 2 answers transmission 1 or 2. |
+
+:::caution The Fundamental Retransmission Dilemma
+Because standard cumulative TCP acknowledgments only convey the sequence number of the next expected byte without identifying the specific transmission attempt, the sender **cannot mathematically deduce whether an ACK answers the original segment or the retransmitted replica**.
+:::
+
+### The Retransmission Ambiguity Paradox
+Suppose the sender transmits Segment 1, the timer expires, and the sender retransmits Segment 1. Shortly thereafter, an ACK for Segment 1 arrives:
+* **Ambiguity 1**: If the sender assumes the ACK corresponds to the **original transmission**, but the original was actually dropped and the ACK is for the retry, the calculated $RTT$ is **drastically overestimated**.
+* **Ambiguity 2**: If the sender assumes the ACK corresponds to the **retransmission**, but the ACK was actually for the original segment that was merely delayed in a router queue, the calculated $RTT$ is **drastically underestimated**.
+
+Using corrupted samples in either direction pollutes $SRTT$ and ruins the timer!
+
+### The Two Rules of Karn's Algorithm (RFC 6298)
+In 1987, Phil Karn and Craig Partridge formulated **Karn's Algorithm** to solve this dilemma with two strict rules:
+
+<FlowPipeline
+  title="The Karn-Jacobson Reliability Architecture"
+  subtitle="Protecting RTO estimation against retransmission ambiguity and severe loss"
+  nodes={[
+    {
+      badge: "Packet Transmission",
+      title: "Data Dispatched",
+      icon: "📤",
+      color: "blue",
+      description: "Sender arms RTO timer and records departure timestamp.",
+      connectorLabel: "Check Status"
+    },
+    {
+      badge: "Ambiguity Filter",
+      title: "Karn's Rule 1",
+      icon: "🛡️",
+      color: "purple",
+      description: "Did this packet require retransmission? If YES: ignore sample!",
+      connectorLabel: "If Clean Sample"
+    },
+    {
+      badge: "Adaptive Filter",
+      title: "Jacobson's Update",
+      icon: "🔬",
+      color: "emerald",
+      description: "Compute Error, update SRTT and RTTVAR: RTO = SRTT + 4*RTTVAR.",
+      connectorLabel: "If Timeout Occurs"
+    },
+    {
+      badge: "Exponential Backoff",
+      title: "Karn's Rule 2",
+      icon: "💥",
+      color: "rose",
+      description: "Double timeout on loss: RTO = 2 * RTO (up to 64s cap).",
+    }
+  ]}
+/>
+
+#### Rule 1: Sample Discard on Retransmission
+**Do NOT update $SRTT$ or $RTTVAR$ for any segment that was retransmitted.**  
+Only compute new $RTT$ samples for segments that were transmitted once and acknowledged without any retransmission.
+
+#### Rule 2: Exponential Timer Backoff
+When a timeout occurs, do NOT calculate a new $RTO$ from the estimator. Instead, **double the current $RTO$ value** for each consecutive failure:
+
+$$\mathbf{RTO_{\text{new}} = 2 \cdot RTO_{\text{old}}}$$
+
+Continue doubling upon each successive timeout ($1\text{s} \to 2\text{s} \to 4\text{s} \to 8\text{s} \to 16\text{s} \to 32\text{s} \to 64\text{s}$).  
+Only recalculate $RTO$ using Jacobson's formula after a fresh packet is successfully transmitted and acknowledged **without retransmission**.
+
+---
+
+## 💓 Supplementary Timers: Keep-Alive & TIME_WAIT
+
+### 1. The Keep-Alive Timer
+Although TCP is an end-to-end connected stream, if neither application sends data, zero packets cross the wire. If a client computer is suddenly unplugged or crashes, an open server socket could linger in memory forever, leaking resources.
+* **Operation**: When an established connection sits completely idle, the **Keep-Alive Timer** begins counting down (standard default: **$2\text{ hours}$**).
+* When the 2 hours elapse without data, the server transmits a **Keep-Alive Probe** segment containing $\text{seq} = \text{SND.NXT} - 1$ and zero payload.
+* **Healthy Client**: A running client immediately replies with an ACK, resetting the 2-hour timer.
+* **Crashed Client**: If the client does not respond, the server retries **9 times at 75-second intervals**. If all 10 probes fail, the kernel forcefully terminates the socket and returns an error (`ETIMEDOUT` or `ECONNRESET`) to the application.
+
+### 2. The TIME_WAIT Timer ($2\text{ MSL}$)
+When an endpoint initiates an active close by sending the final ACK, it enters the `TIME_WAIT` state for **$2 \times \text{Maximum Segment Lifetime (MSL)}$** (typically $60\text{ to }120\text{ seconds}$).
+* **Goal 1**: Ensures any wandering duplicate packets from the connection drain out and die in transit before a new connection reuses the same ephemeral port pair.
+* **Goal 2**: Guarantees that if the final ACK was lost, the peer's retransmitted FIN can be received and acknowledged properly.
+
+---
+
+## 🏭 Real-World Production Context: The TCP Timestamps Option (TSopt)
+
+### How Modern Linux Solved the Ambiguity: RFC 7323
+Karn's Rule 1 forces TCP to throw away $RTT$ samples during the very moments when the network is struggling—which is precisely when accurate $RTT$ data is needed most!
+
+Modern operating systems solve this using the **TCP Timestamps Option (RFC 7323)**:
+* Each outgoing TCP header includes a 10-byte option field:
+  * `TSval` (Timestamp Value): 32-bit clock timestamp set by the sender at transmission time.
+  * `TSecr` (Timestamp Echo Reply): 32-bit timestamp copied from the last received packet.
+* When an acknowledgment arrives, the sender simply computes:
+  $$M = \text{Current Kernel Time} - \text{TSecr}$$
+* Because the receiver echoes the *exact* timestamp of the specific physical segment it is acknowledging, **retransmission ambiguity is 100% eliminated**! TCP can safely sample $RTT$ on every single packet, including retransmissions.
+
+```bash
+# View and configure TCP timestamp support in Linux
+sysctl net.ipv4.tcp_timestamps
+# net.ipv4.tcp_timestamps = 1 (Enabled by default)
+
+# View min and max RTO settings in Linux
+sysctl net.ipv4.tcp_rto_min
+# net.ipv4.tcp_rto_min = 200 (200 ms)
+```
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Full Step-by-Step Jacobson RTO Computation
+**Problem Statement:**  
+A new TCP connection is established. The first measured $RTT$ sample is $M_1 = 120\text{ ms}$. 
+1. Compute the initial values of $SRTT$, $RTTVAR$, and $RTO$.
+2. Subsequently, three new $RTT$ samples arrive in consecutive rounds:
+   * Sample 2: $M_2 = 160\text{ ms}$
+   * Sample 3: $M_3 = 80\text{ ms}$
+   * Sample 4: $M_4 = 100\text{ ms}$
+Compute the updated values of $SRTT$, $RTTVAR$, and $RTO$ after each sample using Jacobson's algorithm ($g = 0.125$, $h = 0.25$).
+
+**Step-by-Step Solution:**
+
+#### Round 1: Initialization with $M_1 = 120\text{ ms}$
+* $SRTT_1 = M_1 = \mathbf{120\text{ ms}}$
+* $RTTVAR_1 = \frac{M_1}{2} = \frac{120}{2} = \mathbf{60\text{ ms}}$
+* $RTO_1 = SRTT_1 + 4 \times RTTVAR_1 = 120 + 4(60) = 120 + 240 = \mathbf{360\text{ ms}}$
+
+---
+
+#### Round 2: Update with $M_2 = 160\text{ ms}$
+1. Calculate Error:
+   $$Error = M_2 - SRTT_1 = 160 - 120 = +40\text{ ms}$$
+2. Update $SRTT$:
+   $$SRTT_2 = SRTT_1 + 0.125 \times Error = 120 + 0.125(40) = 120 + 5 = \mathbf{125\text{ ms}}$$
+3. Update $RTTVAR$:
+   $$RTTVAR_2 = 0.75 \times RTTVAR_1 + 0.25 \times |Error| = 0.75(60) + 0.25(40) = 45 + 10 = \mathbf{55\text{ ms}}$$
+4. Calculate $RTO$:
+   $$RTO_2 = SRTT_2 + 4 \times RTTVAR_2 = 125 + 4(55) = 125 + 220 = \mathbf{345\text{ ms}}$$
+
+---
+
+#### Round 3: Update with $M_3 = 80\text{ ms}$
+1. Calculate Error:
+   $$Error = M_3 - SRTT_2 = 80 - 125 = -45\text{ ms}$$
+2. Update $SRTT$:
+   $$SRTT_3 = SRTT_2 + 0.125 \times Error = 125 + 0.125(-45) = 125 - 5.625 = \mathbf{119.375\text{ ms}}$$
+3. Update $RTTVAR$:
+   $$RTTVAR_3 = 0.75(55) + 0.25(|-45|) = 41.25 + 11.25 = \mathbf{52.5\text{ ms}}$$
+4. Calculate $RTO$:
+   $$RTO_3 = 119.375 + 4(52.5) = 119.375 + 210 = \mathbf{329.375\text{ ms}}$$
+
+---
+
+#### Round 4: Update with $M_4 = 100\text{ ms}$
+1. Calculate Error:
+   $$Error = M_4 - SRTT_3 = 100 - 119.375 = -19.375\text{ ms}$$
+2. Update $SRTT$:
+   $$SRTT_4 = 119.375 + 0.125(-19.375) = 119.375 - 2.422 = \mathbf{116.953\text{ ms}}$$
+3. Update $RTTVAR$:
+   $$RTTVAR_4 = 0.75(52.5) + 0.25(19.375) = 39.375 + 4.844 = \mathbf{44.219\text{ ms}}$$
+4. Calculate $RTO$:
+   $$RTO_4 = 116.953 + 4(44.219) = 116.953 + 176.876 = \mathbf{293.829\text{ ms}}$$
+
+---
+
+### Example 2: Karn's Exponential Backoff Progression
+**Problem Statement:**  
+A TCP sender has an established $RTO = 1.2\text{ seconds}$. Severe network congestion causes four consecutive retransmissions to experience timeout.
+1. Compute the $RTO$ values used for the 1st, 2nd, 3rd, and 4th retransmissions under Karn's backoff rule.
+2. If the 4th retransmission succeeds and yields an $RTT$ sample of $900\text{ ms}$, how does the sender update its estimator?
+
+**Step-by-Step Solution:**
+1. **Apply Exponential Backoff ($RTO_{\text{new}} = 2 \times RTO_{\text{old}}$):**
+   * Initial Transmission: $RTO = 1.2\text{ s}$ (Times out!).
+   * 1st Retransmission: $RTO_1 = 2 \times 1.2 = \mathbf{2.4\text{ seconds}}$
+   * 2nd Retransmission: $RTO_2 = 2 \times 2.4 = \mathbf{4.8\text{ seconds}}$
+   * 3rd Retransmission: $RTO_3 = 2 \times 4.8 = \mathbf{9.6\text{ seconds}}$
+   * 4th Retransmission: $RTO_4 = 2 \times 9.6 = \mathbf{19.2\text{ seconds}}$
+
+2. **Handle the 4th Retransmission ACK (Karn's Rule 1):**
+   * Under classic Karn's algorithm, because this ACK acknowledged a **retransmitted segment**, the sample $M = 900\text{ ms}$ **MUST BE DISCARDED**.
+   * It is NOT incorporated into $SRTT$ or $RTTVAR$.
+   * The connection keeps its last valid $SRTT$ and $RTTVAR$ intact and only samples fresh RTTs on the *next newly initiated* segment.
+
+---
+
+### Example 3: RFC 793 EWMA vs Jacobson Comparison
+**Problem Statement:**  
+An existing connection has $SRTT = 200\text{ ms}$ under the RFC 793 Basic Algorithm ($\alpha = 0.8$, $\beta = 2$). A sudden queue delay spike causes the next sample to jump to $M = 500\text{ ms}$. 
+1. Compute the new $SRTT$ and $RTO$ under the Basic Algorithm.
+2. Does the updated $RTO$ safely accommodate a subsequent sample of $500\text{ ms}$?
+
+**Step-by-Step Solution:**
+1. **Compute Basic EWMA:**
+   $$SRTT_{\text{new}} = 0.8(200) + 0.2(500) = 160 + 100 = \mathbf{260\text{ ms}}$$
+   $$RTO_{\text{new}} = 2 \times SRTT_{\text{new}} = 2 \times 260 = \mathbf{520\text{ ms}}$$
+2. **Analysis:**  
+   While $520\text{ ms} > 500\text{ ms}$, notice that if the queue delay remains at $500\text{ ms}$ with only a modest $\pm 25\text{ ms}$ jitter ($525\text{ ms}$), the Basic Algorithm timer will prematurely expire! Jacobson's algorithm, by factoring in the large variance $|500 - 200| = 300\text{ ms}$, expands the safety envelope to over $1000\text{ ms}$, completely absorbing the queue transition without spurious timeouts.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why did Van Jacobson choose 4 as the multiplier for mean deviation in RTO calculations?**: In statistics, mean deviation is related to standard deviation: for a normal distribution, $\text{Mean Deviation} \approx \sqrt{2/\pi} \cdot \sigma \approx 0.8 \cdot \sigma$. Thus, $4 \times RTTVAR \approx 3.2 \times \sigma$. Under Chebyshev's inequality, an envelope of over 3 standard deviations guarantees that less than $6\%$ of arrivals exceed the timeout window, creating an optimal empirical balance between fast recovery and zero premature triggers.
+* **Why does Karn's algorithm insist on doubling the timer on a timeout rather than just keeping the old RTO?**: A timeout strongly implies that network queues are congested or the link is overloaded. If the sender retries using the same old timeout, it will continue firing probes at the same frequency, pouring more gasoline on the congestion fire. **Exponential backoff** progressively halves the probing frequency, giving the choked routers breathing room to clear their packet queues.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Forgetting that Karn's Rule 1 Discards Retransmission Samples**: Many students calculate an $RTT$ sample on a retransmitted packet and attempt to run it through Jacobson's formula. Under Karn's algorithm, **retransmitted packets yield ZERO RTT updates**. The sample is discarded entirely.
+* **Trap: Confusing the Persistence Timer with the Retransmission Timer**: The Retransmission Timer guards **data packets** waiting for ACKs. The Persistence Timer guards **idle senders waiting for Zero Window updates**. The Persistence Timer uses exponential backoff just like Karn's rule, but its trigger is an advertised $\text{rwnd} = 0$, not a lost packet.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "7.4 Fast Retransmit & Fast Recovery (TCP Tahoe vs TCP Reno)",
+    url: "/coredose/cn/module-07/fast-retransmit-and-fast-recovery-tcp-tahoe-vs-tcp-reno"
+  }}
+  next={{
+    title: "8.1 Client-Server Architecture vs Peer-to-Peer (P2P)",
+    url: "/coredose/cn/module-08/client-server-architecture-vs-peer-to-peer-p2p"
+  }}
+  courseUrl="/coredose/cn"
+/>

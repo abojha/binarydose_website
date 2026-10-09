@@ -32,24 +32,28 @@ export default function ArchitectureStack({ title, subtitle, layers = [], showCo
           const isLast = index === layers.length - 1;
           const renderConnector = showConnectors && layer.connectorText !== false && !isLast;
 
+          const cardTitle = layer.title || layer.name;
+          const cardDesc = layer.description || layer.role;
+          const cardItems = layer.items || (Array.isArray(layer.components) ? layer.components.map(c => typeof c === 'string' ? c : `${c.name || ''}${c.desc ? ` (${c.desc})` : ''}`) : []);
+
           return (
-            <React.Fragment key={layer.badge || layer.title || index}>
+            <React.Fragment key={layer.badge || cardTitle || index}>
               <div className={`${styles.layerCard} ${colorClass}`}>
                 <div className={styles.cardHeader}>
                   <div className={styles.badgeAndTitle}>
                     {layer.badge && <span className={styles.badge}>{layer.badge}</span>}
-                    <h4 className={styles.cardTitle}>{layer.title}</h4>
+                    <h4 className={styles.cardTitle}>{cardTitle}</h4>
                   </div>
                   {layer.icon && <span className={styles.cardIcon}>{layer.icon}</span>}
                 </div>
 
-                {layer.description && (
-                  <p className={styles.cardDescription}>{layer.description}</p>
+                {cardDesc && (
+                  <p className={styles.cardDescription}>{cardDesc}</p>
                 )}
 
-                {layer.items && layer.items.length > 0 && (
+                {cardItems && cardItems.length > 0 && (
                   <div className={styles.itemsRow}>
-                    {layer.items.map((item, idx) => (
+                    {cardItems.map((item, idx) => (
                       <span key={idx} className={styles.chip}>
                         {item}
                       </span>

@@ -1,0 +1,346 @@
+---
+title: "4.3 Classless Inter-Domain Routing (CIDR) & Subnetting"
+description: "Mastery of Subnetting, Subnet Masks, Bitwise AND routing mechanics, Classless Inter-Domain Routing (CIDR) slash notation, the 3 mathematical rules of valid CIDR blocks, and subnet boundary calculations."
+hide_table_of_contents: true
+---
+
+# 4.3 Classless Inter-Domain Routing (CIDR) & Subnetting
+
+<CoreDoseLessonHeader
+  module="Module 04: Network Layer: IPv4/IPv6 Addressing & Subnetting"
+  topic="Topic 4.3"
+  courseUrl="/coredose/cn"
+  readTime="16 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Corporate Office Floor Partition
+
+### 🍳 The Everyday Analogy: Dividing a Floor into Department Suites
+Imagine a large technology enterprise rents the entire 4th floor of a downtown skyscraper:
+* To the outside world (the postal delivery courier), the entire floor has a single unified address: **`Suite 400`**.
+* However, inside the company, the CEO cannot let all 256 employees sit in one chaotic, unpartitioned room. Noise from Sales would distract Software Engineers, and visitors in Marketing might view confidential payroll records in HR.
+* To organize the floor, the company builds physical drywall dividers, creating four distinct secured suites:
+  * **Suite 4A**: Engineering (Rooms 1 to 64)
+  * **Suite 4B**: Sales (Rooms 65 to 128)
+  * **Suite 4C**: Finance (Rooms 129 to 192)
+  * **Suite 4D**: Human Resources (Rooms 193 to 256)
+
+When a courier enters the 4th-floor elevator lobby, an internal receptionist inspects the badge, determines which suite the employee belongs to, and directs them through the appropriate security door.
+
+This is the exact purpose of **Subnetting**:
+* To the global Internet, an organization appears as a single network block.
+* Internally, the organization's network administrator borrows host bits to carve the block into smaller, isolated **Subnets (Sub-networks)**, boosting security, containing broadcast storms, and streamlining departmental administration.
+
+### 💻 Bridging to Computer Science
+In standard classful IP addressing, there were only two levels of hierarchy: `Network ID + Host ID`. 
+
+**Subnetting** introduces a third hierarchical level by stealing (borrowing) high-order bits from the **Host ID** to form a **Subnet ID**:
+$$\text{IPv4 Address (32 bits)} = \underbrace{\text{NetID}}_{\text{Global Internet Routing}} + \underbrace{\text{SubnetID}}_{\text{Internal Campus Routing}} + \underbrace{\text{HostID}}_{\text{Local Host Selection}}$$
+
+When the Internet evolved to **Classless Inter-Domain Routing (CIDR)**, rigid class boundaries were abolished entirely. Networks are now specified as arbitrary-length binary prefixes using **Slash Notation (`/n`)**.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## ✂️ Subnetting Architecture & Bit Borrowing Mechanics
+
+Why do organizations perform subnetting?
+1. **Broadcast Containment**: Broadcast frames (`255.255.255.255` or ARP queries) are confined to the local subnet, preventing network degradation across other departments.
+2. **Access Control & Security**: Routers and firewalls placed between subnets can enforce security policies (e.g., blocking student lab traffic from accessing university grading databases).
+3. **Optimized IP Utilization**: Large blocks (like Class B with 65,534 hosts) can be divided into sizes matching actual branch office populations.
+
+| Architecture Scheme | Field Breakdown (MSB $\to$ LSB) | Operational Description |
+| :--- | :--- | :--- |
+| **Classful (No Subnetting)** | $\underbrace{\text{NetID (16 bits)}}_{\text{Network Prefix}} \;\vert\; \underbrace{\text{HostID (16 bits)}}_{\text{Host Portion}}$ | Flat hierarchy with 65,534 hosts residing in a single massive broadcast domain. |
+| **With Subnetting** | $\underbrace{\text{NetID (16 bits)}}_{\text{Original NetID}} \;\vert\; \underbrace{\text{SubnetID (}s\text{ bits)}}_{\text{Borrowed Host Bits}} \;\vert\; \underbrace{\text{HostID (}h-s\text{ bits)}}_{\text{Remaining Host Bits}}$ | Borrowing $s$ host bits divides the domain into $2^s$ distinct routed subnets. |
+
+### The Fundamental Subnetting Equations
+When an administrator borrows $s$ bits from an original host field of $h$ bits:
+1. **Total Subnets Created**:
+   $$\text{Number of Subnets} = 2^s$$
+2. **Total Addresses per Subnet**:
+   $$\text{Total Addresses per Subnet} = 2^{h - s}$$
+3. **Usable Hosts per Subnet**:
+   $$\text{Usable Hosts per Subnet} = 2^{h - s} - 2$$
+   *(Subtracting 2 because the all-0s host ID represents the Subnet Address, and the all-1s host ID represents the Subnet Directed Broadcast Address).*
+
+---
+
+## 🎭 The Subnet Mask & Bitwise AND Decision Engine
+
+How does an internal router know which subnet an incoming packet belongs to?
+
+### 1. What is a Subnet Mask?
+A **Subnet Mask** is a 32-bit binary number where:
+* Every bit corresponding to the **Network ID** and **Subnet ID** is set to **`1`**.
+* Every bit corresponding to the **Host ID** is set to **`0`**.
+
+| Mask Component | Bit Pattern Breakdown | Bit Count | Decimal Value |
+| :--- | :--- | :---: | :--- |
+| **Network & Subnet Portion** | `11111111 . 11111111 . 11111111 . 11000000` | 26 contiguous 1s | `255.255.255.192` (`/26`) |
+| **Host Portion** | `000000` (last 6 bits in fourth octet) | 6 trailing 0s | Provides $2^6 - 2 = 62$ usable hosts |
+
+### 2. The Bitwise AND Decision Engine
+When an incoming IP packet arrives at a router interface, the router hardware extracts the packet's **Destination IP Address**, executes a lightning-fast bitwise **`AND`** operation against the configured Subnet Mask, and checks if the result matches the Subnet ID in its routing table:
+
+$$\mathbf{\text{Subnet ID}} = (\mathbf{\text{Destination IP Address}}) \ \mathbf{AND} \ (\mathbf{\text{Subnet Mask}})$$
+
+$$\text{Bitwise Truth Table: } \ 1 \ \mathbf{AND} \ 1 = 1, \quad 1 \ \mathbf{AND} \ 0 = 0, \quad 0 \ \mathbf{AND} \ 1 = 0, \quad 0 \ \mathbf{AND} \ 0 = 0$$
+
+| Layer / Parameter | Dotted Decimal | 32-Bit Binary Stream | Matching Outcome |
+| :--- | :--- | :--- | :--- |
+| **Incoming Destination IP** | `200.1.2.77` | `11001000 . 00000001 . 00000010 . 01001101` | Destination host in transit |
+| **Interface Subnet Mask** | `255.255.255.192` | `11111111 . 11111111 . 11111111 . 11000000` | Applied `/26` prefix filter |
+| **Bitwise AND Output** | **`200.1.2.64`** | `11001000 . 00000001 . 00000010 . 01000000` | **Exact match for Subnet 1 (`200.1.2.64/26`)** |
+
+---
+
+## 🌐 Classless Inter-Domain Routing (CIDR) & Slash Notation
+
+Standardized in RFC 1519 (1993), **Classless Inter-Domain Routing (CIDR)** eliminated the artificial Class A, B, and C boundaries. Instead of rigid 8-bit, 16-bit, or 24-bit networks, a network can have **any arbitrary prefix length $n$ from 1 to 32**.
+
+### 1. Slash Notation (`/n`)
+A CIDR network block is written as:
+$$\text{IP Address} \ / \ n$$
+Where **$n$** (the prefix length) represents the **number of continuous `1`s** in the network mask:
+* `/8` $\implies$ Mask: `255.0.0.0` (8 network bits, 24 host bits)
+* `/16` $\implies$ Mask: `255.255.0.0` (16 network bits, 16 host bits)
+* `/24` $\implies$ Mask: `255.255.255.0` (24 network bits, 8 host bits)
+* `/26` $\implies$ Mask: `255.255.255.192` (26 network bits, 6 host bits)
+* `/30` $\implies$ Mask: `255.255.255.252` (30 network bits, 2 host bits $\implies 2$ usable hosts for point-to-point router links)
+
+### 2. Extracting Information from a CIDR Address `A.B.C.D / n`
+Given any CIDR block `A.B.C.D / n`:
+1. **Total Number of IP Addresses in the Block ($N$)**:
+   $$N = 2^{32 - n}$$
+2. **Number of Usable Hosts**:
+   $$\text{Usable Hosts} = 2^{32 - n} - 2$$
+3. **First Address (Network ID)**:
+   $$\text{First Address} = (\text{Given IP}) \ \mathbf{AND} \ (\text{Subnet Mask})$$
+   *(Equivalent to setting all the last $32 - n$ bits to `0`)*
+4. **Last Address (Directed Broadcast Address)**:
+   $$\text{Last Address} = (\text{Given IP}) \ \mathbf{OR} \ (\mathbf{NOT} \ \text{Subnet Mask})$$
+   *(Equivalent to setting all the last $32 - n$ bits to `1`)*
+
+---
+
+## 📜 The Three Mandatory Rules of Valid CIDR Blocks
+
+Not every random collection of IP addresses can form a valid CIDR network block. For an address range to be routable as a unified CIDR block, it MUST satisfy three strict mathematical conditions:
+
+| Rule # | Requirement | Mathematical & Architectural Specification |
+| :--- | :--- | :--- |
+| **Rule 1** | **Contiguity** | All IP addresses in the block must be sequential and contiguous, with zero omitted or skipped addresses. |
+| **Rule 2** | **Power-of-2 Block Size** | The total number of addresses $N$ must strictly satisfy $N = 2^{32 - n}$ for integer $n \in [1, 32]$. |
+| **Rule 3** | **Boundary Divisibility** | The 32-bit integer value of the first address must be evenly divisible by $N$: $\text{First Address (integer)} \pmod{N} == 0$. Equivalently, the last $32 - n$ bits of the first address must be all `0`s. |
+
+### Why Does Rule 3 (Divisibility) Exist?
+Because a router mask works by setting the first $n$ bits to `1`s and the remaining $32 - n$ bits to `0`s. If the starting address did not have zeroes in its last $32 - n$ positions, a single binary mask could not cleanly isolate the block without overlapping adjacent ranges!
+
+---
+
+## 📐 Visual Blueprint: Subnet Router Dispatch Engine
+
+Below is an interactive architecture diagram illustrating how an enterprise border router uses subnet masks to direct incoming packets into three distinct internal subnets:
+
+<FlowDiagram
+  title="Enterprise Router Subnet Partitioning & Forwarding"
+  subtitle="Hardware bitwise AND matching directs packets across departmental subnets"
+  domains={[
+    { id: "wan", title: "Public Internet (WAN)", color: "blue", icon: "🌐", position: "top" },
+    { id: "edge", title: "Gateway Router", color: "purple", icon: "🔀", position: "bottom" },
+    { id: "subnets", title: "Internal Campus Subnets", color: "emerald", icon: "🏢", position: "bottom" },
+  ]}
+  nodes={[
+    { id: "internet", domain: "wan", col: 0, row: 0, title: "Internet Transit", sublabel: "Incoming Traffic", badge: "Ingress", icon: "🌐", color: "blue" },
+    { id: "r_gw", domain: "edge", col: 1, row: 0, title: "Edge Gateway Router", sublabel: "FIB Bitwise AND Engine", badge: "200.1.2.0/24", icon: "🔀", color: "purple" },
+    { id: "sub_eng", domain: "subnets", col: 2, row: 0, title: "Subnet 1: Engineering", sublabel: "200.1.2.0/26 (Hosts .1 - .62)", badge: "Port eth1", icon: "💻", color: "emerald" },
+    { id: "sub_sales", domain: "subnets", col: 2, row: 1, title: "Subnet 2: Sales & Mktg", sublabel: "200.1.2.64/26 (Hosts .65 - .126)", badge: "Port eth2", icon: "📈", color: "amber" },
+    { id: "sub_admin", domain: "subnets", col: 2, row: 2, title: "Subnet 3: Admin & HR", sublabel: "200.1.2.128/25 (Hosts .129 - .254)", badge: "Port eth3", icon: "🛡️", color: "rose" },
+  ]}
+  edges={[
+    { from: "internet", to: "r_gw", fromPort: "right", toPort: "left", step: "1", label: "Packet Arrival", details: "Datagram with Dest IP: 200.1.2.77 arrives from WAN." },
+    { from: "r_gw", to: "sub_eng", fromPort: "right", toPort: "left", step: "2A", label: "eth1: Range .0 - .63", details: "Bitwise AND with 255.255.255.192 gives .64, not matching .0. No dispatch." },
+    { from: "r_gw", to: "sub_sales", fromPort: "right", toPort: "left", step: "2B", label: "eth2: Match .64", details: "200.1.2.77 AND 255.255.255.192 == 200.1.2.64! Dispatched to eth2." },
+    { from: "r_gw", to: "sub_admin", fromPort: "right", toPort: "left", step: "2C", label: "eth3: Range .128 - .255", details: "Bitwise AND with 255.255.255.128 gives .0, not matching .128. No dispatch." },
+  ]}
+/>
+
+---
+
+## 🏭 Real-World Production Context: Point-to-Point Links & The `/31` Subnet Exception
+
+In cloud data centers (AWS Direct Connect, Google Cloud Interconnect) and core carrier networks, millions of routers are connected to each other via direct **Point-to-Point Fiber Links**:
+
+<FlowPipeline
+  steps={[
+    {
+      title: "Core Router R1",
+      desc: "Interface fa0/0 (e.g., 10.0.0.0/31)",
+      badge: "Endpoint A"
+    },
+    {
+      title: "Direct Point-to-Point Link",
+      desc: "High-speed optical fiber interconnect with zero intermediate broadcast hosts",
+      badge: "Point-to-Point"
+    },
+    {
+      title: "Core Router R2",
+      desc: "Interface fa0/1 (e.g., 10.0.0.1/31)",
+      badge: "Endpoint B"
+    }
+  ]}
+/>
+
+### 1. The Traditional `/30` Problem (50% Address Waste)
+Traditionally, engineers assigned a `/30` subnet to a point-to-point link:
+* Total addresses in `/30` = $2^{32 - 30} = 2^2 = 4\text{ addresses}$.
+* Network Address ($1\text{ address}$) + Directed Broadcast ($1\text{ address}$) = $2\text{ reserved addresses}$.
+* Usable Hosts = $4 - 2 = \mathbf{2\text{ usable hosts}}$ (Interface R1 and Interface R2).
+* **Efficiency**: Exactly $50\%$ of all assigned addresses were wasted! Across a backbone with 10,000 links, 20,000 public IP addresses were lost.
+
+### 2. The Modern Solution: RFC 3021 (`/31` Subnets)
+To eliminate this massive waste, the IETF standardized **RFC 3021**:
+* A `/31` prefix provides $2^{32 - 31} = 2^1 = \mathbf{2\text{ total addresses}}$.
+* On a point-to-point link, there is **zero need for broadcast** (there are only two endpoints; any packet sent by R1 can only go to R2).
+* Therefore, RFC 3021 specifies that for `/31` links, the first address is assigned to Router 1, and the second address is assigned to Router 2, with **zero addresses wasted** ($100\%$ efficiency).
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Extracting CIDR Block Parameters
+**Problem Statement:** An organization is assigned the CIDR address block `200.10.11.144/27`. Calculate:
+1. The Subnet Mask in dotted-decimal format.
+2. The total number of IP addresses in this block.
+3. The number of usable host IP addresses.
+4. The first address (Network ID) of the block.
+5. The last address (Directed Broadcast Address) of the block.
+6. The assignable IP range for workstations.
+
+**Step-by-Step Solution:**
+1. **Calculate the Subnet Mask:**
+   * Prefix length $n = 27$.
+   * Mask contains 27 ones followed by $32 - 27 = 5$ zeroes:
+     $$\text{Binary Mask} = \underbrace{11111111}_{255} . \underbrace{11111111}_{255} . \underbrace{11111111}_{255} . \underbrace{11100000}_{224}$$
+   * Subnet Mask = $\mathbf{255.255.255.224}$.
+
+2. **Calculate Total and Usable Addresses:**
+   * Host bits $h = 32 - 27 = 5$.
+   * Total IP addresses $N = 2^5 = \mathbf{32\text{ addresses}}$.
+   * Usable host addresses = $32 - 2 = \mathbf{30\text{ hosts}}$.
+
+3. **Determine First Address (Network ID):**
+   * Inspect the 4th octet ($144$):
+     $$144_{10} = 10010000_2$$
+     $$\text{Mask 4th octet} = 224_{10} = 11100000_2$$
+   * Bitwise AND:
+     $$10010000 \ \mathbf{AND} \ 11100000 = 10000000_2 = 128_{10}$$
+   * Network ID = $\mathbf{200.10.11.128}$.
+
+4. **Determine Last Address (Directed Broadcast Address):**
+   * Add $N - 1 = 31$ to the Network ID:
+     $$128 + 31 = 159$$
+   * Directed Broadcast Address = $\mathbf{200.10.11.159}$.
+
+5. **Determine Assignable Host Range:**
+   * First usable host = $\text{Network ID} + 1 = \mathbf{200.10.11.129}$.
+   * Last usable host = $\text{DBA} - 1 = \mathbf{200.10.11.158}$.
+   * Assignable Range: $[\mathbf{200.10.11.129 \ \text{to} \ 200.10.11.158}]$.
+
+---
+
+### Example 2: Validating CIDR Block Compliance
+**Problem Statement:** Determine whether each of the following IP address ranges represents a mathematically valid CIDR block. If valid, express it in `/n` notation; if invalid, state which rule is violated:
+* Block A: `100.1.2.32` to `100.1.2.47`
+* Block B: `20.10.30.32` to `20.10.30.63`
+* Block C: `150.10.20.64` to `150.10.20.127`
+
+**Step-by-Step Solution:**
+1. **Evaluate Block A (`100.1.2.32` to `100.1.2.47`):**
+   * **Rule 1 (Contiguity)**: Addresses are continuous ($32$ to $47$).
+   * **Rule 2 (Power of 2)**: Number of addresses = $47 - 32 + 1 = 16 = 2^4$ (Power of 2, $h = 4$).
+   * **Rule 3 (Divisibility)**: First address 4th octet is $32$.
+     $$32 \pmod{16} = 0 \quad (\text{Evenly divisible!})$$
+   * **Conclusion**: **Valid CIDR Block**.
+   * Prefix length $n = 32 - 4 = 28 \implies \mathbf{100.1.2.32/28}$.
+
+2. **Evaluate Block B (`20.10.30.32` to `20.10.30.63`):**
+   * **Rule 1 (Contiguity)**: Addresses are continuous.
+   * **Rule 2 (Power of 2)**: Number of addresses = $63 - 32 + 1 = 32 = 2^5$ (Power of 2, $h = 5$).
+   * **Rule 3 (Divisibility)**: First address 4th octet is $32$.
+     $$32 \pmod{32} = 0 \quad (\text{Evenly divisible!})$$
+   * **Conclusion**: **Valid CIDR Block**.
+   * Prefix length $n = 32 - 5 = 27 \implies \mathbf{20.10.30.32/27}$.
+
+3. **Evaluate Block C (`150.10.20.64` to `150.10.20.127`):**
+   * **Rule 1 (Contiguity)**: Addresses are continuous.
+   * **Rule 2 (Power of 2)**: Number of addresses = $127 - 64 + 1 = 64 = 2^6$ (Power of 2, $h = 6$).
+   * **Rule 3 (Divisibility)**: First address 4th octet is $64$.
+     $$64 \pmod{64} = 0 \quad (\text{Evenly divisible!})$$
+   * **Conclusion**: **Valid CIDR Block**.
+   * Prefix length $n = 32 - 6 = 26 \implies \mathbf{150.10.20.64/26}$.
+
+---
+
+### Example 3: Dividing a Network into Four Equal Subnets
+**Problem Statement:** An engineering college is granted the network block `192.168.10.0/24`. The network architect must divide this network into four equal-sized subnets for CSE, ECE, ME, and Civil departments. For each subnet, determine:
+1. Subnet ID and CIDR prefix
+2. Subnet Mask
+3. Range of assignable host IP addresses
+4. Directed Broadcast Address
+
+**Step-by-Step Solution:**
+1. **Determine Bit Borrowing:**
+   * Number of subnets required = $4 = 2^2 \implies$ Borrow $s = 2\text{ bits}$.
+   * New prefix length $n_{\text{new}} = 24 + 2 = \mathbf{/26}$.
+   * Remaining host bits $h' = 32 - 26 = 6\text{ bits}$.
+   * Total IP addresses per subnet = $2^6 = 64\text{ addresses}$.
+   * Subnet Mask = 26 ones = $\mathbf{255.255.255.192}$.
+
+2. **Tabulate All Four Subnets:**
+
+| Subnet / Dept | Borrowed Bits | Subnet ID (First IP) | Assignable Host Range | Directed Broadcast (Last IP) | Usable Hosts |
+| :--- | :---: | :--- | :--- | :--- | :---: |
+| **Subnet 1 (CSE)** | `00` | `192.168.10.0/26` | `192.168.10.1` - `192.168.10.62` | `192.168.10.63` | 62 |
+| **Subnet 2 (ECE)** | `01` | `192.168.10.64/26` | `192.168.10.65` - `192.168.10.126` | `192.168.10.127` | 62 |
+| **Subnet 3 (ME)** | `10` | `192.168.10.128/26` | `192.168.10.129` - `192.168.10.190` | `192.168.10.191` | 62 |
+| **Subnet 4 (Civil)**| `11` | `192.168.10.192/26` | `192.168.10.193` - `192.168.10.254` | `192.168.10.255` | 62 |
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does bitwise ANDing a Destination IP with a Subnet Mask yield the Subnet ID?**  
+  Because of the fundamental algebraic property of the bitwise AND logical operation: $X \ \mathbf{AND} \ 1 = X$ and $X \ \mathbf{AND} \ 0 = 0$. Since the subnet mask consists of continuous `1`s across all network and subnet bit positions, ANDing preserves the network and subnet identifier bits intact. Because the host bits in the mask are all `0`s, ANDing zeroes out all host bits, mathematically producing the exact Subnet ID.
+
+* **What happens if an IP address range satisfies Rule 1 (Contiguous) and Rule 2 (Power of 2), but fails Rule 3 (Divisibility)?**  
+  The range **cannot be advertised as a single routing prefix**. If you attempt to write it as a single `/n` prefix, the prefix will encompass foreign IP addresses outside your range while excluding valid addresses within your range. It would require multiple fragmented routing table entries to advertise, defeating the core purpose of CIDR.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Forgetting to subtract 2 for broadcast and network IDs when calculating usable hosts.**  
+  **Debunked:** If a subnet has 6 host bits, the total addresses are $2^6 = 64$, but the maximum number of usable computers you can configure is strictly $64 - 2 = \mathbf{62}$. Forgetting the $-2$ penalty is the single most common numerical error in semester and competitive exams.
+
+* **Trap: Assuming subnet masks can have scattered, non-contiguous ones (e.g., `255.255.240.16`).**  
+  **Debunked:** Standard IPv4 subnet masks **MUST consist of contiguous `1`s from the most significant bit followed by contiguous `0`s**. A bit pattern with alternating ones and zeroes like `...11010000` is invalid in standard CIDR networking.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "4.2 Classful IP Addressing & Special Addresses",
+    url: "/coredose/cn/module-04/classful-ip-addressing-and-special-addresses",
+  }}
+  next={{
+    title: "4.4 Variable Length Subnet Masking (VLSM) & Route Aggregation",
+    url: "/coredose/cn/module-04/variable-length-subnet-masking-vlsm-and-route-aggregation",
+  }}
+  courseUrl="/coredose/cn"
+/>

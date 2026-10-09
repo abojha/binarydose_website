@@ -1,0 +1,387 @@
+---
+title: "7.4 Fast Retransmit & Fast Recovery (TCP Tahoe vs TCP Reno)"
+description: "Packet loss detection mechanics, 3 Duplicate ACK trigger mathematics, Fast Retransmit, Fast Recovery window inflation, and deep architectural comparison of TCP Tahoe vs TCP Reno."
+hide_table_of_contents: true
+---
+
+# 7.4 Fast Retransmit & Fast Recovery (TCP Tahoe vs TCP Reno)
+
+<CoreDoseLessonHeader
+  module="Module 07: Transport Layer: Congestion Control & Reliability"
+  topic="Topic 7.4"
+  courseUrl="/coredose/cn"
+  readTime="16 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Lost Courier and the Repeated Inquiries
+
+### 🍳 The Everyday Analogy: The Delivery Confirmation Calls
+Imagine a warehouse shipping 5 numbered boxes ($1, 2, 3, 4, 5$) to a customer:
+1. **The Silence of Timeout**: If none of the boxes arrive, the customer never speaks. The warehouse waits on a kitchen timer for 60 seconds. When the timer dings, the warehouse assumes a catastrophic disaster occurred (e.g. the delivery van crashed), sets all operations to a complete standstill, and begins shipping Box 1 all over again at a snail's pace.
+2. **The 3 Repeated Inquiries (Duplicate ACKs)**: Now imagine Box 2 falls off the truck, but Boxes 3, 4, and 5 arrive safely. The customer receives Box 1 and signs: *"Got Box 1."* Then Box 3 arrives; the customer cannot sign for 3 because 2 is missing, so they repeat: *"Still waiting for Box 2."* Then Box 4 arrives: *"Still waiting for Box 2!"* Then Box 5 arrives: *"Still waiting for Box 2!"*
+   
+By the time the warehouse hears *"Still waiting for Box 2"* **three duplicate times in a row**, it knows two vital facts:
+* Box 2 was definitely lost.
+* The highway is **NOT blocked**—because Boxes 3, 4, and 5 got through just fine!
+
+Therefore, the warehouse does not need to wait for its coarse kitchen timer to expire, nor does it need to halt all shipping. It immediately resends Box 2 (**Fast Retransmit**) and continues sending at half-speed (**Fast Recovery**).
+
+### 💻 Bridging to Computer Science
+In TCP:
+* A **Timeout** indicates severe, systemic congestion (the pipe is choked; no packets or ACKs are moving).
+* **3 Duplicate ACKs** indicate isolated segment loss: later segments arrived out of order, triggering immediate duplicate ACKs from the receiver.
+* **TCP Tahoe** (1988) introduced **Fast Retransmit**: retransmitting the lost segment immediately upon the 3rd duplicate ACK, but still dropping $\text{cwnd} = 1\text{ MSS}$ into Slow Start.
+* **TCP Reno** (1990) introduced **Fast Recovery**: recognizing that packets are still traversing the network, Reno cuts $\text{cwnd}$ to half ($\text{ssthresh}$) and enters **Congestion Avoidance directly**, skipping the slow-start penalty entirely.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🔍 The Two Signals of Packet Loss: Timeout vs 3 Duplicate ACKs
+
+TCP distinguishes between two fundamentally different severities of network failure:
+
+| Failure Characteristic | Retransmission Timeout (RTO Expiration) | Reception of 3 Duplicate ACKs |
+| :--- | :--- | :--- |
+| **Network Diagnosis** | **Severe Congestion**: Router buffers are completely overwhelmed; packets or reverse ACKs are dropping wholesale. | **Mild / Isolated Loss**: Network path is still functional; later segments reached the destination safely. |
+| **Detection Speed** | Slow: Must wait for the coarse Retransmission Timer ($RTO \ge 1\text{ sec}$ historically, typically $200\text{ ms} - 1000\text{ ms}$). | Instantaneous: Triggered within 1 $RTT$ as subsequent packets arrive at the receiver. |
+| **Sender Action** | Set $\text{ssthresh} = \text{cwnd} / 2$; set $\text{cwnd} = 1\text{ MSS}$; enter Slow Start. | Set $\text{ssthresh} = \text{cwnd} / 2$; invoke Fast Retransmit; enter Fast Recovery (Reno). |
+
+### Why Exactly THREE Duplicate ACKs?
+Why does TCP wait for specifically 3 duplicate ACKs rather than retransmitting on the 1st or 2nd duplicate?
+* In packet-switched IP networks, packets may take **divergent parallel paths** or experience brief jitter, causing them to arrive slightly out of order.
+* A single out-of-order arrival generates 1 duplicate ACK. A two-packet reordering generates 2 duplicate ACKs.
+* Extensive empirical research by Van Jacobson demonstrated that packet reordering rarely exceeds 2 packets. Receiving **3 duplicate ACKs** (4 identical ACKs total) gives **over 99% statistical confidence** that the segment was truly lost, rather than merely reordered.
+
+---
+
+## ⚡ Fast Retransmit: Bypassing the Coarse RTO Timer
+
+When segment $N$ is dropped but segments $N+1, N+2, N+3$ arrive intact:
+1. Receiver generates duplicate ACKs for $N$ for each out-of-order segment received.
+2. When the sender receives the **3rd duplicate ACK** (the 4th ACK requesting $N$), it **immediately retransmits segment $N$** without waiting for the retransmission timer to expire.
+
+<ProtocolLadder
+  title="Fast Retransmit Sequence: Recovery on 3 Duplicate ACKs"
+  subtitle="Space-time protocol ladder demonstrating duplicate ACK generation and instant retransmission"
+  actors={[
+    { id: "sender", label: "TCP Sender", icon: "📤", role: "Transmitter", color: "blue" },
+    { id: "receiver", label: "TCP Receiver", icon: "📥", role: "Receiver", color: "emerald" }
+  ]}
+  steps={[
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Segment 1",
+      sublabel: "seq=1000",
+      color: "blue",
+      status: "success",
+      details: "Segment 1 arrives safely. Receiver generates ACK 2000."
+    },
+    {
+      from: "receiver",
+      to: "sender",
+      label: "ACK 2000",
+      sublabel: "Expecting 2000",
+      color: "emerald",
+      status: "success",
+      details: "Receiver acknowledges Segment 1 and requests Segment 2 (byte 2000)."
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Segment 2",
+      sublabel: "seq=2000 (Lost!)",
+      color: "rose",
+      status: "lost",
+      details: "Segment 2 is dropped by an intermediate switch buffer due to transient congestion."
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Segment 3",
+      sublabel: "seq=3000",
+      color: "blue",
+      status: "success",
+      details: "Segment 3 arrives out of order. Receiver buffers it and repeats ACK 2000 (Dup ACK #1)."
+    },
+    {
+      from: "receiver",
+      to: "sender",
+      label: "ACK 2000 (Dup #1)",
+      sublabel: "Out of order: Segment 3",
+      color: "amber",
+      status: "success",
+      details: "First duplicate ACK dispatched."
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Segment 4",
+      sublabel: "seq=4000",
+      color: "blue",
+      status: "success",
+      details: "Segment 4 arrives out of order. Receiver buffers it and repeats ACK 2000 (Dup ACK #2)."
+    },
+    {
+      from: "receiver",
+      to: "sender",
+      label: "ACK 2000 (Dup #2)",
+      sublabel: "Out of order: Segment 4",
+      color: "amber",
+      status: "success",
+      details: "Second duplicate ACK dispatched."
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Segment 5",
+      sublabel: "seq=5000",
+      color: "blue",
+      status: "success",
+      details: "Segment 5 arrives out of order. Receiver buffers it and repeats ACK 2000 (Dup ACK #3)."
+    },
+    {
+      from: "receiver",
+      to: "sender",
+      label: "ACK 2000 (Dup #3)",
+      sublabel: "3rd Duplicate ACK!",
+      color: "rose",
+      status: "success",
+      details: "Third duplicate ACK reaches sender. Fast Retransmit triggered immediately!"
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Segment 2 (Retransmit)",
+      sublabel: "seq=2000 (Fast Retransmit)",
+      color: "purple",
+      status: "success",
+      details: "Sender bypasses RTO timer and instantly retransmits missing Segment 2."
+    },
+    {
+      from: "receiver",
+      to: "sender",
+      label: "ACK 6000",
+      sublabel: "Cumulative: All 5 Segments!",
+      color: "emerald",
+      status: "success",
+      details: "Segment 2 fills the buffer hole. Receiver sends cumulative ACK acknowledging up to byte 6000!"
+    }
+  ]}
+/>
+
+---
+
+## 🛡️ Fast Recovery: The TCP Reno Innovation
+
+While TCP Tahoe retransmits immediately upon 3 duplicate ACKs, it still sets $\text{cwnd} = 1\text{ MSS}$ and re-executes Slow Start. In 1990, **TCP Reno** observed that every duplicate ACK received represents **one segment that successfully left the network** and is currently sitting in the receiver's buffer.
+
+<ConceptComparison
+  title="TCP Tahoe vs TCP Reno: Architectural Handling of 3 Duplicate ACKs"
+  subtitle="Contrasting Tahoe's conservative slow-start reset against Reno's pipelined Fast Recovery"
+  concepts={[
+    {
+      badge: "TCP Tahoe (1988)",
+      title: "Conservative Reset (Tahoe)",
+      icon: "🛑",
+      color: "rose",
+      domain: "Timeout & 3 Dup ACKs Treated Identically",
+      points: [
+        "On 3 Dup ACKs: ssthresh = max(2, cwnd / 2).",
+        "Fast Retransmit: Resends missing segment immediately.",
+        "Drops cwnd = 1 MSS: Forces connection back into Slow Start.",
+        "Suffers heavy throughput loss as window crawls back from 1 MSS."
+      ],
+      quote: "Treat all packet loss as severe: drop to 1 MSS and restart slowly."
+    },
+    {
+      badge: "TCP Reno (1990)",
+      title: "Fast Recovery (Reno)",
+      icon: "⚡",
+      color: "emerald",
+      domain: "Distinguishes Mild Loss from Timeout",
+      points: [
+        "On 3 Dup ACKs: ssthresh = max(2, cwnd / 2).",
+        "Fast Retransmit: Resends missing segment immediately.",
+        "Fast Recovery: Inflates cwnd = ssthresh + 3 MSS to account for buffered segments.",
+        "On fresh ACK: Deflates cwnd = ssthresh and enters Congestion Avoidance directly!"
+      ],
+      quote: "Packets are still flowing: halve window and continue additive probing."
+    }
+  ]}
+/>
+
+### The TCP Reno Fast Recovery State Machine
+When the 3rd duplicate ACK arrives at the sender:
+1. **Halve Threshold**:
+   $$\text{ssthresh} \leftarrow \max\left(2\text{ MSS}, \; \left\lfloor \frac{\text{cwnd}}{2} \right\rfloor\right)$$
+2. **Fast Retransmit**: Immediately retransmit the missing segment.
+3. **Window Inflation**: Set $\text{cwnd} = \text{ssthresh} + 3\text{ MSS}$.  
+   *(Why $+3$? Because the 3 duplicate ACKs confirm that 3 packets have successfully cleared the network and entered the receiver's queue).*
+4. **Subsequent Duplicate ACKs**: For every additional duplicate ACK that arrives while in Fast Recovery:
+   $$\text{cwnd} \leftarrow \text{cwnd} + 1\text{ MSS}$$
+   If permitted by the new inflated $\text{cwnd}$, transmit a new unissued packet.
+5. **Fresh ACK Arrival (The Exit Trigger)**: When an acknowledgment arrives acknowledging *new data* (including the retransmitted segment):
+   * **Deflate Window**: Reset $\text{cwnd} = \text{ssthresh}$.
+   * **Resume Congestion Avoidance**: Continue linear probing ($+1\text{ MSS}$ per $RTT$) without ever entering Slow Start!
+
+---
+
+## 📊 Visualizing the Waveforms: Tahoe vs Reno
+
+The difference between TCP Tahoe and TCP Reno is visually apparent in their **$\text{cwnd}$ vs Time** trajectory:
+
+| Trajectory Phase | TCP Tahoe Dynamics | TCP Reno Dynamics | Key Performance Implication |
+| :--- | :--- | :--- | :--- |
+| **1. Slow Start Ramp** | Exponential growth: $\text{cwnd}$ doubles every $RTT$ up to $\text{ssthresh}$ | Exponential growth: $\text{cwnd}$ doubles every $RTT$ up to $\text{ssthresh}$ | Identical startup bandwidth probing on new connections. |
+| **2. Congestion Avoidance** | Linear growth: $+1\text{ MSS}$ per $RTT$ ($8 \to 9 \to \dots 16\text{ MSS}$) | Linear growth: $+1\text{ MSS}$ per $RTT$ ($8 \to 9 \to \dots 16\text{ MSS}$) | Identical AIMD additive probing until congestion signals occur. |
+| **3. Detection via 3 Dup ACKs** | Threshold cut: $\text{ssthresh} \leftarrow \lfloor \text{cwnd}/2 \rfloor = 8\text{ MSS}$ | Threshold cut: $\text{ssthresh} \leftarrow \lfloor \text{cwnd}/2 \rfloor = 8\text{ MSS}$ | Both acknowledge that packet delivery continues despite isolated drop. |
+| **4. Window Reaction to 3 Dup ACKs** | ❌ **Collapses to floor**: $\text{cwnd} \leftarrow 1\text{ MSS}$. Forces slow start. | ⚡ **Preserves pipeline**: $\text{cwnd} \leftarrow \text{ssthresh} = 8\text{ MSS}$. Enters Fast Recovery. | Reno saves multiple round-trip times by avoiding restart from 1 MSS. |
+| **5. Post-Recovery Steady State** | Spends 3 full $RTT$s exponentially crawling back to $8\text{ MSS}$. | Immediately resumes linear Congestion Avoidance ($8 \to 9 \to 10\text{ MSS}$). | Reno maintains high average throughput; throughput never drops to zero. |
+| **6. Reaction to Timeout (RTO)** | Collapses to floor: $\text{cwnd} \leftarrow 1\text{ MSS}$, Slow Start restart. | Collapses to floor: $\text{cwnd} \leftarrow 1\text{ MSS}$, Slow Start restart. | On complete silence / dead link, Reno conservatively behaves like Tahoe. |
+
+* **TCP Tahoe**: The curve plunges to the floor ($1\text{ MSS}$) on *every* packet loss event.
+* **TCP Reno**: On a **Timeout**, Reno plunges to $1\text{ MSS}$. But on **3 Duplicate ACKs**, Reno plunges only halfway to $\text{ssthresh}$ and resumes linear growth, maintaining dramatically higher link utilization!
+
+---
+
+## 🏭 Real-World Production Context: Beyond Reno (NewReno, SACK & CUBIC)
+
+### 1. TCP NewReno (RFC 6582) & Partial ACKs
+In vanilla TCP Reno, if **two or more packets** from the same window are lost, Reno exits Fast Recovery on the first ACK, mistaking it for complete recovery, and promptly suffers a catastrophic timeout.
+* **TCP NewReno** solves this by tracking **Partial ACKs**: acknowledgments that cover some lost data but not all in-flight segments.
+* NewReno remains in Fast Recovery upon receiving partial ACKs, systematically retransmitting each missing segment one by one without timing out.
+
+### 2. Selective Acknowledgment (SACK, RFC 2018)
+Standard TCP cumulative ACKs only tell the sender the *next expected byte*. They cannot tell the sender which isolated blocks of data were received.
+* **TCP SACK** adds an optional TCP header field containing up to 4 non-contiguous byte ranges:
+  $$\text{SACK Block: } [1000 - 1999], [3000 - 3999], [5000 - 5999]$$
+* The sender knows with 100% precision that only segments $[2000 - 2999]$ and $[4000 - 4999]$ were lost, retransmitting *only* the missing segments in a single $RTT$.
+
+### 3. Linux Default: TCP CUBIC (RFC 8312)
+On modern high-speed links ($10\text{ Gbps}+$, $RTT = 100\text{ ms}$), standard Reno takes thousands of seconds of linear probing to recover after a loss.
+* Modern Linux kernels use **TCP CUBIC**, which replaces linear growth with a **cubic polynomial function** centered around the window size prior to loss ($W_{\max}$):
+  $$W_{\text{cubic}}(t) = C \cdot (t - K)^3 + W_{\max}$$
+* CUBIC ramps up aggressively after loss, flattens out near $W_{\max}$ for stability, and accelerates rapidly into new bandwidth territory if no loss occurs.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: TCP Reno Recovery Trace on 3 Duplicate ACKs
+**Problem Statement:**  
+A TCP connection running TCP Reno is in the Congestion Avoidance phase with a current congestion window of $\text{cwnd} = 24\text{ MSS}$. The sender receives 3 duplicate acknowledgments.
+1. Determine the value of $\text{ssthresh}$ immediately after the 3 duplicate ACKs.
+2. Determine the inflated $\text{cwnd}$ value during Fast Recovery before any further segments arrive.
+3. If 2 additional duplicate ACKs arrive, what is the temporary inflated window?
+4. When the fresh ACK acknowledging the retransmitted segment arrives, what is the final $\text{cwnd}$ and what phase does TCP enter?
+
+**Step-by-Step Solution:**
+1. **Calculate New ssthresh:**
+   $$\text{ssthresh} = \left\lfloor \frac{\text{cwnd}}{2} \right\rfloor = \frac{24\text{ MSS}}{2} = \mathbf{12\text{ MSS}}$$
+
+2. **Calculate Inflated cwnd for Fast Recovery:**
+   $$\text{cwnd}_{\text{inflated}} = \text{ssthresh} + 3\text{ MSS} = 12 + 3 = \mathbf{15\text{ MSS}}$$
+
+3. **Window Expansion on Additional Duplicate ACKs:**
+   * Each subsequent duplicate ACK increments $\text{cwnd}$ by $+1\text{ MSS}$.
+   * For 2 additional duplicate ACKs:
+     $$\text{cwnd} = 15 + 2 = \mathbf{17\text{ MSS}}$$
+
+4. **Window Deflation on Fresh ACK:**
+   * Upon receiving the non-duplicate ACK acknowledging the repaired hole:
+     $$\text{cwnd}_{\text{final}} = \text{ssthresh} = \mathbf{12\text{ MSS}}$$
+   * The connection immediately enters **Congestion Avoidance**, resuming linear growth ($+1\text{ MSS}$ per $RTT$).
+
+---
+
+### Example 2: Comparative Throughput: Tahoe vs Reno Across Loss Event
+**Problem Statement:**  
+A TCP connection operates over an $RTT = 100\text{ ms}$ link with $MSS = 1\text{ KB}$. At $t = 0$, $\text{cwnd} = 20\text{ KB}$ and packet loss is detected via **3 Duplicate ACKs**. Compute the value of $\text{cwnd}$ after $400\text{ ms}$ ($4\text{ RTTs}$) under:
+1. TCP Tahoe
+2. TCP Reno
+
+Assume no further packet drops occur during recovery.
+
+**Step-by-Step Solution:**
+1. **Initial Loss State at $t = 0$:**
+   * $\text{cwnd}_{\text{loss}} = 20\text{ MSS}$.
+   * New threshold for both protocols:
+     $$\text{ssthresh} = \frac{20}{2} = 10\text{ MSS}$$
+
+2. **TCP Tahoe Progression ($4\text{ RTTs}$):**
+   * Tahoe drops $\text{cwnd} = 1\text{ MSS}$ into Slow Start.
+   * Round 1 ($100\text{ ms}$): Doubles from $1 \to 2\text{ MSS}$.
+   * Round 2 ($200\text{ ms}$): Doubles from $2 \to 4\text{ MSS}$.
+   * Round 3 ($300\text{ ms}$): Doubles from $4 \to 8\text{ MSS}$.
+   * Round 4 ($400\text{ ms}$): Reaches threshold $\text{ssthresh} = 10\text{ MSS}$ (Slow Start terminates at $10$, or grows to $\min(2 \times 8, 10) = 10\text{ MSS}$).
+   * **Tahoe cwnd after $400\text{ ms}$ = $\mathbf{10\text{ MSS}}$ ($10\text{ KB}$)**.
+
+3. **TCP Reno Progression ($4\text{ RTTs}$):**
+   * Reno sets $\text{cwnd} = \text{ssthresh} = 10\text{ MSS}$ upon receiving the fresh ACK and enters Congestion Avoidance directly.
+   * Round 1 ($100\text{ ms}$): Congestion Avoidance linear increase: $10 + 1 = 11\text{ MSS}$.
+   * Round 2 ($200\text{ ms}$): Congestion Avoidance linear increase: $11 + 1 = 12\text{ MSS}$.
+   * Round 3 ($300\text{ ms}$): Congestion Avoidance linear increase: $12 + 1 = 13\text{ MSS}$.
+   * Round 4 ($400\text{ ms}$): Congestion Avoidance linear increase: $13 + 1 = 14\text{ MSS}$.
+   * **Reno cwnd after $400\text{ ms}$ = $\mathbf{14\text{ MSS}}$ ($14\text{ KB}$)**.
+
+4. **Conclusion:**  
+   TCP Reno maintains a **$40\%$ higher transmission window** after 4 RTTs by avoiding the slow-start restart penalty.
+
+---
+
+### Example 3: Timeout vs 3 Duplicate ACK State Transitions
+**Problem Statement:**  
+A TCP Reno sender experiences two successive loss events:
+* **Event 1**: At $\text{cwnd} = 30\text{ MSS}$, loss is detected via **3 Duplicate ACKs**.
+* The connection recovers and advances linearly for $4\text{ RTTs}$.
+* **Event 2**: A **Timeout** occurs during the 5th transmission round.
+
+Determine $\text{ssthresh}$ and $\text{cwnd}$ immediately following Event 2.
+
+**Step-by-Step Solution:**
+1. **Analyze Event 1 (3 Duplicate ACKs at $\text{cwnd} = 30\text{ MSS}$):**
+   * $\text{ssthresh}_1 = 30 / 2 = 15\text{ MSS}$.
+   * Reno recovers to $\text{cwnd} = \text{ssthresh}_1 = 15\text{ MSS}$.
+2. **Advance Through 4 RTTs of Congestion Avoidance:**
+   * Round 1: $\text{cwnd} = 15 + 1 = 16\text{ MSS}$
+   * Round 2: $\text{cwnd} = 16 + 1 = 17\text{ MSS}$
+   * Round 3: $\text{cwnd} = 17 + 1 = 18\text{ MSS}$
+   * Round 4: $\text{cwnd} = 18 + 1 = 19\text{ MSS}$
+   * Round 5 starts with: $\text{cwnd} = 19\text{ MSS}$.
+3. **Analyze Event 2 (Timeout at $\text{cwnd} = 19\text{ MSS}$):**
+   * Because Event 2 is a **Timeout**, Reno behaves identically to Tahoe:
+     $$\text{ssthresh}_2 = \left\lfloor \frac{19}{2} \right\rfloor = \mathbf{9\text{ MSS}}$$
+     $$\text{cwnd}_2 = \mathbf{1\text{ MSS}} \quad \text{(Reset to Slow Start!)}$$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does TCP Reno inflate cwnd by +3 MSS upon receiving 3 duplicate ACKs?**: The 3 duplicate ACKs were triggered because 3 packets transmitted after the missing packet arrived safely at the receiver. Those 3 packets have left the network pipe and are residing in the receiver's buffer. Adding $+3\text{ MSS}$ accounts for those 3 departed packets, keeping the volume of in-flight packets matched to the network's actual transit capacity.
+* **Why does a Timeout cause TCP Reno to drop to 1 MSS, while 3 duplicate ACKs do not?**: A Timeout means **no acknowledgments of any kind** are returning. The sender cannot tell whether packets are stuck in a deadlocked queue or if the physical link broke entirely. Because it cannot verify that the network is clearing packets, it must assume severe congestion and restart from $1\text{ MSS}$. With 3 duplicate ACKs, acknowledgments *are* actively returning, proving that the pipeline is open.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Assuming Fast Retransmit originated in TCP Reno**: Fast Retransmit was actually introduced in **TCP Tahoe (1988)**. What TCP Reno introduced in 1990 was **Fast Recovery**. Tahoe retransmits on 3 duplicate ACKs, but it resets $\text{cwnd} = 1\text{ MSS}$. Reno retransmits and sets $\text{cwnd} = \text{ssthresh}$.
+* **Trap: Counting 3 Duplicate ACKs as 3 Total ACKs**: The sender receives **FOUR identical ACKs** in total: the initial original acknowledgment, followed by three duplicate copies. The 3rd *duplicate* is what triggers Fast Retransmit.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "7.3 TCP Congestion Control: AIMD, Slow Start & Thresholds",
+    url: "/coredose/cn/module-07/tcp-congestion-control-aimd-slow-start-and-thresholds"
+  }}
+  next={{
+    title: "7.5 TCP Retransmission Timers, Karn's Algorithm & Round Trip Estimation",
+    url: "/coredose/cn/module-07/tcp-retransmission-timers-karns-algorithm-and-round-trip-estimation"
+  }}
+  courseUrl="/coredose/cn"
+/>

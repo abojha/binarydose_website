@@ -1,0 +1,413 @@
+---
+title: "4.2 Classful IP Addressing & Special Addresses"
+description: "Comprehensive breakdown of IPv4 32-bit addressing architecture, Classes A through E, NetID and HostID partitioning, address space percentages, special addresses (Loopback, DBA, LBA), and RFC 1918 private IP ranges."
+hide_table_of_contents: true
+---
+
+# 4.2 Classful IP Addressing & Special Addresses
+
+<CoreDoseLessonHeader
+  module="Module 04: Network Layer: IPv4/IPv6 Addressing & Subnetting"
+  topic="Topic 4.2"
+  courseUrl="/coredose/cn"
+  readTime="15 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The National Telephone Area Code System
+
+### 🍳 The Everyday Analogy: Country Codes, Area Codes, and Subscriber Numbers
+Imagine making a landline telephone call in the 20th century:
+* A telephone number had a fixed, hierarchical structure: `+1 (415) 867-5309`.
+* The **Country Code** (`+1`) routes the call to the United States.
+* The **Area Code** (`415`) routes the call to San Francisco's regional exchange.
+* The **Subscriber Number** (`867-5309`) identifies the specific home or office telephone within San Francisco.
+
+If you lived in a gigantic metropolis like New York or Tokyo, the phone company gave the city a small 2-digit area code, leaving 8 digits for millions of local subscriber lines. If you lived in a tiny mountain village, the phone company gave the village a long 4-digit area code, leaving only 4 digits for local homes.
+
+This was the exact philosophy behind **Classful IP Addressing**:
+* The world was divided into organizations of different sizes.
+* Huge entities (universities, military bases, IBM) were granted **Class A** blocks (a short Network ID and millions of Host IDs).
+* Medium companies were granted **Class B** blocks.
+* Small businesses were granted **Class C** blocks (a long Network ID and only 254 Host IDs).
+
+### 💻 Bridging to Computer Science
+An **IPv4 Address** is a 32-bit binary identifier uniquely identifying a machine's connection to an IP network. To make routing scalable across the globe, the 32 bits are split into two logical parts:
+$$\text{IPv4 Address (32 bits)} = \underbrace{\text{Network ID (NetID)}}_{\text{Locates the Network Globally}} + \underbrace{\text{Host ID (HostID)}}_{\text{Locates the Specific Host Locally}}$$
+
+Routers in the global core only inspect the **NetID** to route a datagram to the destination network. Once the datagram arrives at the destination network's local router, that router inspects the **HostID** to deliver the packet across the local link.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🔢 IPv4 Representation & Address Space Architecture
+
+The total address space of IPv4 consists of all possible 32-bit combinations:
+$$\text{Total Address Space} = 2^{32} = 4,294,967,296\text{ addresses} \approx 4.29\text{ Billion}$$
+
+### 1. Dual Notation Formats
+IPv4 addresses are represented in two standard notations:
+
+| Notation Format | Representation Example (4 Octets) | Structural Characteristics |
+| :--- | :--- | :--- |
+| **Binary Notation** | `11000000 . 10101000 . 00000001 . 00001010` | 32 total bits partitioned into four 8-bit octets separated by dots. |
+| **Dotted-Decimal** | `192 . 168 . 1 . 10` | Base-10 integers ranging strictly from $0$ to $255$ ($2^8 - 1$) per octet. |
+
+### 2. The Conversion Mechanics
+Each byte (octet) in dotted-decimal format represents the base-10 integer value of that 8-bit binary slice:
+$$192_{10} = 1 \cdot 2^7 + 1 \cdot 2^6 + 0 \cdot 2^5 + 0 \cdot 2^4 + 0 \cdot 2^3 + 0 \cdot 2^2 + 0 \cdot 2^1 + 0 \cdot 2^0 = 128 + 64 = 192$$
+
+$$\text{Valid Address Boundary: } [0.0.0.0 \ \Longleftrightarrow \ 255.255.255.255]$$
+
+---
+
+## 🏛️ The Five Classes of IPv4 Addressing
+
+When the Internet addressing system was standardized in RFC 791 (1981), the 32-bit space was partitioned into five discrete classes (**Class A, B, C, D, and E**), distinguished by their **leading bits**:
+
+| Address Class | Leading Bit Signature | Network ID Bits (NetID) | Host ID Bits (HostID) | Default Subnet Mask |
+| :---: | :---: | :---: | :---: | :---: |
+| **Class A** | `0` | $8\text{ bits}$ ($7\text{ usable}$) | $24\text{ bits}$ | `255.0.0.0` (`/8`) |
+| **Class B** | `10` | $16\text{ bits}$ ($14\text{ usable}$) | $16\text{ bits}$ | `255.255.0.0` (`/16`) |
+| **Class C** | `110` | $24\text{ bits}$ ($21\text{ usable}$) | $8\text{ bits}$ | `255.255.255.0` (`/24`) |
+| **Class D** | `1110` | *None (Multicast Group)* | *None (28-bit Group ID)* | *None (Multicast)* |
+| **Class E** | `1111` | *None (Reserved/Exp)* | *None (28-bit Reserved)* | *None (Experimental)* |
+
+### 1. Class A (Massive Networks)
+* **Leading Bit Pattern**: Begins with **`0`**.
+* **Partitioning**: $\text{NetID} = 8\text{ bits}$, $\text{HostID} = 24\text{ bits}$.
+* **First Octet Binary Range**: `00000000` to `01111111` ($0$ to $127$).
+* **Total Networks**: $2^{7} = 128\text{ networks}$.
+  * Network `0.0.0.0/8` is reserved (used as default source / this host).
+  * Network `127.0.0.0/8` is reserved for **Loopback testing**.
+  * Usable Networks = $128 - 2 = \mathbf{126\text{ networks}}$ ($1$ through $126$).
+* **Hosts per Network**: $2^{24} = 16,777,216\text{ total addresses}$.
+  * Usable Hosts per Network = $2^{24} - 2 = \mathbf{16,777,214\text{ hosts}}$.
+* **Default Subnet Mask**: `255.0.0.0` (or `/8`).
+* **Share of IPv4 Space**: $50\%$ ($2^{31} = 2,147,483,648\text{ addresses}$).
+
+### 2. Class B (Mid-Sized Enterprises & Universities)
+* **Leading Bit Pattern**: Begins with **`10`**.
+* **Partitioning**: $\text{NetID} = 16\text{ bits}$, $\text{HostID} = 16\text{ bits}$.
+* **First Octet Binary Range**: `10000000` to `10111111` ($128$ to $191$).
+* **Total Networks**: $2^{14} = \mathbf{16,384\text{ networks}}$ (all usable).
+* **Hosts per Network**: $2^{16} = 65,536\text{ total addresses}$.
+  * Usable Hosts per Network = $2^{16} - 2 = \mathbf{65,534\text{ hosts}}$.
+* **Default Subnet Mask**: `255.255.0.0` (or `/16`).
+* **Share of IPv4 Space**: $25\%$ ($2^{30} = 1,073,741,824\text{ addresses}$).
+
+### 3. Class C (Small Local Networks)
+* **Leading Bit Pattern**: Begins with **`110`**.
+* **Partitioning**: $\text{NetID} = 24\text{ bits}$, $\text{HostID} = 8\text{ bits}$.
+* **First Octet Binary Range**: `11000000` to `11011111` ($192$ to $223$).
+* **Total Networks**: $2^{21} = \mathbf{2,097,152\text{ networks}}$ (all usable).
+* **Hosts per Network**: $2^8 = 256\text{ total addresses}$.
+  * Usable Hosts per Network = $2^8 - 2 = \mathbf{254\text{ hosts}}$.
+* **Default Subnet Mask**: `255.255.255.0` (or `/24`).
+* **Share of IPv4 Space**: $12.5\%$ ($2^{29} = 536,870,912\text{ addresses}$).
+
+### 4. Class D (Multicast Group Addressing)
+* **Leading Bit Pattern**: Begins with **`1110`**.
+* **Partitioning**: Zero NetID/HostID division! The entire address specifies a multicast subscriber channel.
+* **First Octet Binary Range**: `11100000` to `11101111` ($224$ to $239$).
+* **Total Multicast Groups**: $2^{28} = 268,435,456\text{ addresses}$.
+* **Share of IPv4 Space**: $6.25\%$.
+* **Standard Assignments**:
+  * `224.0.0.1`: All systems (hosts and routers) on this subnet.
+  * `224.0.0.2`: All multicast routers on this subnet.
+  * `224.0.0.5`: OSPF Routers.
+  * `224.0.0.9`: RIPv2 Routers.
+
+### 5. Class E (Reserved / Experimental)
+* **Leading Bit Pattern**: Begins with **`1111`**.
+* **Partitioning**: Zero NetID/HostID division. Reserved by IETF for research and future use.
+* **First Octet Binary Range**: `11110000` to `11111111` ($240$ to $255$).
+* **Share of IPv4 Space**: $6.25\%$ ($2^{28} = 268,435,456\text{ addresses}$).
+
+---
+
+## 📊 Visual Blueprint: Classful Architecture Matrix
+
+Below is the comparative architecture matrix summarizing all five classes of IPv4:
+
+<SubsystemGrid
+  title="The 5 IPv4 Address Classes Architecture Matrix"
+  subtitle="Structural comparison of leading bit signatures, network capacities, and address space distribution"
+  items={[
+    {
+      icon: "🏢",
+      title: "Class A (Very Large)",
+      tag: "126 Networks • 16.7M Hosts",
+      color: "purple",
+      points: [
+        "Leading bit: 0 (Range: 1.0.0.0 to 126.255.255.255)",
+        "8-bit NetID (7 bits usable) + 24-bit HostID",
+        "Default Mask: 255.0.0.0 (/8)",
+        "50% of the entire global IPv4 address space",
+      ],
+      syscalls: ["126 Usable Nets", "16,777,214 Hosts/Net"],
+    },
+    {
+      icon: "🏫",
+      title: "Class B (Medium Scale)",
+      tag: "16,384 Networks • 65.5K Hosts",
+      color: "blue",
+      points: [
+        "Leading bits: 10 (Range: 128.0.0.0 to 191.255.255.255)",
+        "16-bit NetID (14 bits usable) + 16-bit HostID",
+        "Default Mask: 255.255.0.0 (/16)",
+        "25% of the entire global IPv4 address space",
+      ],
+      syscalls: ["16,384 Nets", "65,534 Hosts/Net"],
+    },
+    {
+      icon: "🏪",
+      title: "Class C (Small Scale)",
+      tag: "2.09M Networks • 254 Hosts",
+      color: "cyan",
+      points: [
+        "Leading bits: 110 (Range: 192.0.0.0 to 223.255.255.255)",
+        "24-bit NetID (21 bits usable) + 8-bit HostID",
+        "Default Mask: 255.255.255.0 (/24)",
+        "12.5% of the entire global IPv4 address space",
+      ],
+      syscalls: ["2,097,152 Nets", "254 Hosts/Net"],
+    },
+    {
+      icon: "📡",
+      title: "Class D (Multicast)",
+      tag: "268M Group Channels",
+      color: "emerald",
+      points: [
+        "Leading bits: 1110 (Range: 224.0.0.0 to 239.255.255.255)",
+        "Zero NetID / HostID separation",
+        "Used for one-to-many streaming and dynamic routing protocols",
+        "6.25% of the entire global IPv4 address space",
+      ],
+      syscalls: ["No NetID/HostID", "Group Addressing"],
+    },
+    {
+      icon: "🔬",
+      title: "Class E (Experimental)",
+      tag: "268M Reserved Addresses",
+      color: "amber",
+      points: [
+        "Leading bits: 1111 (Range: 240.0.0.0 to 255.255.255.255)",
+        "Zero NetID / HostID separation",
+        "Reserved by IETF for future research & experimental testing",
+        "Includes Limited Broadcast Address (255.255.255.255)",
+      ],
+      syscalls: ["No NetID/HostID", "IETF Reserved"],
+    },
+  ]}
+/>
+
+---
+
+## 🏷️ Special IPv4 Addresses & Reserved Blocks
+
+Across the IPv4 address space, certain address combinations possess dedicated operational semantics and can **never be assigned to a standard host Network Interface Card (NIC)**:
+
+| Address Pattern | Standard Name | Scope & Operational Behavior |
+| :--- | :--- | :--- |
+| **NetID + All 0s in HostID** | **Network ID / Network Address** | Identifies the network itself; used in router forwarding tables. |
+| **NetID + All 1s in HostID** | **Directed Broadcast (DBA)** | Broadcasts to all hosts in remote target network; routed across Internet. |
+| **`255.255.255.255`** | **Limited Broadcast (LBA)** | Floods all hosts on local physical LAN only; routers **never** forward. |
+| **`0.0.0.0`** | **This Host / Default Route** | Used as source IP during DHCP bootstrap; default route in routing tables. |
+| **`127.0.0.0/8`** | **Loopback Block (Localhost)** | Internal kernel TCP/IP software loop; packets never hit network wire. |
+| **`169.254.0.0/16`** | **APIPA / Link-Local** | Auto-assigned link-local IP when DHCP server fails to respond. |
+
+### 1. The Network ID (HostID = All 0s)
+* **Structure**: The network bits identify the domain; the host bits are all zeroes:
+  $$\text{Example: } 192.168.1.\mathbf{0} \ (\text{Class C}) \quad \text{or} \quad 10.\mathbf{0.0.0} \ (\text{Class A})$$
+* **Function**: Used in router forwarding tables to summarize routing reachability. Routers forward packets toward `192.168.1.0/24`, not to individual machines.
+
+### 2. Directed Broadcast Address (HostID = All 1s)
+* **Structure**: The network bits identify the destination network; the host bits are all ones:
+  $$\text{Example: } 192.168.1.\mathbf{255} \ (\text{Class C}) \quad \text{or} \quad 172.16.\mathbf{255.255} \ (\text{Class B})$$
+* **Function**: Allows an external machine to transmit a single datagram across the Internet that, upon reaching the destination router, is broadcast to **every single machine on that specific destination network**.
+* **Security Note**: In modern production networks, routers block incoming Directed Broadcasts at border gateways by default to prevent Distributed Denial of Service (Smurf Amplification Attacks).
+
+### 3. Limited Broadcast Address (`255.255.255.255`)
+* **Structure**: All 32 bits are ones (`11111111.11111111.11111111.11111111`).
+* **Function**: Broadcasts a message to every host residing on the **current local physical network segment**.
+* **Router Behavior**: **Routers NEVER forward a Limited Broadcast.** It is strictly confined within the local broadcast domain.
+
+### 4. This Host / Default Route (`0.0.0.0`)
+* **As a Source Address**: When a newly powered-on computer connects to a network without an assigned IP, it broadcasts a DHCP Discovery packet using Source IP = `0.0.0.0` and Destination IP = `255.255.255.255`.
+* **As a Routing Table Entry**: Represents the **Default Gateway Route** (`0.0.0.0/0`), matching any packet whose destination does not match any specific subnet prefix in the FIB.
+
+### 5. Loopback Address Block (`127.0.0.0/8`)
+* **Range**: `127.0.0.1` to `127.255.255.254` (an entire Class A block of 16.7 million addresses wasted on loopback!).
+* **Standard Implementation**: `127.0.0.1` (`localhost`).
+* **Hardware Behavior**: When an application sends packets to `127.0.0.1`, the packets **never hit the physical network card or link**. The operating system kernel's network stack immediately routes the data buffer back into incoming socket queues. Used for local server testing and IPC.
+
+---
+
+## 🔒 Private IP Address Ranges (RFC 1918)
+
+As the commercial Internet expanded rapidly in the early 1990s, the world faced catastrophic **IPv4 Address Depletion**. To slow down address consumption, the Internet Engineering Task Force (IETF) issued **RFC 1918**, carving out three private address ranges reserved for internal enterprise and home networks:
+
+| Class | CIDR Block Prefix | IP Address Range | Total Addresses | Networks Count |
+| :---: | :--- | :--- | :---: | :---: |
+| **Class A** | `10.0.0.0 /8` | `10.0.0.0` to `10.255.255.255` | $16,777,216$ | 1 Class A Net |
+| **Class B** | `172.16.0.0 /12` | `172.16.0.0` to `172.31.255.255` | $1,048,576$ | 16 Class B Nets |
+| **Class C** | `192.168.0.0 /16` | `192.168.0.0` to `192.168.255.255` | $65,536$ | 256 Class C Nets |
+
+### Golden Rules of Private IP Addresses:
+1. **Zero Public Routability**: Intermediate Internet Service Provider (ISP) core routers **silently drop** any packet with a private source or destination IP.
+2. **Infinite Global Reuse**: Every home Wi-Fi router on Earth can use `192.168.1.1` simultaneously without causing an address collision because private addresses are isolated inside local networks.
+3. **Bridge to the Internet**: For a private host to communicate with the global Internet, a gateway router must translate its private address into a valid public IP using **Network Address Translation (NAT)**.
+
+---
+
+## 🏭 Real-World Production Context: Why Classful Addressing Failed
+
+Classful addressing was structurally elegant in 1981, but by 1993 it brought the global Internet to the brink of collapse:
+
+| Organization Host Demand | Assigned Classful Network | Allocated Hosts | Wasted Unused Addresses | Address Wastage Ratio |
+| :--- | :--- | :--- | :--- | :---: |
+| **300 Workstations Needed** | **Class B Network** | $65,534\text{ Hosts}$ | $65,534 - 300 = \mathbf{65,234}$ | **$99.54\%$ Wasted** |
+| *(Exceeds Class C 254 limit)* | *(Smallest available classful block)* | | *(Dormant addresses locked forever)* | |
+
+### 1. The Mid-Size Organization Dilemma (Class B Exhaustion)
+* If an organization needed 300 computers:
+  * A single Class C network was insufficient (maximum 254 hosts).
+  * The organization was therefore assigned a full **Class B network** ($65,534\text{ hosts}$).
+  * Result: **65,234 IP addresses sat unused and wasted forever** ($>99.5\%$ waste)!
+* By 1993, all Class B networks were nearly exhausted, while millions of addresses sat dormant inside underutilized blocks.
+
+### 2. The Solution: CIDR and Subnetting
+To prevent total Internet exhaustion, the IETF took two emergency measures:
+1. **Subnetting (RFC 950)**: Allowing organizations to internally subdivide their large Class A and B blocks into smaller sub-networks.
+2. **Classless Inter-Domain Routing (CIDR, RFC 1519)**: Officially abolishing the rigid Class A/B/C boundaries in favor of arbitrary bit prefixes (`/20`, `/26`, `/29`).
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Address Classification & Parameter Extraction
+**Problem Statement:** For each of the following IPv4 addresses, determine its Class, Network ID, Default Subnet Mask, and Directed Broadcast Address:
+1. `10.45.67.89`
+2. `130.14.22.9`
+3. `205.100.50.25`
+4. `225.10.20.30`
+5. `245.1.2.3`
+
+**Step-by-Step Solution:**
+1. **Analyze First Octet Boundaries:**
+   * Class A: $1 - 126$ (Default Mask `255.0.0.0`)
+   * Class B: $128 - 191$ (Default Mask `255.255.0.0`)
+   * Class C: $192 - 223$ (Default Mask `255.255.255.0`)
+   * Class D: $224 - 239$ (Multicast)
+   * Class E: $240 - 255$ (Experimental)
+
+2. **Evaluate Each Address:**
+   * **1. `10.45.67.89`**:
+     * First octet = $10 \implies$ **Class A**.
+     * NetID = 8 bits $\implies \mathbf{10.0.0.0}$.
+     * Default Mask $\implies \mathbf{255.0.0.0}$.
+     * Directed Broadcast (Host bits all 1s) $\implies \mathbf{10.255.255.255}$.
+   * **2. `130.14.22.9`**:
+     * First octet = $130 \implies$ **Class B**.
+     * NetID = 16 bits $\implies \mathbf{130.14.0.0}$.
+     * Default Mask $\implies \mathbf{255.255.0.0}$.
+     * Directed Broadcast $\implies \mathbf{130.14.255.255}$.
+   * **3. `205.100.50.25`**:
+     * First octet = $205 \implies$ **Class C**.
+     * NetID = 24 bits $\implies \mathbf{205.100.50.0}$.
+     * Default Mask $\implies \mathbf{255.255.255.0}$.
+     * Directed Broadcast $\implies \mathbf{205.100.50.255}$.
+   * **4. `225.10.20.30`**:
+     * First octet = $225 \implies$ **Class D (Multicast)**.
+     * No NetID or Directed Broadcast exists (Group Channel).
+   * **5. `245.1.2.3`**:
+     * First octet = $245 \implies$ **Class E (Experimental/Reserved)**.
+
+---
+
+### Example 2: Maximum Usable Hosts in a Classful World
+**Problem Statement:** An Internet registry grants an enterprise two full Class C network blocks and one full Class B network block. Assuming standard classful operation without custom subnetting, calculate:
+1. The total number of valid assignable host IP addresses the enterprise can deploy.
+2. The total number of unassignable overhead IP addresses (Network IDs and Broadcast IDs).
+
+**Step-by-Step Solution:**
+1. **Analyze Host Capacity per Network Block:**
+   * Each Class C network has 8 host bits:
+     $$\text{Total Addresses} = 2^8 = 256$$
+     $$\text{Usable Hosts} = 256 - 2 = 254$$
+   * For two Class C networks:
+     $$\text{Usable Hosts} = 2 \times 254 = \mathbf{508\text{ hosts}}$$
+   * Each Class B network has 16 host bits:
+     $$\text{Total Addresses} = 2^{16} = 65,536$$
+     $$\text{Usable Hosts} = 65,536 - 2 = \mathbf{65,534\text{ hosts}}$$
+
+2. **Calculate Total Usable Deployable Hosts:**
+   $$\text{Total Usable Hosts} = 508 + 65,534 = \mathbf{66,042\text{ hosts}}$$
+
+3. **Calculate Unassignable Overhead Addresses:**
+   * Every independent network reserves exactly 2 addresses (1 Network Address + 1 Directed Broadcast Address).
+   * Total networks = $2 + 1 = 3\text{ networks}$.
+   $$\text{Total Reserved Overhead} = 3 \times 2 = \mathbf{6\text{ IP addresses}}$$
+
+---
+
+### Example 3: Private IP Address Validation
+**Problem Statement:** Identify which of the following IP addresses are RFC 1918 private addresses, and for each private address, state its associated class:
+* (a) `172.30.100.4`
+* (b) `172.33.1.5`
+* (c) `10.200.45.1`
+* (d) `192.169.1.1`
+* (e) `192.168.100.254`
+
+**Step-by-Step Solution:**
+1. **Reference RFC 1918 Boundaries:**
+   * Class A Private: `10.0.0.0` to `10.255.255.255`
+   * Class B Private: `172.16.0.0` to `172.31.255.255`
+   * Class C Private: `192.168.0.0` to `192.168.255.255`
+
+2. **Evaluate Inputs:**
+   * (a) `172.30.100.4`: Second octet $30 \in [16, 31] \implies$ **Private IP (Class B)**.
+   * (b) `172.33.1.5`: Second octet $33 > 31 \implies$ **Public IP (Class B)**.
+   * (c) `10.200.45.1`: First octet $10 \implies$ **Private IP (Class A)**.
+   * (d) `192.169.1.1`: Second octet $169 \ne 168 \implies$ **Public IP (Class C)**.
+   * (e) `192.168.100.254`: Second octet $168 \implies$ **Private IP (Class C)**.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why are there $2^{24} - 2$ usable hosts in a Class A network rather than $2^{24}$?**  
+  Because two host addresses in every IP network are strictly reserved by the IP standard:
+  1. The address with all HostID bits set to `0` represents the **Network Address itself** (used in routing tables).
+  2. The address with all HostID bits set to `1` represents the **Directed Broadcast Address** (used to transmit to all hosts on that network). Assigning either address to a host NIC results in routing failure or network conflicts.
+
+* **Can a host on one network communicate directly with a host on another network if they have the same HostID?**  
+  **Yes.** HostIDs are locally scoped. In internetworking, uniqueness is required only for the combination of `(NetID + HostID)`. Two computers can have identical HostIDs (e.g., Host A: `10.0.0.5`, Host B: `192.168.1.5`), and routers route between them based on their distinct Network IDs.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Confusing Directed Broadcast with Limited Broadcast.**  
+  **Debunked:** A Limited Broadcast (`255.255.255.255`) is strictly local to the transmitting LAN; routers **never** forward it. A Directed Broadcast (e.g., `192.168.1.255`) contains a valid remote Network ID in its first octets; it can be routed across the Internet until it reaches the destination router, which then broadcasts it across the destination LAN.
+
+* **Trap: Believing `127.0.0.1` is the only Loopback address.**  
+  **Debunked:** The entire `/8` network block `127.0.0.0/8` (from `127.0.0.1` to `127.255.255.254`) is reserved for loopback! Pinging `127.1.2.3` or `127.45.67.89` in your terminal will ping your local loopback adapter just like `127.0.0.1`.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "4.1 Network Layer Core Goals & Virtual Circuits vs Datagrams",
+    url: "/coredose/cn/module-04/network-layer-core-goals-and-virtual-circuits-vs-datagrams",
+  }}
+  next={{
+    title: "4.3 Classless Inter-Domain Routing (CIDR) & Subnetting",
+    url: "/coredose/cn/module-04/classless-inter-domain-routing-cidr-and-subnetting",
+  }}
+  courseUrl="/coredose/cn"
+/>

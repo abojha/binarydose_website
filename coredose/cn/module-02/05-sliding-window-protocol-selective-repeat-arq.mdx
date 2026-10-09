@@ -1,0 +1,445 @@
+---
+title: "2.5 Sliding Window Protocol: Selective Repeat (SR) ARQ"
+description: "Architecture of Selective Repeat ARQ, receiver buffering, independent timers, mathematical proof of Ws + Wr <= 2^k, master flow control protocol comparison matrix, and solved engineering examples."
+hide_table_of_contents: true
+---
+
+# 2.5 Sliding Window Protocol: Selective Repeat (SR) ARQ
+
+<CoreDoseLessonHeader
+  module="Module 02: Data Link Layer: Framing, Flow & Error Control"
+  topic="Topic 2.5"
+  courseUrl="/coredose/cn"
+  readTime="12 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The E-Commerce Package Delivery Analogy
+
+### 🍳 The Everyday Analogy: The Hallway Storage Closet
+Imagine ordering a 4-piece home audio system (Amplifier, Left Speaker, Right Speaker, Subwoofer) from an online retailer:
+* The warehouse ships all 4 items simultaneously in separate delivery vans.
+* Van 1 (Amplifier) arrives safely at your door; you accept it.
+* Van 2 (Left Speaker) encounters an accident and is lost in transit.
+* Van 3 (Right Speaker) and Van 4 (Subwoofer) arrive safely at your door.
+
+Under **Go-Back-N** rules, because you strictly wanted item 2 next and refused to hold out-of-order boxes, you would throw the Right Speaker and Subwoofer into the trash and demand the seller re-ship items 2, 3, and 4 from scratch!
+
+Under **Selective Repeat (SR)** rules:
+* You have a **storage closet** in your hallway (**Receiver Buffer**).
+* You place the Right Speaker and Subwoofer into the closet, notify customer support that the Left Speaker is missing (**Negative Acknowledgment / NAK**), and wait.
+* The retailer re-ships **only the Left Speaker**.
+* When the Left Speaker arrives, you retrieve the Right Speaker and Subwoofer from your closet, assemble the complete 4-piece audio set in order, and enjoy your music. **Zero undamaged packages are wasted!**
+
+### 💻 Bridging to Computer Science
+Selective Repeat resolves the primary bottleneck of sliding window protocols on noisy channels: by adding memory buffers at the receiver and dedicating individual timers at the transmitter, the protocol isolates errors to only the corrupted frame, achieving maximum throughput with zero redundant retransmissions.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## ⚡ Why Selective Repeat? Overcoming GBN Inefficiencies
+
+While Go-Back-N provides full channel pipelining, it suffers from a fatal flaw on noisy transmission links:
+* In GBN, losing a single frame forces the retransmission of an entire window of $W_S$ frames, even though the receiver may have already ingested subsequent frames error-free.
+* On high-speed, long-distance links with large Bandwidth-Delay Products ($BDP$), retransmitting $W_S$ frames consumes enormous channel capacity, causing throughput to drop precipitously.
+
+**Selective Repeat (SR) ARQ** eliminates this retransmission waste:
+1. The receiver is equipped with a **memory buffer** of size $W_R > 1$ to hold out-of-order, undamaged frames.
+2. The sender maintains an **independent timer for every outstanding frame**.
+3. When an error occurs, the sender retransmits **only the specific missing or damaged frame**, preserving all other packets in the receiver's buffer.
+
+---
+
+## 🪟 Selective Repeat Architecture & Windows
+
+In Selective Repeat, both the sender and the receiver maintain active sliding windows over the sequence number space.
+
+<FlowPipeline
+  title="Selective Repeat Window Symmetry & Buffer Architecture"
+  subtitle="Symmetric sender and receiver buffer allocation across sequence space 2^k"
+  nodes={[
+    {
+      badge: "Transmit Window",
+      title: "Sender Window Ws = 2^(k-1)",
+      icon: "📤",
+      color: "purple",
+      description: "Tracks up to 2^(k-1) outstanding frames, each with an independent timer.",
+      connectorLabel: "Physical Channel Transit",
+    },
+    {
+      badge: "Receive Buffer",
+      title: "Receiver Window Wr = 2^(k-1)",
+      icon: "💽",
+      color: "blue",
+      description: "Buffers out-of-order undamaged frames within range [Rf, Rf + Wr).",
+      connectorLabel: "In-Order Batch Release",
+    },
+    {
+      badge: "Upper Layer",
+      title: "Network Layer L3 Sink",
+      icon: "🚀",
+      color: "emerald",
+      description: "Packets delivered strictly in sequential order when lowest frame arrives.",
+    },
+  ]}
+/>
+
+### The Symmetrical Window Configuration
+In standard implementations, the sender window size and receiver window size are set symmetrically:
+$$\mathbf{W_S = W_R = 2^{k-1}}$$
+Where $k$ is the number of bits allocated to sequence numbers in the frame header.
+* For $k = 3$ bits: Sequence space is $2^3 = 8$ (values $0, 1, \dots, 7$).
+  * $W_S = 2^{3-1} = 4$.
+  * $W_R = 2^{3-1} = 4$.
+
+---
+
+## 🔒 The Master Mathematical Theorem: $W_S + W_R \le 2^k$
+
+The most fundamental theorem governing sliding window protocols dictates that the sum of the sender window size and receiver window size cannot exceed the total sequence number space:
+$$\mathbf{W_S + W_R \le 2^k}$$
+
+### Proof by Contradiction: What Happens If $W_S + W_R > 2^k$?
+Let $k = 2$ bits $\implies$ total sequence numbers available $= 2^2 = 4$ (values $0, 1, 2, 3$).  
+Suppose we violate the theorem and set $W_S = 3$ and $W_R = 2$, so that $W_S + W_R = 5 > 4$:
+
+1. **Initial Window State**:
+   * Sender Window $W_S = 3$ (Slots: `0, 1, 2`).
+   * Receiver Window $W_R = 2$ (Slots: `0, 1`).
+2. **Initial Burst**:
+   * Sender transmits Frames 0, 1, and 2.
+3. **Receiver Progress**:
+   * Receiver ingests Frame 0 and Frame 1 safely into its buffer.
+   * Receiver delivers Frames 0 and 1 to the Network Layer and advances its window forward by 2 positions:
+     Receive window slides from `[0, 1]` to `[2, 3]`!
+   * Receiver transmits $ACK_0$ and $ACK_1$.
+4. **Channel Failure**:
+   * Both $ACK_0$ and $ACK_1$ are destroyed in transit by electromagnetic interference.
+5. **Timeout & Retransmission**:
+   * Sender timer for Frame 0 expires.
+   * Sender retransmits duplicate Frame 0 of the previous cycle.
+6. **The Receiver Overlap Catastrophe**:
+   * Suppose the receiver window had been sized slightly larger (e.g., $W_R = 3$, so $W_S + W_R = 6 > 4$).
+   * Upon sliding forward by 2 positions, the receive window would cover slots `[2, 3, 0]`!
+   * Notice that slot `0` is now an active member of the receiver's current acceptance window!
+   * When duplicate Frame 0 arrives, the receiver cannot determine whether it is an old duplicate or brand-new data belonging to the next round. The duplicate is erroneously accepted, permanently corrupting user data!
+
+* **The Conclusion**: To guarantee that an old retransmitted frame can **never fall inside the current receive window**, the window sizes must satisfy:
+  $$\mathbf{W_S + W_R \le 2^k}$$
+* For symmetric windows where $W_S = W_R$:
+  $$2 \cdot W_S \le 2^k \implies \mathbf{W_S = 2^{k-1}}, \quad \mathbf{W_R = 2^{k-1}}$$
+
+---
+
+## ⚙️ Operating Mechanics: Buffers, Timers & Negative ACKs
+
+### 1. Independent Timers
+Unlike Go-Back-N (which uses a single timer for the oldest frame), Selective Repeat maintains an **independent countdown timer for every single unacknowledged frame** in the sender window:
+* When Frame $i$ is transmitted, its dedicated timer $T_i$ is started.
+* When an acknowledgment for Frame $i$ arrives, timer $T_i$ is stopped.
+* If timer $T_i$ expires, **only Frame $i$ is retransmitted**.
+
+### 2. Receiver Buffering & Window Sliding
+* If an incoming frame has an undamaged CRC and its sequence number falls within the receive window $[R_f, R_f + W_R - 1]$:
+  * The frame is stored in the receiver's local memory buffer.
+  * An ACK for that specific frame is returned to the sender.
+* **When does the receive window slide?**
+  * The receive window slides forward **only when the lowest in-order frame (at $R_f$) arrives**!
+  * If Frames 2 and 3 are buffered while Frame 1 is missing, the window remains pinned at $R_f = 1$.
+  * As soon as missing Frame 1 arrives, the receiver delivers Frames 1, 2, and 3 to the Network Layer as an in-order batch, and the window slides forward past Frame 3!
+
+### 3. Negative Acknowledgments (NAK / SACK)
+* When the receiver detects a missing sequence number (e.g., receives Frame 2 when awaiting Frame 1), it immediately dispatches a **Negative Acknowledgment ($NAK_1$)**.
+* The $NAK_1$ triggers an immediate selective retransmission of Frame 1 without waiting for the sender's timeout timer to expire, cutting recovery delay down to $1\text{ RTT}$.
+
+### 4. Piggybacking
+On full-duplex links where both stations are transmitting data, acknowledgment bits are embedded directly into the header of outgoing data frames (**Piggybacking**). This eliminates the bandwidth overhead of sending standalone ACK control packets.
+
+---
+
+## 🔄 Interactive Flagship Blueprint: Selective Repeat ARQ Space-Time Protocol Ladder
+
+The interactive space-time protocol ladder below traces Selective Repeat in action ($W_S = 4, W_R = 4$): sender bursts Frames 0, 1, 2, 3; Frame 1 is lost in transit; the receiver buffers out-of-order Frames 2 and 3 in local RAM; negative ACK ($NAK_1$) triggers retransmission of **ONLY Frame 1**; and finally all frames are reassembled in-order and delivered to the upper layers.
+
+<ProtocolLadder
+  title="Selective Repeat ARQ: Out-of-Order Buffering & Selective Retransmission Ladder"
+  subtitle="Space-time protocol ladder showing burst send, Frame 1 channel drop, receiver RAM buffering of F2/F3, NAK 1 dispatch, selective retransmit, and in-order release"
+  actors={[
+    { id: "sender", label: "Sender (Host A)", icon: "📡", role: "Transmitter (Ws = 4)", color: "blue" },
+    { id: "receiver", label: "Receiver (Host B)", icon: "📥", role: "Receiver (Wr = 4)", color: "emerald" },
+  ]}
+  windowState={{
+    title: "Selective Repeat Window Buffers (k = 3 bits, Ws = 4, Wr = 4)",
+    sender: {
+      label: "Sender Window (4 Timers)",
+      size: 4,
+      slots: [
+        { seq: 0, status: "acked", badge: "ACKed" },
+        { seq: 1, status: "sent", badge: "Lost" },
+        { seq: 2, status: "sent", badge: "Buffered" },
+        { seq: 3, status: "sent", badge: "Buffered" },
+        { seq: 4, status: "usable", badge: "Usable" },
+        { seq: 5, status: "usable" },
+        { seq: 6, status: "blocked" },
+        { seq: 7, status: "blocked" },
+      ],
+    },
+    receiver: {
+      label: "Receiver Window Buffer (RAM)",
+      size: 4,
+      slots: [
+        { seq: 1, status: "usable", badge: "Rf = 1" },
+        { seq: 2, status: "acked", badge: "Buffered" },
+        { seq: 3, status: "acked", badge: "Buffered" },
+        { seq: 4, status: "usable", badge: "Usable" },
+      ],
+    },
+  }}
+  steps={[
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Frame 0",
+      sublabel: "seq=0 (Burst #1)",
+      color: "blue",
+      status: "success",
+      delayNote: "Tp delay",
+      details: "Sender transmits Frame 0 and starts its dedicated retransmission timer. Frame 0 arrives at receiver with zero bit errors.",
+      technicalContext: "Receiver checks CRC, accepts Frame 0, delivers it immediately to Layer 3, and advances receiver window.",
+    },
+    {
+      from: "receiver",
+      to: "sender",
+      label: "ACK 0",
+      sublabel: "Frame 0 Accepted",
+      color: "emerald",
+      status: "success",
+      delayNote: "ACK Propagates",
+      details: "Receiver dispatches individual ACK 0. Upon receipt, sender marks Frame 0 as acknowledged and slides its window base forward.",
+      technicalContext: "In Selective Repeat, acknowledgments can be individual (ACK 0) or selective (SACK).",
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Frame 1",
+      sublabel: "seq=1 (Burst #2)",
+      color: "rose",
+      status: "lost",
+      details: "Sender transmits Frame 1 into the channel. Electromagnetic noise destroys the frame in transit, dropping it completely!",
+      technicalContext: "Sender timer for Frame 1 continues ticking down independently.",
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Frame 2",
+      sublabel: "seq=2 (Burst #3)",
+      color: "amber",
+      status: "success",
+      delayNote: "Out-of-Order Arrival",
+      details: "Frame 2 arrives at the receiver. Although Frame 1 is missing, the receiver DOES NOT discard Frame 2! Because Wr = 4, it buffers Frame 2 in local memory.",
+      technicalContext: "Receiver detects a gap in sequence numbers (received 2, expected 1) and prepares negative acknowledgment NAK 1.",
+    },
+    {
+      from: "receiver",
+      to: "sender",
+      label: "NAK 1",
+      sublabel: "Missing Frame 1 Alert",
+      color: "rose",
+      status: "success",
+      delayNote: "Fast NAK Flight",
+      details: "Receiver dispatches NAK 1 alerting the sender that Frame 1 was dropped, while holding Frame 2 safely in its RAM buffer.",
+      technicalContext: "NAK allows the sender to recover immediately without waiting for a full timeout expiration!",
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Frame 3",
+      sublabel: "seq=3 (Burst #4)",
+      color: "amber",
+      status: "success",
+      delayNote: "Out-of-Order Arrival",
+      details: "Frame 3 arrives safely. Receiver accepts Frame 3 and places it into its local RAM buffer alongside Frame 2.",
+      technicalContext: "Receiver buffer now holds [Frame 2, Frame 3], patiently awaiting the missing Frame 1.",
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Frame 1 (Selective Retransmit)",
+      sublabel: "seq=1 ONLY",
+      color: "cyan",
+      status: "success",
+      delayNote: "Targeted Retransmit",
+      details: "Triggered by NAK 1, the sender retransmits ONLY Frame 1! Frames 2 and 3 are NOT retransmitted, saving immense channel bandwidth.",
+      technicalContext: "This demonstrates the massive efficiency advantage of Selective Repeat over Go-Back-N on high-bandwidth-delay links.",
+    },
+    {
+      actor: "receiver",
+      isEvent: true,
+      eventType: "window-slide",
+      label: "In-Order Delivery & Window Slide",
+      sublabel: "Deliver [F1, F2, F3] to L3",
+      color: "emerald",
+      details: "Missing Frame 1 arrives! Receiver reassembles [Frame 1, Frame 2, Frame 3] in perfect contiguous sequence, passes all 3 to the Network Layer, and slides its window forward to 4!",
+      technicalContext: "Both sender and receiver windows are fully restored and advanced.",
+    },
+    {
+      from: "receiver",
+      to: "sender",
+      label: "ACK 4",
+      sublabel: "Expects Frame 4",
+      color: "emerald",
+      status: "success",
+      delayNote: "Cumulative Resync ACK",
+      details: "Receiver dispatches ACK 4 confirming receipt of all frames up to 3 and advertising readiness for Frame 4.",
+      technicalContext: "Sender window slides forward to [4, 5, 6, 7], completing the flawless Selective Repeat cycle.",
+    },
+  ]}
+/>
+
+---
+
+## 📊 Master Flow Control Comparison Matrix
+
+The table below contrasts the operational parameters, hardware requirements, and mathematical boundaries of the three fundamental Data Link Layer flow control protocols:
+
+| Feature / Metric | Stop-and-Wait ARQ | Go-Back-N (GBN) ARQ | Selective Repeat (SR) ARQ |
+| :--- | :--- | :--- | :--- |
+| **Sender Window Size ($W_S$)** | $1$ | $2^k - 1$ | $2^{k-1}$ |
+| **Receiver Window Size ($W_R$)** | $1$ | $1$ | $2^{k-1}$ |
+| **Window Size Relation** | $W_S + W_R = 2$ | $W_S + W_R = 2^k$ | $W_S + W_R \le 2^k$ |
+| **Sequence Number Bits ($k$)** | $1\text{ bit}$ ($0$ and $1$) | $\lceil \log_2(W_S + 1) \rceil$ | $\lceil \log_2(2 \cdot W_S) \rceil = \lceil \log_2(W_S) \rceil + 1$ |
+| **Active Timers at Sender** | $1$ | $1$ (for oldest frame $S_f$) | **$W_S$ independent timers** |
+| **Receiver Buffer Memory** | $0$ (No buffer needed) | $0$ (Discards out-of-order) | **$W_R$ frame buffers** |
+| **Out-of-Order Frames** | Discarded | Discarded | **Buffered in local RAM** |
+| **Acknowledgment Type** | Individual / Alternating | **Cumulative ($ACK_m$)** | **Selective / Individual ($ACK_m$, $NAK_m$)** |
+| **Retransmission Policy** | Single frame | **Go-Back-$N$ (All outstanding)** | **Selective (Only lost frame)** |
+| **Efficiency ($\eta$)** | $\frac{1}{1 + 2a}$ | $\frac{W_S}{1 + 2a} \le 1$ | $\frac{W_S}{1 + 2a} \le 1$ |
+| **Performance on Noisy Links** | Poor | Extremely Poor (Retransmission storm) | **Excellent (Zero redundant retransmission)** |
+| **Implementation Complexity** | Minimal | Moderate | High (Buffer sorting + multiple timers) |
+
+---
+
+## 🏭 Real-World Production Context
+
+### How TCP SACK and 5G Radio Links Implement Selective Repeat
+In modern internet transport and cellular infrastructure:
+* **TCP Selective Acknowledgment (TCP SACK, RFC 2018)**: When packets drop across high-latency transoceanic fiber links, standard TCP would collapse into Go-Back-N retransmissions. SACK allows the receiver to report non-contiguous received byte blocks (e.g., received bytes 5000–6000 and 7000–8000), allowing the sender to selectively retransmit only the missing byte span 6001–6999.
+* **5G New Radio (NR) RLC Layer**: Operates in Acknowledged Mode (AM) using Selective Repeat with specialized status reports (`STATUS PDU`) to prevent retransmission of massive 100MB blocks over volatile millimeter-wave radio links.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Minimum Sequence Number Bits for Selective Repeat on Long-Haul Links
+
+**Problem Statement:**  
+Consider two communication hosts X and Y connected by a direct point-to-point link of rate $10^6\text{ bits/sec}$ ($1\text{ Mbps}$). The physical distance between the hosts is $10,000\text{ km}$ and signal propagation speed through the medium is $2 \times 10^8\text{ m/s}$. Host X transmits data frames of size $1000\text{ bytes}$ each to host Y using Selective Repeat sliding window protocol. Calculate the minimum number of bits required for the sequence number field in the frame header to achieve $100\%$ link efficiency.
+
+#### Step-by-Step Solution:
+1. **Given Parameters**:
+   * Bandwidth $B = 10^6\text{ bps}$.
+   * Distance $d = 10,000\text{ km} = 10^7\text{ meters}$.
+   * Velocity $v = 2 \times 10^8\text{ m/s}$.
+   * Frame size $L = 1000\text{ bytes} = 8000\text{ bits}$.
+2. **Calculate Propagation Delay ($T_p$) and Transmission Delay ($T_t$)**:
+   $$T_p = \frac{d}{v} = \frac{10^7\text{ m}}{2 \times 10^8\text{ m/s}} = 0.05\text{ s} = 50\text{ ms}$$
+   $$T_t = \frac{L}{B} = \frac{8000\text{ bits}}{10^6\text{ bps}} = 0.008\text{ s} = 8\text{ ms}$$
+3. **Calculate Parameter $a$ and Optimal Window Size ($W_S$)**:
+   $$a = \frac{T_p}{T_t} = \frac{50\text{ ms}}{8\text{ ms}} = 6.25$$
+   $$W_S \ge 1 + 2a = 1 + 2(6.25) = 1 + 12.5 = 13.5 \implies W_S = \lceil 13.5 \rceil = \mathbf{14}$$
+4. **Compute Minimum Sequence Number Bits ($k$)**:
+   * In symmetric Selective Repeat: $W_S \le 2^{k-1}$.
+   $$14 \le 2^{k-1} \implies 2^{k-1} \ge 14$$
+   * For $k = 4$: $2^{4-1} = 2^3 = 8 < 14$ (Insufficient).
+   * For $k = 5$: $2^{5-1} = 2^4 = 16 \ge 14$ (Satisfied!).
+   $$\mathbf{k = 5\text{ bits}}$$
+5. **Final Result**:
+   At least **$5\text{ bits}$** are required in the sequence number field.
+
+---
+
+### Example 2: Mathematical Proof of Maximum Window Size with n-Bit Identifiers
+
+**Problem Statement:**  
+Prove analytically why the maximum allowable sender window size for data transmission using the Selective Repeat protocol with $n$-bit frame sequence numbers is $2^{n-1}$.
+
+#### Step-by-Step Solution:
+1. **General Sliding Window Condition**:
+   To avoid overlap between the current receive window and old retransmitted duplicate frames, the window sizes must satisfy:
+   $$W_S + W_R \le 2^n$$
+2. **Symmetric Window Allocation**:
+   In Selective Repeat, to handle bidirectional symmetric communication and ensure identical buffer memory allocations at both endpoints, the receive window is chosen equal to the send window:
+   $$W_S = W_R$$
+3. **Substitute into Inequality**:
+   $$W_S + W_S \le 2^n \implies 2 \cdot W_S \le 2^n \implies W_S \le \frac{2^n}{2} = \mathbf{2^{n-1}}$$
+4. **Final Result**:
+   The maximum possible sender window size is strictly **$2^{n-1}$**.
+
+---
+
+### Example 3: Feasibility Analysis of Full Sequence Space Allocation ($2^i$ Window)
+
+**Problem Statement:**  
+Suppose an engineer attempts to configure a sliding window protocol with a sender window size of $2^i$, where $i$ is the total number of bits in the sequence number field. Analyze whether this protocol can operate correctly under Selective Repeat without data corruption.
+
+#### Step-by-Step Solution:
+1. **Evaluate Against the Master Theorem**:
+   * The fundamental condition is $W_S + W_R \le 2^i$.
+   * Even under the most restrictive receiver configuration possible ($W_R = 1$):
+     $$W_S + 1 \le 2^i \implies W_S \le 2^i - 1$$
+2. **Analyze Failure Mode for $W_S = 2^i$**:
+   * If $W_S = 2^i$, the sender window consumes the entire sequence space.
+   * If all acknowledgments for an entire window are lost, the sender times out and retransmits duplicate frames.
+   * Because the sequence numbers have wrapped around by an entire cycle ($2^i \equiv 0 \pmod{2^i}$), the receiver will misidentify duplicate frames as brand-new frames from the next cycle.
+3. **Final Result**:
+   A sender window size of $2^i$ will inevitably lead to protocol failure. The maximum allowable window size is $2^{i-1}$ for symmetric Selective Repeat.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** *"Why is Selective Repeat much harder to implement in hardware than Go-Back-N?"*  
+**Key Focus Points:**
+* **Memory Buffer Management**: SR requires active RAM buffers at both the transmitter and the receiver to store, reorder, and track out-of-order packets.
+* **Multiple Concurrent Timers**: The transmitter must maintain and update an independent hardware countdown timer for every unacknowledged frame in the window, creating significant interrupt-handling overhead.
+* **In-Order Assembly Logic**: The receiver must implement sorting and gap-detection logic to deliver frames to the Network Layer in strict order.
+
+**Question 2:** *"What happens in Selective Repeat if an ACK for Frame 0 is lost, but the sender receives an ACK for Frame 1?"*  
+**Key Focus Points:**
+* In Selective Repeat, acknowledgments are **selective and independent**, not cumulative.
+* Receiving $ACK_1$ confirms only Frame 1. It tells the sender nothing about Frame 0.
+* Frame 0 remains unacknowledged in the sender's window until its dedicated timer $T_0$ expires or a $NAK_0$ arrives, at which point only Frame 0 is retransmitted.
+
+**Question 3:** *"Under what channel conditions is Go-Back-N preferred over Selective Repeat?"*  
+**Key Focus Points:**
+* On ultra-reliable, low-error channels (such as local Ethernet fiber), packet loss is nearly zero ($P \approx 0$).
+* Under zero-loss conditions, the retransmission storm of GBN never triggers, and GBN achieves identical $100\%$ efficiency to Selective Repeat while saving significant buffer memory and timer complexity.
+:::
+
+:::warning Common Interview Traps
+
+**Trap 1: "Does Selective Repeat use cumulative ACKs like Go-Back-N?"**  
+**Answer: Standard Selective Repeat uses individual/selective ACKs.** An $ACK_m$ in pure Selective Repeat acknowledges only frame $m$. However, modern advanced transport protocols like **TCP SACK (Selective Acknowledgment)** combine both: the standard TCP header carries a cumulative ACK, while TCP options carry SACK blocks describing out-of-order received chunks!
+
+**Trap 2: "Can the receiver window ($W_R$) in Selective Repeat be larger than the sender window ($W_S$)?"**  
+**Answer: Technically yes mathematically ($W_S + W_R \le 2^k$), but practically never.** If $W_R > W_S$, the extra receive slots sit completely empty because the sender can never transmit more than $W_S$ frames at any time! Symmetrical sizing ($W_S = W_R = 2^{k-1}$) maximizes bandwidth utilization in both directions.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "2.4 Sliding Window Protocol: Go-Back-N (GBN) ARQ",
+    url: "/coredose/cn/module-02/sliding-window-protocol-go-back-n-arq",
+  }}
+  next={{
+    title: "3.1 Random Access Protocols: Pure ALOHA & Slotted ALOHA",
+    url: "/coredose/cn/module-03/random-access-protocols-pure-and-slotted-aloha",
+  }}
+  courseUrl="/coredose/cn"
+/>

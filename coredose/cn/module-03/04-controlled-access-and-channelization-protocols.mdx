@@ -1,0 +1,528 @@
+---
+title: "3.4 Controlled Access & Channelization: Token Ring, FDMA, TDMA, CDMA"
+description: "In-depth engineering analysis of collision-free medium access: Controlled Access (Reservation, Polling, Token Passing) and Channelization (FDMA, TDMA, and CDMA Walsh orthogonal chip codes with mathematical vector decoding)."
+hide_table_of_contents: true
+---
+
+# 3.4 Controlled Access & Channelization: Token Ring, FDMA, TDMA, CDMA
+
+<CoreDoseLessonHeader
+  module="Module 03: Data Link Layer: MAC Sublayer & Ethernet"
+  topic="Topic 3.4"
+  courseUrl="/coredose/cn"
+  readTime="14 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The International Conference Analogy
+
+### 🍳 The Everyday Analogy: Three Ways to Run a Meeting
+Imagine 20 foreign delegates in a conference room who all need to communicate:
+1. **Random Access (ALOHA / CSMA)**: An unruly crowd with no rules. People try to speak when they feel like it; whenever two people speak at once, their voices collide, forcing both to stop and retry. Under heavy debate, the room devolves into chaos.
+2. **Controlled Access (Token Passing / Polling)**: A chairperson holds a physical brass gavel or microphone (**The Token**). Only the delegate holding the gavel is permitted to speak. When finished, they pass the gavel clockwise to the next delegate. Even if all 20 delegates want to speak simultaneously, **zero collisions ever occur**, but delegates must wait patiently for their turn.
+3. **Channelization (CDMA)**: All delegates speak **at the exact same time across the entire room**. How? Pair $A$ speaks fluent Japanese, Pair $B$ speaks fluent French, and Pair $C$ speaks fluent German. To an English listener, the French and German conversations sound like background white noise. The French listener mathematically filters out everything except the specific grammatical structure of French (**Orthogonal Codes**), extracting clean speech without interference!
+
+### 💻 Bridging to Computer Science
+Random access protocols excel under light, bursty network traffic because stations transmit with zero delay. However, when traffic becomes heavy, collisions increase exponentially, causing throughput to collapse.
+
+To provide guaranteed throughput, deterministic latency, and zero collisions, computer networks deploy **Controlled Access** (Reservation, Polling, Token Ring) and **Channelization** (FDMA, TDMA, CDMA).
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🗺️ The MAC Protocol Landscape (Contention vs Controlled vs Sliced)
+
+The Medium Access Control (MAC) sublayer divides into three fundamental philosophies:
+
+<ConceptComparison
+  subtitle="Contrasting collision behavior, traffic suitability, and channel coordination"
+  concepts={[
+    {
+      badge: "Philosophy 1",
+      title: "Random Access (Contention)",
+      icon: "⚡",
+      color: "rose",
+      domain: "ALOHA, CSMA, CSMA/CD, CSMA/CA",
+      points: [
+        "Stations contend freely for the channel without central coordination.",
+        "Zero setup delay: perfect for bursty, sporadic computer data traffic.",
+        "Collisions can occur; requires retransmissions and backoff timers.",
+        "Throughput degrades under high traffic loads as collisions dominate."
+      ],
+      quote: "Zero coordination overhead, but throughput collapses under heavy congestion."
+    },
+    {
+      badge: "Philosophy 2",
+      title: "Controlled Access & Channelization",
+      icon: "🛡️",
+      color: "emerald",
+      domain: "Polling, Token Ring, FDMA, TDMA, CDMA",
+      points: [
+        "Stations take explicit turns (Controlled) or share sliced spectrum (Channelized).",
+        "Deterministic latency: guarantees bounded delay and fixed bandwidth.",
+        "Zero collisions: mathematical guarantee of collision-free operation.",
+        "Overhead: polling frames, token circulation delay, or hardware code complexity."
+      ],
+      quote: "Zero collisions and guaranteed throughput, ideal for real-time and heavy loads."
+    }
+  ]}
+/>
+
+---
+
+## 🗳️ Controlled Access: Reservation & Polling Architectures
+
+In controlled access, stations consult one another or a master controller to determine who holds transmission rights. A station cannot transmit unless authorized.
+
+### 1. The Reservation Method
+On a shared link with $N$ stations, time is divided into intervals consisting of a **Reservation Frame** followed by $M$ **Data Frames**:
+
+<FrameFormat
+  subtitle="N-slot reservation bitmask announces transmission intent, followed by collision-free sequential data frames"
+  totalSize="Reservation Frame (N Mini-Slots) + Scheduled Data Payloads"
+  fields={[
+    { name: "Slot 1 (Station 1)", size: "1 bit", unit: "", color: "blue", sublabel: "Bit = 1", description: "Station 1 flags bit = 1 to reserve transmission rights in the upcoming cycle." },
+    { name: "Slot 2 (Station 2)", size: "1 bit", unit: "", color: "slate", sublabel: "Bit = 0", description: "Station 2 leaves bit = 0 (idle, no pending packets to transmit)." },
+    { name: "Slot 3 (Station 3)", size: "1 bit", unit: "", color: "slate", sublabel: "Bit = 0", description: "Station 3 leaves bit = 0 (idle, no pending packets to transmit)." },
+    { name: "Slot 4 (Station 4)", size: "1 bit", unit: "", color: "emerald", sublabel: "Bit = 1", description: "Station 4 flags bit = 1 to reserve transmission rights." },
+    { name: "Slot 5 (Station 5)", size: "1 bit", unit: "", color: "slate", sublabel: "Bit = 0", description: "Station 5 leaves bit = 0 (idle, no pending packets to transmit)." },
+    { name: "Data Frame 1", size: "Payload 1", unit: "Bytes", color: "blue", sublabel: "Station 1", description: "Station 1 transmits its data frame without contention across the entire channel." },
+    { name: "Data Frame 4", size: "Payload 4", unit: "Bytes", color: "emerald", sublabel: "Station 4", description: "Station 4 transmits immediately following Station 1, guaranteeing zero collisions." },
+  ]}
+/>
+
+1. The reservation frame contains exactly $N$ mini-slots (one bit per station).
+2. If Station $k$ has a frame ready to transmit, it sets its corresponding mini-slot bit to `1`. If idle, it leaves it `0`.
+3. After the reservation frame finishes, all stations inspect the reservation vector. Every station that reserved a slot transmits its data frame sequentially in predetermined numerical order.
+4. Because transmission order is established during the reservation phase, **collisions are physically impossible**.
+
+---
+
+### 2. The Polling Method (Primary-Secondary Architecture)
+Polling is designed for asymmetric master-slave topologies (such as industrial SCADA sensors, USB hosts, or mainframes connected to dumb terminals). One node is designated as the **Primary Station (Master)**, and all other nodes are **Secondary Stations (Slaves)**:
+
+<FlowPipeline
+  subtitle="Central master polls each secondary slave sequentially over a shared multi-drop cable"
+  nodes={[
+    {
+      badge: "Master / Host",
+      title: "Primary Station",
+      icon: "👑",
+      color: "amber",
+      description: "Controls the entire bus; initiates all Select (downlink) and Poll (uplink) control frames.",
+      connectorLabel: "Poll Frame (Query)",
+    },
+    {
+      badge: "Slave 1",
+      title: "Secondary Node 1",
+      icon: "📡",
+      color: "slate",
+      description: "No data queued: returns a NAK frame to Master, yielding channel rights immediately.",
+      connectorLabel: "NAK (Idle)",
+    },
+    {
+      badge: "Slave 2",
+      title: "Secondary Node 2",
+      icon: "💾",
+      color: "emerald",
+      description: "Data ready: transmits buffered data frame to Primary; awaits ACK confirmation.",
+      connectorLabel: "Data + ACK",
+    },
+    {
+      badge: "Slave 3",
+      title: "Secondary Node 3",
+      icon: "📡",
+      color: "blue",
+      description: "Next in round-robin queue; interrogated in order on subsequent polling round.",
+    },
+  ]}
+/>
+
+All communication flows through the Primary station. Two operational functions exist:
+
+#### A. The Select Function (Primary Transmitting to Secondary)
+When the Primary has data to send to a Secondary:
+1. The Primary issues a short **Select (SEL) Frame** containing the target Secondary's address: *"Device 2, are you ready to receive?"*
+2. The Secondary checks its buffer and replies with an **ACK** (ready) or **NAK** (busy).
+3. Upon receiving ACK, the Primary transmits the data frame.
+
+#### B. The Poll Function (Primary Receiving from Secondary)
+When the Primary is ready to receive data, it queries each secondary sequentially:
+1. Primary sends a **Poll Frame** to Secondary 1: *"Do you have data to send?"*
+2. If Secondary 1 has data, it transmits its data frame; Primary responds with an ACK.
+3. If Secondary 1 has no data, it returns a **NAK Frame**.
+4. The Primary immediately advances to Secondary 2, repeating the round-robin cycle.
+
+> **The Polling Latency Tradeoff:**
+> If a broadcast channel has 100 nodes and only 1 node has data, the Primary must query 99 idle nodes and receive 99 NAKs before reaching the active node. This round-trip interrogation time is called **Polling Overhead**.
+
+---
+
+## 🪙 Token Passing & IEEE 802.5 Token Ring Internals
+
+Standardized as **IEEE 802.5** (and optical **FDDI**), **Token Passing** eliminates the single-point-of-failure master station by organizing nodes into a decentralized **logical ring**:
+
+<FlowDiagram
+  subtitle="4-Station logical ring passing 3-byte token frame clockwise to grant collision-free transmission rights"
+  nodes={[
+    {
+      id: "station_a",
+      col: 0,
+      row: 0,
+      title: "Station A",
+      sublabel: "Token Holder",
+      badge: "Active Sender",
+      icon: "💻",
+      color: "purple",
+      details: "Captures free token, appends payload data addressed to Station C, and dispatches frame clockwise.",
+    },
+    {
+      id: "station_b",
+      col: 1,
+      row: 0,
+      title: "Station B",
+      sublabel: "Intermediate Repeater",
+      badge: "Active Repeater",
+      icon: "💻",
+      color: "blue",
+      details: "Inspects frame header. Dest MAC != B, so regenerates electrical bitstream and forwards downstream.",
+    },
+    {
+      id: "station_c",
+      col: 1,
+      row: 1,
+      title: "Station C",
+      sublabel: "Target Destination",
+      badge: "Target Sink",
+      icon: "🖥️",
+      color: "emerald",
+      details: "Dest MAC == C: copies payload into local RAM, sets Frame Copied bit [C] and Address Recognized bit [A] in trailer.",
+    },
+    {
+      id: "station_d",
+      col: 0,
+      row: 1,
+      title: "Station D",
+      sublabel: "Intermediate Repeater",
+      badge: "Active Repeater",
+      icon: "💻",
+      color: "cyan",
+      details: "Regenerates modified frame and forwards it back to original sender (Station A).",
+    },
+  ]}
+  edges={[
+    {
+      from: "station_a",
+      to: "station_b",
+      fromPort: "right",
+      toPort: "left",
+      step: "1",
+      label: "1. Transmit Data Frame",
+      detail: "Station A dispatches frame addressed to Station C clockwise to Station B.",
+    },
+    {
+      from: "station_b",
+      to: "station_c",
+      fromPort: "bottom",
+      toPort: "top",
+      step: "2",
+      label: "2. Forward Downstream",
+      detail: "Station B regenerates bits and delivers frame to target Station C.",
+    },
+    {
+      from: "station_c",
+      to: "station_d",
+      fromPort: "left",
+      toPort: "right",
+      step: "3",
+      label: "3. Forward with ACKs",
+      detail: "Station C copies data, sets C and A bits in trailer, and forwards to Station D.",
+    },
+    {
+      from: "station_d",
+      to: "station_a",
+      fromPort: "top",
+      toPort: "bottom",
+      step: "4",
+      label: "4. Return & Token Release",
+      detail: "Frame returns to Station A. Station A strips frame off ring and generates a new free token.",
+    },
+  ]}
+/>
+
+### The Ring Architecture & The Token
+1. Every station has a defined **Predecessor** and **Successor** in the ring.
+2. A small, unique 3-byte control frame called **The Token** circulates perpetually around the ring in one direction:
+   $$\text{Token Frame Format} = [\text{Starting Delimiter (1B)}] + [\text{Access Control (1B)}] + [\text{Ending Delimiter (1B)}] = 3\text{ Bytes}$$
+
+3. **Transmission Rule**:
+   * If a station receives the token and has **no data** to transmit, it regenerates the token and forwards it immediately to its successor.
+   * If a station has data to transmit, it **captures the token** (changes a single bit in the Access Control byte from `Token` to `Start-of-Frame`), converting it into a data frame, appends its payload, and dispatches it onto the ring.
+4. **Circulation & Acknowledgment**:
+   * The frame travels station-by-station around the ring. Each node inspects the Destination MAC address.
+   * When the intended recipient receives the frame, it copies the data into its local RAM buffer and sets the **Frame Copied (C)** and **Address Recognized (A)** bits in the frame trailer.
+   * The frame continues around the ring until it returns to the **original sender**.
+5. **Token Release**:
+   * The sender inspects the returned frame to confirm the recipient copied it, strips its own data frame off the ring, and **generates a brand-new free token**, passing channel rights to its successor.
+
+### Token Management & Fault Tolerance
+What happens if a workstation holding the token experiences a sudden power loss? The token disappears, and the entire ring halts!
+
+To guarantee stability, Token Ring implements **Active Monitor** management:
+* One station is elected as the **Active Monitor**.
+* The Active Monitor runs a **Token Watchdog Timer**. If no token passes the monitor within the maximum possible ring circulation time, the monitor clears the ring and injects a fresh token.
+* If a frame circulates indefinitely (because the sender crashed before stripping it), the Active Monitor detects its own `Monitor Bit` set to `1` on a second pass, purges the orphan frame, and releases a new token.
+
+---
+
+## 📊 Channelization Foundations: FDMA vs TDMA
+
+Channelization divides the physical channel capacity into dedicated orthogonal subchannels so multiple stations can transmit concurrently without interference:
+
+<ConceptComparison
+  subtitle="Contrasting frequency division against time division multiplexing"
+  concepts={[
+    {
+      badge: "Frequency Division",
+      title: "FDMA (Frequency-Division Multiple Access)",
+      icon: "📻",
+      color: "blue",
+      domain: "Analog Radio, Cable TV, 1G AMPS Cellular",
+      points: [
+        "The total bandwidth is divided into narrow frequency sub-bands.",
+        "Each station is permanently assigned a dedicated frequency band.",
+        "Stations transmit continuously in time over their allocated sub-band.",
+        "Requires Guard Bands between adjacent frequencies to prevent crosstalk.",
+        "Inefficient for bursty data: assigned frequency sits idle if station is silent."
+      ],
+      quote: "Continuous transmission in time, restricted in frequency spectrum."
+    },
+    {
+      badge: "Time Division",
+      title: "TDMA (Time-Division Multiple Access)",
+      icon: "⏱️",
+      color: "cyan",
+      domain: "2G GSM Cellular, Satellite Up/Downlinks",
+      points: [
+        "All stations share the entire wideband frequency spectrum.",
+        "Time is divided into periodic frames composed of synchronized time slots.",
+        "Each station transmits at full line rate strictly during its assigned slot.",
+        "Requires Guard Times and synchronization preambles between slots.",
+        "High spectral efficiency: eliminates analog frequency filtering hardware."
+      ],
+      quote: "Burst transmission across the full bandwidth, restricted in time slots."
+    }
+  ]}
+/>
+
+---
+
+## 🧮 CDMA: Mathematical Foundations & Orthogonal Walsh Codes
+
+**Code-Division Multiple Access (CDMA)** represents one of the most elegant mathematical breakthroughs in telecommunications (forming the foundation of 3G cellular, GPS, and spread-spectrum Wi-Fi).
+
+### The Core Principle
+* In FDMA, stations use different frequencies.
+* In TDMA, stations use different time slots.
+* **In CDMA, all stations transmit simultaneously in time over the exact same frequency band!**
+
+Interference is prevented using **Orthogonal Code Theory (Spread Spectrum)**. Each station is assigned a unique, fixed chip sequence (code vector) $C_i$.
+
+### Mathematical Rules of Chip Sequences
+Let $C_i$ represent an $m$-element vector of $+1$s and $-1$s assigned to Station $i$:
+
+$$C_i = [c_{i,1}, c_{i,2}, \dots, c_{i,m}] \quad \text{where } c_{i,k} \in \{+1, -1\}$$
+
+The vector operations satisfy two fundamental linear algebraic properties:
+
+#### 1. Normalized Self Inner Product (Autocorrelation)
+The dot product of any chip sequence with itself, divided by code length $m$, equals $+1$:
+
+$$\Large \frac{1}{m} (C_i \cdot C_i) = \frac{1}{m} \sum_{k=1}^m c_{i,k}^2 = \frac{1}{m} \sum_{k=1}^m (\pm 1)^2 = \frac{m}{m} = \mathbf{+1}$$
+
+#### 2. Orthogonal Cross Product (Cross-Correlation)
+The dot product of two distinct station sequences $C_i$ and $C_j$ ($i \ne j$) is **identically zero**:
+
+$$\Large \frac{1}{m} (C_i \cdot C_j) = \frac{1}{m} \sum_{k=1}^m c_{i,k} \cdot c_{j,k} = \mathbf{0}$$
+
+### Generating Orthogonal Sequences: Walsh Matrices
+Walsh-Hadamard matrices recursively construct sets of mutually orthogonal vectors:
+
+$$W_1 = [ +1 ]$$
+
+$$W_{2N} = \begin{pmatrix} W_N & W_N \\ W_N & -W_N \end{pmatrix}$$
+
+For a 4-station network ($N = 2$):
+
+$$W_2 = \begin{pmatrix} +1 & +1 \\ +1 & -1 \end{pmatrix}, \quad W_4 = \begin{pmatrix} W_2 & W_2 \\ W_2 & -W_2 \end{pmatrix}$$
+
+Expanding this recursion yields the four mutually orthogonal chip sequences:
+
+| Station | Matrix Vector | Assigned Chip Sequence ($m = 4$) | Physical Voltage Representation |
+| :--- | :--- | :--- | :--- |
+| **Station 1** | Row 1 of $W_4$ | $C_1 = [+1, \ +1, \ +1, \ +1]$ | $[+V, +V, +V, +V]$ |
+| **Station 2** | Row 2 of $W_4$ | $C_2 = [+1, \ -1, \ +1, \ -1]$ | $[+V, -V, +V, -V]$ |
+| **Station 3** | Row 3 of $W_4$ | $C_3 = [+1, \ +1, \ -1, \ -1]$ | $[+V, +V, -V, -V]$ |
+| **Station 4** | Row 4 of $W_4$ | $C_4 = [+1, \ -1, \ -1, \ +1]$ | $[+V, -V, -V, +V]$ |
+
+---
+
+## 📡 CDMA Step-by-Step Encoding & Signal Recovery
+
+### Data Bit Encoding Rules
+When Station $i$ wants to send a bit $d_i$:
+* If $d_i = \mathbf{1}$, it transmits vector: $\mathbf{+C_i}$
+* If $d_i = \mathbf{0}$, it transmits vector: $\mathbf{-C_i}$
+* If Station $i$ is **silent (idle)**, it transmits vector: $\mathbf{0} = [0, 0, \dots, 0]$
+
+### Channel Superposition
+All stations transmit into the same shared physical medium simultaneously. The signals combine additively on the wire:
+
+$$\Large S = \sum_{i=1}^N d_i \cdot C_i$$
+
+### Receiver Demultiplexing (Decoding)
+To extract the data bit sent by Station $k$, the receiver takes the composite signal $S$ received from the wire and computes the inner dot product with Station $k$'s known chip sequence $C_k$, divided by $m$:
+
+$$\text{Decoded Value} = \frac{1}{m} (S \cdot C_k)$$
+
+Expanding the inner product:
+
+$$\frac{1}{m} (S \cdot C_k) = \frac{1}{m} \left( \sum_{i=1}^N d_i \cdot C_i \right) \cdot C_k = \frac{1}{m} \left[ d_k (C_k \cdot C_k) + \sum_{i \ne k} d_i (C_i \cdot C_k) \right]$$
+
+Because all codes are orthogonal ($C_i \cdot C_k = 0$ for all $i \ne k$), the entire summation over other stations **vanishes into zero**:
+
+$$\frac{1}{m} (S \cdot C_k) = \frac{1}{m} \left[ d_k \cdot m + 0 \right] = \Large d_k$$
+
+* If result is $\mathbf{+1} \implies$ Station $k$ sent bit **1**.
+* If result is $\mathbf{-1} \implies$ Station $k$ sent bit **0**.
+* If result is $\mathbf{0} \implies$ Station $k$ was **silent**.
+
+---
+
+## 🏭 Real-World Production Context: How GPS & 3G Cellular Harness Orthogonal Codes
+
+CDMA's spread-spectrum mathematics is one of the most commercially impactful inventions in modern physics:
+
+### 1. Global Positioning System (GPS Satellites on a Single Carrier)
+There are 31 active GPS satellites orbiting Earth at an altitude of $20,200\text{ km}$. 
+* **The Engineering Marvel**: Every single GPS satellite broadcasts continuously on the **exact same carrier frequency** ($1575.42\text{ MHz}$, known as L1).
+* **How Smartphones Demultiplex 31 Satellites**: Each satellite is assigned a unique 1023-bit **Gold Code sequence** (a pseudorandom orthogonal code). The received radio signal at your smartphone's antenna is actually **weaker than background thermal noise** (below the noise floor)!
+* By correlating the antenna noise with known satellite Gold Codes, your phone extracts individual satellite signals with mathematical precision, measures signal transit time down to nanoseconds, and triangulates your geographic location within meters.
+
+### 2. 3G Mobile Networks (Qualcomm CDMA2000 & UMTS)
+In 2G GSM networks, adjacent cell towers had to use completely different radio frequency channels to avoid inter-cell interference (Frequency Reuse Factor of $\frac{1}{7}$ or $\frac{1}{4}$).
+* **Universal Frequency Reuse**: In 3G CDMA, every single cell tower in an entire city uses the **identical 1.25 MHz / 5 MHz frequency band** (Frequency Reuse Factor = 1).
+* **Soft Handoff**: When a mobile phone drives from Cell Tower A to Cell Tower B, it doesn't drop the connection ("hard break"). Instead, it receives data from both towers simultaneously using two orthogonal code channels, seamlessly switching to Tower B when its signal strength exceeds Tower A.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: CDMA Encoding & Decoding Vector Walkthrough
+**Problem Statement:** A CDMA system has 4 stations with the following orthogonal chip sequences:
+* $C_1 = [ +1, +1, +1, +1 ]$
+* $C_2 = [ +1, -1, +1, -1 ]$
+* $C_3 = [ +1, +1, -1, -1 ]$
+* $C_4 = [ +1, -1, -1, +1 ]$
+
+Suppose Station 1 wants to transmit bit **1**, Station 2 is **silent**, Station 3 wants to transmit bit **0**, and Station 4 wants to transmit bit **1**.
+1. Calculate the composite signal vector $S$ on the channel.
+2. Demonstrate how a receiver extracts the data bit sent by Station 3.
+3. Demonstrate how a receiver verifies that Station 2 was silent.
+
+**Step-by-Step Solution:**
+
+#### Step 1: Compute Transmitted Vectors
+* Station 1 sends bit 1 $\implies +C_1 = [ +1, +1, +1, +1 ]$
+* Station 2 is silent $\implies \mathbf{0} = [ 0, 0, 0, 0 ]$
+* Station 3 sends bit 0 $\implies -C_3 = [ -1, -1, +1, +1 ]$
+* Station 4 sends bit 1 $\implies +C_4 = [ +1, -1, -1, +1 ]$
+
+#### Step 2: Sum to Find Composite Signal $S$
+Sum the components index by index:
+* Component 1: $+1 + 0 - 1 + 1 = \mathbf{+1}$
+* Component 2: $+1 + 0 - 1 - 1 = \mathbf{-1}$
+* Component 3: $+1 + 0 + 1 - 1 = \mathbf{+1}$
+* Component 4: $+1 + 0 + 1 + 1 = \mathbf{+3}$
+
+$$\Large S = [ +1, -1, +1, +3 ]$$
+
+#### Step 3: Decode for Station 3
+Compute $\frac{1}{4} (S \cdot C_3)$:
+$$S \cdot C_3 = (+1)(+1) + (-1)(+1) + (+1)(-1) + (+3)(-1) = 1 - 1 - 1 - 3 = -4$$
+$$\text{Result} = \frac{-4}{4} = \mathbf{-1} \implies \text{Station 3 transmitted bit } \mathbf{0}$$
+
+#### Step 4: Decode for Station 2
+Compute $\frac{1}{4} (S \cdot C_2)$:
+$$S \cdot C_2 = (+1)(+1) + (-1)(-1) + (+1)(+1) + (+3)(-1) = 1 + 1 + 1 - 3 = 0$$
+$$\text{Result} = \frac{0}{4} = \mathbf{0} \implies \text{Station 2 was } \mathbf{\text{Silent}}$$
+
+---
+
+### Example 2: Polling Channel Maximum Throughput
+**Problem Statement:** A broadcast network has 10 nodes sharing a $10\text{ Mbps}$ channel using a centralized polling scheme. After a node finishes transmitting its data, the primary station incurs a polling delay of $80\text{ microseconds}$ to poll and synchronize with the next node. Each time a node is polled, it is permitted to transmit a maximum data payload of $1000\text{ bytes}$. Calculate the maximum effective throughput of the channel.
+
+**Step-by-Step Solution:**
+1. **Calculate Transmission Time per Polled Node ($T_t$):**
+   $$T_t = \frac{1000\text{ bytes} \times 8\text{ bits/byte}}{10 \times 10^6\text{ bps}} = \frac{8000\text{ bits}}{10^7\text{ bps}} = 8 \times 10^{-4}\text{ s} = 800\text{ }\mu\text{s}$$
+2. **Calculate Total Time Dedicated to Each Node Cycle:**
+   $$\text{Total Slot Time} = T_t + T_{\text{poll}} = 800\text{ }\mu\text{s} + 80\text{ }\mu\text{s} = 880\text{ }\mu\text{s}$$
+3. **Calculate Maximum Throughput:**
+   In each $880\text{ }\mu\text{s}$ interval, $8000\text{ bits}$ of actual data are successfully transmitted:
+   $$\text{Throughput} = \frac{8000\text{ bits}}{880 \times 10^{-6}\text{ s}} = \frac{8000}{0.00088} = \frac{8000 \times 10^6}{880 \times 10^3} = \frac{8000}{880}\text{ Mbps} = \frac{100}{11}\text{ Mbps} \approx \mathbf{9.09\text{ Mbps}}$$
+
+---
+
+### Example 3: TDMA Station Count Optimization
+**Problem Statement:** In a TDMA medium access bus LAN, each station is allocated exactly one time slot per round-robin cycle. The duration of each time slot is defined as the time required to transmit $100\text{ bits}$ plus the end-to-end propagation delay of the cable. The LAN is $1\text{ km}$ long, operates at a bandwidth of $10\text{ Mbps}$, and has a propagation speed of $2 \times 10^8\text{ m/s}$. Determine the maximum number of stations ($N$) that can be accommodated on the LAN such that each station achieves an effective throughput of at least $\frac{2}{3}\text{ Mbps}$.
+
+**Step-by-Step Solution:**
+1. **Calculate Propagation Delay ($T_p$):**
+   $$T_p = \frac{\text{Distance } d}{v} = \frac{1000\text{ m}}{2 \times 10^8\text{ m/s}} = 5 \times 10^{-6}\text{ s} = 5\text{ }\mu\text{s}$$
+2. **Calculate Transmission Time per Slot ($T_t$):**
+   $$T_t = \frac{100\text{ bits}}{10 \times 10^6\text{ bps}} = 10 \times 10^{-6}\text{ s} = 10\text{ }\mu\text{s}$$
+3. **Determine Duration of One Time Slot ($T_{\text{slot}}$):**
+   $$T_{\text{slot}} = T_t + T_p = 10\text{ }\mu\text{s} + 5\text{ }\mu\text{s} = 15\text{ }\mu\text{s}$$
+4. **Determine Full Round Duration with $N$ Stations:**
+   If there are $N$ stations, one complete round takes $T_{\text{round}} = N \times T_{\text{slot}} = N \times 15\text{ }\mu\text{s}$.
+5. **Relate Individual Station Throughput to Round Time:**
+   Each station transmits $100\text{ bits}$ once every round:
+   $$\text{Throughput per Station} = \frac{100\text{ bits}}{T_{\text{round}}} = \frac{100}{N \times 15 \times 10^{-6}} = \frac{10^8}{15 N}\text{ bps} = \frac{100}{15 N}\text{ Mbps} = \frac{20}{3 N}\text{ Mbps}$$
+6. **Solve for $N$ Given Required Throughput $\ge \frac{2}{3}\text{ Mbps}$:**
+   $$\frac{20}{3 N} \ge \frac{2}{3} \implies 20 \ge 2 N \implies \Large N \le 10$$
+   $$\text{Maximum Allowed Stations} = \mathbf{10\text{ stations}}$$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why can multiple CDMA transmitters share the same frequency spectrum without collision?**
+  Because their chip sequences are mathematically **orthogonal** ($C_i \cdot C_j = 0$ for all $i \ne j$). When the receiver correlates the composite wire signal with the desired station's code, all other stations' transmissions cross-multiply to zero, behaving as negligible background Gaussian noise.
+* **What is the primary difference between a Token Ring and an Ethernet Bus under heavy load?**
+  Under heavy traffic, Ethernet suffers frequent collisions, causing stations to back off exponentially and dropping channel throughput below 40%. In contrast, Token Ring has zero collisions: the token circulates smoothly, achieving near-100% channel utilization under full load.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Forgetting that a silent station in CDMA contributes vector [0, 0, 0, 0].**
+  When computing the composite signal $S$ in CDMA problems, students often accidentally substitute $+C_i$ or $-C_i$ for an idle node. A silent station transmits **zero voltage** ($0 \cdot C_i = \vec{0}$).
+* **Trap: Confusing Bit 0 encoding in CDMA.**
+  In binary logic, bit 0 is often associated with zero voltage. In CDMA Walsh coding, bit **1** maps to **$+C_i$**, bit **0** maps to **$-C_i$**, and **idle/silence** maps to **$0$**.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "3.3 Ethernet Frame Format (IEEE 802.3) & Minimum Frame Size",
+    url: "/coredose/cn/module-03/ethernet-frame-format-and-minimum-frame-size"
+  }}
+  next={{
+    title: "3.5 Network Switching: Bridges, Collision vs Broadcast Domains",
+    url: "/coredose/cn/module-03/network-switching-bridges-collision-and-broadcast-domains"
+  }}
+  courseUrl="/coredose/cn"
+/>

@@ -19,5 +19,9 @@ export {
   ProcessMemoryMap,
   GanttChart,
   DiskSchedulingChart,
+  ProtocolLadder,
+  ContentionTimeline,
+  FrameFormat,
+  PacketHeaderGrid,
 } from '@site/src/components/CoreDose/Diagrams';
 

@@ -1,0 +1,252 @@
+/**
+ * FrameFormat Module CSS
+ * Delta styling for Packet & Frame Header Field Blocks.
+ */
+
+.totalSizePill {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.72rem;
+  font-weight: 750;
+  padding: 0.12rem 0.55rem;
+  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+[data-theme='light'] .totalSizePill {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.frameScrollTrack {
+  width: 100%;
+  min-width: 720px;
+  padding: 1.1rem 1.25rem 0.8rem;
+  box-sizing: border-box;
+}
+
+.fieldsSequence {
+  display: flex;
+  align-items: stretch;
+  gap: 0.45rem;
+}
+
+.fieldBlock {
+  border-radius: 8px;
+  padding: 0.65rem 0.6rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.35rem;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1.5px solid transparent;
+}
+
+.field_blue {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+}
+
+.field_purple {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.4);
+  color: #d8b4fe;
+}
+
+.field_cyan {
+  background: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.4);
+  color: #a5f3fc;
+}
+
+.field_emerald {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #a7f3d0;
+}
+
+.field_amber {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fde68a;
+}
+
+.field_rose {
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.4);
+  color: #fecdd3;
+}
+
+.field_gray {
+  background: rgba(100, 116, 139, 0.1);
+  border-color: rgba(100, 116, 139, 0.3);
+  color: #cbd5e1;
+}
+
+[data-theme='light'] .field_blue { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }
+[data-theme='light'] .field_purple { background: #faf5ff; border-color: #d8b4fe; color: #6b21a8; }
+[data-theme='light'] .field_cyan { background: #ecfeff; border-color: #a5f3fc; color: #155e75; }
+[data-theme='light'] .field_emerald { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+[data-theme='light'] .field_amber { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+[data-theme='light'] .field_rose { background: #fff1f2; border-color: #fecdd3; color: #9f1239; }
+[data-theme='light'] .field_gray { background: #f8fafc; border-color: #cbd5e1; color: #334155; }
+
+.fieldActive {
+  transform: translateY(-2px) scale(1.03);
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.65) !important;
+  z-index: 5;
+}
+
+.fieldTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+.fieldName {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: var(--ifm-heading-color, #f8fafc);
+  line-height: 1.2;
+}
+
+[data-theme='light'] .fieldName {
+  color: #0f172a;
+}
+
+.layerMiniBadge {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+}
+
+.fieldSizeBadge {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #38bdf8;
+  margin: 0.15rem 0;
+}
+
+[data-theme='light'] .fieldSizeBadge {
+  color: #2563eb;
+}
+
+.bitPatternCode {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.62rem;
+  color: #94a3b8;
+  letter-spacing: 0.03em;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+[data-theme='light'] .bitPatternCode {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.fieldSublabel {
+  font-size: 0.62rem;
+  color: #94a3b8;
+}
+
+.layerPill {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(168, 85, 247, 0.2);
+  color: #d8b4fe;
+}
+
+[data-theme='light'] .layerPill {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
+.bitPatternPill {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+}
+
+[data-theme='light'] .bitPatternPill {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.technicalNoteRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  color: #38bdf8;
+  margin-top: 0.25rem;
+}
+
+[data-theme='light'] .technicalNoteRow {
+  color: #2563eb;
+}
+
+.technicalPrefix {
+  font-weight: 750;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+.detailsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.35rem 0.85rem;
+  margin-top: 0.4rem;
+  padding-top: 0.45rem;
+  border-top: 1px dashed rgba(148, 163, 184, 0.2);
+}
+
+.detailRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.detailLabel {
+  font-weight: 700;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+[data-theme='light'] .detailLabel {
+  color: #64748b;
+}
+
+.detailValue {
+  color: #e2e8f0;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.74rem;
+}
+
+[data-theme='light'] .detailValue {
+  color: #1e293b;
+}
+

@@ -1,0 +1,492 @@
+---
+title: "3.5 Network Switching: Bridges, Collision vs Broadcast Domains"
+description: "Mastery of Layer 2 network switching: Transparent bridges, backward learning algorithms, filtering vs forwarding decisions, Collision vs Broadcast domains, Spanning Tree Protocol (STP), and switch topology design."
+hide_table_of_contents: true
+---
+
+# 3.5 Network Switching: Bridges, Collision vs Broadcast Domains
+
+<CoreDoseLessonHeader
+  module="Module 03: Data Link Layer: MAC Sublayer & Ethernet"
+  topic="Topic 3.5"
+  courseUrl="/coredose/cn"
+  readTime="13 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Traffic Intersection Analogy
+
+### 🍳 The Everyday Analogy: Roundabout vs Traffic Policeman vs City Border
+Imagine vehicles navigating city roadways:
+* **The Repeater / Hub (Layer 1)**: An open intersection where every incoming car is copied and hurled simultaneously down every single outgoing street! If two cars arrive at the same second, they crash into each other in the center (**Collision**). The more cars enter the intersection, the more crashes occur until all traffic grinds to a halt.
+* **The Bridge / Switch (Layer 2)**: An intelligent traffic officer stationed at the intersection with a clipboard. The officer notes down: *"Car license plate `ABC-123` just came from North Street."* When a car arrives asking to go to `ABC-123`, the officer directs it **only** to North Street, keeping South, East, and West completely free! Each street is an **isolated lane** where crashes can never affect the other streets (**Separate Collision Domains**). But if someone blares a citywide emergency siren (**Broadcast**), everyone on every street still hears it (**Single Broadcast Domain**).
+* **The Router (Layer 3)**: A formal border security checkpoint between two sovereign cities. The checkpoint blocks all local traffic sirens from crossing the border, isolating both crashes and noise completely (**Separate Collision and Broadcast Domains**).
+
+### 💻 Bridging to Computer Science
+When local area networks grow from a few workstations to thousands of hosts, shared-bus coaxial cables collapse under collision congestion. 
+
+To scale networks, hardware engineers developed **Transparent Bridges** and multi-port **Ethernet Switches**. Operating at **Layer 2 (Data Link Layer)**, switches inspect physical MAC addresses, make microsecond hardware forwarding decisions, and divide a single large network into hundreds of isolated micro-collision domains.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🔌 Connecting Devices: Hubs vs Switches vs Routers
+
+Understanding which OSI layer a networking device operates at determines how it handles electrical collisions and logical broadcasts:
+
+<ConceptComparison
+  subtitle="Comparative analysis of Layer 1, Layer 2, and Layer 3 connecting devices"
+  concepts={[
+    {
+      badge: "Layer 1 (Physical)",
+      title: "Repeaters & Active Hubs",
+      icon: "⚡",
+      color: "rose",
+      domain: "Bit-Level Electrical Amplification",
+      points: [
+        "Operates strictly at the Physical Layer; zero awareness of MAC frames or IP packets.",
+        "Blindly repeats incoming electrical bits across all other connected ports.",
+        "All ports share a single collision domain and a single broadcast domain.",
+        "A collision on any one port propagates to and corrupts every connected station."
+      ],
+      quote: "Simple multi-port bit repeater with zero traffic isolation."
+    },
+    {
+      badge: "Layer 2 (Data Link)",
+      title: "Bridges & Ethernet Switches",
+      icon: "📦",
+      color: "blue",
+      domain: "Frame-Level MAC Address Filtering",
+      points: [
+        "Operates at the Data Link Layer; inspects 48-bit MAC address headers.",
+        "Maintains a hardware Forwarding Database (CAM Table) via backward learning.",
+        "Breaks the network into isolated collision domains (one per switch port).",
+        "Does NOT isolate broadcast traffic: all ports share a single broadcast domain."
+      ],
+      quote: "Micro-segments collision domains while preserving a unified broadcast domain."
+    }
+  ]}
+/>
+
+---
+
+## 🧠 Transparent Bridges & Backward Learning Internals
+
+A bridge is called **Transparent** because stations on the LAN are completely unaware of its existence. You can plug a bridge into a live network, and without any manual configuration, stations immediately communicate through it.
+
+### How Does a Switch Learn Network Topology?
+A newly booted switch has an empty **Forwarding Table (Filtering Database / CAM Table)**. It learns node locations dynamically using the **Backward Learning Algorithm**:
+
+> **Golden Rule of Backward Learning:**
+> A bridge learns node locations by inspecting the **Source MAC Address** of every incoming frame, associating that MAC address with the physical **Ingress Port** on which the frame arrived.
+
+<FlowDiagram
+  subtitle="Hardware switching fabric associates incoming Source MAC addresses with physical ports in CAM table"
+  nodes={[
+    {
+      id: "host_a",
+      col: 0,
+      row: 0,
+      title: "Host A",
+      sublabel: "MAC: AA:AA:AA:AA:AA:AA",
+      badge: "Port 1",
+      icon: "💻",
+      color: "blue",
+      details: "Connected to Switch Port 1. When Host A transmits, the switch logs [AA:AA:... -> Port 1] into its CAM table.",
+    },
+    {
+      id: "host_b",
+      col: 2,
+      row: 0,
+      title: "Host B",
+      sublabel: "MAC: BB:BB:BB:BB:BB:BB",
+      badge: "Port 2",
+      icon: "💻",
+      color: "purple",
+      details: "Connected to Switch Port 2. Unicast frames addressed to Host B are selectively routed only out of Port 2.",
+    },
+    {
+      id: "switch",
+      col: 1,
+      row: 1,
+      title: "Layer 2 Switch",
+      sublabel: "ASIC Switching Fabric",
+      badge: "CAM Table",
+      icon: "🔀",
+      color: "amber",
+      details: "High-speed switching matrix. Inspects frame headers in hardware, maintains CAM table, and isolates collision domains per port.",
+    },
+    {
+      id: "host_c",
+      col: 0,
+      row: 2,
+      title: "Host C",
+      sublabel: "MAC: CC:CC:CC:CC:CC:CC",
+      badge: "Port 3",
+      icon: "💻",
+      color: "emerald",
+      details: "Connected to Switch Port 3. Operates in its own collision domain; can transmit simultaneously while Host A talks to Host B.",
+    },
+    {
+      id: "host_d",
+      col: 2,
+      row: 2,
+      title: "Host D",
+      sublabel: "MAC: DD:DD:DD:DD:DD:DD",
+      badge: "Port 4",
+      icon: "💻",
+      color: "cyan",
+      details: "Connected to Switch Port 4. Dedicated full-duplex circuit with zero electrical collision hazards.",
+    },
+  ]}
+  edges={[
+    {
+      from: "host_a",
+      to: "switch",
+      fromPort: "right",
+      toPort: "left",
+      direction: "bi",
+      step: "1",
+      label: "Port 1 Circuit",
+      detail: "Dedicated full-duplex link between Host A and Switch Port 1 (Collision Domain 1).",
+    },
+    {
+      from: "host_b",
+      to: "switch",
+      fromPort: "left",
+      toPort: "right",
+      direction: "bi",
+      step: "2",
+      label: "Port 2 Circuit",
+      detail: "Dedicated full-duplex link between Host B and Switch Port 2 (Collision Domain 2).",
+    },
+    {
+      from: "host_c",
+      to: "switch",
+      fromPort: "right",
+      toPort: "left",
+      direction: "bi",
+      step: "3",
+      label: "Port 3 Circuit",
+      detail: "Dedicated full-duplex link between Host C and Switch Port 3 (Collision Domain 3).",
+    },
+    {
+      from: "host_d",
+      to: "switch",
+      fromPort: "left",
+      toPort: "right",
+      direction: "bi",
+      step: "4",
+      label: "Port 4 Circuit",
+      detail: "Dedicated full-duplex link between Host D and Switch Port 4 (Collision Domain 4).",
+    },
+  ]}
+/>
+
+### Table Entry Format
+Each entry in the switch's Content Addressable Memory (CAM) table contains:
+1. **MAC Address**: The 48-bit hardware address of a host.
+2. **Port Number**: The physical switch interface where that host resides.
+3. **Age / TTL Timer**: A countdown timer (typically 300 seconds). If no frames arrive from that MAC address before the timer expires, the entry is purged to adapt to laptop mobility or cable reconnections.
+
+---
+
+## 🚦 Forwarding, Filtering & Flooding State Machine
+
+When a frame enters a switch on Ingress Port $P_{\text{in}}$, the switch executes three sequential operations:
+
+<FlowPipeline
+  subtitle="Microsecond hardware inspection and forwarding decision sequence"
+  nodes={[
+    {
+      badge: "Step 1",
+      title: "Learn Source MAC",
+      icon: "📝",
+      color: "blue",
+      description: "Record (Source MAC, Port, Timestamp) in CAM table. Reset aging timer.",
+      connectorLabel: "Inspect Dest MAC",
+    },
+    {
+      badge: "Step 2",
+      title: "Table Lookup",
+      icon: "🔍",
+      color: "cyan",
+      description: "Query Destination MAC in CAM table. Identify mapped egress port.",
+      connectorLabel: "Evaluate Port",
+    },
+    {
+      badge: "Step 3",
+      title: "Forwarding Action",
+      icon: "🚀",
+      color: "emerald",
+      description: "Execute Filter (same port), Forward (mapped port), or Flood (unknown).",
+    },
+  ]}
+/>
+
+### The Three Operational Outcomes
+
+| Destination MAC Status | Egress Port Relation | Switch Action | Network Effect |
+| :--- | :--- | :--- | :--- |
+| **Known in Table** | Target Port == Ingress Port | **FILTER (Discard)** | The destination host is on the same local segment as the sender. The recipient already received the frame directly over the shared cable; forwarding through the switch would waste bandwidth. |
+| **Known in Table** | Target Port $\ne$ Ingress Port | **FORWARD (Unicast)** | The switch selectively transmits the frame out **only** to that specific egress port. All other ports remain silent and free for parallel conversations. |
+| **Unknown in Table** | Not in CAM table | **FLOOD** | The switch replicates the frame out of **every port except the ingress port** on which it arrived. |
+| **Broadcast Address** | `FF:FF:FF:FF:FF:FF` | **FLOOD** | Replicated out all ports (except ingress) so all LAN hosts receive the broadcast (e.g. ARP request). |
+
+---
+
+## 💥 Collision Domains vs Broadcast Domains: Rigorous Counting Rules
+
+This is one of the most frequently tested concepts in computer systems engineering.
+
+### Definitions
+* **Collision Domain**: A physical network segment where data packets can collide with one another when sent simultaneously.
+* **Broadcast Domain**: A logical division of a computer network in which all nodes can reach each other by broadcast at the data link layer.
+
+### The Golden Hardware Rules
+
+| Network Device | Collision Domain Effect | Broadcast Domain Effect | Physical Layer & Architecture Role |
+| :--- | :--- | :--- | :--- |
+| **Hub / Repeater (Layer 1)** | ❌ **Passes / Connects** (1 Total) | ❌ **Passes / Connects** (1 Total) | Pure physical-layer signal repeater. Shares electrical bus; collisions and broadcasts echo to all ports. |
+| **Bridge / Switch (Layer 2)** | ✅ **Breaks / Isolates** ($N$ Ports) | ❌ **Passes / Connects** (1 Total) | Data link layer frame switch. Buffers frames into dedicated port micro-segments; broadcasts flood across the LAN. |
+| **Router / Gateway (Layer 3)** | ✅ **Breaks / Isolates** ($M$ Ports) | ✅ **Breaks / Isolates** ($M$ Ports) | Network layer packet router. Forwards across subnets; terminates Layer 2 MAC broadcast frames at interface. |
+
+1. **A Hub does not divide anything**:
+   A 16-port Hub has **1 Collision Domain** and **1 Broadcast Domain**.
+2. **A Switch separates Collision Domains, but NOT Broadcast Domains**:
+   An $N$-port switch creates **$N$ distinct Collision Domains**, but maintains **1 single Broadcast Domain** across all ports.
+3. **A Router separates BOTH Collision Domains AND Broadcast Domains**:
+   An $M$-port router creates **$M$ Collision Domains** and **$M$ distinct Broadcast Domains** (one per routed subnet).
+
+---
+
+## 🌳 Bridging Loops, Broadcast Storms & Spanning Tree (STP)
+
+In enterprise networks, network administrators connect multiple switches with redundant parallel links to prevent network downtime if a single cable is severed.
+
+However, redundant physical links in a Layer 2 network introduce fatal **Bridging Loops**:
+
+<FlowDiagram
+  subtitle="Redundant physical loop transformed into a loop-free logical tree by placing redundant ports in Blocking state"
+  nodes={[
+    {
+      id: "switch_1",
+      col: 1,
+      row: 0,
+      title: "Switch 1 (Root Bridge)",
+      sublabel: "Lowest Bridge ID",
+      badge: "Root Bridge",
+      icon: "👑",
+      color: "amber",
+      details: "Elected as Root Bridge across the LAN. All its ports operate in Designated Forwarding state with zero blocking.",
+    },
+    {
+      id: "switch_2",
+      col: 0,
+      row: 1,
+      title: "Switch 2",
+      sublabel: "Designated Switch",
+      badge: "Root Port Active",
+      icon: "🔀",
+      color: "blue",
+      details: "Maintains active Root Port link to Switch 1. Forwards frames without loop hazards.",
+    },
+    {
+      id: "switch_3",
+      col: 2,
+      row: 1,
+      title: "Switch 3",
+      sublabel: "Alternate Blocked Port",
+      badge: "STP Port Blocked",
+      icon: "🛡️",
+      color: "rose",
+      details: "STP algorithm identifies the loop between Switch 2 and Switch 3, placing the interconnect port into BLOCKED (Discarding) state to eliminate broadcast storms.",
+    },
+  ]}
+  edges={[
+    {
+      from: "switch_1",
+      to: "switch_2",
+      fromPort: "bottom",
+      toPort: "top",
+      direction: "bi",
+      step: "1",
+      label: "Active Trunk 1 (Forwarding)",
+      detail: "Primary active forwarding circuit between Root Bridge and Switch 2.",
+    },
+    {
+      from: "switch_1",
+      to: "switch_3",
+      fromPort: "bottom",
+      toPort: "top",
+      direction: "bi",
+      step: "2",
+      label: "Active Trunk 2 (Forwarding)",
+      detail: "Primary active forwarding circuit between Root Bridge and Switch 3.",
+    },
+    {
+      from: "switch_2",
+      to: "switch_3",
+      fromPort: "right",
+      toPort: "left",
+      direction: "bi",
+      step: "3",
+      label: "Blocked Link (STP Standby)",
+      detail: "Port placed into BLOCKED state. Discards user traffic to break loop; automatically transitions to Forwarding if Trunk 1 or 2 fails.",
+    },
+  ]}
+/>
+
+### The Three Catastrophes of Layer 2 Loops
+Because Ethernet frame headers **lack a Time-to-Live (TTL) hop limit counter** (unlike Layer 3 IP packets):
+1. **Broadcast Storms**: When an ARP broadcast enters a looped topology, Switch 1 floods it to Switch 2 and Switch 3. Switch 2 floods it to Switch 3; Switch 3 floods it back to Switch 1. The broadcast replicates exponentially, saturating 100% of network bandwidth within seconds and crashing the switches.
+2. **MAC Table Thrashing**: As copies of the same frame circulate endlessly in opposite directions, the switches repeatedly rewrite their CAM table port mappings for the same source MAC thousands of times per second.
+3. **Multiple Frame Copies**: Destination hosts receive duplicate copies of the same unicast frame.
+
+### The Spanning Tree Protocol Solution (IEEE 802.1D)
+Invented by Radia Perlman in 1985, the **Spanning Tree Protocol (STP)** dynamically breaks loops:
+1. Switches exchange special control packets called **Bridge Protocol Data Units (BPDUs)**.
+2. Switches elect a single **Root Bridge** (the switch with the lowest Bridge ID).
+3. Every non-root switch calculates the shortest path cost to the Root Bridge.
+4. Redundant physical ports that create loops are transitioned into the **Blocking State** (they pass zero data frames, acting as cold standby links).
+5. If an active link fails, STP detects the loss of BPDUs and automatically unblocks the backup port, restoring connectivity without loops!
+
+---
+
+## 🏭 Real-World Production Context: Modern Full-Duplex Switching & Data Center Spines
+
+In the 1980s and 1990s, Ethernet operated in **Half-Duplex** over shared coaxial cables or hubs, requiring CSMA/CD to manage collisions.
+
+Modern Ethernet operates exclusively in **Full-Duplex Switched Mode**:
+* Every computer has a dedicated twisted-pair copper cable (Cat 5e/Cat 6) plugged directly into a private switch port.
+* Category 6 cables contain 4 twisted pairs: Pair 1-2 is dedicated exclusively for transmitting (Tx), while Pair 3-6 is dedicated exclusively for receiving (Rx).
+* Because the transmit and receive electrical pathways are physically separated, a host can transmit at $1\text{ Gbps}$ while simultaneously receiving at $1\text{ Gbps}$!
+
+> **The Physical Consequence**:
+> In Full-Duplex switched Ethernet, **collisions are physically impossible**. There is no carrier sensing, no jamming signal, no backoff timer, and no minimum frame size physical constraint. CSMA/CD is completely disabled on full-duplex links! The 64-byte minimum frame size is retained strictly for backward software compatibility with legacy Ethernet specifications.
+
+### High-Performance Data Center Switching: Leaf-Spine Topologies
+Traditional multi-tier STP architectures left over 50% of switch trunk cables idle in the "Blocking" state to prevent loops. Modern cloud data centers (Google, Meta, AWS) replaced STP with **Clos Leaf-Spine Architecture**:
+1. Every Top-of-Rack (Leaf) switch connects to **every Spine switch** in the building.
+2. Rather than Layer 2 bridging, links between Leaf and Spine operate as **Layer 3 routed links (running BGP/ECMP)**.
+3. **Equal-Cost Multi-Path (ECMP)** enables 100% of physical fiber links to carry active traffic concurrently, delivering deterministic East-West bandwidth for cloud microservices with sub-microsecond latency.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Collision vs Broadcast Domain Counting
+**Problem Statement:** Consider a network topology consisting of:
+* Two 8-port Ethernet Switches ($S_1$ and $S_2$), connected to each other by a single link.
+* Four 4-port Ethernet Hubs ($H_1, H_2, H_3, H_4$). Hubs $H_1$ and $H_2$ are connected to ports on Switch $S_1$. Hubs $H_3$ and $H_4$ are connected to ports on Switch $S_2$.
+* All remaining switch and hub ports are connected to individual workstations.
+* A Router connects Switch $S_2$ to an external WAN.
+
+Calculate:
+1. The total number of **Collision Domains** in the network.
+2. The total number of **Broadcast Domains** in the network.
+
+**Step-by-Step Solution:**
+
+#### Step 1: Count Collision Domains
+* Every port of a Switch that connects to a device represents an independent collision domain.
+* Every Hub collapses all its connected nodes into **1 single collision domain**.
+  * Hub $H_1$ and its attached computers: **1 Collision Domain**.
+  * Hub $H_2$ and its attached computers: **1 Collision Domain**.
+  * Hub $H_3$ and its attached computers: **1 Collision Domain**.
+  * Hub $H_4$ and its attached computers: **1 Collision Domain**.
+* Inter-switch link between $S_1$ and $S_2$: **1 Collision Domain**.
+* Link between $S_2$ and the Router: **1 Collision Domain**.
+* Remaining individual workstations connected directly to switch ports:
+  * Switch $S_1$ has 8 ports: 2 go to Hubs ($H_1, H_2$), 1 goes to $S_2 \implies 5$ direct workstation ports $\implies \mathbf{5\text{ Collision Domains}}$.
+  * Switch $S_2$ has 8 ports: 2 go to Hubs ($H_3, H_4$), 1 goes to $S_1$, 1 goes to Router $\implies 4$ direct workstation ports $\implies \mathbf{4\text{ Collision Domains}}$.
+* Total Collision Domains = $1 (H_1) + 1 (H_2) + 1 (H_3) + 1 (H_4) + 1 (\text{link } S_1-S_2) + 1 (\text{link } S_2-\text{Router}) + 5 (S_1\text{ hosts}) + 4 (S_2\text{ hosts}) = \mathbf{15\text{ Collision Domains}}$.
+
+#### Step 2: Count Broadcast Domains
+* Hubs and Switches **do not break broadcast domains**. All broadcast traffic floods across all ports of $S_1$, $S_2$, and all four hubs.
+* The Router interface forms a boundary that **stops broadcast traffic**.
+* Therefore, the entire internal LAN forms **1 single Broadcast Domain** (plus 1 for the external WAN side of the router).
+* Internal LAN Broadcast Domains = **1 Broadcast Domain**.
+
+---
+
+### Example 2: Backward Learning Table State Progression
+**Problem Statement:** A 4-port learning bridge connects four stations ($A$ on Port 1, $B$ on Port 2, $C$ on Port 3, $D$ on Port 4). The bridge's CAM table is initially completely empty. The following sequence of frame transmissions occurs:
+1. Frame 1: Station $A$ transmits to Station $C$.
+2. Frame 2: Station $C$ transmits to Station $A$.
+3. Frame 3: Station $D$ transmits to Station $C$.
+4. Frame 4: Station $B$ transmits to Station $A$.
+
+For each frame, specify:
+* The CAM table update performed by the bridge.
+* Whether the bridge forwards the frame via Unicast or Flooding.
+* Which ports receive the frame.
+
+**Step-by-Step Solution:**
+
+| Transmission | Ingress Port & Source | CAM Table Update | Target Lookup Result | Bridge Forwarding Action | Ports Receiving Frame |
+| :---: | :---: | :--- | :--- | :--- | :--- |
+| **1. $A \to C$** | Port 1 ($A$) | Learns `[A -> Port 1]` | Destination $C$ is **not in table**. | **FLOOD** (Replicate to all ports except ingress) | Ports 2, 3, 4 |
+| **2. $C \to A$** | Port 3 ($C$) | Learns `[C -> Port 3]` | Destination $A$ **found on Port 1**. | **FORWARD (Unicast)** | Port 1 only |
+| **3. $D \to C$** | Port 4 ($D$) | Learns `[D -> Port 4]` | Destination $C$ **found on Port 3**. | **FORWARD (Unicast)** | Port 3 only |
+| **4. $B \to A$** | Port 2 ($B$) | Learns `[B -> Port 2]` | Destination $A$ **found on Port 1**. | **FORWARD (Unicast)** | Port 1 only |
+
+*Final State of CAM Table:* `[A: Port 1, B: Port 2, C: Port 3, D: Port 4]`. From this point forward, zero flooding will occur for unicast frames between these four nodes.
+
+---
+
+### Example 3: Switch Fanout and Cascading Topology Design
+**Problem Statement:** An engineering laboratory needs to connect 15 workstations in a single local area network using standard 8-port Ethernet switches. Assume these switches do not feature dedicated uplink ports; any port can be used to interconnect switches or connect host machines. What is the minimum number of 8-port switches required to connect all 15 machines?
+
+**Step-by-Step Solution:**
+1. **Analyze Available Port Capacity:**
+   * A single 8-port switch can connect at most 8 machines. Since $15 > 8$, we need at least 2 switches.
+2. **Evaluate 2 Cascaded Switches:**
+   * To connect Switch 1 and Switch 2 together, we must dedicate 1 port on Switch 1 and 1 port on Switch 2 for the interconnect cable.
+   * Usable ports on Switch 1 = $8 - 1 = 7\text{ ports}$.
+   * Usable ports on Switch 2 = $8 - 1 = 7\text{ ports}$.
+   * Total host capacity with 2 switches = $7 + 7 = \mathbf{14\text{ workstations}}$.
+   * Since $14 < 15$, **2 switches are insufficient** to support 15 workstations!
+3. **Evaluate 3 Cascaded Switches:**
+   * Configure in a line or star: Switch 1 acts as the core, connected to Switch 2 and Switch 3:
+     * Switch 1 dedicates 2 ports to connect to Switch 2 and Switch 3, leaving $8 - 2 = 6\text{ ports}$ for hosts.
+     * Switch 2 dedicates 1 port to connect to Switch 1, leaving $8 - 1 = 7\text{ ports}$ for hosts.
+     * Switch 3 dedicates 1 port to connect to Switch 1, leaving $8 - 1 = 7\text{ ports}$ for hosts.
+   * Total host capacity = $6 + 7 + 7 = \mathbf{20\text{ workstations}}$.
+4. **Conclusion:**
+   The minimum number of 8-port switches required is **3 switches**.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does a bridge filter (drop) a frame when the destination port matches the ingress port?**
+  Because if Destination Port == Ingress Port, both the transmitting station and the destination station reside on the **same physical cable segment**. When the sender put the bits on the wire, the destination host received them directly over the copper. Forwarding the frame across the bridge would needlessly pollute other network segments with duplicate traffic.
+* **Does a switch change the MAC addresses of a frame as it forwards it?**
+  **No.** A Layer 2 switch never modifies Source or Destination MAC addresses (unless performing specialized NAT or routing functions). It simply reads the destination address to select the egress port and forwards the frame unchanged. Routers (Layer 3), in contrast, rewrite Source and Destination MAC addresses at every hop!
+:::
+
+:::warning Common Interview Traps
+* **Trap: Believing VLANs are required to separate collision domains.**
+  A switch separates collision domains on every single port **by default**, even without any VLAN configuration. VLANs (Virtual Local Area Networks) are used to separate **Broadcast Domains** within a switch.
+* **Trap: Forgetting that a frame entering a switch is flooded if the destination MAC is unknown.**
+  If an entry is not yet present in the CAM table (due to cache timeout or the destination host having not yet transmitted), the switch does not drop the frame; it **floods** it out all ports except the ingress port (Unknown Unicast Flooding).
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "3.4 Controlled Access & Channelization: Token Ring, FDMA, TDMA, CDMA",
+    url: "/coredose/cn/module-03/controlled-access-and-channelization-protocols"
+  }}
+  next={{
+    title: "4.1 Network Layer Core Goals & Virtual Circuits vs Datagrams",
+    url: "/coredose/cn/module-04/network-layer-core-goals-and-virtual-circuits-vs-datagrams",
+  }}
+  courseUrl="/coredose/cn"
+/>

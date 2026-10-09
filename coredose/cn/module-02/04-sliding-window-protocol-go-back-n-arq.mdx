@@ -1,0 +1,470 @@
+---
+title: "2.4 Sliding Window Protocol: Go-Back-N (GBN) ARQ"
+description: "Pipelining concepts in flow control, Go-Back-N ARQ mechanics, cumulative ACKs, window size constraints (Ws = 2^k - 1, Wr = 1), efficiency derivations (Ws / (1 + 2a)), and solved engineering examples."
+hide_table_of_contents: true
+---
+
+# 2.4 Sliding Window Protocol: Go-Back-N (GBN) ARQ
+
+<CoreDoseLessonHeader
+  module="Module 02: Data Link Layer: Framing, Flow & Error Control"
+  topic="Topic 2.4"
+  courseUrl="/coredose/cn"
+  readTime="11 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Strict Librarian Analogy
+
+### 🍳 The Everyday Analogy: The Single-Slot Inspection Desk
+Imagine ordering a 5-volume encyclopedia set from a book supplier:
+* You are a strict librarian with a physical desk that has room for **exactly one book at a time** ($W_R = 1$).
+* The supplier sends Volumes 1, 2, 3, 4, and 5 in rapid succession.
+* Volume 1 arrives in perfect condition; you log it and place it on the shelf.
+* Volume 2 is damaged or lost in the mail.
+* Next, Volume 3 arrives intact. However, because you only accept books in strict sequential order and have **zero storage space** to hold Volume 3 while waiting for Volume 2, your policy forces you to **immediately reject and discard Volume 3**!
+* When Volume 4 arrives, you discard it too.
+* When the supplier's timeout timer for Volume 2 expires, the supplier must **"Go-Back-N"** and re-ship Volume 2, Volume 3, Volume 4, and Volume 5 all over again!
+
+### 💻 Bridging to Computer Science
+This is the fundamental operational trade-off of **Go-Back-N (GBN)**: by keeping the receiver implementation ultra-simple (zero memory buffering required for out-of-order packets), the sender bears the heavy burden of retransmitting all outstanding frames when a single frame is lost.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🚀 The Motivation: Channel Pipelining
+
+In Stop-and-Wait, the efficiency is governed by:
+$$\eta = \frac{1}{1 + 2a}$$
+
+When transmitting over high-speed networks or long-distance links (such as satellite channels), $a = \frac{T_p}{T_t} \gg 1$. The channel sits empty and idle for over $95\%$ of the time.
+
+<ConceptComparison
+  title="Channel Transmission Paradigms"
+  subtitle="Contrasting the idle wait of Stop-and-Wait against continuous pipelined streaming"
+  left={{
+    badge: "Single-Frame Lockstep",
+    title: "Stop-and-Wait Protocol",
+    icon: "⏸️",
+    color: "purple",
+    domain: "Low BDP Channels, Firmware Bootloaders",
+    points: [
+      "Sender transmits 1 frame and pauses completely for round-trip propagation 2·Tp.",
+      "Line remains idle and empty while waiting for the remote acknowledgment.",
+      "Efficiency η = 1 / (1 + 2a); collapses to near 0% when delay Tp is large.",
+      "Requires 1-bit sequence numbers (modulo-2).",
+    ],
+    quote: "Half-duplex lockstep execution: link capacity is severely starved.",
+  }}
+  right={{
+    badge: "Continuous Pipelining",
+    title: "Sliding Window Protocol",
+    icon: "🚀",
+    color: "blue",
+    domain: "High-Speed WANs, Satellite Transits, TCP Streams",
+    points: [
+      "Sender blasts multiple frames into the wire back-to-back without waiting for individual ACKs.",
+      "Keeps the physical transmission medium continuously full of data.",
+      "Efficiency scales with window size: η = Ws / (1 + 2a) up to 100%.",
+      "Requires k-bit sequence numbers (modulo 2^k) with sliding windows.",
+    ],
+    quote: "Full-pipe streaming: achieves 100% link utilization regardless of propagation delay.",
+  }}
+/>
+
+### The Pipelining Solution
+Instead of waiting for an ACK after sending every single frame, the sender transmits **multiple frames concurrently** into the physical channel before pausing. This technique is called **Pipelining**. The sender maintains a **Sliding Window** of outstanding frames.
+
+---
+
+## 🪟 Go-Back-N Architecture & Window State Pointers
+
+In Go-Back-N, the sender and receiver maintain sliding windows defined over a circular sequence number space.
+
+<FlowPipeline
+  title="Go-Back-N Sliding Window State Partitions"
+  subtitle="Dynamic partitions of the circular sequence number space at the transmitter"
+  nodes={[
+    {
+      badge: "Region 1: Acknowledged",
+      title: "Sent & Confirmed",
+      icon: "✅",
+      color: "emerald",
+      description: "Frames < Sf: successfully received and acknowledged; purged from buffer.",
+      connectorLabel: "Sliding Boundary Sf",
+    },
+    {
+      badge: "Region 2: Outstanding",
+      title: "Sent, Awaiting ACK",
+      icon: "⏳",
+      color: "amber",
+      description: "Frames [Sf, Sn): in transit across the physical link; timer running.",
+      connectorLabel: "Transmission Pointer Sn",
+    },
+    {
+      badge: "Region 3: Usable",
+      title: "Eligible to Send",
+      icon: "📤",
+      color: "blue",
+      description: "Frames within [Sn, Sf + Ws): ready for immediate transmission.",
+      connectorLabel: "Window Boundary Sf + Ws",
+    },
+    {
+      badge: "Region 4: Blocked",
+      title: "Outside Window",
+      icon: "🚫",
+      color: "rose",
+      description: "Cannot be transmitted until oldest frame Sf is acknowledged.",
+    },
+  ]}
+/>
+
+### Key Window Variables
+1. **$S_f$ (Send Window, First)**: Points to the sequence number of the **oldest unacknowledged frame**.
+2. **$S_n$ (Send Window, Next)**: Points to the sequence number of the **next frame ready to be sent**.
+3. **$S_{\text{size}}$ (Send Window Size, $W_S$)**: The maximum number of unacknowledged frames permitted in flight ($W_S = 2^k - 1$).
+4. **$R_n$ (Receive Window, Next Expected)**: Points to the sequence number of the single frame the receiver is currently awaiting ($W_R = 1$).
+
+### Transmission Rule
+The sender can transmit new frames as long as the number of outstanding frames does not exceed the window capacity:
+$$S_n - S_f < W_S$$
+
+---
+
+## 📬 Cumulative Acknowledgments & Timer Operations
+
+### 1. Cumulative ACKs
+In Go-Back-N, acknowledgments are **Cumulative**:
+* An acknowledgment labeled $ACK_m$ announces:
+  $$\text{"I have successfully received all frames up to } m - 1 \text{, and I am now awaiting Frame } m\text{."}$$
+* **Robustness to ACK Loss**: If the sender transmits Frames 0, 1, and 2, and the receiver issues $ACK_1, ACK_2$, and $ACK_3$:
+  * If $ACK_1$ and $ACK_2$ are lost or destroyed in the channel, but $ACK_3$ arrives safely at the sender, **Frames 0, 1, and 2 are all confirmed simultaneously**! The sliding window slides forward past Frame 2 with zero retransmission penalty.
+
+### 2. Single-Timer Management
+To keep sender memory overhead minimal, Go-Back-N uses only **one single timer**:
+* The timer is tied strictly to the **oldest unacknowledged frame ($S_f$)**.
+* When $S_f$ advances due to an incoming ACK:
+  * If there are still outstanding frames in flight ($S_f \neq S_n$), the timer is **restarted** for the new oldest frame.
+  * If all frames have been acknowledged ($S_f = S_n$), the timer is **stopped**.
+* When the timer expires:
+  * The sender infers that Frame $S_f$ was lost.
+  * The sender **Goes Back $N$**: it retransmits **all frames** in the range $[S_f, S_n - 1]$!
+
+### 3. Discarding Out-of-Order Frames
+Because the receiver window size is strictly $W_R = 1$:
+* If Frame $i$ is lost, but subsequent Frames $i+1, i+2$ arrive undamaged at the receiver:
+* The receiver checks the incoming frame's sequence number against $R_n = i$.
+* Since the arriving sequence number does not match $R_n$, the receiver **discards Frames $i+1, i+2$**!
+* The receiver does **not buffer** out-of-order frames, keeping receiver memory hardware simple and inexpensive.
+
+---
+
+## 🔄 Interactive Flagship Blueprint: Go-Back-N ARQ Space-Time Protocol Ladder
+
+The interactive space-time protocol ladder below traces the hallmark behavior of Go-Back-N ($W_S = 4, W_R = 1$): sender transmits a pipelined burst of frames, Frame 1 is lost in the noisy channel, the receiver discards subsequent out-of-order Frames 2 and 3, the sender's Frame 1 timer expires, and the sender rolls back to retransmit Frames 1, 2, and 3.
+
+<ProtocolLadder
+  title="Go-Back-N ARQ: Frame Loss, Out-of-Order Discard & Retransmission Ladder"
+  subtitle="Space-time protocol ladder showing pipelined burst transmission, Frame 1 loss, receiver out-of-order discards, timeout, and Go-Back-N recovery"
+  actors={[
+    { id: "sender", label: "Sender (Host A)", icon: "📡", role: "Transmitter (Ws = 4)", color: "blue" },
+    { id: "receiver", label: "Receiver (Host B)", icon: "📥", role: "Receiver (Wr = 1)", color: "emerald" },
+  ]}
+  windowState={{
+    title: "Go-Back-N Window Buffers (k = 3 bits, Ws = 4, Wr = 1)",
+    sender: {
+      label: "Sender Window [Sf ... Sn-1]",
+      size: 4,
+      slots: [
+        { seq: 0, status: "acked", badge: "ACKed" },
+        { seq: 1, status: "sent", badge: "Lost" },
+        { seq: 2, status: "sent", badge: "Discarded" },
+        { seq: 3, status: "sent", badge: "Discarded" },
+        { seq: 4, status: "usable", badge: "Usable" },
+        { seq: 5, status: "usable" },
+        { seq: 6, status: "blocked" },
+        { seq: 7, status: "blocked" },
+      ],
+    },
+    receiver: {
+      label: "Receiver Window [Rn]",
+      size: 1,
+      slots: [
+        { seq: 1, status: "usable", badge: "Rn = 1" },
+        { seq: 2, status: "blocked" },
+        { seq: 3, status: "blocked" },
+        { seq: 4, status: "blocked" },
+      ],
+    },
+  }}
+  steps={[
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Frame 0",
+      sublabel: "seq=0 (Burst #1)",
+      color: "blue",
+      status: "success",
+      delayNote: "Tp delay",
+      details: "Sender transmits Frame 0 as the first frame of its window and starts its retransmission timer. Frame 0 arrives intact at the receiver.",
+      technicalContext: "Receiver verifies CRC checksum, accepts payload, and prepares cumulative ACK 1.",
+    },
+    {
+      from: "receiver",
+      to: "sender",
+      label: "ACK 1",
+      sublabel: "Expects Frame 1",
+      color: "emerald",
+      status: "success",
+      delayNote: "Cumulative ACK",
+      details: "Receiver acknowledges Frame 0 by dispatching ACK 1, advancing its expected pointer to Rn = 1.",
+      technicalContext: "Sender receives ACK 1, sliding its window base forward: Sf advances from 0 to 1.",
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Frame 1",
+      sublabel: "seq=1 (Burst #2)",
+      color: "rose",
+      status: "lost",
+      details: "Sender transmits Frame 1 into the channel. However, electromagnetic line noise destroys the packet, dropping it completely!",
+      technicalContext: "Sender retransmission timer for Frame 1 continues ticking down.",
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Frame 2",
+      sublabel: "seq=2 (Burst #3)",
+      color: "amber",
+      status: "corrupted",
+      details: "Frame 2 arrives undamaged. However, because the receiver's window is strictly Wr = 1 and Rn = 1, it CANNOT buffer out-of-order data! Frame 2 is discarded.",
+      technicalContext: "Receiver discards Frame 2 and re-issues ACK 1 to remind the sender that Frame 1 is still missing.",
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Frame 3",
+      sublabel: "seq=3 (Burst #4)",
+      color: "amber",
+      status: "corrupted",
+      details: "Frame 3 arrives. Because the receiver is still waiting for Frame 1 (Rn = 1), Frame 3 is also discarded into the bit-bucket!",
+      technicalContext: "This highlights the core inefficiency of Go-Back-N: undamaged frames arriving out-of-order must be thrown away.",
+    },
+    {
+      actor: "sender",
+      isEvent: true,
+      eventType: "timeout",
+      spanSteps: 2,
+      label: "Timer Expires (Frame 1 RTO)",
+      sublabel: "Go-Back-N Triggered",
+      color: "rose",
+      details: "The retransmission timer for the oldest unacknowledged frame (Frame 1) expires! The sender infers that Frame 1 was lost.",
+      technicalContext: "Sender rolls its sequence pointer Sn back to Sf = 1, preparing to retransmit all N outstanding frames in the window.",
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Frame 1 (Go-Back-N)",
+      sublabel: "seq=1 (Retransmit)",
+      color: "emerald",
+      status: "success",
+      delayNote: "Retransmission #1",
+      details: "Sender retransmits Frame 1. This time, Frame 1 arrives intact! The receiver accepts it and advances its expected pointer Rn to 2.",
+      technicalContext: "Receiver delivers Frame 1 payload to the Network Layer.",
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Frame 2 (Go-Back-N)",
+      sublabel: "seq=2 (Retransmit)",
+      color: "blue",
+      status: "success",
+      delayNote: "Retransmission #2",
+      details: "Sender retransmits Frame 2 (even though it arrived safely earlier!). Receiver ingests Frame 2 and advances Rn to 3.",
+      technicalContext: "Sender follows up by retransmitting Frame 3, completing the Go-Back-N recovery sequence.",
+    },
+  ]}
+/>
+
+---
+
+## 🔒 The Mathematical Constraint: Why Must $W_S \le 2^k - 1$?
+
+If $k$ bits are allocated in the frame header for sequence numbers, the total available sequence space is $2^k$ (values $0, 1, 2, \dots, 2^k - 1$).
+
+### Theorem: The maximum sender window size in GBN is $W_S = 2^k - 1$.
+
+#### Proof by Contradiction:
+Suppose we set $W_S = 2^k$. Consider a system with $k = 2$ bits $\implies 2^2 = 4$ sequence numbers ($0, 1, 2, 3$), and choose $W_S = 4$:
+
+1. **Full Burst**: Sender transmits Frames 0, 1, 2, and 3.
+2. **Receiver Processing**: The receiver ingests all 4 frames in perfect order, delivers the payloads to the Network Layer, and advances $R_n$ cyclically: $0 \to 1 \to 2 \to 3 \to 0$ (wraps around to $0$). The receiver sends cumulative $ACK_0$ (requesting Frame 0 of the next round).
+3. **Catastrophic Failure**: All acknowledgments (including $ACK_0$) are destroyed by channel noise!
+4. **Timeout**: Sender timer for Frame 0 expires. Sender retransmits duplicate Frame 0 of the previous round.
+5. **The Ambiguity Collision**:
+   * The receiver is awaiting $R_n = 0$.
+   * When duplicate Frame 0 arrives, the receiver assumes this is the **brand-new Frame 0** of the upcoming round!
+   * The receiver accepts duplicate Frame 0 as fresh data, permanently corrupting the upper-layer stream.
+
+* **The Resolution**: By capping $W_S \le 2^k - 1$, if all ACKs are lost, the sender retransmits Frame 0. However, the receiver's window has only advanced to $R_n = 3$ (not $0$). The receiver identifies that incoming Frame 0 falls outside its current window, recognizes it as an old duplicate, and safely discards it!
+* **Summary of Window Sizes in GBN**:
+  $$\mathbf{W_S = 2^k - 1}, \quad \mathbf{W_R = 1}, \quad \mathbf{W_S + W_R = 2^k}$$
+
+---
+
+## 📐 Derivation of Go-Back-N Efficiency & Optimal Window Size
+
+In Go-Back-N, the sender transmits $W_S$ frames during one round-trip cycle time ($T_t + 2 T_p$):
+
+### 1. General Efficiency Formula
+$$\eta = \frac{\text{Useful Time}}{\text{Total Cycle Time}} = \frac{W_S \cdot T_t}{T_t + 2 \cdot T_p}$$
+
+Dividing the numerator and denominator by $T_t$ and using $a = \frac{T_p}{T_t}$:
+$$\mathbf{\eta = \frac{W_S}{1 + 2a}} \quad (\text{subject to } \eta \le 1)$$
+
+### 2. Optimal Window Size for $100\%$ Line Utilization ($\eta = 1$)
+To achieve $100\%$ efficiency ($\eta = 1$):
+$$\frac{W_S}{1 + 2a} \ge 1 \implies \mathbf{W_S \ge 1 + 2a}$$
+
+* The optimal sender window size needed to completely fill the link capacity is:
+  $$W_{S,\text{optimal}} = \lceil 1 + 2a \rceil$$
+
+### 3. Minimum Number of Sequence Bits ($k$)
+Since $W_S \le 2^k - 1$:
+$$2^k - 1 \ge W_S \implies 2^k \ge W_S + 1$$
+$$\mathbf{k \ge \lceil \log_2(W_S + 1) \rceil}$$
+
+---
+
+## 🏭 Real-World Production Context
+
+### Why Early 2G/3G Cellular Networks & HDLC Satellites Used Go-Back-N
+In early wireless networks (GSM / GPRS Radio Link Control) and legacy satellite transceivers:
+* Embedded base station terminals had minuscule microcontrollers with severely restricted RAM (often under $32\text{ KB}$).
+* Managing out-of-order buffer reassembly queues would require substantial memory and complex heap fragmentation logic.
+* Engineers selected **Go-Back-N** because the receiver requires **zero packet buffer memory** beyond the single currently clocked frame ($W_R = 1$), slashing hardware costs while achieving high throughput on low-loss channels.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Sizing Sender Window for 100% Efficiency on High-Delay Links
+
+**Problem Statement:**  
+Consider a network connecting two communication hosts located $8000\text{ km}$ apart. The link bandwidth is $500\text{ kbps}$. The propagation velocity through the transmission line is $4 \times 10^6\text{ m/s}$. The system transmits packets of size $10^7\text{ bits}$. If a sliding window protocol is employed, determine the minimum sender window size required to achieve $100\%$ link utilization.
+
+#### Step-by-Step Solution:
+1. **List the Parameters**:
+   * Distance $d = 8000\text{ km} = 8 \times 10^6\text{ meters}$.
+   * Velocity $v = 4 \times 10^6\text{ m/s}$.
+   * Bandwidth $B = 500\text{ kbps} = 5 \times 10^5\text{ bps}$.
+   * Frame size $L = 10^7\text{ bits}$.
+2. **Calculate Propagation Delay ($T_p$)**:
+   $$T_p = \frac{d}{v} = \frac{8 \times 10^6\text{ m}}{4 \times 10^6\text{ m/s}} = 2\text{ seconds}$$
+3. **Calculate Transmission Delay ($T_t$)**:
+   $$T_t = \frac{L}{B} = \frac{10^7\text{ bits}}{5 \times 10^5\text{ bps}} = 20\text{ seconds}$$
+4. **Calculate Parameter $a$**:
+   $$a = \frac{T_p}{T_t} = \frac{2\text{ s}}{20\text{ s}} = 0.1$$
+5. **Calculate Optimal Window Size ($W_S$)**:
+   $$W_S \ge 1 + 2a = 1 + 2(0.1) = 1 + 0.2 = 1.2$$
+   * Since window size must be an integer:
+   $$W_S = \lceil 1.2 \rceil = \mathbf{2}$$
+6. **Final Result**:
+   A sender window size of $W_S = \mathbf{2}$ is sufficient to achieve full channel capacity.
+
+---
+
+### Example 2: Determining Minimum Sequence Bits for Geostationary Satellite Channels
+
+**Problem Statement:**  
+A $1\text{ Mbps}$ satellite link connects two earth stations. The orbital altitude of the satellite is $36,504\text{ km}$ and signal propagation speed is $3 \times 10^8\text{ m/s}$. Frame size is $1000\text{ bytes}$. If Go-Back-N ARQ is deployed to achieve maximum channel utilization, determine the minimum number of sequence number bits required in the packet header.
+
+#### Step-by-Step Solution:
+1. **Given Parameters**:
+   * Bandwidth $B = 1\text{ Mbps} = 10^6\text{ bps}$.
+   * Distance $d = 36,504\text{ km} = 36,504 \times 10^3\text{ meters}$.
+   * Speed $v = 3 \times 10^8\text{ m/s}$.
+   * Frame size $L = 1000\text{ bytes} = 8000\text{ bits}$.
+2. **Calculate $T_p$ and $T_t$**:
+   $$T_p = \frac{36,504 \times 10^3}{3 \times 10^8} \approx 0.12168\text{ s} = 121.68\text{ ms}$$
+   $$T_t = \frac{8000\text{ bits}}{10^6\text{ bps}} = 0.008\text{ s} = 8\text{ ms}$$
+3. **Calculate Parameter $a$ and Optimal Window Size**:
+   $$a = \frac{T_p}{T_t} = \frac{121.68}{8} = 15.21$$
+   $$W_S \ge 1 + 2a = 1 + 2(15.21) = 1 + 30.42 = 31.42 \implies W_S = \mathbf{32}$$
+4. **Calculate Minimum Sequence Number Bits ($k$)**:
+   $$W_S \le 2^k - 1 \implies 32 \le 2^k - 1 \implies 2^k \ge 33$$
+   $$k = \lceil \log_2(33) \rceil = \mathbf{6\text{ bits}}$$
+5. **Final Result**:
+   At least **$6\text{ bits}$** are required for the sequence number field.
+
+---
+
+### Example 3: Tracking Total Retransmissions under Go-Back-N Frame Drop
+
+**Problem Statement:**  
+Station A transmits $10$ sequential packets (numbered 0 to 9) to Station B using Go-Back-N sliding window protocol with window size $W_S = 4$. Suppose packet 3 is corrupted and lost during initial transmission, but all other frames and acknowledgments travel successfully. Calculate the total number of frames transmitted by Station A.
+
+#### Step-by-Step Solution:
+1. **Initial Window Transmission**:
+   * Sender transmits Packets 0, 1, 2, 3 (4 frames).
+   * Packets 0, 1, 2 are acknowledged.
+   * Sender window slides, transmitting Packets 4, 5, 6 (3 frames).
+   * Total packets sent in initial pass = $4 + 3 = 7$ frames.
+2. **Receiver Behavior on Loss**:
+   * Packet 3 was lost in the channel.
+   * Receiver accepted Packets 0, 1, 2 ($R_n = 3$).
+   * When Packets 4, 5, 6 arrive, Receiver discards all three because they are out-of-order ($R_n = 3$).
+3. **Go-Back-N Retransmission**:
+   * Sender timer for Packet 3 expires.
+   * Sender rolls back to $S_f = 3$ and retransmits Packets 3, 4, 5, 6, 7, 8, 9 (7 frames).
+4. **Total Frame Count**:
+   $$\text{Total Transmissions} = 7 \text{ (first attempt)} + 7 \text{ (retransmission)} = \mathbf{14\text{ frames}}$$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** *"Why does Go-Back-N ARQ perform poorly on noisy transmission channels?"*  
+**Key Focus Points:**
+* In Go-Back-N, the receiver discards all valid, undamaged frames that arrive out of order following a lost frame.
+* On a noisy channel with high error rates, a single lost packet triggers the retransmission of an entire window of $W_S$ frames.
+* This repeated retransmission of already-received frames wastes substantial bandwidth, causing efficiency to collapse.
+
+**Question 2:** *"Can Go-Back-N use Negative Acknowledgments (NAK)?"*  
+**Key Focus Points:**
+* Yes. If the receiver receives an out-of-order frame (e.g., receives Frame 2 when awaiting Frame 1), it can immediately send a $NAK_1$.
+* The $NAK_1$ alerts the sender that Frame 1 was lost without having to wait for the slow sender-side retransmission timer to expire, accelerating error recovery.
+
+**Question 3:** *"What is the receiver window size ($W_R$) in Go-Back-N, and why?"*  
+**Key Focus Points:**
+* In Go-Back-N, $W_R$ is strictly **$1$**.
+* The receiver accepts frames in strict sequential order only ($0, 1, 2\dots$) and maintains no buffer memory for out-of-order frames. Any frame with sequence number $\neq R_n$ is discarded.
+:::
+
+:::warning Common Interview Traps
+
+**Trap 1: "If the sender window size is $W_S = 7$, can we use $k = 3$ bits for sequence numbers?"**  
+**Answer: Yes!** For $k = 3$, the sequence space is $2^3 = 8$. The maximum allowed window size is $W_S = 2^k - 1 = 8 - 1 = 7$. Thus, $W_S = 7$ fits within $3$ bits. But if $W_S = 8$, $3$ bits would cause ambiguity and protocol failure!
+
+**Trap 2: "Does an ACK in Go-Back-N specify the sequence number of the frame received or the next frame expected?"**  
+**Answer: In standard networking conventions, it specifies the NEXT frame expected.** An $ACK_m$ informs the sender that all frames up to $m - 1$ have been received and the receiver is now awaiting Frame $m$.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "2.3 Flow Control: Stop-and-Wait ARQ & Efficiency Derivation",
+    url: "/coredose/cn/module-02/flow-control-stop-and-wait-arq-and-efficiency",
+  }}
+  next={{
+    title: "2.5 Sliding Window Protocol: Selective Repeat (SR) ARQ",
+    url: "/coredose/cn/module-02/sliding-window-protocol-selective-repeat-arq",
+  }}
+  courseUrl="/coredose/cn"
+/>

@@ -286,15 +286,9 @@ Used as the master entry-point dashboard for course landing pages (e.g. `coredos
   />
   ```
 
-#### 10. `<FlowGraph />` (Universal Generic Architecture & Multi-Domain Flow Visualizer)
-The flagship, 100% generic diagram component for Binary Dose across ANY subject (OS, DBMS, Computer Networks, System Design, Data Structures).
-* **Features**:
-  - **Universal Geometry**: Supports horizontal, vertical, and multi-tier grid layouts with percentage positioning (`x: "20%"`, `y: "40%"`) or automatic lane/column distribution.
-  - **Collision-Free Reciprocal Edge Geometry**: Opposing edges ($A \to B$ and $B \to A$) automatically curve in opposite directions with labels placed at opposing apexes, guaranteeing zero label or card collisions.
-  - **Bidirectional Links (`direction: "bi"`)**: Native dual-arrowhead support (`<────────>`) with clean label formatting (`◀ prev • next ▶`) for Doubly-Linked Lists and symmetric interfaces.
-  - **Interactive Step Player & Stepper**: `[◀ Prev]` and `[Next ▶]` controls allow students to step through complex workflows chronologically with glowing active highlights.
-  - **Dual-Mode Mobile Layout**: On mobile ($\le 768\text{px}$), defaults to a thumb-friendly vertical **📱 Steps** card sequence with an instant toggle to the full **🗺️ Map**.
-  - **HTML `<foreignObject>` Cards**: High-DPI text cards with icons, badges, titles, and sublabels that seamlessly adapt to dark/light themes.
+#### 10. `<FlowGraph />` (RETIRED / DEPRECATED — DO NOT USE)
+> ⚠️ **STRICTLY RETIRED**: **DO NOT USE `<FlowGraph />` in any new or existing lessons.**  
+> `<FlowGraph />` has been completely superseded by **`<FlowDiagram />` (Component #13)**. `<FlowDiagram />` provides the active production standard featuring a dynamic `ResizeObserver` container sandbox engine, dynamic headroom allocation preventing top-arching loop clipping, a constant-height zero-jitter bottom inspector console, multi-port fractional offset routing (`fromPortOffset`, `toPortOffset`), and a native mobile dual-mode HD pan engine. All 2D topologies, state machines, and architecture flows MUST use `<FlowDiagram />`.
 
 #### 11. `<StateTransitionDiagram />` (Interactive State & Transition Matrix Explorer)
 Used for process lifecycle states, multiprogramming transitions, and virtual memory swapping models (e.g. 5-State Multiprogramming Model, 7-State Swapping Model with Blocked-Suspended and Ready-Suspended).
@@ -390,7 +384,121 @@ Used across Storage & Disk Scheduling for visualizing head movement trajectories
   />
   ```
 
+#### 16. `<ProtocolLadder />` (Interactive Space-Time Protocol Ladder & Packet Sequence Visualizer)
+Used across Computer Networks, Web Development, and Distributed Systems for visualizing packet exchange timelines across side-by-side vertical lifelines (Stop-and-Wait ARQ, Go-Back-N ARQ, Selective Repeat ARQ, TCP 3-Way Handshake, TCP 4-Way Teardown, Fast Retransmit, HTTP/REST roundtrips, TLS Handshakes).
+* **Features**:
+  - **Side-by-Side Vertical Lifelines**: Renders 2 or 3 actor columns (Sender/Receiver, Client/Server, Client/Proxy/Server) with vertical time axes ($t \downarrow$).
+  - **Slanted Packet Flight Vectors**: Downward diagonal rays capturing physical transmission and propagation delay ($T_t + T_p$) with directional arrowheads, numbered step badges (`#1`, `#2`...), and packet metadata pills.
+  - **Loss & Error Diagnostics**: Native support for lost packets (`status: "lost"` terminates at 50% distance with a red `❌ Lost in Transit` marker) and corrupted frames (`status: "corrupted"` arrives with amber `⚠️ CRC Error (Discard)` badge).
+  - **Actor Lifeline Events & Timers**: Renders local events on actor timelines, including retransmission timer brackets with clock indicators (`⏰ Timer Expires (2·Tp)`), window sliding transitions, and protocol state changes (`SYN_SENT` $\to$ `ESTABLISHED`).
+  - **Integrated Sliding Window Buffer Strip**: Top visual buffer showing sender and receiver window slots (`[0] [1] [2] [3]`) color-coded by state (`acked`, `sent`, `usable`, `blocked`) with active frame synchronization.
+  - **Interactive Step Stepper & Inspector**: `[◀ Prev]`, `[Next ▶]`, and Auto-Play with bottom educational console detailing the exact operational mechanics of the selected step.
+  - **Dual-Mode Mobile Layout**: Toggles seamlessly between full vector space-time ladder (`🗺️ Ladder`) and mobile-friendly vertical cards (`📱 Steps`).
+* **Usage**:
+  ```jsx
+  <ProtocolLadder
+    title="Stop-and-Wait ARQ: Lost Frame & Timeout Retransmission"
+    subtitle="Space-time protocol ladder showing transmission delay, propagation delay, timeout timer, and recovery"
+    actors={[
+      { id: "sender", label: "Sender (Host A)", icon: "📡", role: "Transmitter", color: "blue" },
+      { id: "receiver", label: "Receiver (Host B)", icon: "📥", role: "Receiver", color: "emerald" },
+    ]}
+    windowState={{
+      title: "Stop-and-Wait 1-Bit Buffer Window",
+      sender: { label: "Sender Window", size: 1, slots: [{ seq: 0, status: "sent", badge: "In Flight" }, { seq: 1, status: "usable" }] },
+      receiver: { label: "Receiver Window", size: 1, slots: [{ seq: 0, status: "usable", badge: "Expecting" }, { seq: 1, status: "blocked" }] }
+    }}
+    steps={[
+      {
+        from: "sender",
+        to: "receiver",
+        label: "Frame 0",
+        sublabel: "seq=0, Tt=1ms",
+        color: "blue",
+        status: "lost",
+        details: "Sender transmits Frame 0 and starts its local retransmission timer. The frame is dropped in transit due to physical channel noise.",
+      },
+      {
+        actor: "sender",
+        isEvent: true,
+        eventType: "timeout",
+        spanSteps: 1,
+        label: "Timer Expires (2·Tp)",
+        sublabel: "Retransmit Frame 0",
+        color: "rose",
+        details: "Sender's retransmission timer expires after waiting 2·Tp without receiving an ACK. The sender initiates automatic retransmission of Frame 0.",
+      },
+      {
+        from: "sender",
+        to: "receiver",
+        label: "Frame 0 (Retransmit)",
+        sublabel: "seq=0 (Duplicate)",
+        color: "blue",
+        status: "success",
+        details: "Sender retransmits Frame 0. Frame arrives intact at the receiver, which verifies the CRC checksum and accepts the data payload.",
+      },
+      {
+        from: "receiver",
+        to: "sender",
+        label: "ACK 1",
+        sublabel: "Expecting Frame 1",
+        color: "emerald",
+        status: "success",
+        details: "Receiver acknowledges receipt of Frame 0 and advertises that it is now expecting Frame 1.",
+      },
+    ]}
+  />
+  ```
+
+#### 17. `<ContentionTimeline />` (Medium Access Contention & Channel Timeline)
+Used for shared medium access protocols (e.g. Pure ALOHA, Slotted ALOHA, CSMA contention windows, reservation channels).
+* **Features**:
+  - Multi-station horizontal timeline tracks with station indicators.
+  - Mode toggle: `"pure"` (continuous timeline with $2 T_t$ vulnerable window) vs `"slotted"` (synchronized slot columns with $1 T_t$ vulnerable window).
+  - Dynamic frame status badges: `💥 Collision` (red) vs `✅ Delivered` (green).
+  - Live inspector strip displaying collision diagnostics, bit overlaps, and protocol mechanics.
+* **Usage**:
+  ```jsx
+  <ContentionTimeline
+    title="Pure ALOHA Contention Timeline"
+    subtitle="Continuous asynchronous transmissions causing frame collisions"
+    mode="pure"
+    vulnerableWindowLabel="2 × Tt"
+    stations={[
+      { id: 'S1', label: 'Station 1', color: 'blue' },
+      { id: 'S2', label: 'Station 2', color: 'purple' },
+    ]}
+    frames={[
+      { id: 'f1', station: 'S1', start: 1, duration: 1, label: 'Frame 1', status: 'collision', details: 'Collides with Station 2.' },
+      { id: 'f2', station: 'S2', start: 1.5, duration: 1, label: 'Frame 2', status: 'collision', details: 'Collides with Station 1.' },
+    ]}
+  />
+  ```
+
+#### 18. `<FrameFormat />` (Hardware Packet & Frame Header Inspector)
+Used for data-link and network layer frame/packet headers (e.g. Ethernet IEEE 802.3, Ethernet II, Token Ring, IPv4, TCP).
+* **Features**:
+  - Horizontal hardware byte sequence strip with clean color coding.
+  - Byte sizes, bit patterns (`10101011`), and layer badges.
+  - Interactive click and hover to inspect field definitions, RFC rules, and physical mechanics in the live inspector strip.
+* **Usage**:
+  ```jsx
+  <FrameFormat
+    title="Standard Ethernet (IEEE 802.3) Frame Format"
+    subtitle="Byte structure of an Ethernet MAC frame on the physical wire"
+    totalSizeBytes="64 to 1518 Bytes"
+    fields={[
+      { name: "Preamble", size: "7", unit: "Bytes", color: "gray", bitPattern: "10101010...", description: "Clock synchronization square wave." },
+      { name: "SFD", size: "1", unit: "Byte", color: "amber", bitPattern: "10101011", description: "Start Frame Delimiter." },
+      { name: "Dest MAC", size: "6", unit: "Bytes", color: "blue", description: "Destination physical hardware address." },
+      { name: "Data Payload", size: "46 - 1500", unit: "Bytes", color: "emerald", description: "Encapsulated network layer packet." },
+      { name: "CRC-32", size: "4", unit: "Bytes", color: "purple", description: "Frame check sequence." },
+    ]}
+  />
+  ```
+
 ---
+
 
 ### "Self-Explanatory & Zero Confusion" Pedagogical Diagram Rules
 Every diagram component (existing or newly created) MUST adhere strictly to these rules:
@@ -401,55 +509,256 @@ Every diagram component (existing or newly created) MUST adhere strictly to thes
 5. **No Looping GIFs (Vector Code Exclusively)**: Never use raw raster GIF animations. GIFs cause loop fatigue, destroy LCP page performance, clash with dark/light themes, and cannot be paused or inspected. Pure SVG/React vector components provide crisp rendering at 0.01s load times.
 6. **100% Mobile Readability**: Diagrams must default to a clean vertical card sequence on mobile ($\le 768\text{px}$) with 14px+ typography, zero text truncation, and zero horizontal scroll traps.
 7. **Theme Synchronized**: Never hardcode colors that break in Dark Mode. All text, borders, and fills must seamlessly adapt to Docusaurus `[data-theme='dark']`.
+8. **Zero Viewport Bleed & Hard 4-Card Horizontal Cap**:
+   - The Docusaurus reading column with sidebar and TOC open is ~750px–850px wide.
+   - Any horizontal pipeline (`<FlowPipeline />`) is strictly capped at **maximum 4 nodes** per horizontal row. Placing 5+ nodes in a single row without stages is **STRICTLY PROHIBITED** as it forces horizontal overflow past the viewport margin.
+   - When a sequence has 5 or more steps, you MUST either:
+     - Group them into labeled semantic stages using the `stages` prop (`stage 1` $\to$ `stage 2`).
+     - Use `<ProcessFlow />` (vertical numbered timeline).
+     - Use `<ArchitectureStack />` (for vertical hierarchical stacks).
+   - All diagram containers must enforce internal overflow protection (`overflow-x: auto`) and responsive stacking at `max-width: 996px` so no card or arrow ever bleeds outside the page.
+9. **Systematic Diagram Selection Framework (Strict Multi-Criteria Evaluation — NO FCFS SELECTION)**:
+   > **CRITICAL RULE: NEVER USE FCFS (First-Come-First-Served) SELECTION BIAS.**  
+   > Never lazily pick the first diagram component that comes to mind or force an architectural concept into an ill-fitting component just because it is familiar.  
+   > **MANDATORY PROTOCOL**: Before writing any diagram, you MUST systematically compare the concept's mathematical/topological conditions against **ALL available diagram components** across the platform, evaluating dimensionality (1D vs 2D), time-dependency (space-time vector vs chronological state), actor interaction, and data encapsulation. Only select the component whose native geometry perfectly matches the concept's real-world behavior:
+   
+   - **2D Topologies, Interconnected Network Graphs & Cyclic Loops**: Use `<FlowDiagram />` (**MANDATORY**).
+     * **DO NOT USE `<FlowGraph />`** (`<FlowGraph />` is retired and strictly prohibited).
+     * Use `<FlowDiagram />` for all network topologies (Mesh, Star, Bus, Ring, Tree, Hybrid), process lifecycle states (5-state/7-state models), CPU dispatcher loops, and supervisory control topologies (e.g. 5 Data Communication Components with Protocol overseeing Sender/Medium/Receiver). Features dynamic ResizeObserver sandboxing, 86px top headroom allocation preventing loop clipping, constant-height zero-jitter inspector consoles, fractional multi-port offsets (`fromPortOffset`, `toPortOffset`), and mobile HD pan.
+   - **Time-Sequence Packet Flights, Handshakes & Sliding Window Protocols**: Use `<ProtocolLadder />` (**MANDATORY**).
+     * Use for Stop-and-Wait ARQ, Go-Back-N ARQ, Selective Repeat ARQ, TCP 3-Way Handshake, TCP 4-Way Teardown, and Client-Server web handshakes. Displays vertical lifelines with downward-slanted packet vectors ($T_t + T_p$), timeout brackets, packet drop/corruption markers, and synchronized sliding window buffers.
+   - **Hardware Packet, Frame & Segment Headers**: Use `<FrameFormat />` (**MANDATORY**).
+     * Use for Ethernet (IEEE 802.3 / Ethernet II), Token Ring, IPv4/IPv6 datagrams, TCP/UDP headers, and ARP packets with byte-by-byte visual layouts, bit sequences, and interactive field inspectors.
+   - **Shared-Medium Access & Contention Windows**: Use `<ContentionTimeline />` (**MANDATORY**).
+     * Use for Pure ALOHA, Slotted ALOHA, CSMA/CD, CSMA/CA, and backoff contention windows with vulnerable time spans ($2 T_t$ vs $1 T_t$) and collision overlap diagnostics.
+   - **CPU Scheduling & Real-Time Timelines**: Use `<GanttChart />` (**MANDATORY**).
+     * Use for CPU scheduling algorithms (FCFS, SJF, SRTF, Round Robin, Priority, Multilevel Feedback Queue), process execution slots, idle interval diagonal hatching, and turnaround/waiting metric badges.
+   - **Storage Arm & Cylinder Trajectories**: Use `<DiskSchedulingChart />` (**MANDATORY**).
+     * Use for disk arm head movement across disk cylinders (FCFS, SSTF, SCAN, C-SCAN, LOOK, C-LOOK) with seek delta badges and express reversal jumps.
+   - **Layered Abstraction & Concentric Physical Cross-Sections**: Use `<ArchitectureStack />` (**MANDATORY**).
+     * Use for OSI 7-Layer Model, TCP/IP 4-Layer/5-Layer Model, PDU encapsulation/decapsulation wrappers, and concentric physical cable cross-sections (Coaxial, Twisted Pair, Fiber Optic core/cladding/jacket).
+   - **Directional 1D Linear Sequences ($\le 4$ steps)**: Use `<FlowPipeline />`.
+     * Strictly for 1-way physical progressions with 4 or fewer cards per row (e.g. Total Internal Reflection ray path, subsea cable repeaters, signal modulation). Any 5+ step sequence must use semantic stages or vertical `<ProcessFlow />`.
+   - **Contrasting Trade-Offs (2 or 3 Competing Paradigms)**: Use `<ConceptComparison />`.
+     * Use for Simplex vs Half-Duplex vs Full-Duplex, Point-to-Point vs Multipoint, Guided vs Unguided, Single-Mode vs Multi-Mode, and OSI vs TCP/IP.
+   - **Entity Taxonomies, Non-Sequential Categories & Evaluation Pillars**: Use `<SubsystemGrid />`.
+     * Use for Network Evaluation Criteria (Performance, Reliability, Security), Topologies matrix summary, transmission media taxonomy, and atmospheric propagation modes.
+   - **Chronological Milestones & Historical Eras**: Use `<ProcessFlow />`.
+     * Use for linear multi-step historical evolutions and numbered execution era timelines.
+   - **Process Virtual Memory Layouts**: Use `<ProcessMemoryMap />`.
+     * Use strictly for process address space (Stack, Heap, Unallocated growth gap, Data, Text).
+   - **Hardware Privilege Boundaries & Mode Switching**: Use `<DualModeDiagram />`.
+     * Use for User Mode (Ring 3) vs Kernel Mode (Ring 0), Trap / Syscall / IRET boundary transitions.
+   - **Multi-Actor Roundtrip Execution Traces**: Use `<ExecutionBlueprint />`.
+     * Use for multi-actor call paths (User App $\to$ C Library $\to$ Trap $\to$ Kernel VFS $\to$ Device Driver $\to$ Hardware and back).
+   - **Course Dashboards & Roadmaps**: Use `<CourseCurriculum />` and `<CurriculumRoadmap />`.
+
+   > 🛠️ **FALLBACK & NEW COMPONENT CREATION PROTOCOL (Adaptation Over Reinvention)**:  
+   > If after methodically evaluating all diagram components above against the concept's conditions, you determine that **NONE of the existing components can naturally model the concept without distortion, text crowding, or pedagogical compromise**:
+   > 1. **You MUST CREATE A NEW SPECIALIZED COMPONENT** in `src/components/CoreDose/Diagrams/`.
+   > 2. **Adapt and borrow proven patterns from existing components**: Do not build blindly from scratch. You MUST adapt and reuse the battle-tested engineering features of the platform:
+   >    - **ResizeObserver Container Sandbox**: Real-time clientWidth tracking to adaptively calculate geometry and guarantee zero container overflow and zero horizontal scroll traps (borrowed from `FlowDiagram` / `ProtocolLadder`).
+   >    - **Global Design Tokens**: Strict usage of CSS variables from `src/css/diagram-tokens.css` (`blue`, `emerald`, `purple`, `amber`, `rose`, `cyan`, `gray`) ensuring 100% flawless light/dark mode adaptation.
+   >    - **Constant-Height Zero-Jitter Console**: Fixed-height bottom inspector drawer (e.g. 84px) to prevent vertical Cumulative Layout Shift (CLS) during hover or selection (borrowed from `FlowDiagram` / `FrameFormat`).
+   >    - **Dual-Mode Mobile Engine**: Thumb-friendly mobile view with `touch-action: pan-x` and zero touch scroll traps (either vertical card sequence or 1:1 HD pan toggle).
+   >    - **Sub-3-Second Mental Model**: Punchy iconography, numbered badges, high-contrast typography, and self-explanatory interactive state chips.
+   > 3. **Global Zero-Import Registration**: Immediately export the new component in:
+   >    - `src/components/CoreDose/Diagrams/index.js`
+   >    - `src/components/Diagrams/index.js`
+   >    - `src/theme/MDXComponents.js` (enabling immediate use in any `.mdx` file without imports).
+10. **Zero Title Redundancy Between Text and Diagrams**:
+    - Never duplicate the markdown section heading inside the diagram's `title` prop. If the markdown section heading is `## 🔬 Field-by-Field Frame Anatomy`, do NOT repeat that title verbatim inside the diagram. Omit the `title` prop on the component or use it to provide a distinct, complementary subtitle.
+11. **Lifeline Boundary & Clipping Protection**:
+    - In multi-lifeline diagrams (`<ProtocolLadder />`), event badges, retransmission clock pills, and collision markers on the rightmost lifeline must dynamically adjust their alignment (e.g., using `transform: translateX(-100%)` and anchoring leftward) whenever rendered on the right half of the canvas. They must NEVER bleed or clip past the right container margin.
 
 ## 6. CoreDose Course & Lesson Architectural Standards
 All course lessons in `binary_dose/coredose/` (for OS, DBMS, CN, System Design, OOPs, COA, Compiler) MUST follow this locked standard:
 
 ### Source Priority
-1. **Priority 1 (HIGHEST - Ground Truth)**: **Images of User's Handwritten Notes** (`Hand Written Notes - <Subject>/IMAGES/` or user's note repository). Sequence modules strictly matching handwritten notes.
-2. **Priority 2**: **Core Computer Science Theory & Standard Academic Syllabi** (Silberschatz, Galvin, Kurose-Ross, Tanenbaum).
-3. **Priority 3 (LOWEST)**: **AI Supplementary Knowledge** used strictly for modern production context and clean code snippets.
+1. **Priority 1 (HIGHEST - Ground Truth)**: **Images of User's Handwritten Notes** (`Hand Written Notes - <Subject>/IMAGES/` or user's note repository). Sequence modules strictly matching handwritten notes. All definitions, parameter names, mathematical formulations, and conceptual analogies must be prioritized from these notes.
+2. **Priority 2**: **Core Computer Science Theory & Standard Academic Syllabi** (Tanenbaum, Kurose-Ross, Stallings, Forouzan, Silberschatz). Used to provide complete derivations, standard RFC specifications, and IEEE architectural foundations.
+3. **Priority 3 (LOWEST)**: **AI Supplementary Knowledge** used strictly for modern production context, real-world case studies, and clean code snippets.
 
 ### Strict Universal Editorial Rules
 - **Standardized on "Module"**: Always use **Module** (e.g. `Module 01`, `Module 02`). Never use "Chapter" in titles, roadmap cards, or breadcrumbs.
-- **Generic & Timeless**: No exam names, specific years, PYQ tags, or marks badges (no "GATE-2018", "7 Marks").
+- **Generic & Timeless**: No exam names, specific years, PYQ tags, or marks badges (no "GATE-2018", "7 Marks", "ISRO", "BARC").
 - **No MCQs / MSQs with Option Letters**: All questions must be standard university semester descriptive questions:
   ```markdown
   **Question 1:** ...
   **Answer:** ...
   ```
-- **Semantic H1**: Every `.mdx` lesson MUST have an explicit Markdown `# Title` heading placed directly above `<CoreDoseLessonHeader />`.
-- **Never Leak Internal Meta-Phrases**: Never use phrases like "handwritten notes", "from my notes", or "according to handwritten notes" in student-facing titles, admonitions, or body copy. The platform must read as an authoritative, timeless, professional computer science publication.
-- **Navigation**: Always terminate with `<CoreDoseNav prev={...} next={...} courseUrl="/coredose/<subject>" />` using exact clean permalinks.
-- **Navigation Robustness**: `<CoreDoseNav />` supports both `prev` and `previous`, and `next`. It must ALWAYS link backward to the exact chronological prior topic (e.g. 2.4 links to 2.3, 2.3 to 2.2, 2.2 to 2.1) and never fall back to the Master Index when a valid prior lesson exists.
-- **Operating Systems Course Progress**:
-  - **Module 01: Introduction & OS Architecture** (Topics 1.1, 1.2, 1.3, 1.4) — `COMPLETED`
-  - **Module 02: Process Management & PCB** (Topics 2.1, 2.2, 2.3, 2.4) — `COMPLETED`
-  - **Module 03: CPU Scheduling Algorithms** (Topics 3.1, 3.2, 3.3, 3.4, 3.5, 3.6) — `COMPLETED`
-  - **Module 04: Process Synchronization & Concurrency** (Topics 4.1 to 4.7) — `COMPLETED`
-  - **Module 05: Deadlocks: Detection, Prevention & Avoidance** (Topics 5.1 to 5.5) — `COMPLETED`
-  - **Module 06: UNIX System Calls & Fork Mechanics** (Topics 6.1 to 6.5) — `COMPLETED`
-  - **Module 07: Main Memory Management** (Topics 7.1 to 7.7) — `COMPLETED`
-  - **Module 08: Virtual Memory & Page Replacement** (Topics 8.1 to 8.5) — `COMPLETED`
-  - **Module 09: Storage & Disk Scheduling** (Topics 9.1 to 9.4) — `COMPLETED`
-  - **Module 10: File Systems & Inodes** (Topics 10.1 to 10.4) — `COMPLETED`
-  - **Operating Systems Full Curriculum (Modules 01 - 10)**: `100% COMPLETED` 🎉
+- **Semantic H1**: Every `.mdx` lesson MUST have an explicit Markdown `# X.Y {Lesson Title}` heading placed directly above `<CoreDoseLessonHeader />`.
+- **Never Leak Internal Meta-Phrases**: Never use phrases like "handwritten notes", "from my notes", "as seen in the notes", or "according to handwritten notes" in student-facing titles, admonitions, or body copy. The platform must read as an authoritative, timeless, professional computer science publication.
+- **Zero Raw ASCII Diagrams & Box Art (STRICTLY BANNED)**:
+  - Plain text or ASCII art diagrams (` ``` `, ` ```text `, ` ```ascii `) using ASCII borders (`+---+`, `|`, `+-+-+`), arrows (`-->`, `<==>`), trees, or text boxes are **STRICTLY PROHIBITED** across all subjects and lessons.
+  - **Permitted Use of Code Blocks**: Monospace code blocks are permitted **ONLY** for:
+    1. Genuine programming code (`c`, `cpp`, `python`, `javascript`, etc.).
+    2. Genuine terminal/CLI shell commands and terminal outputs (`bash`, `shell`, `powershell`, e.g., `ping`, `traceroute`, `ip addr show`, `tcpdump`, Linux kernel log outputs).
+  - **How to Render Architectural, Structural & Process Information**:
+    1. **Architectures, Workflows, State Machines & Network Protocols**: MUST be rendered using our pure React vector diagram components (`<FlowDiagram />` [never `<FlowGraph />`], `<ProtocolLadder />`, `<FrameFormat />`, `<ContentionTimeline />`, `<FlowPipeline />`, `<ProcessFlow />`, `<ConceptComparison />`, `<SubsystemGrid />`, `<GanttChart />`, `<DiskSchedulingChart />`, `<ArchitectureStack />`).
+    2. **Multi-Step Algorithms & Methodologies**: Use clean numbered steps, callout admonitions (`:::tip`, `:::note`, `:::info`), or `<ProcessFlow />`.
+    3. **Structural Fields, Bit Allocations & Parameter Comparisons**: Use clean GitHub Flavored Markdown tables (`| Field | Bits | Description |`) or `<SubsystemGrid />`.
+    4. **Bitwise Logic & Mathematical Proofs**: Use KaTeX equations (`$$ ... $$`).
+  - **NEVER draw a fake box, table, pipeline, frame layout, or flowchart using ASCII characters in a code block.**
+- **Zero Title & Content Redundancy**:
+  - Never place a redundant Markdown heading above a diagram if the diagram's internal `title` repeats the section title.
+  - Never repeat explanatory paragraphs in markdown text if an interactive diagram's step cards already explain that exact mechanism.
+  - Prioritize handwritten notes explanations in the prose, letting the interactive diagram serve as the visual proof.
+- **Strict KaTeX Math Escaping**:
+  - Never write unescaped `&` characters inside `\text{}` blocks in LaTeX (e.g. `\text{Header & Trailer}` causes KaTeX parsing errors; always write `\text{Header and Trailer}` or `\text{Header \& Trailer}`).
+  - Format matrices, vectors, and Walsh codes cleanly using `\begin{pmatrix} ... \end{pmatrix}`.
+- **Navigation Robustness**: Always terminate lessons with `<CoreDoseNav prev={...} next={...} courseUrl="/coredose/<subject>" />`. `<CoreDoseNav />` supports both `prev` and `previous`, and `next`. It must ALWAYS link backward to the exact chronological prior topic (e.g. 2.4 links to 2.3, 2.3 to 2.2, 2.2 to 2.1) and forward to the next topic, and never fall back to the Master Index when a valid prior lesson exists.
+
+### Active Curriculum Progress Tracking
+- **Operating Systems Full Curriculum (Modules 01 - 10)**: `100% COMPLETED` 🎉
+  - Module 01: Introduction & OS Architecture (Topics 1.1 - 1.4) — `COMPLETED`
+  - Module 02: Process Management & PCB (Topics 2.1 - 2.4) — `COMPLETED`
+  - Module 03: CPU Scheduling Algorithms (Topics 3.1 - 3.6) — `COMPLETED`
+  - Module 04: Process Synchronization & Concurrency (Topics 4.1 - 4.7) — `COMPLETED`
+  - Module 05: Deadlocks: Detection, Prevention & Avoidance (Topics 5.1 - 5.5) — `COMPLETED`
+  - Module 06: UNIX System Calls & Fork Mechanics (Topics 6.1 - 6.5) — `COMPLETED`
+  - Module 07: Main Memory Management (Topics 7.1 - 7.7) — `COMPLETED`
+  - Module 08: Virtual Memory & Page Replacement (Topics 8.1 - 8.5) — `COMPLETED`
+  - Module 09: Storage & Disk Scheduling (Topics 9.1 - 9.4) — `COMPLETED`
+  - Module 10: File Systems & Inodes (Topics 10.1 - 10.4) — `COMPLETED`
+- **Computer Networks Curriculum (Modules 01 - 10)**: `100% COMPLETED` 🎉
+  - Module 01: Introduction & Network Architectures (Topics 1.1 - 1.4) — `COMPLETED`
+  - Module 02: Data Link Layer: Framing, Error Detection & Flow Control (Topics 2.1 - 2.5) — `COMPLETED`
+  - Module 03: Data Link Layer: MAC Sublayer & Ethernet (Topics 3.1 - 3.5) — `COMPLETED`
+  - Module 04: Network Layer: IPv4/IPv6 Addressing & Subnetting (Topics 4.1 - 4.6) — `COMPLETED`
+  - Module 05: Network Layer: Routing Protocols & Control Plane (Topics 5.1 - 5.6) — `COMPLETED`
+  - Module 06: Transport Layer: UDP, TCP & Connection Flow (Topics 6.1 - 6.5) — `COMPLETED`
+  - Module 07: Transport Layer: Congestion Control & Reliability (Topics 7.1 - 7.5) — `COMPLETED`
+  - Module 08: Application Layer Protocols (Topics 8.1 - 8.5) — `COMPLETED`
+  - Module 09: Network Security & Cryptography (Topics 9.1 - 9.6) — `COMPLETED`
+  - Module 10: Physical Layer Devices & Wireless Networks (Topics 10.1 - 10.4) — `COMPLETED`
 
 ---
 
-## 7. Locked Lesson Structure
-1. **Frontmatter**: `title`, `description`, `hide_table_of_contents: true`.
-2. **Semantic H1 Heading**: `# {Lesson Title}`
-3. **Lesson Header**: `<CoreDoseLessonHeader module="Module XX: ..." topic="Topic X.Y" ... />`
-4. **`💡 Core Intuition`**:
-   - `### 🍳 The Everyday Analogy: ...`
-   - `### 💻 Bridging to Computer Science`
-5. **`Inline Navigation (<CoreDoseTOC toc={toc} />)`**
-6. **`📚 Core Deep-Dive & Concepts`** (Handwritten notes first, rigorous derivations, KaTeX math).
-7. **`📐 Architecture / Visual Blueprint`** (Using our Modern React Diagram Components or clean sequence diagrams).
-8. **`🏭 In The Real World: Production Case Study`** (Real-world cloud/systems engineering context).
-9. **`🎯 Exam & Interview Pitfall Check`** (`:::tip Core Conceptual Questions` + `:::warning Common Interview Traps`).
-10. **`Navigation Component`**: `<CoreDoseNav ... />`
+## 7. The Locked 11-Part Lesson Structure
+Every `.mdx` lesson in CoreDose across ANY subject (OS, DBMS, CN, System Design) MUST strictly follow this exact 11-part architectural template in order:
+
+### 1. Frontmatter
+Must include `title`, `description` (crisp 1-2 sentence overview of core concepts, mathematical outcomes, and architectural principles), and `hide_table_of_contents: true` (disabling Docusaurus's default right sidebar to activate our dynamic inline `<CoreDoseTOC />`):
+```yaml
+---
+title: "X.Y {Lesson Title}"
+description: "Foundational concepts, derivations, and mathematical proofs..."
+hide_table_of_contents: true
+---
+```
+
+### 2. Semantic H1 Heading
+Every lesson must begin with an explicit top-level Markdown `#` heading matching the lesson slug and title:
+```markdown
+# X.Y {Lesson Title}
+```
+
+### 3. Lesson Header Component (`<CoreDoseLessonHeader />`)
+Renders the standardized top metadata strip:
+```jsx
+<CoreDoseLessonHeader
+  module="Module XX: {Module Title}"
+  topic="Topic X.Y"
+  courseUrl="/coredose/{subject}"
+  readTime="12 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+```
+
+### 4. `## 💡 Core Intuition: {Everyday Analogy Title}`
+Every lesson MUST start with a memorable, relatable physical mental model before throwing technical jargon at the student:
+* `### 🍳 The Everyday Analogy: {Analogy Title}`: Concrete physical metaphor from daily human life (e.g. shipping containers, unmoderated dinner tables, certified postal envelopes, international conferences, traffic intersections).
+* `### 💻 Bridging to Computer Science`: Seamlessly connects the analogy to physical layer signals, bits, packet headers, hardware registers, and operating system / protocol state machines.
+
+### 5. Dynamic Inline Table of Contents (`<CoreDoseTOC toc={toc} />`)
+Wrapped cleanly with horizontal rules (`---`):
+```markdown
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+```
+* **CRITICAL RULE**: **STRICTLY NO outer Markdown heading** (NEVER write `## 🗂️ Inline Navigation` or `## Table of Contents`). The component renders its own interactive header card with item counts. An outer heading creates duplicate entries in the navigation tree.
+* Injects Docusaurus's live `toc` heading tree dynamically.
+
+### 6. Core Deep-Dive & Concepts (Thematic Icon-Accented H2s)
+The main technical core of the lesson:
+* **STRICT RULE: NO rigid textbook numbers** (`## 1.`, `## 2.`, `## 3.`... are **STRICTLY PROHIBITED**).
+* Use thematic, icon-accented Markdown headings matching our visual design system (e.g., `## 🔀 ...`, `## 🔬 ...`, `## ⚡ ...`, `## 📏 ...`, `## 📦 ...`, `## 🏷️ ...`).
+* Prioritize handwritten notes order, definitions, and derivations.
+* Include rigorous mathematical derivations using KaTeX (Poisson arrival models, vulnerable window proofs, efficiency equations, inner products, Walsh matrices).
+
+### 7. Flagship Visual Blueprint / Interactive Diagram
+At least one (and often two) interactive pure React educational diagram components:
+* Selected using our Generic Diagram Selection Framework:
+  - `<ProtocolLadder />`: Space-time packet vectors ($T_t + T_p$), sliding windows, timeouts, and loss recovery.
+  - `<FrameFormat />`: Hardware byte inspector, bit patterns, and RFC field definitions.
+  - `<ContentionTimeline />`: Shared medium access (Pure ALOHA vs Slotted ALOHA vs CSMA) with collision windows.
+  - `<FlowDiagram />`: 2D network topologies, rings, mesh networks, process state machines, and supervisory loops (do NOT use `<FlowGraph />`).
+  - `<ConceptComparison />`: 2-way or 3-way architectural trade-offs.
+  - `<FlowPipeline />`: 1-way physical stages ($\le 4$ cards per row).
+  - `<SubsystemGrid />`: Entity matrices and architectural pillars.
+* Must enforce 100% theme synchronization, responsive stacking, zero text clipping, and sub-3-second clarity.
+
+### 8. `## 🏭 Real-World Production Context: {Specific Production Case}`
+**MANDATORY in every single lesson without exception.**
+* Never leave lessons in pure academic abstraction.
+* Connect the topic directly to high-scale production systems:
+  - How Linux kernel network stack, eBPF, and DPDK handle packets.
+  - How hyper-scale cloud data centers (AWS, Google Cloud, Meta) deploy Leaf-Spine architectures and Jumbo Frames.
+  - How mission-critical automotive CAN buses eliminate collisions with non-destructive bitwise arbitration.
+  - How GPS satellite constellations broadcast simultaneously on a single frequency using 1023-bit Gold Codes.
+  - How geostationary satellites and LoRaWAN IoT sensors adapt ALOHA for low-power and high-latency channels.
+
+### 9. `## 📐 Numerical Applications & Worked Examples`
+**Standardized heading across all lessons.**
+* Contains 3 to 5 comprehensive, step-by-step engineering problems.
+* Format each problem with clear problem statements and numbered mathematical steps:
+  ```markdown
+  ### Example 1: {Problem Focus Title}
+  **Problem Statement:** ...
+  
+  **Step-by-Step Solution:**
+  1. **Identify Given Parameters:** ...
+  2. **Apply Theoretical Constraint:** ...
+  3. **Calculate Final Result:** ...
+  ```
+* **STRICT RULE**: Zero exam names (No GATE, ESE, ISRO), zero marks badges, and zero MCQ option letters `(A), (B), (C), (D)`. Keep questions timeless and university semester caliber.
+
+### 10. `## 🎯 Exam & Interview Pitfall Check`
+**Standardized heading across all lessons.**
+Contains exactly two distinct callout admonitions:
+```markdown
+:::tip Core Conceptual Questions
+* **{High-Yield Conceptual Question 1}**: {Comprehensive, first-principles technical answer explaining the 'why' behind the mechanism.}
+* **{High-Yield Conceptual Question 2}**: {Detailed explanation contrasting subtle nuances.}
+:::
+
+:::warning Common Interview Traps
+* **Trap: {Common Misconception or Mathematical Pitfall}**: {Direct explanation of why candidates get this wrong and how to solve it correctly.}
+* **Trap: {Bit vs Byte Confusion / Legacy vs Modern Nuance}**: {Clear distinction debunking the trap.}
+:::
+```
+
+### 11. Navigation Component (`<CoreDoseNav />`)
+Terminates every lesson with seamless forward and backward transitions:
+```jsx
+---
+
+<CoreDoseNav
+  prev={{
+    title: "X.(Y-1) {Previous Topic Title}",
+    url: "/coredose/{subject}/{previous-topic-slug}",
+  }}
+  next={{
+    title: "X.(Y+1) {Next Topic Title}",
+    url: "/coredose/{subject}/{next-topic-slug}",
+  }}
+  courseUrl="/coredose/{subject}"
+/>
+```
 
 ---
 

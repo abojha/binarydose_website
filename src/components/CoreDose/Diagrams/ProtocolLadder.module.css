@@ -1,0 +1,446 @@
+/**
+ * ProtocolLadder Module CSS
+ * Space-Time Protocol Ladder Extension Styles for Binary Dose.
+ * 
+ * DRY Principle: All core containers, headers, steppers, SVG layers, edge paths, 
+ * actor cards, step pills, and inspector panels are directly imported and shared 
+ * from FlowDiagram.module.css.
+ * 
+ * This file strictly contains ONLY the delta classes unique to protocol lifelines,
+ * sliding window buffers, space-time axes, and packet status tags.
+ */
+
+/* ==========================================================================
+   1. Sliding Window State Buffer Strip (Sliding Window Protocols)
+   ========================================================================== */
+.windowStrip {
+  background: rgba(15, 23, 42, 0.65);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+[data-theme='light'] .windowStrip {
+  background: rgba(248, 250, 252, 0.85);
+  border-bottom-color: var(--ifm-color-emphasis-200, #e2e8f0);
+}
+
+.windowStripHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 750;
+  color: var(--ifm-heading-color, #f8fafc);
+}
+
+[data-theme='light'] .windowStripHeader {
+  color: #0f172a;
+}
+
+.windowStripIcon {
+  font-size: 0.95rem;
+}
+
+.windowStripTitle {
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.windowStripSub {
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.windowCardsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.85rem;
+}
+
+.windowActorCard {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  padding: 0.6rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+[data-theme='light'] .windowActorCard {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.windowActorLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  color: var(--ifm-heading-color, #f8fafc);
+}
+
+[data-theme='light'] .windowActorLabel {
+  color: #1e293b;
+}
+
+.windowActorDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.windowSizeBadge {
+  margin-left: auto;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.72rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+[data-theme='light'] .windowSizeBadge {
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.25);
+}
+
+.windowSlotsTrack {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.windowSlotCell {
+  min-width: 68px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  box-sizing: border-box;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.slotFrameLabel {
+  font-size: 0.76rem;
+  font-weight: 750;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  line-height: 1.1;
+}
+
+.slotStateBadge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.slot_acked {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #10b981;
+}
+
+.slot_sent {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #fbbf24;
+}
+
+.slot_usable {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+}
+
+.slot_blocked {
+  background: rgba(100, 116, 139, 0.1);
+  border-color: rgba(100, 116, 139, 0.25);
+  color: #64748b;
+  opacity: 0.55;
+}
+
+[data-theme='light'] .slot_acked { background: #ecfdf5; border-color: #a7f3d0; color: #059669; }
+[data-theme='light'] .slot_sent { background: #fffbeb; border-color: #fde68a; color: #d97706; }
+[data-theme='light'] .slot_usable { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
+[data-theme='light'] .slot_blocked { background: #f8fafc; border-color: #e2e8f0; color: #94a3b8; }
+
+.slotCellActive {
+  transform: translateY(-2px) scale(1.08);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.65) !important;
+  border-color: #38bdf8 !important;
+  z-index: 2;
+}
+
+/* ==========================================================================
+   2. Space-Time Axis & Vertical Lifelines
+   ========================================================================== */
+.timeAxisGroup {
+  pointer-events: none;
+}
+
+.timeAxisText {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  fill: #94a3b8;
+  font-family: var(--ifm-font-family-monospace, monospace);
+}
+
+.timeAxisSub {
+  font-size: 10px;
+  font-weight: 700;
+  fill: #64748b;
+}
+
+.lifelineGroup {
+  cursor: pointer;
+}
+
+.lifelineLine {
+  transition: stroke-width 0.2s ease, stroke 0.2s ease;
+}
+
+.lifelineHovered {
+  stroke: #38bdf8 !important;
+  stroke-width: 3.5px !important;
+}
+
+.originDot {
+  transition: r 0.2s ease;
+}
+
+.lostCircle {
+  animation: lostBurst 0.3s ease-out;
+}
+
+@keyframes lostBurst {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.delayNoteText {
+  font-size: 10px;
+  font-style: italic;
+  fill: #94a3b8;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   3. Actor Positioning Layer
+   ========================================================================== */
+.actorsLayer {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* ==========================================================================
+   4. Local Events & Timers (Timeout Clocks, RTO Triggers)
+   ========================================================================== */
+.eventSvgGroup {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.eventMarkerCircle {
+  transition: r 0.2s ease, filter 0.2s ease;
+}
+
+.eventActive .eventMarkerCircle {
+  filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.8));
+}
+
+.eventTagBadge {
+  position: absolute;
+  pointer-events: auto;
+  box-sizing: border-box;
+  background: #0b1329;
+  border: 1.2px solid #f59e0b;
+  border-radius: 9999px;
+  padding: 0.16rem 0.54rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.67rem;
+  font-weight: 750;
+  color: #fbbf24;
+  white-space: nowrap;
+  transition: all 0.18s ease;
+}
+
+[data-theme='light'] .eventTagBadge {
+  background: #ffffff;
+  border-color: #f59e0b;
+  color: #b45309;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+.eventBadge_amber {
+  border-color: rgba(245, 158, 11, 0.6);
+  color: #fbbf24;
+}
+
+.eventBadge_rose {
+  border-color: rgba(244, 63, 94, 0.6) !important;
+  color: #f43f5e !important;
+}
+
+.eventTagBadge_left {
+  /* left actor: expands rightward toward center */
+}
+
+.eventTagBadge_right {
+  /* right actor: expands leftward toward center */
+  transform: translateX(-100%);
+}
+
+.eventTagActive {
+  transform: scale(1.08);
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.65) !important;
+  border-color: #f43f5e !important;
+  z-index: 50 !important;
+}
+
+.eventTagBadge_right.eventTagActive {
+  transform: translateX(-100%) scale(1.08);
+}
+
+.eventIcon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.eventTitle {
+  line-height: 1;
+}
+
+.eventSub {
+  font-size: 0.62rem;
+  opacity: 0.8;
+}
+
+/* ==========================================================================
+   5. Mini Status Tags & Edge Subtext
+   ========================================================================== */
+.edgeSubText {
+  font-size: 0.64rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.miniTagLost {
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 0.05rem 0.35rem;
+  border-radius: 9999px;
+  background: rgba(244, 63, 94, 0.25);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.45);
+}
+
+.miniTagCorrupt {
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 0.05rem 0.35rem;
+  border-radius: 9999px;
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+/* ==========================================================================
+   6. Inspector Protocol Specific Pills & Mechanics Rows
+   ========================================================================== */
+.inspectorRoutePill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.12rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+}
+
+[data-theme='light'] .inspectorRoutePill {
+  color: #475569;
+}
+
+.inspectorStatusLost {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.12rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(244, 63, 94, 0.2);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+.inspectorStatusCorrupt {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.12rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.inspectorStatusOk {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.12rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.inspectorStatusEvent {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.12rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.inspectorContextRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  color: #38bdf8;
+  margin-top: 0.25rem;
+}
+
+[data-theme='light'] .inspectorContextRow {
+  color: #2563eb;
+}
+
+.contextPrefix {
+  font-weight: 750;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}

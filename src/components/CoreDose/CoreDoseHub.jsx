@@ -153,6 +153,12 @@ export default function CoreDoseHub() {
     });
   }, [activeCourses, searchQuery]);
 
+  const roadmapCourses = useMemo(() => {
+    return ALL_COURSES.filter(
+      (course) => !activeCourses.some((active) => active.id === course.id)
+    );
+  }, [activeCourses]);
+
   return (
     <div className={styles.wrapper}>
       {/* Universal Hero Header */}
@@ -184,7 +190,7 @@ export default function CoreDoseHub() {
         {filteredCourses.length > 0 ? (
           <div className={styles.courseGrid}>
             {filteredCourses.map((course) => {
-              const stats = subjectsData[course.id] || { modules: 10, topics: 50 };
+              const stats = subjectsData[course.id] || { modules: 1, topics: 4 };
               return (
                 <DoseCard
                   key={course.id}
@@ -224,23 +230,26 @@ export default function CoreDoseHub() {
       </section>
 
       {/* Dynamic Curriculum Roadmap Strip */}
-      <section className={styles.roadmapSection}>
-        <div className={styles.roadmapCard}>
-          <div className={styles.roadmapHeader}>
-            <span className={styles.roadmapPill}>Curriculum Roadmap</span>
-            <span className={styles.roadmapStatus}>⚡ In Active Production</span>
+      {roadmapCourses.length > 0 && (
+        <section className={styles.roadmapSection}>
+          <div className={styles.roadmapCard}>
+            <div className={styles.roadmapHeader}>
+              <span className={styles.roadmapPill}>Curriculum Roadmap</span>
+              <span className={styles.roadmapStatus}>⚡ In Active Production</span>
+            </div>
+            <p className={styles.roadmapDesc}>
+              The following core subjects are actively being authored and will automatically unlock as live masterclasses upon release:
+            </p>
+            <div className={styles.roadmapPillsList}>
+              {roadmapCourses.map((course) => (
+                <span key={course.id} className={styles.roadmapSubject}>
+                  {course.icon} {course.title}
+                </span>
+              ))}
+            </div>
           </div>
-          <p className={styles.roadmapDesc}>
-            The following core subjects are actively being authored and will automatically unlock as live masterclasses upon release:
-          </p>
-          <div className={styles.roadmapPillsList}>
-            <span className={styles.roadmapSubject}>🌐 Computer Networks (CN)</span>
-            <span className={styles.roadmapSubject}>🧱 Object-Oriented Programming (OOPs)</span>
-            <span className={styles.roadmapSubject}>💻 Computer Organization &amp; Architecture (COA)</span>
-            <span className={styles.roadmapSubject}>⚙️ Compiler Design &amp; TOC</span>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

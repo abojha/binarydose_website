@@ -1,0 +1,422 @@
+---
+title: "7.1 Congestion Principles & Leaky Bucket / Token Bucket Algorithms"
+description: "Foundational principles of network congestion, open-loop vs closed-loop control, traffic shaping vs policing, and rigorous mathematical derivations of Leaky Bucket and Token Bucket algorithms."
+hide_table_of_contents: true
+---
+
+# 7.1 Congestion Principles & Leaky Bucket / Token Bucket Algorithms
+
+<CoreDoseLessonHeader
+  module="Module 07: Transport Layer: Congestion Control & Reliability"
+  topic="Topic 7.1"
+  courseUrl="/coredose/cn"
+  readTime="15 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Water Funnel and the Amusement Park Token Turnstile
+
+### 🍳 The Everyday Analogy: Funnels vs Token Dispensers
+Imagine pouring water from a wide pitcher into a bottle with a narrow mouth:
+1. **The Funnel (Leaky Bucket)**: If you dump a 1-liter jug of water into a funnel all at once, the funnel holds the excess water in its cone and lets it trickle out through the bottom spout at a steady, fixed rate of 100 ml per second. If you pour faster than the cone can hold, water overflows onto the floor and is lost forever. Regardless of how violently the water was poured in, what comes out of the spout is a perfectly smooth, predictable stream.
+2. **The Amusement Park Token Turnstile (Token Bucket)**: Now imagine an amusement park roller coaster. Admission requires tokens. A token dispenser produces 1 token every 10 seconds and stores them in a collection cup that holds at most 20 tokens. If nobody arrives for 5 minutes, the cup fills up to 20 tokens and stops accumulating. When a large family of 10 people suddenly arrives, they can immediately spend 10 tokens and rush onto the ride simultaneously without any delay. Once the cup is empty, new visitors must wait 10 seconds for each token to be dispensed.
+
+### 💻 Bridging to Computer Science
+In computer networks:
+* **Leaky Bucket** transforms bursty traffic into a rigid, constant-rate stream. It enforces a strict output rate, discarding excess packets when the buffer overflows.
+* **Token Bucket** regulates average data rates while allowing controlled bursts. As long as tokens have accumulated during idle periods, packets can be transmitted at the link's maximum hardware line rate.
+* **Congestion** occurs when multiple senders inject more packets into intermediate router buffers than the outgoing links can clear. While **flow control** prevents a fast sender from overwhelming a slow receiver, **congestion control** prevents all senders combined from overwhelming the underlying network fabric.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🌊 The Physics of Network Congestion: Load vs Delay vs Throughput
+
+In packet-switched networks, routers contain finite memory buffers for each outgoing interface. When the aggregate packet arrival rate exceeds the outgoing link transmission capacity, queues build up.
+
+<ConceptComparison
+  title="Flow Control vs Congestion Control: The Fundamental Distinction"
+  subtitle="Differentiating point-to-point buffer management from global network resource arbitration"
+  concepts={[
+    {
+      badge: "Point-to-Point",
+      title: "Flow Control (Receiver Protection)",
+      icon: "🛑",
+      color: "blue",
+      domain: "Transport & Data Link Layer (Host-to-Host)",
+      points: [
+        "Prevents a fast sender from overrunning a slow receiver's local memory buffer.",
+        "Governed explicitly by the receiver via advertised window credits (rwnd).",
+        "Feedback is direct, unicast, and immediate in ACK segment headers.",
+        "Operates independent of intermediate router queue depths."
+      ],
+      quote: "Protecting the destination endpoint from buffer exhaustion."
+    },
+    {
+      badge: "Global Fabric",
+      title: "Congestion Control (Network Protection)",
+      icon: "🌐",
+      color: "rose",
+      domain: "Transport & Network Layer (All Senders vs Subnet)",
+      points: [
+        "Prevents aggregate host traffic from overflowing intermediate router queues.",
+        "Governed dynamically by inferred network state and congestion windows (cwnd).",
+        "Feedback is indirect: packet drops, round-trip time inflation, or ECN bits.",
+        "Resolves contention across thousands of independent competing flows."
+      ],
+      quote: "Protecting the shared transit infrastructure from systemic collapse."
+    }
+  ]}
+/>
+
+### The Congestion Curve: Knee and Cliff Points
+When plotting **Throughput** and **Delay** as functions of **Offered Load** (packets injected per unit time), the network traverses three distinct operating regimes:
+
+1. **Light Load Regime ($0 \le \text{Load} < \text{Knee}$)**:
+   * Throughput increases linearly with offered load: $\text{Throughput} \approx \text{Load}$.
+   * Router buffers are nearly empty; packet delay is dominated strictly by transmission and propagation delay ($T_t + T_p$).
+2. **Knee Point to Cliff Point ($\text{Knee} \le \text{Load} < \text{Cliff}$)**:
+   * The **Knee Point** represents the ideal operational target where throughput reaches network capacity while queueing delay remains minimal.
+   * Past the knee, throughput flattens out (bounded by link bandwidth), while router buffers fill up rapidly.
+   * **Queueing delay escalates exponentially**, drastically increasing the Round-Trip Time ($RTT$).
+3. **Congestion Collapse ($\text{Load} \ge \text{Cliff}$)**:
+   * The **Cliff Point** represents complete buffer saturation.
+   * Routers drop arriving packets. Sender retransmission timers expire, causing hosts to retransmit identical packets into already flooded queues.
+   * **Congestion Collapse** ensues: useful goodput plummets to near zero while the network expends 100% of its resources dropping and retransmitting doomed packets.
+
+---
+
+## 🛡️ Taxonomy of Congestion Management: Open-Loop vs Closed-Loop
+
+Congestion management strategies fall into two broad architectural philosophies:
+
+| Dimension | Open-Loop Congestion Control (Prevention) | Closed-Loop Congestion Control (Removal & Recovery) |
+| :--- | :--- | :--- |
+| **Philosophy** | Design protocols to prevent congestion before it ever occurs. | Detect congestion dynamically after onset and throttle transmission rates. |
+| **Feedback Loop** | No runtime feedback loop from intermediate routers. | Active dynamic feedback via packet drops, delay increases, or explicit bit flags. |
+| **Primary Mechanisms** | Traffic shaping (Leaky Bucket, Token Bucket), packet admission control, strict policing. | TCP AIMD, Slow Start, Choke Packets, Explicit Congestion Notification (ECN). |
+| **Operating Layer** | Data link layer, ATM cells, edge traffic policers, ingress gateways. | Transport layer (TCP), Network layer (IP ECN, ICMP Source Quench). |
+| **Adaptability** | Static parameters negotiated at connection establishment. | Highly dynamic; continuously modulates rate based on round-trip acknowledgments. |
+
+---
+
+## ⚖️ Traffic Policing vs Traffic Shaping
+
+Network operators manage service level agreements (SLAs) at the ingress boundary using two distinct rate-limiting strategies:
+
+* **Traffic Policing**: Monitors the incoming packet stream against a configured rate. Any packet arriving above the agreed-upon threshold is **immediately dropped** or marked with a lower drop-precedence (e.g. DiffServ DSCP remarking). Policing introduces **zero buffering delay**, but results in burst packet loss.
+* **Traffic Shaping**: Intercepts bursty traffic and **buffers packets in a local queue**, releasing them onto the outgoing interface at an even, controlled rate. Shaping eliminates packet loss for bursts within the buffer capacity, but introduces **queueing latency**.
+
+---
+
+## 🚰 The Leaky Bucket Algorithm: Constant-Rate Traffic Smoothing
+
+The **Leaky Bucket Algorithm** is an open-loop traffic shaping algorithm that converts an arbitrary, bursty incoming packet stream into a perfectly uniform, constant-bit-rate (CBR) output stream.
+
+### Structural Architecture & Operation
+A Leaky Bucket consists of:
+1. A finite FIFO queue of capacity $C$ bytes.
+2. An output mechanism that drains the queue at a constant rate $R$ bytes/second (or $r$ packets/tick).
+
+<FlowPipeline
+  title="The Leaky Bucket Traffic Smoothing Pipeline"
+  subtitle="Converting stochastic bursty packet arrivals into a deterministic constant-rate egress stream"
+  nodes={[
+    {
+      badge: "Ingress",
+      title: "Bursty Packet Inflow",
+      icon: "🌊",
+      color: "rose",
+      description: "Arbitrary arrival rate A(t). Unpredictable spikes and idle periods.",
+      connectorLabel: "Enters FIFO"
+    },
+    {
+      badge: "Buffer",
+      title: "Finite FIFO Queue (Capacity C)",
+      icon: "🚰",
+      color: "amber",
+      description: "Packets queued up to capacity C. Arriving packets overflow and drop if buffer is full.",
+      connectorLabel: "Drain Rate R"
+    },
+    {
+      badge: "Egress",
+      title: "Smooth Uniform Stream",
+      icon: "⚡",
+      color: "emerald",
+      description: "Deterministic constant-bit-rate stream leaking at precisely R bytes/sec."
+    }
+  ]}
+/>
+
+1. **Packet Arrival**: Incoming packets enter the queue.
+2. **Buffer Check**: If the buffer has sufficient room, the packet is queued. If $\text{Queue Size} + \text{Packet Size} > C$, the buffer overflows and the arriving packet is **instantly dropped**.
+3. **Constant Leak**: At every clock tick, exactly $R$ units of data are dispatched to the physical link. If the buffer becomes empty, output ceases until new packets arrive.
+
+### Mathematical Formulation
+Let:
+* $C$ = Bucket buffer capacity (bytes)
+* $R$ = Constant leak rate (bytes/sec)
+* $A(t)$ = Volume of data arriving at time $t$
+* $Q(t)$ = Queue occupancy at time $t$
+
+Over an infinitesimal interval $\Delta t$, the queue evolves as:
+
+$$Q(t + \Delta t) = \max\Big(0, \; \min\big(C, \; Q(t) + A(t)\Delta t - R\Delta t\big)\Big)$$
+
+If $Q(t) + A(t)\Delta t - R\Delta t > C$, the volume of dropped data $D(t)$ is:
+
+$$D(t) = \big(Q(t) + A(t)\Delta t - R\Delta t\big) - C$$
+
+### Critical Architectural Limitations of Leaky Bucket
+* **Rigid Enforcement**: Leaky Bucket does not tolerate bursts under any circumstances. Even if the downstream physical link is 100% idle, packets are forced to trickle out at rate $R$.
+* **Inefficient Channel Utilization**: Burst-tolerant applications (such as HTTP page loads or RPC queries) suffer unnecessary queueing delays.
+
+---
+
+## 🪙 The Token Bucket Algorithm: Flexible Burst-Tolerant Credit Regulation
+
+To address the rigidity of the Leaky Bucket, the **Token Bucket Algorithm** decouples packet buffering from transmission permission by using virtual **credit tokens**.
+
+<FlowPipeline
+  title="The Token Bucket Credit Transmission Pipeline"
+  subtitle="How periodic token generation enables controlled bursts without network overload"
+  nodes={[
+    {
+      badge: "Credit Generator",
+      title: "Periodic Token Source",
+      icon: "⚙️",
+      color: "purple",
+      description: "Generates tokens at fixed rate R tokens/sec into storage pool.",
+      connectorLabel: "Add Token"
+    },
+    {
+      badge: "Credit Pool",
+      title: "Token Bucket Store",
+      icon: "🪙",
+      color: "blue",
+      description: "Stores up to C tokens. Excess tokens discarded if bucket is full.",
+      connectorLabel: "Check Credit"
+    },
+    {
+      badge: "Credit Arbiter",
+      title: "Transmission Regulator",
+      icon: "⚖️",
+      color: "emerald",
+      description: "Packet arrives: consumes matching tokens to unlock wire access.",
+      connectorLabel: "Send Packet"
+    },
+    {
+      badge: "Physical Wire",
+      title: "Network Link",
+      icon: "⚡",
+      color: "cyan",
+      description: "Transmits burst up to link peak rate M until tokens deplete.",
+    }
+  ]}
+/>
+
+### Operational Mechanics
+1. **Token Generation**: A clock generates tokens at a fixed rate of $R$ tokens per second (where 1 token represents 1 byte, or 1 fixed packet).
+2. **Token Storage**: Generated tokens accumulate in a token bucket of finite capacity $C$. If tokens arrive when the bucket is full ($C$), the **tokens are discarded** (packets are never discarded due to token overflow).
+3. **Packet Transmission**: When a packet of size $k$ bytes arrives at the regulator:
+   * If the bucket contains $\ge k$ tokens, $k$ tokens are removed from the bucket, and the packet is **immediately transmitted at the maximum physical link rate $M$**.
+   * If the bucket contains $< k$ tokens, the packet must either wait in a queue until sufficient tokens accumulate, or be dropped (in policing mode).
+
+---
+
+## 📐 Mathematical Derivation of Token Bucket Maximum Burst Duration
+
+A classic analytical requirement in network engineering is calculating the **maximum burst transmission duration** $T$ when a sender transmits at its peak interface speed $M$ bps ($M > R$).
+
+### Derivation Steps
+
+Let:
+* $C$ = Token bucket capacity (in bits or tokens)
+* $R$ = Token arrival rate (in bits/sec or tokens/sec)
+* $M$ = Maximum link transmission rate / peak speed (in bits/sec), where $M > R$
+* $T$ = Maximum duration for which the sender can transmit continuously at peak rate $M$ (in seconds)
+
+During the burst interval $T$:
+1. The total volume of data transmitted by the sender is:
+
+$$\text{Data Out} = M \cdot T$$
+
+2. The total number of tokens available to authorize transmission during this interval consists of:
+   * The tokens initially stored in the full bucket ($C$)
+   * The fresh tokens generated by the token clock during the interval $T$ ($R \cdot T$)
+
+$$\text{Tokens Available} = C + R \cdot T$$
+
+3. For continuous transmission at rate $M$, the total data transmitted must equal the total tokens consumed:
+
+$$M \cdot T = C + R \cdot T$$
+
+4. Rearranging the terms to isolate $T$:
+
+$$M \cdot T - R \cdot T = C$$
+
+$$T \cdot (M - R) = C$$
+
+$$\mathbf{T = \frac{C}{M - R}}$$
+
+5. The total volume of data $S$ transmitted during this maximum burst period is:
+
+$$\mathbf{S = M \cdot T = \frac{M \cdot C}{M - R}}$$
+
+> **Intuition**: Because fresh tokens replenish the bucket at rate $R$ even as data drains tokens at rate $M$, the net depletion rate is $(M - R)$. The burst lasts until the initial capacity $C$ is fully consumed at this net rate.
+
+---
+
+## 🔄 Leaky Bucket vs Token Bucket: Complete Architectural Comparison
+
+| Attribute | Leaky Bucket Algorithm | Token Bucket Algorithm |
+| :--- | :--- | :--- |
+| **Output Rate** | Strictly constant ($R$). Zero burstiness. | Variable: up to link maximum ($M$) during bursts, long-term average ($R$). |
+| **What is Stored?** | Actual data packets / bytes. | Virtual tokens (credit permits). |
+| **Overflow Behavior** | **Packets are dropped** when buffer is full. | **Tokens are discarded** when bucket is full (packets are preserved). |
+| **Burst Handling** | Smooths out all bursts completely; forces uniform spacing. | Allows controlled bursts up to bucket capacity $C$. |
+| **Token Depletion** | Not applicable. | When empty, transmission rate drops to token arrival rate $R$. |
+| **Composite Architecture** | Often placed *after* a Token Bucket to shape bursts before physical transmission. | Token Bucket first (rate policing) $\to$ Leaky Bucket second (shaping). |
+
+---
+
+## 🏭 Real-World Production Context: Linux Traffic Control (tc) & Cloud API Gateways
+
+### 1. Linux Kernel Traffic Control (`tc-tbf`)
+In Linux networking, the kernel packet scheduler implements the **Token Bucket Filter (TBF)** queueing discipline (`qdisc`) inside the network stack:
+```bash
+# Configure a Token Bucket Filter on interface eth0
+# Enforcing average rate 10 Mbit/s, burst buffer 32 kbytes, peak rate 50 Mbit/s
+sudo tc qdisc add dev eth0 root tbf rate 10mbit burst 32kb peakrate 50mbit minburst 1520
+```
+* The kernel maintains a credit timer updated via CPU high-resolution timers (`jiffies` / TSC).
+* Arriving `sk_buff` socket buffers consume tokens equal to their packet byte length.
+* If credits are negative, the kernel suspends transmission by arming a timer interrupt to wake the queue once tokens refill.
+
+### 2. Hyperscale Cloud API Rate Limiting (Token Bucket)
+Services such as **AWS API Gateway**, **Cloudflare**, and **Stripe** implement distributed Token Bucket algorithms in memory (Redis / Memcached) to enforce per-user rate limits:
+* Each API key is assigned a Redis key tracking `(tokens_available, last_updated_timestamp)`.
+* When a request arrives, the server computes newly accumulated tokens:
+  $$\text{tokens} = \min\big(C, \; \text{tokens} + (\text{now} - \text{last\_updated}) \times R\big)$$
+* If $\text{tokens} \ge 1$, the counter decrements by 1 and the request passes with HTTP `200 OK`.
+* If $\text{tokens} < 1$, the request is immediately rejected with HTTP `429 Too Many Requests`.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Leaky Bucket Buffer Occupancy & Packet Drops
+**Problem Statement:**  
+A Leaky Bucket system has a buffer capacity of $C = 12\text{ MB}$ and an output leak rate of $R = 3\text{ MB/s}$. Bursty traffic arrives in three consecutive seconds:
+* Second 1: Arrival of $6\text{ MB}$
+* Second 2: Arrival of $10\text{ MB}$
+* Second 3: Arrival of $4\text{ MB}$
+
+Compute the buffer occupancy at the end of each second and determine the total volume of data discarded due to overflow.
+
+**Step-by-Step Solution:**
+1. **Second 1 Analysis:**
+   * Initial buffer: $Q_0 = 0\text{ MB}$
+   * Arriving data: $A_1 = 6\text{ MB}$
+   * Total in bucket before leaking: $0 + 6 = 6\text{ MB} \le 12\text{ MB}$ (no drops)
+   * Leaked data: $\min(6, 3) = 3\text{ MB}$
+   * Buffer occupancy at end of Second 1:
+     $$Q_1 = 6 - 3 = 3\text{ MB}$$
+
+2. **Second 2 Analysis:**
+   * Arriving data: $A_2 = 10\text{ MB}$
+   * Total in bucket before leaking: $Q_1 + A_2 = 3 + 10 = 13\text{ MB}$
+   * Capacity constraint: $C = 12\text{ MB}$
+   * Data dropped in Second 2:
+     $$\text{Dropped}_2 = 13 - 12 = 1\text{ MB}$$
+   * Leaked data: $\min(12, 3) = 3\text{ MB}$
+   * Buffer occupancy at end of Second 2:
+     $$Q_2 = 12 - 3 = 9\text{ MB}$$
+
+3. **Second 3 Analysis:**
+   * Arriving data: $A_3 = 4\text{ MB}$
+   * Total in bucket before leaking: $Q_2 + A_3 = 9 + 4 = 13\text{ MB}$
+   * Capacity constraint: $C = 12\text{ MB}$
+   * Data dropped in Second 3:
+     $$\text{Dropped}_3 = 13 - 12 = 1\text{ MB}$$
+   * Leaked data: $\min(12, 3) = 3\text{ MB}$
+   * Buffer occupancy at end of Second 3:
+     $$Q_3 = 12 - 3 = 9\text{ MB}$$
+
+4. **Final Summary:**
+   * Buffer occupancies: $Q_1 = 3\text{ MB}$, $Q_2 = 9\text{ MB}$, $Q_3 = 9\text{ MB}$.
+   * Total data discarded: $1\text{ MB} + 1\text{ MB} = \mathbf{2\text{ MB}}$.
+
+---
+
+### Example 2: Maximum Burst Duration of a Token Bucket
+**Problem Statement:**  
+A computer network interface uses a Token Bucket algorithm to shape outbound traffic. The token bucket capacity is $C = 2\text{ Megabytes}$ ($16\text{ Megabits}$). Fresh tokens arrive at a constant rate of $R = 10\text{ Mbps}$. The physical network interface can transmit data at a peak speed of $M = 50\text{ Mbps}$. Assuming the bucket is initially completely full:
+1. Find the maximum duration $T$ for which the host can transmit at its peak rate of $50\text{ Mbps}$.
+2. Calculate the total volume of data transmitted during this burst period.
+
+**Step-by-Step Solution:**
+1. **Identify Given Parameters:**
+   * Bucket capacity $C = 16\text{ Megabits} = 16 \times 10^6\text{ bits}$
+   * Token arrival rate $R = 10\text{ Mbps} = 10 \times 10^6\text{ bits/sec}$
+   * Peak transmission speed $M = 50\text{ Mbps} = 50 \times 10^6\text{ bits/sec}$
+
+2. **Apply the Burst Duration Formula:**
+   $$T = \frac{C}{M - R}$$
+
+3. **Calculate Burst Duration $T$:**
+   $$T = \frac{16 \times 10^6}{50 \times 10^6 - 10 \times 10^6} = \frac{16}{40} = 0.4\text{ seconds} = \mathbf{400\text{ ms}}$$
+
+4. **Calculate Total Data Transmitted ($S$):**
+   $$S = M \cdot T = 50\text{ Mbps} \times 0.4\text{ s} = 20\text{ Megabits} = \mathbf{2.5\text{ Megabytes}}$$
+
+> **Verification**: During $0.4\text{ s}$, the bucket yields its initial $16\text{ Mb}$ plus newly generated tokens: $10\text{ Mbps} \times 0.4\text{ s} = 4\text{ Mb}$. Total tokens available = $16 + 4 = 20\text{ Mb}$, matching exactly $M \times T = 50 \times 0.4 = 20\text{ Mb}$.
+
+---
+
+### Example 3: Required Token Bucket Capacity for a Specified Burst
+**Problem Statement:**  
+A video streaming encoder produces bursts of video data lasting up to $T = 2\text{ seconds}$ at a peak bit rate of $M = 24\text{ Mbps}$. The network policy limits the long-term sustained rate to $R = 8\text{ Mbps}$. What minimum token bucket capacity $C$ (in Megabits) is required so that the encoder never experiences packet loss or transmission throttling during a 2-second peak burst?
+
+**Step-by-Step Solution:**
+1. **Identify Given Parameters:**
+   * Burst duration $T = 2\text{ s}$
+   * Peak transmission rate $M = 24\text{ Mbps}$
+   * Token refill rate $R = 8\text{ Mbps}$
+
+2. **Rearrange Burst Formula for Capacity $C$:**
+   $$T = \frac{C}{M - R} \implies C = T \cdot (M - R)$$
+
+3. **Compute Capacity $C$:**
+   $$C = 2\text{ s} \times (24\text{ Mbps} - 8\text{ Mbps}) = 2 \times 16 = \mathbf{32\text{ Megabits}} = \mathbf{4\text{ Megabytes}}$$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does a Token Bucket allow bursts while a Leaky Bucket cannot?**: A Leaky Bucket enforces an invariant, rigid outflow rate ($R$) by buffering data and draining it at a fixed pace. A Token Bucket, conversely, stores permission units (tokens) rather than data packets. When tokens have accumulated during idle intervals, the sender can spend all accrued tokens instantly, driving the link at its maximum physical wire speed ($M$) until the credit pool is exhausted.
+* **What happens to excess tokens in a Token Bucket vs excess packets in a Leaky Bucket?**: When a Leaky Bucket buffer fills up, incoming **packets are permanently dropped**, causing data loss and transport retransmissions. When a Token Bucket fills up, incoming **tokens are discarded**, which causes zero packet loss—it simply means the maximum allowable credit has capped at $C$.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Confusing Peak Line Rate ($M$) with Token Rate ($R$) in Burst Calculations**: Candidates frequently write $T = C / M$, forgetting that while data drains tokens at rate $M$, fresh tokens are simultaneously arriving at rate $R$. The net token depletion rate is $(M - R)$, yielding the correct equation $T = C / (M - R)$.
+* **Trap: Assuming Congestion Collapse is Caused by Initial Transmissions**: Congestion collapse is not triggered by original application packets alone; it is caused by **uncontrolled retransmissions of dropped packets**. When timeout timers expire prematurely, senders duplicate packets into already choked queues, expending all link capacity on duplicate traffic.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "6.5 TCP State Machine & TIME_WAIT Socket Mechanics",
+    url: "/coredose/cn/module-06/tcp-state-machine-and-time-wait-socket-mechanics"
+  }}
+  next={{
+    title: "7.2 TCP Sliding Window Flow Control & Silly Window Syndrome",
+    url: "/coredose/cn/module-07/tcp-sliding-window-flow-control-and-silly-window-syndrome"
+  }}
+  courseUrl="/coredose/cn"
+/>

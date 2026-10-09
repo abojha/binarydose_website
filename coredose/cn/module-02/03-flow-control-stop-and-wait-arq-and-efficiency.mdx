@@ -1,0 +1,460 @@
+---
+title: "2.3 Flow Control: Stop-and-Wait ARQ & Efficiency Derivation"
+description: "In-depth derivation of Stop-and-Wait flow control efficiency, channel delay components (Tt, Tp), parameter a, throughput, noisy channel ARQ mechanics with sequence numbers (modulo 2), and solved engineering examples."
+hide_table_of_contents: true
+---
+
+# 2.3 Flow Control: Stop-and-Wait ARQ & Efficiency Derivation
+
+<CoreDoseLessonHeader
+  module="Module 02: Data Link Layer: Framing, Flow & Error Control"
+  topic="Topic 2.3"
+  courseUrl="/coredose/cn"
+  readTime="10 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Classroom Q&A Analogy
+
+### 🍳 The Everyday Analogy: The Single-Question Professor
+Imagine a classroom setting where a professor speaks to a student:
+* If the professor speaks at 300 words per minute without pausing, the student's brain and pen cannot write fast enough. The student's local memory buffer overflows, and knowledge is lost.
+* In the **Stop-and-Wait** approach, the professor asks **one question**, stops speaking completely, and waits in absolute silence. Only after the student raises their hand and provides an answer (**Acknowledgment**) does the professor proceed to the next question.
+
+### 💻 Bridging to Computer Science
+In computer networks, the transmitting host might be a high-performance datacenter server capable of blasting data at $10\text{ Gbps}$, while the receiving host might be an inexpensive embedded sensor or smartphone whose CPU can only ingest data at $10\text{ Mbps}$. **Flow Control** provides the regulatory feedback mechanism ensuring the sender never overwhelms the receiver's memory buffer.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## ⏱️ The 4 Fundamental Delay Components
+
+When analyzing any flow control protocol, we must dissect the total time elapsed during packet traversal across the network.
+
+<FlowPipeline
+  title="Channel Traversal Delay Components"
+  subtitle="Chronological latency stages for transmitting a frame across a physical link"
+  nodes={[
+    {
+      badge: "Step 1: Push Bits",
+      title: "Transmission Delay (Tt)",
+      icon: "📤",
+      color: "purple",
+      description: "Time to clock all L bits onto physical medium: Tt = L / B.",
+      connectorLabel: "Signals Enter Line",
+    },
+    {
+      badge: "Step 2: Signal Transit",
+      title: "Propagation Delay (Tp)",
+      icon: "⚡",
+      color: "blue",
+      description: "Time for physical wave to travel distance d at speed v: Tp = d / v.",
+      connectorLabel: "Bits Reach Destination",
+    },
+    {
+      badge: "Step 3: NIC Inspection",
+      title: "Processing Delay (Tproc)",
+      icon: "🖥️",
+      color: "emerald",
+      description: "Time for receiver hardware to parse headers and compute CRC (~0 on modern NICs).",
+    },
+  ]}
+/>
+
+### 1. Transmission Delay ($T_t$)
+The time required for the transmitter's hardware to push all the bits of a frame onto the transmission line one by one:
+$$T_t = \frac{L}{B}$$
+* $L$ = Length of the frame in **bits**.
+* $B$ = Bandwidth (transmission speed / bitrate) of the channel in **bits per second (bps)**.
+* *Analogy*: The time it takes for a convoy of cars to pass through a single tollbooth barrier.
+
+### 2. Propagation Delay ($T_p$)
+The time required for a single bit to physically travel from the transmitter to the receiver across the physical transmission medium of distance $d$:
+$$T_p = \frac{d}{v}$$
+* $d$ = Distance between sender and receiver in **meters**.
+* $v$ = Signal propagation velocity through the medium in **meters per second (m/s)**.
+  * In optical fiber / copper cables: $v \approx 2 \times 10^8\text{ m/s}$ (approx. $2/3$ the speed of light).
+  * In free space / vacuum / air: $v \approx 3 \times 10^8\text{ m/s}$.
+* *Analogy*: The time it takes for a car to drive down the highway between Mumbai and Pune after passing the tollgate.
+
+### 3. Processing Delay ($T_{\text{proc}}$)
+The time required by the destination host's NIC and operating system to receive the packet, remove the physical layer preamble, and compute the CRC error checksum. On modern hardware, $T_{\text{proc}}$ is typically in microseconds and is conventionally assumed negligible ($T_{\text{proc}} \approx 0$).
+
+### 4. Queuing Delay ($T_q$)
+The time the packet spends waiting inside the output queues of intermediate switches and routers before being scheduled for transmission.
+
+---
+
+## 📐 Mathematical Derivation of Stop-and-Wait Efficiency
+
+In the basic Stop-and-Wait protocol, the sender transmits **one frame** and pauses until it receives an Acknowledgment (**ACK**) from the receiver.
+
+<FlowPipeline
+  title="Stop-and-Wait Total Cycle Time Composition"
+  subtitle="Round-trip timeline encompassing data transit, receiver processing, and ACK return"
+  nodes={[
+    {
+      badge: "Outbound Data",
+      title: "Transmit Frame (Tt)",
+      icon: "💻",
+      color: "purple",
+      description: "Sender clocks L data bits onto the channel at bitrate B.",
+      connectorLabel: "Propagate Outbound (Tp)",
+    },
+    {
+      badge: "Receiver Action",
+      title: "Process & ACK (Tt,ack)",
+      icon: "🖥️",
+      color: "blue",
+      description: "Receiver validates frame and injects ACK packet (Tt,ack ≈ 0).",
+      connectorLabel: "Propagate Return (Tp)",
+    },
+    {
+      badge: "Inbound ACK",
+      title: "Cycle Complete: Tt + 2·Tp",
+      icon: "🎯",
+      color: "emerald",
+      description: "ACK reaches sender. Total idle wait equals round-trip propagation 2·Tp.",
+    },
+  ]}
+/>
+
+### 1. Total Cycle Time ($T_{\text{total}}$)
+The total duration of one complete Stop-and-Wait cycle is:
+$$T_{\text{total}} = T_{t,\text{data}} + T_p + T_{\text{proc}} + T_{t,\text{ack}} + T_p$$
+
+In standard analysis:
+* An ACK packet contains only control headers with zero data payload, so its size is negligible: $T_{t,\text{ack}} \approx 0$.
+* Processing delay is negligible: $T_{\text{proc}} \approx 0$.
+
+Therefore, the total round-trip cycle time simplifies to:
+$$T_{\text{total}} = T_t + 2 \cdot T_p$$
+
+### 2. Efficiency ($\eta$)
+**Efficiency** ($\eta$), also known as **Line Utilization**, is the ratio of useful transmission time to the total elapsed cycle time:
+$$\eta = \frac{\text{Useful Time}}{\text{Total Cycle Time}} = \frac{T_t}{T_t + 2 \cdot T_p}$$
+
+Dividing the numerator and denominator by $T_t$:
+$$\eta = \frac{1}{1 + 2 \left( \frac{T_p}{T_t} \right)}$$
+
+### 3. The Parameter $a$
+We define the dimensionless ratio $a$:
+$$a = \frac{T_p}{T_t} = \frac{d/v}{L/B} = \frac{d \cdot B}{v \cdot L}$$
+
+Substituting $a$ into our efficiency formula gives the classic fundamental equation:
+$$\mathbf{\eta = \frac{1}{1 + 2a}}$$
+
+### 4. Throughput / Effective Bandwidth
+The actual data delivery rate achieved across the channel is:
+$$\text{Throughput} = \eta \times \text{Bandwidth} = \left( \frac{T_t}{T_t + 2 T_p} \right) \times B = \frac{L}{T_t + 2 T_p} \quad \text{bits/second}$$
+
+---
+
+## 🔍 Critical Analysis of Parameter $a$
+
+The parameter $a = \frac{T_p}{T_t}$ dictates the performance of the Stop-and-Wait protocol:
+
+<ConceptComparison
+  title="Stop-and-Wait Efficiency Regimes: Impact of Parameter a"
+  subtitle="How physical distance and transmission speed dictate protocol line efficiency"
+  left={{
+    badge: "High Efficiency (a << 1)",
+    title: "Local Area Network (LAN)",
+    icon: "🏢",
+    color: "emerald",
+    domain: "Short Distance (d small), Large Frames (L large)",
+    points: [
+      "Propagation delay Tp is tiny compared to transmission delay Tt (Tp << Tt).",
+      "Parameter a = Tp / Tt approaches 0 (2a ≈ 0).",
+      "Efficiency η = 1 / (1 + 2a) approaches 100%.",
+      "Stop-and-Wait is simple, elegant, and performs exceptionally well.",
+    ],
+    quote: "When transmission dominates propagation, channel utilization remains near 100%.",
+  }}
+  right={{
+    badge: "Severe Degradation (a >> 1)",
+    title: "Satellite & High-Speed WAN",
+    icon: "🛰️",
+    color: "rose",
+    domain: "Long Distance (d large), Ultra-High Bandwidth (B large)",
+    points: [
+      "Propagation delay Tp is massive compared to tiny transmission delay Tt (Tp >> Tt).",
+      "Parameter a = Tp / Tt is large (e.g. a > 15 on satellite links).",
+      "Efficiency η = 1 / (1 + 2a) collapses toward 0% (< 5%).",
+      "Channel sits idle > 95% of the time, demanding pipelined sliding windows.",
+    ],
+    quote: "When propagation dominates transmission, Stop-and-Wait wastes over 95% of link capacity.",
+  }}
+/>
+
+---
+
+## 🛡️ Stop-and-Wait ARQ (Handling Noisy Channels)
+
+On an unshielded physical channel, frames or ACKs can be corrupted or lost entirely. To provide reliable transmission, **Stop-and-Wait ARQ (Automatic Repeat Request)** introduces four vital mechanisms:
+
+1. **Error Detection (CRC)**: The receiver computes the CRC. If the frame is corrupted, it is silently discarded.
+2. **Positive Acknowledgments (ACK)**: The receiver explicitly notifies the sender upon receiving an undamaged frame.
+3. **Retransmission Timer (Timeout Timer / RTO)**: The sender starts a countdown timer immediately upon transmitting a frame. If no ACK arrives before the timer expires ($RTO > 2 T_p$), the sender assumes the frame or ACK was lost and retransmits.
+4. **Sequence Numbers (Modulo-2 Arithmetic)**:
+   * **Why are sequence numbers needed?** Consider what happens if an ACK is delayed or lost:
+     * Sender transmits frame $\to$ Receiver gets it $\to$ Receiver sends ACK $\to$ ACK is lost in transit!
+     * Sender times out and retransmits the same frame.
+     * Without sequence numbers, the receiver cannot know whether this incoming frame is a **brand-new frame** or a **duplicate of the previous frame**!
+   * **How many bits are needed?**
+     * Since at most **one** frame is in transit at any moment, sequence numbers only need to distinguish between the current frame and the next frame.
+     * **1 bit** is sufficient! Sequence numbers alternate between **`0`** and **`1`** (Modulo-2).
+     * Data frames use sequence numbers `Frame 0` and `Frame 1`.
+     * ACKs carry the sequence number of the **next expected frame** (`ACK 1` acknowledges `Frame 0` and requests `Frame 1`).
+
+---
+
+## 🔄 Interactive Flagship Blueprint: Stop-and-Wait ARQ Space-Time Protocol Ladder
+
+The interactive space-time protocol ladder below traces a complete failure-and-recovery cycle in Stop-and-Wait ARQ: successful transmission of Frame 0, transmission of Frame 1 whose ACK is lost in transit, sender retransmission timer expiration, and duplicate handling via 1-bit sequence numbers.
+
+<ProtocolLadder
+  title="Stop-and-Wait ARQ: Lost ACK Timeout & Duplicate Recovery Ladder"
+  subtitle="Space-time protocol ladder showing transmission delay, propagation delay, lost ACK in channel, timeout expiration, and duplicate resync"
+  actors={[
+    { id: "sender", label: "Sender (Host A)", icon: "📡", role: "Transmitter", color: "blue" },
+    { id: "receiver", label: "Receiver (Host B)", icon: "📥", role: "Receiver", color: "emerald" },
+  ]}
+  windowState={{
+    title: "Stop-and-Wait 1-Bit Modulo-2 Buffer State",
+    sender: {
+      label: "Sender Buffer",
+      size: 1,
+      slots: [
+        { seq: 0, status: "acked", badge: "ACKed" },
+        { seq: 1, status: "sent", badge: "In Flight" },
+      ],
+    },
+    receiver: {
+      label: "Receiver Buffer",
+      size: 1,
+      slots: [
+        { seq: 0, status: "usable", badge: "Expecting" },
+        { seq: 1, status: "blocked", badge: "Blocked" },
+      ],
+    },
+  }}
+  steps={[
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Frame 0",
+      sublabel: "seq=0, Tt=1ms",
+      color: "blue",
+      status: "success",
+      delayNote: "Tp (Propagation Delay)",
+      details: "Sender transmits Frame 0 across the physical link and starts its local retransmission timer (RTO). Receiver validates the CRC checksum, delivers payload to Network Layer, and advances its expectation to Frame 1.",
+      technicalContext: "Sender retains a copy of Frame 0 in its 1-frame buffer until an ACK is received.",
+    },
+    {
+      from: "receiver",
+      to: "sender",
+      label: "ACK 1",
+      sublabel: "Expects Frame 1",
+      color: "emerald",
+      status: "success",
+      delayNote: "ACK Propagates Back",
+      details: "Receiver sends ACK 1 back to the sender, acknowledging Frame 0 and advertising that it is ready for Frame 1.",
+      technicalContext: "Upon receiving ACK 1, the sender safely purges Frame 0 from its buffer.",
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Frame 1",
+      sublabel: "seq=1, Tt=1ms",
+      color: "blue",
+      status: "success",
+      delayNote: "Tp delay",
+      details: "Sender advances sequence pointer to 1, transmits Frame 1, and restarts the retransmission timer. Receiver accepts Frame 1 with zero bit errors and prepares ACK 0.",
+      technicalContext: "Receiver updates its internal expected sequence number to 0.",
+    },
+    {
+      from: "receiver",
+      to: "sender",
+      label: "ACK 0",
+      sublabel: "Expects Frame 0",
+      color: "rose",
+      status: "lost",
+      details: "Receiver dispatches ACK 0 across the link. However, electromagnetic line noise destroys the ACK packet in transit, dropping it completely!",
+      technicalContext: "The receiver assumes Frame 1 was acknowledged, but the sender has no idea because the ACK never arrived.",
+    },
+    {
+      actor: "sender",
+      isEvent: true,
+      eventType: "timeout",
+      spanSteps: 1,
+      label: "Timer Expires (RTO > 2·Tp)",
+      sublabel: "No ACK received",
+      color: "rose",
+      details: "Sender's retransmission timer reaches zero. Because no ACK arrived within the RTO window, the sender assumes either the data frame or its ACK was lost in transit.",
+      technicalContext: "To maintain link reliability, the sender automatically initiates retransmission of buffered Frame 1.",
+    },
+    {
+      from: "sender",
+      to: "receiver",
+      label: "Frame 1 (Retransmit)",
+      sublabel: "seq=1 (Duplicate)",
+      color: "amber",
+      status: "success",
+      delayNote: "Retransmission Flight",
+      details: "Sender retransmits Frame 1. Receiver inspects sequence number 1 and detects that it is a DUPLICATE of the frame already received in the previous step!",
+      technicalContext: "Receiver discards the duplicate payload to prevent data corruption in upper layers.",
+    },
+    {
+      from: "receiver",
+      to: "sender",
+      label: "ACK 0 (Resync)",
+      sublabel: "Still Expecting Frame 0",
+      color: "emerald",
+      status: "success",
+      delayNote: "Resync ACK",
+      details: "Receiver re-emits ACK 0. When sender receives ACK 0, its sequence pointer advances, restoring perfect sender-receiver synchronization!",
+      technicalContext: "Modulo-2 sequence numbers (0 and 1) allow both sides to gracefully recover from lost ACKs with zero duplicate deliveries.",
+    },
+  ]}
+/>
+
+---
+
+## 📈 Stop-and-Wait Efficiency with Packet Error Probability ($P$)
+
+If the physical transmission link has a packet loss / corruption probability $P$:
+* The probability that a frame succeeds on the 1st attempt = $1 - P$.
+* The probability that a frame requires $k$ attempts = $P^{k-1}(1 - P)$.
+* The average number of transmissions ($N_{\text{avg}}$) required to successfully deliver one frame is:
+  $$N_{\text{avg}} = \sum_{k=1}^{\infty} k \cdot P^{k-1}(1 - P) = \frac{1}{1 - P}$$
+
+Consequently, the realistic efficiency in the presence of noise is:
+$$\mathbf{\eta = \frac{1 - P}{1 + 2a}}$$
+
+---
+
+## 🏭 Real-World Production Context
+
+### Where Stop-and-Wait is Used Today: TFTP & Bootstrapping Firmware
+Although high-throughput internet applications use complex sliding window protocols, Stop-and-Wait remains the protocol of choice for **Trivial File Transfer Protocol (TFTP)** used in **PXE Network Booting**:
+* Network switches, IP phones, and diskless workstations fetch bootloader binaries over local Gigabit Ethernet using Stop-and-Wait lock-step transfers.
+* Because the code must fit into minuscule bootstrap ROM chips ($< 64\text{ KB}$), implementing complex multi-packet sliding window queues is impractical.
+* On a local low-latency LAN where $a \ll 1$, Stop-and-Wait provides nearly $100\%$ efficiency with virtually zero implementation complexity!
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Efficiency and Throughput Calculation for High-Speed Link
+
+**Problem Statement:**  
+A communications link operates at a transmission speed of $10^6\text{ bits/sec}$ ($1\text{ Mbps}$). The protocol transmits data packets of size $1000\text{ bytes}$ each. Assume that the acknowledgment frame has negligible length and the one-way propagation delay is $15\text{ ms}$. Compute the channel parameter $a$, the Stop-and-Wait efficiency, and the effective throughput.
+
+#### Step-by-Step Solution:
+1. **Identify Given Parameters**:
+   * Bandwidth $B = 10^6\text{ bps}$.
+   * Packet length $L = 1000\text{ bytes} = 1000 \times 8 = 8000\text{ bits}$.
+   * Propagation delay $T_p = 15\text{ ms} = 0.015\text{ s}$.
+2. **Calculate Transmission Delay ($T_t$)**:
+   $$T_t = \frac{L}{B} = \frac{8000\text{ bits}}{10^6\text{ bps}} = 0.008\text{ s} = 8\text{ ms}$$
+3. **Calculate Dimensionless Parameter $a$**:
+   $$a = \frac{T_p}{T_t} = \frac{15\text{ ms}}{8\text{ ms}} = \mathbf{1.875}$$
+4. **Calculate Protocol Efficiency ($\eta$)**:
+   $$\eta = \frac{1}{1 + 2a} = \frac{1}{1 + 2(1.875)} = \frac{1}{1 + 3.75} = \frac{1}{4.75} \approx \mathbf{0.2105} \quad (\mathbf{21.05\%})$$
+5. **Calculate Effective Throughput**:
+   $$\text{Throughput} = \eta \times B = 0.2105 \times 10^6\text{ bps} = \mathbf{210.5\text{ kbps}}$$
+
+---
+
+### Example 2: Efficiency Evaluation under Channel Packet Error Probability
+
+**Problem Statement:**  
+On an unshielded wireless link, the probability of frame corruption is $P = 0.2$. A Stop-and-Wait ARQ protocol is deployed with a measured delay ratio $a = 0.5$. Calculate the effective channel efficiency taking retransmissions into account.
+
+#### Step-by-Step Solution:
+1. **List the Parameters**:
+   * Packet error probability $P = 0.2$.
+   * Dimensionless delay ratio $a = 0.5$.
+2. **Apply the Noisy Channel Efficiency Formula**:
+   $$\eta = \frac{1 - P}{1 + 2a}$$
+3. **Substitute Values**:
+   $$\eta = \frac{1 - 0.2}{1 + 2(0.5)} = \frac{0.8}{1 + 1.0} = \frac{0.8}{2.0} = \mathbf{0.40} \quad (\mathbf{40\%})$$
+4. **Final Result**:
+   The noisy channel achieves an overall efficiency of **$40\%$**.
+
+---
+
+### Example 3: Sizing Minimum Frame Length to Guarantee 50% Efficiency
+
+**Problem Statement:**  
+A communications link has a bit rate of $64\text{ kbps}$ and a one-way propagation delay of $20\text{ ms}$. Determine the minimum frame size required to achieve at least $50\%$ channel utilization using Stop-and-Wait.
+
+#### Step-by-Step Solution:
+1. **Given Parameters**:
+   * Bandwidth $B = 64\text{ kbps} = 64,000\text{ bps}$.
+   * Propagation delay $T_p = 20\text{ ms} = 0.020\text{ s}$.
+   * Minimum target efficiency $\eta \ge 0.5$.
+2. **Determine Upper Bound on Parameter $a$**:
+   $$\eta = \frac{1}{1 + 2a} \ge 0.5 \implies 1 + 2a \le 2 \implies 2a \le 1 \implies a \le 0.5$$
+3. **Relate $a$ to Transmission Delay ($T_t$)**:
+   $$a = \frac{T_p}{T_t} \le 0.5 \implies T_t \ge \frac{T_p}{0.5} = 2 \cdot T_p$$
+   $$T_t \ge 2 \times 20\text{ ms} = 40\text{ ms} = 0.040\text{ s}$$
+4. **Compute Frame Size ($L$)**:
+   $$L = T_t \times B \ge 0.040\text{ s} \times 64,000\text{ bps} = 2560\text{ bits}$$
+   $$L_{\text{bytes}} = \frac{2560}{8} = \mathbf{320\text{ bytes}}$$
+5. **Final Result**:
+   The frame size must be at least **$320\text{ bytes}$** ($2560\text{ bits}$) to sustain $50\%$ line efficiency.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** *"Why are sequence numbers strictly alternating bits (0 and 1) in Stop-and-Wait ARQ instead of counting monotonically (0, 1, 2, 3...)?"*  
+**Key Focus Points:**
+* At any point in time, the sender has at most **one** outstanding unacknowledged frame.
+* The receiver only ever needs to distinguish between:
+  1. The current expected frame.
+  2. The immediately preceding duplicate frame (arriving due to a lost ACK).
+* Two distinct states ($0$ and $1$) are sufficient to differentiate these two conditions. Any additional bits would waste frame header bandwidth.
+
+**Question 2:** *"What determines the optimal value of the Retransmission Timeout (RTO) timer?"*  
+**Key Focus Points:**
+* The minimum theoretical RTO must be strictly greater than the round-trip time:
+  $$RTO > 2 \cdot T_p + T_{t,\text{ack}} + T_{\text{proc}}$$
+* If $RTO \le 2 T_p$, the timer expires before the legitimate ACK can physically travel back to the sender, causing premature retransmissions and bandwidth collapse.
+
+**Question 3:** *"What is the Bandwidth-Delay Product (BDP), and why is Stop-and-Wait catastrophic when BDP is large?"*  
+**Key Focus Points:**
+* $BDP = B \times T_p$ represents the total volume of bits that can fill the physical link medium like water in a pipe.
+* Stop-and-Wait injects only $L$ bits into the pipe and then pauses for $2 T_p$.
+* If $BDP \gg L$, the pipe is virtually empty $99\%$ of the time, resulting in near-zero line utilization.
+:::
+
+:::warning Common Interview Traps
+
+**Trap 1: "Does increasing channel bandwidth always increase the efficiency of Stop-and-Wait?"**  
+**Answer: Absolutely NOT—in fact, it DECREASES efficiency!** Increasing bandwidth $B$ reduces transmission delay $T_t = \frac{L}{B}$. This increases parameter $a = \frac{T_p}{T_t}$. Since $\eta = \frac{1}{1 + 2a}$, a higher bandwidth makes the efficiency drop closer to $0\%$! To maintain efficiency when upgrading bandwidth, one must proportionally increase frame size $L$.
+
+**Trap 2: "Can Negative Acknowledgments (NAK) completely eliminate the need for timeout timers in Stop-and-Wait?"**  
+**Answer: No.** A receiver can only generate a NAK if it receives a damaged frame. If the frame is lost entirely in the physical channel (e.g., absorbed by fiber attenuation), the receiver does not even know a transmission occurred and will never send a NAK! A sender-side timeout timer is mathematically indispensable.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "2.2 Error Detection: Parity, Checksum & Cyclic Redundancy Check (CRC)",
+    url: "/coredose/cn/module-02/error-detection-parity-checksum-and-crc",
+  }}
+  next={{
+    title: "2.4 Sliding Window Protocol: Go-Back-N (GBN) ARQ",
+    url: "/coredose/cn/module-02/sliding-window-protocol-go-back-n-arq",
+  }}
+  courseUrl="/coredose/cn"
+/>

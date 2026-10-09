@@ -26,6 +26,10 @@ import {
   ProcessMemoryMap,
   GanttChart,
   DiskSchedulingChart,
+  ProtocolLadder,
+  ContentionTimeline,
+  FrameFormat,
+  PacketHeaderGrid,
 } from '@site/src/components/Diagrams';
 
 
@@ -67,5 +71,9 @@ export default {
   ProcessMemoryMap,
   GanttChart,
   DiskSchedulingChart,
+  ProtocolLadder,
+  ContentionTimeline,
+  FrameFormat,
+  PacketHeaderGrid,
 };
 

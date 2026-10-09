@@ -1,0 +1,404 @@
+---
+title: "9.4 Cryptographic Hash Functions (SHA-256) & Digital Signatures"
+description: "Cryptographic hash function properties (pre-image and collision resistance), Birthday paradox mathematics, HMAC construction, and asymmetric digital signatures."
+hide_table_of_contents: true
+---
+
+# 9.4 Cryptographic Hash Functions (SHA-256) & Digital Signatures
+
+<CoreDoseLessonHeader
+  module="Module 09: Network Security & Cryptography"
+  topic="Topic 9.4"
+  courseUrl="/coredose/cn"
+  readTime="16 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Indelible Digital Fingerprint & Notary Stamp
+
+### 🍳 The Everyday Analogy: The Scrap Metal Crusher & Notary Seal
+Imagine two security challenges: proving a car was not altered, and proving an author signed a contract:
+1. **The Hash Function (The Metal Crusher)**: You drive a 2,000 kg automobile into an industrial crusher. The machine flattens the car into an exact $10\text{ cm} \times 10\text{ cm}$ metal block. It is trivial to crush the car into the cube, but physically impossible to reconstruct the exact running car back out of the scrap metal (**One-Way Property**). Furthermore, if you alter a single grain of paint on the car before crushing, the resulting block has a completely different chemical hue and mass (**The Avalanche Effect**).
+2. **The Digital Signature (The Notarized Wax Seal)**: To sign a 500-page mortgage document, you do not sign every individual word. Instead, you crush the document into its unique 32-byte digital fingerprint, and stamp your personal, unforgeable signet ring onto that fingerprint. Anyone with a magnifying glass can verify that your signet stamped that fingerprint, and that the fingerprint matches the 500-page contract.
+
+### 💻 Bridging to Computer Science
+In network protocols:
+* A **Cryptographic Hash Function** produces a fixed-size, irreversible digital fingerprint of arbitrary data. It detects any accidental or malicious alteration.
+* A **Digital Signature** combines a cryptographic hash with asymmetric cryptography. It proves who created the data (**Authenticity**), that the data was not tampered with (**Integrity**), and prevents the signer from denying their signature (**Non-Repudiation**).
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🏛️ The Three Pillars of Cryptographic Hash Functions
+
+A cryptographic hash function $H: \{0, 1\}^* \to \{0, 1\}^n$ maps an arbitrary-length message $M$ to an invariant, fixed-size $n$-bit digest $h = H(M)$.
+
+<SubsystemGrid
+  title="The 3 Essential Cryptographic Hash Properties"
+  subtitle="The mathematical criteria distinguishing cryptographic hashes from ordinary checksums (CRC32)"
+  items={[
+    {
+      icon: "🔒",
+      title: "1. Pre-Image Resistance",
+      tag: "One-Way Property",
+      color: "purple",
+      points: [
+        "Given an output hash h, it is computationally infeasible to find any message M such that H(M) = h.",
+        "Prevents an attacker from reversing stored password hashes back into plaintext.",
+        "Brute-Force Complexity: Requires approximately 2^n hash evaluations."
+      ]
+    },
+    {
+      icon: "🛡️",
+      title: "2. Second Pre-Image Resistance",
+      tag: "Weak Collision Resistance",
+      color: "blue",
+      points: [
+        "Given a specific input M_1, it is computationally infeasible to find a distinct M_2 != M_1 such that H(M_1) = H(M_2).",
+        "Prevents an attacker from substituting a malicious binary for a legitimate software patch while keeping the same hash.",
+        "Brute-Force Complexity: Requires approximately 2^n hash evaluations."
+      ]
+    },
+    {
+      icon: "💥",
+      title: "3. Collision Resistance",
+      tag: "Strong Collision Resistance",
+      color: "rose",
+      points: [
+        "It is computationally infeasible to find ANY two distinct messages M_1 != M_2 such that H(M_1) = H(M_2).",
+        "The attacker has full freedom to manipulate both messages simultaneously.",
+        "Brute-Force Complexity: Requires only approximately 2^(n/2) evaluations (Birthday Paradox)."
+      ]
+    },
+    {
+      icon: "⚡",
+      title: "4. The Avalanche Effect",
+      tag: "Strict Diffusion",
+      color: "emerald",
+      points: [
+        "Flipping a single bit in the input message flips an average of 50% of the output digest bits.",
+        "Produces completely uncorrelated, pseudorandom output distributions.",
+        "Eliminates statistical patterns that could assist cryptanalysis."
+      ]
+    }
+  ]}
+/>
+
+---
+
+## 🎂 Mathematical Analysis: The Birthday Paradox & Hash Output Sizing
+
+Why is finding **any collision** so much easier than finding a **second pre-image**? This is governed by the **Birthday Paradox**.
+
+### The Classical Probability Problem
+In a room of $k$ randomly chosen people, what is the probability that at least two people share the same birthday (assuming $N = 365$ days)?
+* Most people intuitively guess that $k$ must be around $365 / 2 \approx 180$.
+* The actual mathematical answer is that with just **$k = 23$ people**, the probability of a shared birthday exceeds **$50\%$**!
+
+### Mathematical Derivation for Cryptographic Hashes
+For an $n$-bit hash function, there are $N = 2^n$ possible hash values.
+Let an attacker generate $k$ distinct messages. The probability that all $k$ hashes are unique is:
+
+$$P(\text{No Collision}) = \prod_{i=0}^{k-1} \left(1 - \frac{i}{N}\right)$$
+
+Using the Taylor approximation $1 - x \approx e^{-x}$:
+
+$$P(\text{No Collision}) \approx \prod_{i=0}^{k-1} e^{-i / N} = e^{-\sum_{i=0}^{k-1} i / N} = e^{-\frac{k(k-1)}{2N}} \approx e^{-\frac{k^2}{2N}}$$
+
+Therefore, the probability of finding at least one collision is:
+
+$$P(\text{Collision}) = 1 - e^{-\frac{k^2}{2N}}$$
+
+Setting $P(\text{Collision}) = 0.5$:
+
+$$0.5 = 1 - e^{-\frac{k^2}{2N}} \implies e^{-\frac{k^2}{2N}} = 0.5 \implies \frac{k^2}{2N} = \ln(2) \approx 0.693$$
+
+$$k^2 \approx 2 \cdot \ln(2) \cdot N \approx 1.177 \cdot N$$
+
+$$\mathbf{k \approx 1.177 \cdot \sqrt{N} = 1.177 \cdot 2^{n/2}}$$
+
+:::warning Crucial Cryptographic Sizing Rule
+Because of the Birthday Paradox, **an $n$-bit hash function provides only $n/2$ bits of security against collision attacks!**
+* A 64-bit hash provides only $2^{32} \approx 4.3 \times 10^9$ collision resistance—crackable on a laptop in seconds!
+* MD5 ($128\text{ bits}$) provides only $2^{64}$ collision resistance—broken in 2004.
+* SHA-1 ($160\text{ bits}$) provides only $2^{80}$ collision resistance—broken by Google in 2017 (SHAttered attack).
+* **SHA-256 ($256\text{ bits}$)** provides **$2^{128}$ collision resistance**—safe against all supercomputers until the end of the universe.
+:::
+
+---
+
+## 🔑 Message Authentication Codes: The HMAC Architecture (RFC 2104)
+
+Suppose Alice sends a message $M$ and its hash $H(M)$ to Bob. An active attacker (Eve) intercepts $M$, modifies it to $M'$, calculates a fresh hash $H(M')$, and forwards both to Bob. Because Bob has no secret key, Bob computes $H(M')$, matches it, and is completely deceived!
+
+To bind integrity to a secret identity, systems use **Message Authentication Codes (MACs)**.
+
+### Why Naive Hashing $H(K \parallel M)$ Fails: Length Extension Attacks
+Many developers mistakenly create a MAC by prepending a secret key: $\text{MAC} = H(K \parallel M)$.
+In Merkle-Damgård hash functions (MD5, SHA-1, SHA-256):
+* The hash output is simply the internal state of the compression function after processing the final block.
+* An attacker who knows $H(K \parallel M)$ and the length of $M$ can append extra data $M_{\text{evil}}$ and calculate $H(K \parallel M \parallel \text{padding} \parallel M_{\text{evil}})$ **without ever knowing the secret key $K$**!
+
+---
+
+### The HMAC Construction (RFC 2104)
+To eliminate length extension attacks, HMAC applies a nested, two-pass hashing structure:
+
+$$\mathbf{\text{HMAC}(K, M) = H\Big(\big(K^+ \oplus \text{opad}\big) \;\parallel\; H\big((K^+ \oplus \text{ipad}) \;\parallel\; M\big)\Big)}$$
+
+Where:
+* $K^+$ is the secret key padded with zeros to match the block size ($B = 64\text{ bytes}$ in SHA-256).
+* $\text{ipad}$ (inner pad) is the constant byte `0x36` repeated $B$ times.
+* $\text{opad}$ (outer pad) is the constant byte `0x5C` repeated $B$ times.
+
+The outer hash $H$ acts on the digest of the inner hash, completely severing the linear state chaining and rendering length extension attacks mathematically impossible.
+
+---
+
+## 🔏 Asymmetric Digital Signatures: Integrity, Authenticity & Non-Repudiation
+
+A **Digital Signature** is the asymmetric counterpart of a MAC. While an HMAC uses a shared symmetric key (allowing either party to forge the MAC), a digital signature is produced using a unique **Private Key ($SK$)** and verified using a **Public Key ($PK$)**.
+
+<FlowPipeline
+  title="Digital Signature Generation and Verification Pipeline"
+  subtitle="End-to-end cryptographic workflow ensuring authenticity, message integrity, and non-repudiation"
+  nodes={[
+    {
+      badge: "Sender Side",
+      title: "1. Hash Message",
+      icon: "📄",
+      color: "blue",
+      description: "Sender passes arbitrary-length document M through SHA-256 to produce fixed digest h = H(M).",
+      connectorLabel: "Private Key Signing"
+    },
+    {
+      badge: "Cryptographic Sign",
+      title: "2. Encrypt Digest",
+      icon: "🔏",
+      color: "purple",
+      description: "Sender signs digest using private key: S = (h)^d mod n (in RSA). Attaches S to M.",
+      connectorLabel: "Transmit (M, S) over Wire"
+    },
+    {
+      badge: "Receiver Side",
+      title: "3. Decrypt Signature",
+      icon: "🔍",
+      color: "amber",
+      description: "Receiver decrypts S using Sender's Public Key: h' = (S)^e mod n.",
+      connectorLabel: "Compare Digests"
+    },
+    {
+      badge: "Verification",
+      title: "4. Integrity Check",
+      icon: "✅",
+      color: "emerald",
+      description: "Receiver hashes received M to get h''. If h' == h'', message is authentic and untampered!",
+    }
+  ]}
+/>
+
+### Why Do We Sign the Hash Instead of the Entire Document?
+1. **Computational Speed**: Asymmetric operations on multi-thousand-bit modular numbers are computationally expensive. Signing an entire $500\text{ MB}$ file directly would take minutes. Hashing compresses the $500\text{ MB}$ file into a 32-byte digest in milliseconds, allowing the private key operation to execute in a fraction of a millisecond.
+2. **Mathematical Space Limitation**: In RSA, the message must satisfy $M < n$. A large document exceeds the modulus $n$ and cannot be signed directly.
+3. **Algebraic Attack Defense**: Signing raw data exposes the system to multiplicative chosen-ciphertext attacks. Hashing destroys the algebraic structure of the input document.
+
+---
+
+## 📊 Comparison: Checksums vs Hashes vs MACs vs Digital Signatures
+
+| Primitive Type | Primary Objective | Key Required? | Defends Against Active Tampering? | Non-Repudiation Guarantee? |
+| :--- | :--- | :--- | :--- | :--- |
+| **CRC32 / Checksum** | Error Detection (Noise) | ❌ None | ❌ No (Trivial to forge matching CRC) | ❌ None |
+| **Cryptographic Hash (SHA-256)** | Fingerprinting / Integrity | ❌ None | ❌ No (Attacker replaces M and Hash) | ❌ None |
+| **HMAC (Symmetric MAC)** | Integrity & Origin Authentication | ✅ Shared Secret $K$ | ✅ Yes (Attacker cannot forge MAC) | ❌ No (Both parties share $K$) |
+| **Digital Signature (RSA / ECDSA)** | Integrity, Origin & Accountability | ✅ Asymmetric Key Pair | ✅ Yes (Only private key holder can sign) | ✅ **Yes (Full Non-Repudiation)** |
+
+---
+
+## 🏭 Real-World Production Context: Bitcoin Merkle Trees, Git SHA-1 Migration & API Webhooks
+
+Cryptographic hash functions and digital signatures form the cryptographic bedrock of global digital infrastructure:
+
+* **Bitcoin Blockchain & Merkle Trees**:
+  * A Bitcoin block aggregates up to 4,000 transactions into a single 32-byte Merkle root using double-SHA-256 ($\text{SHA-256}(\text{SHA-256}(M))$).
+  * **SPV Light Wallets**: Mobile smartphone wallets do not download the 500+ GB full ledger. By requesting an authentication path of just $k = \lceil \log_2 N \rceil \approx 12$ hashes (384 bytes), a phone mathematically verifies that a specific transaction exists inside a block validated by miners.
+* **Git Content-Addressable Object Store & The SHA-1 to SHA-256 Transition**:
+  * Git tracks file contents, trees, and commit histories via hash object IDs (`blob`, `tree`, `commit`).
+  * In 2017, the **SHAttered** attack proved practical collisions against SHA-1 ($2^{63.1}$ operations, generating two distinct PDFs with identical SHA-1 hashes).
+  * The Git core project re-architected its storage engine to support SHA-256 (`git init --object-format=sha256`), guaranteeing that malicious commits cannot overwrite legitimate source code commits with identical hash pointers.
+* **SaaS API Webhooks via HMAC-SHA256 (Stripe, GitHub, Shopify)**:
+  * When a payment completes, Stripe dispatches an HTTP POST payload to the merchant's endpoint with the header `Stripe-Signature: t=1614555000,v1=5257a8...`.
+  * The merchant server takes the raw payload, prepends the timestamp $t$, and computes $\text{HMAC-SHA256}(K_{\text{webhook\_secret}}, t \parallel \text{payload})$.
+  * Comparing the signature using constant-time equality (`crypto.timingSafeEqual`) prevents both replay attacks and timing side-channel exploits while verifying message integrity and authenticity without public key overhead.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Birthday Paradox Hash Collision Probability
+**Problem Statement:** A legacy archival system uses an $n = 64$-bit cryptographic hash function to assign unique identifiers to files. The repository stores $k = 5 \times 10^9$ unique files.
+1. Compute the probability of encountering at least one hash collision across this repository using the Birthday Paradox approximation.
+2. Calculate the exact number of files $k_{50}$ required for the collision probability to reach $50\%$.
+3. Contrast this with the collision margin of a modern $256$-bit hash function (SHA-256).
+
+**Step-by-Step Solution:**
+1. **Collision Probability for $k = 5 \times 10^9$ Files:**
+   * Total possible hash values:
+     $$N = 2^{64} \approx 1.84467 \times 10^{19}$$
+   * The probability of at least one collision across $k$ samples is given by:
+     $$P(\text{Collision}) \approx 1 - e^{-\frac{k^2}{2N}}$$
+   * Calculate the exponent:
+     $$k^2 = (5 \times 10^9)^2 = 2.5 \times 10^{19}$$
+     $$\frac{k^2}{2N} = \frac{2.5 \times 10^{19}}{2 \times 1.84467 \times 10^{19}} = \frac{2.5}{3.6893} \approx 0.6776$$
+   * Evaluate the exponential:
+     $$P(\text{Collision}) \approx 1 - e^{-0.6776} \approx 1 - 0.5078 = \mathbf{0.4922 \ (49.22\%)}$$
+   * Despite $2^{64}$ being over 18 quintillion, storing just 5 billion files yields a nearly $50\%$ chance of a fatal collision!
+2. **Number of Files for $50\%$ Collision Probability ($k_{50}$):**
+   * Setting $P(\text{Collision}) = 0.5$:
+     $$k_{50} \approx \sqrt{2 \ln(2) \cdot N} \approx 1.1774 \times \sqrt{2^{64}} = 1.1774 \times 2^{32}$$
+     $$k_{50} \approx 1.1774 \times 4.294967 \times 10^9 \approx \mathbf{5.057 \times 10^9 \text{ files}}$$
+3. **Collision Resistance for SHA-256 ($n = 256$):**
+   * Modulus space $N = 2^{256} \approx 1.1579 \times 10^{77}$.
+   * Sizing for $50\%$ collision probability:
+     $$k_{50} \approx 1.1774 \times 2^{128} \approx 1.1774 \times 3.4028 \times 10^{38} \approx \mathbf{4.006 \times 10^{38} \text{ files}}$$
+   * Generating $4 \times 10^{38}$ hashes would require all the computers on Earth running for billions of years, confirming that 256-bit hashes provide absolute collision resistance.
+
+---
+
+### Example 2: HMAC-SHA256 Internal Buffer Sizing & Key Pre-Processing
+**Problem Statement:** An enterprise gateway authenticates JSON web requests using HMAC-SHA256 (RFC 2104). The underlying hash function has an input block size $B = 64\text{ bytes}$ ($512\text{ bits}$) and an output digest size $L = 32\text{ bytes}$ ($256\text{ bits}$).
+1. If the shared secret key $K$ is $32\text{ bytes}$ long, explain how the padded key $K^+$ is constructed.
+2. If an administrator accidentally configures an oversized secret key $K_{\text{long}}$ of $96\text{ bytes}$, specify how HMAC prepares $K^+$.
+3. Compute the exact byte size of the inner hash input and outer hash input when signing a request message $M$ of size $1,200\text{ bytes}$.
+
+**Step-by-Step Solution:**
+1. **Normal Key Formatting ($|K| \le B$):**
+   * Since $|K| = 32\text{ bytes} \le 64\text{ bytes}$, RFC 2104 appends $(B - |K|) = (64 - 32) = 32$ zero bytes (`0x00`) to the right of $K$:
+     $$K^+ = K \parallel \underbrace{0\text{x}00 \ 0\text{x}00 \ \dots \ 0\text{x}00}_{32\text{ bytes}} \implies |K^+| = \mathbf{64\text{ bytes}}$$
+2. **Oversized Key Formatting ($|K| > B$):**
+   * Since $|K_{\text{long}}| = 96\text{ bytes} > 64\text{ bytes}$, HMAC first hashes the oversized key using the underlying hash function:
+     $$K' = H(K_{\text{long}}) = \text{SHA-256}(K_{\text{long}}) \implies |K'| = L = 32\text{ bytes}$$
+   * Then $K'$ is padded with $64 - 32 = 32$ zero bytes to produce:
+     $$K^+ = K' \parallel 0^{32} \implies |K^+| = \mathbf{64\text{ bytes}}$$
+3. **Inner and Outer Hash Buffer Sizes for $|M| = 1,200\text{ Bytes}$:**
+   * **Inner Hash Pass**:
+     * Inner pad XOR: $|K^+ \oplus \text{ipad}| = 64\text{ bytes}$ (where $\text{ipad} = \text{0x36}$ repeated 64 times).
+     * Inner hash input: $(K^+ \oplus \text{ipad}) \parallel M$.
+     * Total inner input size:
+       $$\text{Size}_{\text{inner\_in}} = 64 + 1200 = \mathbf{1,264\text{ bytes}}$$
+     * Output of inner hash:
+       $$h_{\text{inner}} = H\big((K^+ \oplus \text{ipad}) \parallel M\big) \implies |h_{\text{inner}}| = \mathbf{32\text{ bytes}}$$
+   * **Outer Hash Pass**:
+     * Outer pad XOR: $|K^+ \oplus \text{opad}| = 64\text{ bytes}$ (where $\text{opad} = \text{0x5C}$ repeated 64 times).
+     * Outer hash input: $(K^+ \oplus \text{opad}) \parallel h_{\text{inner}}$.
+     * Total outer input size:
+       $$\text{Size}_{\text{outer\_in}} = 64 + 32 = \mathbf{96\text{ bytes}}$$
+     * Final output:
+       $$\text{HMAC}(K, M) = H\big((K^+ \oplus \text{opad}) \parallel h_{\text{inner}}\big) \implies \mathbf{32\text{ bytes (256 bits)}}$$
+
+---
+
+### Example 3: Throughput Benchmark: HMAC-SHA256 vs RSA-2048 vs ECDSA Signatures
+**Problem Statement:** A microservices gateway signs outbound audit payloads of average size $S = 2\text{ KB}$ ($2,048\text{ bytes}$). The server core has the following execution benchmarks:
+* SHA-256 hardware pipeline: $500\text{ MB/s}$ throughput.
+* HMAC-SHA256 hashing rate: $450\text{ MB/s}$ (including key derivation and dual hash passes).
+* RSA-2048 private key signature: $1,200\text{ sign operations/second}$ ($833.3\ \mu\text{s}$ per signature).
+* ECDSA (secp256r1) private key signature: $25,000\text{ sign operations/second}$ ($40.0\ \mu\text{s}$ per signature).
+1. Calculate the maximum signatures per second achievable on a single core using HMAC-SHA256.
+2. Calculate the maximum signatures per second achievable using RSA-2048.
+3. Calculate the maximum signatures per second achievable using ECDSA.
+4. Explain why cloud microservices prefer HMAC or ECDSA over RSA-2048 for high-frequency internal RPC authentication.
+
+**Step-by-Step Solution:**
+1. **HMAC-SHA256 Single-Core Throughput:**
+   * Time to compute HMAC for $2\text{ KB}$:
+     $$T_{\text{HMAC}} = \frac{2,048\text{ bytes}}{450 \times 10^6\text{ bytes/sec}} = 4.551 \times 10^{-6}\text{ s} = 4.551\ \mu\text{s}$$
+   * Maximum operations per second:
+     $$\text{Throughput}_{\text{HMAC}} = \frac{1}{4.551 \times 10^{-6}\text{ s}} \approx \mathbf{219,730\text{ ops/sec}}$$
+2. **RSA-2048 Throughput:**
+   * Time to hash payload:
+     $$T_{\text{hash}} = \frac{2,048\text{ bytes}}{500 \times 10^6\text{ bytes/sec}} = 4.096\ \mu\text{s}$$
+   * Time for modular exponentiation ($S = h^d \bmod n$): $T_{\text{RSA\_sign}} = 833.33\ \mu\text{s}$.
+   * Total latency:
+     $$T_{\text{total\_RSA}} = 4.096\ \mu\text{s} + 833.33\ \mu\text{s} = 837.43\ \mu\text{s}$$
+   * Maximum throughput:
+     $$\text{Throughput}_{\text{RSA}} = \frac{1}{837.43 \times 10^{-6}\text{ s}} \approx \mathbf{1,194\text{ ops/sec}}$$
+3. **ECDSA (secp256r1) Throughput:**
+   * Time to hash: $T_{\text{hash}} = 4.096\ \mu\text{s}$.
+   * Time for elliptic curve point scalar multiplication: $T_{\text{ECDSA\_sign}} = 40.0\ \mu\text{s}$.
+   * Total latency:
+     $$T_{\text{total\_ECDSA}} = 4.096\ \mu\text{s} + 40.0\ \mu\text{s} = 44.10\ \mu\text{s}$$
+   * Maximum throughput:
+     $$\text{Throughput}_{\text{ECDSA}} = \frac{1}{44.10 \times 10^{-6}\text{ s}} \approx \mathbf{22,675\text{ ops/sec}}$$
+4. **Engineering Trade-Off:**
+   * RSA-2048 signing is extremely bottlenecked by modular exponentiation with a 2048-bit private exponent ($1,194\text{ ops/sec}$), imposing severe CPU load on microservice sidecars (like Envoy or Istio).
+   * ECDSA delivers nearly **$19\times$ higher signing throughput** than RSA with equivalent cryptographic strength (128 bits of security).
+   * For symmetric internal service-to-service communication where a shared secret is maintained in a secret vault, HMAC-SHA256 provides **$184\times$ higher throughput than RSA** and **$9.7\times$ higher throughput than ECDSA**, making it the clear choice when non-repudiation across mutual services is not legally required.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+**Question 1:** Define the three security properties required of a cryptographic hash function: Pre-image Resistance, Second Pre-image Resistance, and Collision Resistance. Explain mathematically why a 128-bit hash function is vulnerable to collision attacks even though $2^{128}$ is an astronomically large number.
+
+**Answer:**
+* **The 3 Security Properties**:
+  1. *Pre-image Resistance (One-Way)*: Given a hash digest $h$, it must be computationally infeasible to find any input message $M$ such that $H(M) = h$.
+  2. *Second Pre-image Resistance (Weak Collision)*: Given a specific input message $M_1$, it must be computationally infeasible to find a distinct message $M_2 \neq M_1$ such that $H(M_1) = H(M_2)$.
+  3. *Collision Resistance (Strong Collision)*: It must be computationally infeasible to find *any* arbitrary pair of distinct messages $(M_1, M_2)$ such that $H(M_1) = H(M_2)$.
+* **Vulnerability of 128-bit Hashes via Birthday Paradox**:
+  * In a second pre-image attack, the message $M_1$ is fixed by the victim; the attacker must test random messages until hitting that specific target hash value, requiring approximately $2^{128}$ operations.
+  * In a collision attack, the attacker does not have a fixed target; they generate two sets of messages simultaneously. Under the **Birthday Paradox**, when choosing from $N = 2^{128}$ possible hash values, the number of random messages $k$ required to achieve a $50\%$ probability of at least one collision is:
+    $$k \approx 1.177 \times \sqrt{N} = 1.177 \times 2^{128/2} = 1.177 \times 2^{64}$$
+  * An operation count of $2^{64}$ (approximately $1.8 \times 10^{19}$) is entirely within reach of modern distributed GPU mining clusters and botnets (achieved in 2004 against MD5). Thus, a 128-bit hash provides only 64 bits of effective collision security.
+
+---
+
+**Question 2:** Explain the operational workflow of generating and verifying an RSA digital signature. Why does a digital signature provide Non-Repudiation while an HMAC does not?
+
+**Answer:**
+* **Operational Workflow**:
+  1. *Generation (Sender Alice)*:
+     * Alice passes plaintext document $M$ through a cryptographic hash function (SHA-256) to produce digest $h = H(M)$.
+     * Alice encrypts the digest $h$ using her **private key ($SK_A = d$)**:
+       $$S = h^d \bmod n$$
+     * Alice transmits the bundle $(M, S)$ to Bob.
+  2. *Verification (Receiver Bob)*:
+     * Bob receives $(M, S)$ and computes his own hash of the received message: $h_{\text{calc}} = H(M)$.
+     * Bob decrypts the signature $S$ using Alice's **public key ($PK_A = e$)**:
+       $$h_{\text{dec}} = S^e \bmod n = (h^d)^e \bmod n \equiv h$$
+     * If $h_{\text{calc}} == h_{\text{dec}}$, Bob has mathematical proof that the message was created by Alice and has not been altered by a single bit.
+* **Why Signatures Provide Non-Repudiation While HMACs Do Not**:
+  * An **HMAC** relies on a **symmetric shared secret key $K$** known by both Alice and Bob. If a dispute arises and Bob takes the message to a court of law, Alice can claim: *"Bob holds the exact same key $K$; Bob forged this message himself!"* A third-party arbiter cannot prove which of the two parties generated the HMAC.
+  * In a **Digital Signature**, the private key $d$ is possessed **exclusively by Alice**. Nobody else in the world possesses $d$. Because only Alice's private key could have produced a signature that validates against Alice's public key $(e, n)$, Alice cannot deny having signed the message (**Non-Repudiation**).
+
+---
+
+:::tip Core Conceptual Questions
+* **What is a Hash Salt and why is it used in password storage?**: When storing passwords, calculating a simple hash $\text{SHA256}(\text{password})$ is vulnerable to **Rainbow Table attacks** (precomputed tables of billions of hash-to-password mappings). A **Salt** is a cryptographically random string (e.g. 16 bytes) appended to the password before hashing: $\text{Hash}(\text{Salt} \parallel \text{password})$. The salt is stored alongside the hash in the database. It guarantees that identical passwords produce completely different hashes and forces attackers to attack each user's hash individually, completely neutralizing rainbow tables.
+* **What is the difference between SHA-2 and SHA-3?**: SHA-2 (developed by NSA) uses the Merkle-Damgård iterative compression structure, making it vulnerable to length-extension attacks if used without HMAC. SHA-3 (Keccak) uses a revolutionary **Sponge Construction** (absorbing phase followed by squeezing phase) with a state of 1600 bits, providing native immunity against length extension.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Confusing Digital Signatures with Public Key Encryption**:
+  * In **Public Key Encryption**: Senders encrypt with the **Receiver's Public Key**; only the receiver can decrypt (Confidentiality).
+  * In **Digital Signatures**: Senders sign with their **Own Private Key**; anyone with the sender's public key can verify (Authenticity and Non-Repudiation).
+* **Trap: Believing Base64 is an Encryption or Hashing Algorithm**: Base64 is merely an **encoding scheme** (mapping 8-bit binary to printable ASCII). It provides zero security, zero confidentiality, and zero integrity. Anyone can instantly decode Base64 back to raw bytes without a key.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "9.3 Asymmetric Key Cryptography: Diffie-Hellman & RSA Algorithm",
+    url: "/coredose/cn/module-09/asymmetric-key-cryptography-diffie-hellman-and-rsa-algorithm"
+  }}
+  next={{
+    title: "9.5 Public Key Infrastructure (PKI), Digital Certificates & TLS/SSL",
+    url: "/coredose/cn/module-09/public-key-infrastructure-pki-digital-certificates-and-tls-ssl"
+  }}
+  courseUrl="/coredose/cn"
+/>

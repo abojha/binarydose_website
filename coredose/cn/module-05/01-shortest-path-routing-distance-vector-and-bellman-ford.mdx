@@ -1,0 +1,365 @@
+---
+title: "5.1 Shortest Path Routing: Distance Vector Routing & Bellman-Ford"
+description: "Mastery of Unicast Routing algorithms, Bellman-Ford mathematical formulation, Distance Vector Routing (DVR) table updates, convergence cycles, and Routing Information Protocol (RIPv1/v2) internals."
+hide_table_of_contents: true
+---
+
+# 5.1 Shortest Path Routing: Distance Vector Routing & Bellman-Ford
+
+<CoreDoseLessonHeader
+  module="Module 05: Network Layer: Routing Protocols & Control Plane"
+  topic="Topic 5.1"
+  courseUrl="/coredose/cn"
+  readTime="18 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Local Bus Driver Network
+
+### 🍳 The Everyday Analogy: Traveling Between Cities by Asking Drivers
+Imagine you want to travel from **San Francisco to New York City** in an era before global satellite navigation existed:
+* You do not possess a complete physical map of every highway across the United States.
+* Instead, whenever you arrive at a bus terminal in any city, you walk up to the local ticket counter and ask the clerk: *"How much does it cost to get to New York, and which bus should I board next?"*
+* The clerk in Denver does not know the exact route taken through Nebraska, Iowa, or Ohio. The clerk only knows:
+  1. **Destination**: New York City.
+  2. **Estimated Total Cost / Time**: $18\text{ hours}$.
+  3. **Next Hop**: Board the eastbound bus heading to Omaha.
+* Every evening, clerks across neighboring cities call each other to exchange their shortest travel time estimates. If the clerk in Omaha discovers a faster tollway to Chicago, Omaha updates Denver, and Denver updates Salt Lake City.
+
+### 💻 Bridging to Computer Science: Routing vs Forwarding
+In computer networking, packet transit is governed by two complementary planes:
+1. **The Data Plane (Forwarding)**: The high-speed hardware process where an incoming packet on an interface is looked up in the Forwarding Information Base (FIB) and dispatched to the appropriate egress port.
+2. **The Control Plane (Routing)**: The distributed software intelligence that coordinates between routers to construct, update, and maintain those forwarding tables.
+
+**Distance Vector Routing (DVR)** is an iterative, asynchronous, and distributed routing algorithm where each router shares its localized knowledge of network distances exclusively with its **directly connected physical neighbors**.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 📐 The Bellman-Ford Mathematical Formulation
+
+The theoretical foundation of Distance Vector Routing rests upon the **Bellman-Ford Shortest Path Algorithm**.
+
+### 1. The Classical Recurrence Relation
+Let:
+* $c(x, v)$ be the direct physical link cost between router $x$ and its immediate neighbor $v$.
+* $D_v(y)$ be the currently advertised shortest distance from neighbor $v$ to destination node $y$.
+* $D_x(y)$ be the minimum cost from source router $x$ to destination $y$.
+
+The Bellman-Ford equation states that the minimum cost path from router $x$ to destination $y$ across all immediate physical neighbors $v \in \text{Neighbors}(x)$ is:
+
+$$D_x(y) = \min_{v \in \text{Neighbors}(x)} \Big\{ c(x, v) + D_v(y) \Big\}$$
+
+$$\text{NextHop}_x(y) = \arg\min_{v \in \text{Neighbors}(x)} \Big\{ c(x, v) + D_v(y) \Big\}$$
+
+### 2. Operational Meaning of the Equation
+When router $x$ receives a distance vector from neighbor $v$:
+1. Router $x$ adds the link cost $c(x, v)$ to every destination cost advertised by neighbor $v$.
+2. Router $x$ compares this newly computed path cost against its own existing routing table entry for destination $y$.
+3. If the newly calculated cost is strictly less than the existing cost, router $x$ updates its table:
+   * **New Minimum Cost**: $c(x, v) + D_v(y)$
+   * **New Next-Hop Router**: Set to neighbor $v$.
+4. If an update occurs, router $x$ schedules its newly revised vector for transmission to all its own neighbors during the next exchange cycle.
+
+---
+
+## 🏗️ Distance Vector Routing Table Architecture
+
+Every router operating Distance Vector maintains a local routing table structured with four primary fields:
+
+| Destination Network / Node | Metric (Cost / Hop Count) | Next-Hop Router | Outgoing Interface |
+| :---: | :---: | :---: | :---: |
+| **Node A** | $0$ | Direct (Local) | `eth0` |
+| **Node B** | $2$ | Direct | `eth1` |
+| **Node C** | $5$ | Router B | `eth1` |
+| **Node D** | $7$ | Router B | `eth1` |
+| **Node E** | $\infty$ | Unknown / Unreachable | None |
+
+### What is Exchanged Between Routers?
+* **Who receives the update?**: Only **directly connected physical neighbors**.
+* **What is transmitted?**: The router's **entire distance vector** (a list of all known destinations and their current estimated distances).
+* **When is it transmitted?**:
+  1. **Periodic Updates**: Transmitted on a recurring clock cycle (e.g., every $30\text{ seconds}$).
+  2. **Triggered Updates**: Transmitted immediately whenever a local link cost changes or a link failure is detected.
+
+---
+
+## 🌐 End-to-End Walkthrough: 5-Router Convergence Cycle
+
+Consider a 5-router network topology interconnected with the following bi-directional link costs:
+* Link $(A, B) = 2$
+* Link $(A, C) = 5$
+* Link $(B, C) = 1$
+* Link $(B, D) = 4$
+* Link $(C, E) = 3$
+* Link $(D, E) = 2$
+
+### Step 0: Initial State (Initialization)
+Before any routing packets are exchanged, each router knows **only its direct neighbors**. All remote non-neighboring nodes have cost $\infty$:
+
+| Router | Dest A | Dest B | Dest C | Dest D | Dest E |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **Node A** | $0$ | $2$ (via B) | $5$ (via C) | $\infty$ | $\infty$ |
+| **Node B** | $2$ (via A) | $0$ | $1$ (via C) | $4$ (via D) | $\infty$ |
+| **Node C** | $5$ (via A) | $1$ (via B) | $0$ | $\infty$ | $3$ (via E) |
+| **Node D** | $\infty$ | $4$ (via B) | $\infty$ | $0$ | $2$ (via E) |
+| **Node E** | $\infty$ | $\infty$ | $3$ (via C) | $2$ (via D) | $0$ |
+
+---
+
+### Step 1: Round 1 Exchange
+Routers exchange their initial vectors with immediate neighbors:
+* **Router A evaluates paths to C**:
+  * Direct link to C: $c(A, C) = 5$.
+  * Path via B: $c(A, B) + D_B(C) = 2 + 1 = \mathbf{3}$.
+  * Since $3 < 5$, Router A updates its path to C: **Cost = 3, Next Hop = B**!
+* **Router A evaluates paths to D**:
+  * Path via B: $c(A, B) + D_B(D) = 2 + 4 = \mathbf{6}$.
+  * Router A learns it can reach D with **Cost = 6, Next Hop = B**!
+* **Router B evaluates paths to E**:
+  * Path via C: $c(B, C) + D_C(E) = 1 + 3 = \mathbf{4}$.
+  * Path via D: $c(B, D) + D_D(E) = 4 + 2 = 6$.
+  * Minimum cost is via C: **Cost = 4, Next Hop = C**!
+
+---
+
+### Step 2: Final Converged Steady State
+After two exchange cycles, no further cost reductions are mathematically possible across the network. The system achieves **global convergence**:
+
+| Router | Shortest Path to A | Shortest Path to B | Shortest Path to C | Shortest Path to D | Shortest Path to E |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **Node A** | $0$ | $2$ (via B) | $3$ (via B) | $6$ (via B) | $6$ (via B) |
+| **Node B** | $2$ (via A) | $0$ | $1$ (via C) | $4$ (via D) | $4$ (via C) |
+| **Node C** | $3$ (via B) | $1$ (via B) | $0$ | $5$ (via E) | $3$ (via E) |
+| **Node D** | $6$ (via B) | $4$ (via B) | $5$ (via E) | $0$ | $2$ (via E) |
+| **Node E** | $6$ (via C) | $4$ (via C) | $3$ (via C) | $2$ (via D) | $0$ |
+
+---
+
+## 📐 Visual Blueprint: Distributed Network Topology
+
+Below is an interactive network architecture graph demonstrating the 5-router topology and how distance vectors are shared across adjacent links:
+
+<FlowDiagram
+  title="Distributed Distance Vector Network Architecture"
+  subtitle="Interactive multi-node topology illustrating localized neighbor exchanges and Bellman-Ford convergence"
+  domains={[
+    { id: "west", title: "Western Routing Region", color: "purple", icon: "🌐", position: "top" },
+    { id: "core", title: "Core Transit Switching", color: "blue", icon: "🔀", position: "bottom" },
+    { id: "east", title: "Eastern Edge Region", color: "emerald", icon: "🏢", position: "bottom" },
+  ]}
+  nodes={[
+    { id: "nodeA", domain: "west", col: 0, row: 0, title: "Router A", sublabel: "Vector: [0, 2, 3, 6, 6]", badge: "Border", icon: "💻", color: "purple" },
+    { id: "nodeB", domain: "core", col: 1, row: 0, title: "Router B", sublabel: "Vector: [2, 0, 1, 4, 4]", badge: "Transit", icon: "🔀", color: "blue" },
+    { id: "nodeC", domain: "core", col: 1, row: 1, title: "Router C", sublabel: "Vector: [3, 1, 0, 5, 3]", badge: "Transit", icon: "🔀", color: "cyan" },
+    { id: "nodeD", domain: "east", col: 2, row: 0, title: "Router D", sublabel: "Vector: [6, 4, 5, 0, 2]", badge: "Egress", icon: "🖥️", color: "amber" },
+    { id: "nodeE", domain: "east", col: 2, row: 1, title: "Router E", sublabel: "Vector: [6, 4, 3, 2, 0]", badge: "Egress", icon: "🏢", color: "emerald" },
+  ]}
+  edges={[
+    { from: "nodeA", to: "nodeB", fromPort: "right", toPort: "left", step: "1", label: "Link Cost: 2", details: "Direct bidirectional link between Router A and Router B." },
+    { from: "nodeA", to: "nodeC", fromPort: "bottom", toPort: "left", step: "2", label: "Link Cost: 5", details: "Direct link between A and C (bypassed via B for total cost 3)." },
+    { from: "nodeB", to: "nodeC", fromPort: "bottom", toPort: "top", step: "3", label: "Link Cost: 1", details: "Core interconnect between B and C." },
+    { from: "nodeB", to: "nodeD", fromPort: "right", toPort: "left", step: "4", label: "Link Cost: 4", details: "Upper transit link connecting B and D." },
+    { from: "nodeC", to: "nodeE", fromPort: "right", toPort: "left", step: "5", label: "Link Cost: 3", details: "Lower transit link connecting C and E." },
+    { from: "nodeD", to: "nodeE", fromPort: "bottom", toPort: "top", step: "6", label: "Link Cost: 2", details: "Edge link connecting D and E." },
+  ]}
+/>
+
+---
+
+## ⚙️ Industrial Implementation: Routing Information Protocol (RIP)
+
+The real-world implementation of Distance Vector Routing in enterprise and campus networks is the **Routing Information Protocol (RIP - RFC 1058 / RFC 2453)**:
+
+### 1. Architectural Characteristics
+* **Metric**: Strictly **Hop Count** (every physical link has a uniform cost of $1$, regardless of whether it is a $10\text{ Gbps}$ fiber or a $64\text{ kbps}$ serial link!).
+* **Maximum Diameter**: **15 Hops**. A hop count of **16 represents Infinity / Unreachable**.
+* **Transport Layer Encapsulation**: Runs directly over **UDP Port 520**.
+* **RIPv1 vs RIPv2**:
+  * **RIPv1**: Classful routing only; does not transmit subnet masks in updates; broadcasts to `255.255.255.255`.
+  * **RIPv2**: Classless Inter-Domain Routing (CIDR) support; includes subnet masks in updates; multicasts to reserved address **`224.0.0.9`**; supports MD5 authentication.
+
+### 2. The 4 Essential RIP Timers
+
+| Timer Name | Standard Duration | Operational Purpose & Trigger Condition |
+| :--- | :---: | :--- |
+| **Periodic Update Timer** | **$30\text{ seconds}$** | Dictates how frequently a router broadcasts its complete distance vector to all active interfaces. |
+| **Invalid / Expiration Timer** | **$180\text{ seconds}$** | If no update is heard for an existing route within 180s (6 missed updates), the route is marked dead and its metric is set to $16$ ($\infty$). |
+| **Hold-Down Timer** | **$180\text{ seconds}$** | Suppresses accepting any new routing updates for a recently failed route to allow transient loops to subside. |
+| **Flush / Garbage Collection Timer**| **$120\text{ seconds}$** | Starts after the invalid timer expires. If no valid update arrives within this window, the route is permanently erased from the routing table. |
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Routing Table Vector Update Across Adjacent Routers
+**Problem Statement:** Consider a network with 5 nodes ($N_1, N_2, N_3, N_4, N_5$). Router $N_1$ has direct link costs to its immediate neighbors:
+* $c(N_1, N_2) = 3$
+* $c(N_1, N_3) = 2$
+* $c(N_1, N_4) = 6$
+
+Router $N_1$ receives the following distance vectors from its neighbors:
+* Vector from $N_2$: $[N_1: 3, \ N_2: 0, \ N_3: 6, \ N_4: 1, \ N_5: 4]$
+* Vector from $N_3$: $[N_1: 2, \ N_2: 6, \ N_3: 0, \ N_4: 3, \ N_5: 2]$
+* Vector from $N_4$: $[N_1: 6, \ N_2: 1, \ N_3: 3, \ N_4: 0, \ N_5: 3]$
+
+Calculate the updated distance vector and next-hop selections for Router $N_1$.
+
+#### Step-by-Step Solution:
+We apply the Bellman-Ford recurrence: $D_{N_1}(y) = \min_{v \in \{N_2, N_3, N_4\}} \{ c(N_1, v) + D_v(y) \}$:
+
+1. **Distance to $N_1$**:
+   $$D_{N_1}(N_1) = 0 \quad (\text{Local node})$$
+
+2. **Distance to $N_2$**:
+   * Via $N_2$: $c(N_1, N_2) + D_{N_2}(N_2) = 3 + 0 = 3$
+   * Via $N_3$: $c(N_1, N_3) + D_{N_3}(N_2) = 2 + 6 = 8$
+   * Via $N_4$: $c(N_1, N_4) + D_{N_4}(N_2) = 6 + 1 = 7$
+   $$\min(3, 8, 7) = \mathbf{3} \quad (\text{Next Hop: } N_2)$$
+
+3. **Distance to $N_3$**:
+   * Via $N_2$: $c(N_1, N_2) + D_{N_2}(N_3) = 3 + 6 = 9$
+   * Via $N_3$: $c(N_1, N_3) + D_{N_3}(N_3) = 2 + 0 = 2$
+   * Via $N_4$: $c(N_1, N_4) + D_{N_4}(N_3) = 6 + 3 = 9$
+   $$\min(9, 2, 9) = \mathbf{2} \quad (\text{Next Hop: } N_3)$$
+
+4. **Distance to $N_4$**:
+   * Via $N_2$: $c(N_1, N_2) + D_{N_2}(N_4) = 3 + 1 = \mathbf{4}$
+   * Via $N_3$: $c(N_1, N_3) + D_{N_3}(N_4) = 2 + 3 = 5$
+   * Via $N_4$: $c(N_1, N_4) + D_{N_4}(N_4) = 6 + 0 = 6$
+   $$\min(4, 5, 6) = \mathbf{4} \quad (\text{Next Hop: } N_2)$$
+   *(Crucial observation: Even though $N_1$ has a direct link to $N_4$ with cost 6, routing via $N_2$ costs only 4!)*
+
+5. **Distance to $N_5$**:
+   * Via $N_2$: $c(N_1, N_2) + D_{N_2}(N_5) = 3 + 4 = 7$
+   * Via $N_3$: $c(N_1, N_3) + D_{N_3}(N_5) = 2 + 2 = \mathbf{4}$
+   * Via $N_4$: $c(N_1, N_4) + D_{N_4}(N_5) = 6 + 3 = 9$
+   $$\min(7, 4, 9) = \mathbf{4} \quad (\text{Next Hop: } N_3)$$
+
+---
+
+### Example 2: RIP Protocol Convergence Timers & Failure Detection
+**Problem Statement:** In an enterprise branch running RIPv2, Router $R_1$ has an active route in its routing table to Subnet `10.5.0.0/24` with hop count $3$ and next-hop router $R_2$. At time $t = 0$, $R_2$'s interface fails, and $R_2$ ceases sending periodic routing updates to $R_1$.
+1. At what timestamp does $R_1$ classify the route to Subnet `10.5.0.0/24` as dead/unusable, and what metric is assigned to it?
+2. Explain the purpose of the **Hold-Down Timer** initiated at this moment.
+3. At what timestamp is the route completely flushed (erased) from $R_1$'s routing table if no alternative update is received?
+
+**Step-by-Step Solution:**
+1. **Invalid / Expiration Timer ($180\text{ seconds}$):**
+   * RIP routers expect periodic updates every $30\text{ seconds}$.
+   * The **Invalid Timer** is configured to $180\text{ seconds}$ (allowing for up to $180 / 30 = 6$ missed updates due to transient packet loss or network congestion).
+   * At timestamp $t = \mathbf{180\text{ seconds}}$, $R_1$ marks the route as dead and sets its metric to **$16$ ($\infty$)**.
+2. **Hold-Down Timer ($180\text{ seconds}$):**
+   * Upon detecting the dead route at $t = 180\text{s}$, $R_1$ starts its Hold-Down Timer.
+   * During this $180\text{-second}$ window, $R_1$ **suppresses any new route advertisements** for Subnet `10.5.0.0/24` with equal or higher hop counts ($3$ or worse).
+   * This prevents transient routing loops and stale neighbor advertisements from prematurely reinjecting the broken route into the routing table.
+3. **Flush / Garbage Collection Timer ($120\text{ seconds}$):**
+   * In Cisco IOS and standard RIP implementations, the Flush timer runs concurrently (typically $240\text{s}$ total from last update, or $120\text{s}$ after the invalid timer expires).
+   * After the Invalid Timer expires at $t = 180\text{s}$, the route remains in the table marked unreachable for an additional $60\text{s}$ to $120\text{s}$ so neighbors can hear poisoned advertisements ($16$).
+   * At timestamp $t = 180\text{s} + 120\text{s} = \mathbf{300\text{ seconds}} \ (5\text{ minutes})$, the route is permanently erased from the forwarding information base (FIB).
+
+---
+
+### Example 3: Hop-Count Metric Blindness: High-Speed Fiber vs Low-Speed Dial-Up
+**Problem Statement:** A corporate headquarters router $H$ needs to forward a $100\text{ MB}$ ($800\text{ Mb}$) backup dataset to branch office $B$. Two paths exist:
+* **Path 1 (via Core Router $C$)**: Two hops ($H \to C \to B$). Each link is a $10\text{ Gbps}$ optical fiber link with propagation delay $T_p = 1\text{ ms}$ per link.
+* **Path 2 (Direct)**: One single direct hop ($H \to B$). The link is a legacy $1.544\text{ Mbps}$ T1 leased line with propagation delay $T_p = 20\text{ ms}$.
+1. Determine which path is selected by the Routing Information Protocol (RIP).
+2. Calculate the total transmission delay $T_{\text{tx}}$ for the $100\text{ MB}$ payload over Path 1.
+3. Calculate the total transmission delay $T_{\text{tx}}$ over Path 2.
+4. Explain why this numerical outcome led the networking industry to replace RIP with Link-State protocols (OSPF).
+
+**Step-by-Step Solution:**
+1. **RIP Path Selection:**
+   * RIP evaluates paths **strictly by Hop Count**, completely ignoring bandwidth, latency, and reliability.
+   * Path 1 Hop Count = $2$ hops.
+   * Path 2 Hop Count = $1$ hop.
+   * **RIP selects Path 2 (Direct T1 Link)** because $1 < 2$, despite it being over $6,000\times$ slower!
+2. **Transmission Delay over Path 1 (Two $10\text{ Gbps}$ Links, Store-and-Forward):**
+   * Data size: $L = 800 \times 10^6\text{ bits}$. Bandwidth: $R = 10 \times 10^9\text{ bps}$.
+   * Transmission delay per link:
+     $$T_{\text{tx1}} = \frac{800 \times 10^6\text{ bits}}{10 \times 10^9\text{ bps}} = 0.080\text{ seconds (80 ms)}$$
+   * Total transfer time over two hops (pipelined across intermediate router $C$):
+     $$T_{\text{total\_Path1}} \approx (2 \times T_{\text{tx1}}) + (2 \times T_p) = (2 \times 0.080\text{s}) + (2 \times 0.001\text{s}) = \mathbf{0.162\text{ seconds}}$$
+3. **Transmission Delay over Path 2 (Single $1.544\text{ Mbps}$ T1 Link):**
+   * Bandwidth: $R = 1.544 \times 10^6\text{ bps}$.
+   * Transmission delay:
+     $$T_{\text{tx2}} = \frac{800 \times 10^6\text{ bits}}{1.544 \times 10^6\text{ bps}} \approx \mathbf{518.13\text{ seconds}} \ (8.63\text{ minutes!})$$
+4. **Architectural Takeaway:**
+   * RIP's hop-count blindness forces traffic onto an 8.6-minute bottleneck instead of completing in $0.16$ seconds!
+   * Link-State protocols (OSPF) assign link costs proportional to inverse bandwidth ($\text{Cost} = \frac{10^8}{\text{Bandwidth in bps}}$), guaranteeing that high-speed optical paths are selected over low-speed bottlenecks.
+
+---
+
+## 🏭 Real-World Production Context: Enterprise RIP Deployment, Autonomous Systems & Cisco IOS
+
+Distance Vector routing and Bellman-Ford algorithms remain active across specific industrial domains:
+
+* **Legacy Branch Office & Low-Power Embedded Systems**:
+  * Where CPU cycles and RAM are severely restricted (e.g., embedded smart meters, satellite relays, simple hub-and-spoke stub sites), RIPv2 is still deployed due to its negligible footprint:
+    ```cisco
+    router rip
+      version 2
+      network 192.168.10.0
+      network 10.0.0.0
+      no auto-summary
+    ```
+  * Unlike OSPF, which requires solving $O(V \log V)$ Dijkstra trees and consuming megabytes of link-state database (LSDB) memory, RIP requires only a lightweight distance array in RAM.
+* **Autonomous System Routing: Distance Vector vs Link State**:
+  * In large enterprise backbones, RIP has been completely phased out because of its **15-hop diameter ceiling** and slow 30-second convergence timer cycles.
+  * Migrations to OSPF and IS-IS provide sub-second convergence via flooded Link State Advertisements (LSAs) and shortest-path trees.
+* **The Evolution to Cisco EIGRP (DUAL Engine)**:
+  * To preserve the lightweight messaging of Distance Vector while eliminating its slow convergence, Cisco developed the **Enhanced Interior Gateway Routing Protocol (EIGRP)**.
+  * EIGRP replaces Bellman-Ford with the **Diffusing Update Algorithm (DUAL)**, tracking Feasible Successors (pre-computed loop-free backup routes) to deliver instantaneous, zero-millisecond convergence upon primary link failure.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+**Question 1:** Why is the Bellman-Ford algorithm classified as "distributed" and "iterative"? Explain how asynchronous distance vector updates converge to the global optimal path.
+
+**Answer:**
+* **Distributed**: Each router computes shortest paths independently using only distance vectors received from its immediate physical neighbors. No router possesses a global, complete map of the network topology.
+* **Iterative**: Routing table calculations continue exchanging in discrete rounds until no router discovers a lower-cost path to any destination.
+* **Asynchronous Convergence**: Routers do not need to operate in lockstep. Each router runs the Bellman-Ford equation $D_x(y) = \min_v \{c(x, v) + D_v(y)\}$ whenever local link costs change or a neighbor vector arrives, progressively propagating optimal metrics across the network.
+
+---
+
+**Question 2:** If router $R_1$ has a direct physical link to $R_2$ with cost 8, and receives a distance vector update from neighbor $R_3$ stating $D_{R_3}(R_2) = 3$ with $c(R_1, R_3) = 2$, how does $R_1$ update its routing entry for $R_2$?
+
+**Answer:**
+* $R_1$ evaluates the alternate path via $R_3$:
+  $$\text{Cost via } R_3 = c(R_1, R_3) + D_{R_3}(R_2) = 2 + 3 = 5$$
+* $R_1$ compares the candidate cost ($5$) with its current direct cost ($8$).
+* Because $5 < 8$, $R_1$ updates its routing table entry for destination $R_2$ to:
+  $$\mathbf{\text{Destination: } R_2, \quad \text{Cost: } 5, \quad \text{Next Hop: } R_3}$$
+* Future traffic from $R_1$ to $R_2$ will be routed indirectly through $R_3$ rather than across the direct link.
+
+---
+
+:::tip Core Conceptual Questions
+* **Why does RIP use UDP Port 520 rather than TCP for routing updates?**: RIP sends periodic broadcast/multicast updates every 30 seconds to all adjacent neighbors. Establishing TCP 3-way handshakes with dozens of neighboring routers every 30 seconds would generate massive connection-state overhead, packet buffering, and kernel thrashing. UDP provides lightweight, connectionless datagram delivery ideal for periodic soft-state announcements.
+* **Why does RIP define 16 as Infinity?**: The 15-hop limit bounds the maximum diameter of the network. If a link fails and routers begin counting to infinity, capping the metric at 16 limits the counting loop to a maximum of 15 exchange rounds, ensuring the loop eventually terminates.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Believing RIP can route across a 20-router path**: RIP strictly defines 16 as Infinity. Any destination requiring 16 or more hops is treated as permanently unreachable. Networks with more than 15 hops must use OSPF, IS-IS, or BGP.
+* **Trap: Thinking Distance Vector routers communicate with all routers on the Internet**: In Distance Vector protocols, a router exchanges messages **strictly with its immediate physical neighbors**. Information about distant networks reaches a router only through intermediate neighbor relays.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "4.6 Network Address Translation (NAT) & IPv6 Header Architecture",
+    url: "/coredose/cn/module-04/network-address-translation-nat-and-ipv6-header-architecture",
+  }}
+  next={{
+    title: "5.2 Count-to-Infinity Problem, Split Horizon & Poison Reverse",
+    url: "/coredose/cn/module-05/count-to-infinity-problem-split-horizon-and-poison-reverse",
+  }}
+  courseUrl="/coredose/cn"
+/>
