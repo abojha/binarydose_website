@@ -6,12 +6,12 @@
   "videoPlaylistsCount": 4,
   "coredose": {
     "activeCoursesCount": 3,
-    "totalTopics": 130,
-    "totalModules": 26,
+    "totalTopics": 150,
+    "totalModules": 30,
     "subjects": {
       "cn": {
-        "modules": 6,
-        "topics": 31
+        "modules": 10,
+        "topics": 51
       },
       "dbms": {
         "modules": 10,

@@ -213,6 +213,16 @@ const config = {
         rehypePlugins: [katexPlugin],
       },
     ],
+    function disableSourceMapsPlugin() {
+      return {
+        name: "disable-source-maps",
+        configureWebpack() {
+          return {
+            devtool: false,
+          };
+        },
+      };
+    },
   ],
 
   themeConfig:
