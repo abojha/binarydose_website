@@ -1,0 +1,380 @@
+---
+title: "8.5 File Transfer Protocol (FTP) & Dynamic Host Configuration (DHCP)"
+description: "FTP dual-connection architecture (Active vs Passive mode), DHCP bootstrap paradox, 4-way DORA handshake, lease timers (T1/T2), and DHCP Relay Agents."
+hide_table_of_contents: true
+---
+
+# 8.5 File Transfer Protocol (FTP) & Dynamic Host Configuration (DHCP)
+
+<CoreDoseLessonHeader
+  module="Module 08: Application Layer Protocols"
+  topic="Topic 8.5"
+  courseUrl="/coredose/cn"
+  readTime="16 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Airline Cargo Hold and the Hotel Concierge
+
+### 🍳 The Everyday Analogies
+1. **The Airline Dispatcher & Cargo Planes (FTP Dual Channels)**:
+   * Imagine an airline operating flights between cities. The pilot uses a continuous, two-way radio channel with the air traffic control tower for instructions, weather reports, and flight plans. However, no passenger luggage travels over the radio wire. Whenever cargo needs to move, the airline rolls out a separate physical cargo plane, loads the baggage, flies it across, and immediately unloads and parks the plane.
+   * This is **FTP**: it maintains a lightweight **Control Connection** for credentials and navigation, while launching independent **Data Connections** exclusively to transport file bytes.
+2. **The Hotel Concierge (DHCP Bootstrap)**:
+   * Imagine walking into a giant hotel in a foreign country where you have no residence. You walk up to the lobby concierge and announce: *"I have arrived, but I have no room number!"*
+   * The concierge checks their ledger, issues you a keycard for Room 402, hands you a hotel map (the default gateway), tells you where the phone directory is (the DNS server), and warns you: *"Your keycard expires at 12:00 PM tomorrow unless you renew it at 8:00 AM."*
+   * This is **DHCP**: automatically configuring newly joined edge hosts with network identity and routing parameters.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 📁 Part 1: File Transfer Protocol (FTP - RFC 959)
+
+Published in 1985 (RFC 959), **FTP** is an application-layer service designed to copy files reliably between hosts over TCP.
+
+### The Out-of-Band Control Architecture
+Most protocols (HTTP, SMTP) transmit control commands and payload data intermingled across the same socket (**In-Band Signaling**). FTP fundamentally decouples these functions into **two independent TCP connections**:
+
+| Connection Type | Standard Port | Lifetime | Operational Purpose |
+| :--- | :--- | :--- | :--- |
+| **Control Connection** | TCP Port 21 | Entire Session | Transmits client commands (`USER`, `PASS`, `CWD`, `LIST`, `RETR`, `STOR`) and 3-digit server status responses. Remains open throughout the login session. |
+| **Data Connection** | TCP Port 20 / Ephemeral | Per Transfer | Created dynamically every time a file or directory listing is requested. Closed immediately when the data transfer completes. |
+
+:::tip Why Did FTP Separate Control from Data?
+By keeping the control connection open and separate:
+1. **Interactive Control During Transfer**: A client can abort an ongoing $10\text{ GB}$ file download by sending an `ABOR` command over the control connection while the data connection is saturated.
+2. **Protocol Simplicity**: The data connection transports raw, unencoded binary bytes directly without needing escaping, delimiters, or chunk headers. The end of the file is signaled cleanly by closing the TCP data connection (`FIN`).
+:::
+
+---
+
+## ⚔️ Active FTP vs Passive FTP: The NAT/Firewall Conflict
+
+The fundamental engineering dilemma in FTP centers on **which endpoint initiates the data connection**.
+
+<ConceptComparison
+  title="Active FTP Mode vs Passive FTP Mode"
+  subtitle="Contrasting server-initiated data connections against client-initiated firewall-friendly connections"
+  concepts={[
+    {
+      badge: "Legacy Default",
+      title: "Active FTP Mode (PORT Command)",
+      icon: "🚪",
+      color: "rose",
+      domain: "Standard RFC 959 (Client opens listening port)",
+      points: [
+        "Client connects from ephemeral port N to server control port 21.",
+        "Client sends PORT command: 'Connect to my IP at Port P'.",
+        "Server initiates data connection from Port 20 to Client Port P.",
+        "Fatal Flaw: Client firewalls block the incoming connection from the server!"
+      ],
+      quote: "Server calls back the client; blocked by modern consumer firewalls."
+    },
+    {
+      badge: "Modern Standard",
+      title: "Passive FTP Mode (PASV Command)",
+      icon: "🛡️",
+      color: "emerald",
+      domain: "RFC 1579 (Server opens listening port)",
+      points: [
+        "Client connects from ephemeral port N to server control port 21.",
+        "Client issues PASV command.",
+        "Server opens an unprivileged ephemeral port P and replies with IP and port.",
+        "Client initiates outbound data connection from port N+1 to Server Port P.",
+        "Firewall-Friendly: Both control and data connections originate outbound from client."
+      ],
+      quote: "Client initiates all connections; traverses NAT and firewalls seamlessly."
+    }
+  ]}
+/>
+
+### 1. Active FTP Mechanics & The Firewall Dilemma
+1. **Client Control Setup**: Client connects from ephemeral port $1050$ to Server Port $21$.
+2. **PORT Command**: When the client requests a file download (`RETR file.zip`), it opens a listening port $1051$ and sends:
+   ```text
+   PORT 192,168,1,50,4,27
+   ```
+   * *Port Calculation*: The last two bytes define the port: $(4 \times 256) + 27 = 1051$.
+3. **Server Connects Back**: The FTP server attempts to initiate a new TCP connection from **Server Port 20 to Client Port 1051**.
+4. **The Firewall Trap**: In modern networks, client machines reside behind NAT routers and stateful firewalls. The client's firewall observes an **unsolicited inbound TCP SYN packet from the external server** and immediately drops it, causing the FTP transfer to freeze!
+
+### 2. Passive FTP Mechanics (PASV)
+To solve the firewall dilemma, **Passive FTP** reverses the data connection direction:
+1. Client connects to Server Port $21$ as usual.
+2. When ready to transfer data, the client sends `PASV`.
+3. The server opens an ephemeral unprivileged port (e.g. $50001$) and replies:
+   ```text
+   227 Entering Passive Mode (198,51,100,10,195,81)
+   ```
+   * *Server Port*: $(195 \times 256) + 81 = 50001$.
+4. The client initiates an **outbound TCP connection** from client port $1051$ to Server Port $50001$.
+5. Because the connection is outbound from the client, consumer NAT routers and stateful firewalls permit it without configuration!
+
+---
+
+## 🌐 Part 2: Dynamic Host Configuration Protocol (DHCP - RFC 2131)
+
+When a laptop, smartphone, or IoT sensor connects to an Ethernet switch or Wi-Fi access point, it is in a completely unconfigured state.
+
+### The Bootstrap Paradox
+* The host has **no IP address**, no subnet mask, no default gateway IP, and no DNS server IP.
+* To communicate using IPv4, a host must have an IP address.
+* How can a host obtain an IP address over a network when it cannot send network packets without an IP address?
+
+### Transport Layer Assignments
+DHCP solves this chicken-and-egg paradox by operating over **UDP** with dedicated, standardized port numbers:
+* **DHCP Server**: Listens on **UDP Port 67**.
+* **DHCP Client**: Listens on **UDP Port 68**.
+
+---
+
+## 🤝 The 4-Way DHCP DORA Handshake
+
+The DHCP lease negotiation follows a four-step exchange known by the acronym **DORA**:
+
+<ProtocolLadder
+  title="The 4-Way DHCP DORA Handshake"
+  subtitle="Space-time protocol exchange between unconfigured client host and DHCP server"
+  actors={[
+    { id: "client", label: "DHCP Client", icon: "💻", role: "Unconfigured Host", color: "blue" },
+    { id: "server", label: "DHCP Server", icon: "🏢", role: "Network Router / Server", color: "emerald" }
+  ]}
+  steps={[
+    {
+      from: "client",
+      to: "server",
+      label: "1. DHCPDISCOVER",
+      sublabel: "Src: 0.0.0.0:68 -> Dst: 255.255.255.255:67",
+      color: "blue",
+      status: "success",
+      details: "Client broadcasts to 255.255.255.255. Sets source IP to 0.0.0.0. Includes transaction ID (xid) and client MAC address."
+    },
+    {
+      from: "server",
+      to: "client",
+      label: "2. DHCPOFFER",
+      sublabel: "Proposed IP: 192.168.1.100 (yiaddr)",
+      color: "emerald",
+      status: "success",
+      details: "Server reserves an IP address from its pool and broadcasts/unicasts offer with lease time, subnet mask, gateway, and DNS."
+    },
+    {
+      from: "client",
+      to: "server",
+      label: "3. DHCPREQUEST",
+      sublabel: "Client selects Server 192.168.1.1",
+      color: "blue",
+      status: "success",
+      details: "Client broadcasts acceptance of chosen offer. Broadcast notifies competing DHCP servers to release their reserved offers."
+    },
+    {
+      from: "server",
+      to: "client",
+      label: "4. DHCPACK",
+      sublabel: "Lease Committed (Lease: 86400s)",
+      color: "emerald",
+      status: "success",
+      details: "Server commits lease to database and sends final confirmation with full network configuration parameters."
+    }
+  ]}
+/>
+
+### Detailed Step-by-Step Breakdown
+
+#### Step 1: DHCPDISCOVER
+* **Source IP**: `0.0.0.0` (Client has no IP).
+* **Destination IP**: `255.255.255.255` (Limited Broadcast to local link).
+* **Source Port**: UDP $68$; **Destination Port**: UDP $67$.
+* **Payload Fields**: Contains the client's physical MAC address (e.g. `00:1A:2B:3C:4D:5E`) and a randomly generated **32-bit Transaction ID (xid)** to match responses.
+
+#### Step 2: DHCPOFFER
+* Any DHCP server on the local link receiving the broadcast responds with an offer.
+* **Key Fields**:
+  * `yiaddr` ("Your IP Address"): The proposed IP (e.g. `192.168.1.100`).
+  * `siaddr` ("Server IP Address"): The DHCP server's IP address.
+  * **Option 51**: IP Address Lease Time (e.g. $86,400\text{ seconds} = 24\text{ hours}$).
+  * **Option 1**: Subnet Mask (e.g. `255.255.255.0`).
+  * **Option 3**: Default Router / Gateway IP (e.g. `192.168.1.1`).
+  * **Option 6**: Domain Name Servers (e.g. `8.8.8.8`, `1.1.1.1`).
+
+#### Step 3: DHCPREQUEST
+If multiple DHCP servers respond with offers, the client selects one (typically the first offer received).
+* **Why Broadcast?**: The client broadcasts its selection (`255.255.255.255`) containing the chosen server's identifier. This explicitly informs all other competing DHCP servers that their offers were **rejected**, allowing them to return their reserved IP addresses back to their available allocation pools immediately!
+
+#### Step 4: DHCPACK
+* The chosen server commits the IP lease to its persistent database and sends a `DHCPACK` confirming the assignment.
+* (If the IP was claimed in the interim by another machine, the server replies with `DHCPNAK`, forcing the client to restart from Step 1).
+
+---
+
+## ⏱️ DHCP Lease Timers & Renewal Lifecycle
+
+DHCP IP addresses are **leased**, not permanently owned. This design automatically reclaims IP addresses when mobile devices leave the network without formally disconnecting.
+
+| Timer Parameter | Formula | Trigger Action |
+| :--- | :--- | :--- |
+| **Lease Duration ($T$)** | Configured by administrator (e.g. $24\text{ hours}$) | Total validity window of the IP address assignment. |
+| **Renewal Timer ($T_1$)** | $\mathbf{0.5 \times T}$ ($50\%$ of lease elapsed) | Client sends a **unicast `DHCPREQUEST`** directly to the original leasing server. If server replies with `DHCPACK`, lease is reset to $100\%$. |
+| **Rebinding Timer ($T_2$)** | $\mathbf{0.875 \times T}$ ($87.5\%$ of lease elapsed) | If original server failed to answer $T_1$ probes, client **broadcasts `DHCPREQUEST`** to *any* available DHCP server on the network. |
+| **Lease Expiration ($T$)** | $\mathbf{1.0 \times T}$ ($100\%$ of lease elapsed) | If no server responded, the client **must immediately unbind the IP address**, drop all active sockets, and restart from `DHCPDISCOVER`. |
+
+---
+
+## 🌉 DHCP Relay Agents (RFC 3046 / Option 82)
+
+In large enterprise networks spanning dozens of VLANs and subnets, deploying a physical DHCP server on every single subnet is financially and administratively prohibitive.
+
+### The Broadcast Problem
+Routers do not forward broadcast packets (`255.255.255.255`) across subnets by default (broadcasts terminate at router interfaces to prevent broadcast storms). How can a client in Subnet A obtain an IP from a centralized DHCP server in Subnet Z?
+
+### The Relay Solution
+Network switches or default routers are configured with a **DHCP Relay Agent** (e.g. Cisco `ip helper-address`):
+1. The client broadcasts `DHCPDISCOVER` on Subnet A.
+2. The router's Relay Agent intercepts the UDP broadcast on Port 67.
+3. The Relay Agent populates the `giaddr` (Gateway IP Address) field with the router's own IP address on Subnet A (e.g. `10.1.1.1`).
+4. The Relay Agent **encapsulates the message into a standard unicast UDP packet** and routes it across enterprise routers to the centralized DHCP server at `10.50.0.10`.
+5. The central DHCP server reads `giaddr`, identifies that the client resides on the `10.1.1.0/24` subnet, allocates an appropriate IP from that subnet pool, and returns the response via unicast to the Relay Agent.
+6. The Relay Agent forwards the reply back onto Subnet A to the client!
+
+---
+
+## 🏭 Real-World Production Context: Enterprise DHCP Snooping, Cloud VPCs & Secure File Transfer
+
+### 1. Defending Enterprise LANs: DHCP Snooping & Rogue DHCP Servers
+In corporate offices, an employee might accidentally plug an unmanaged home Wi-Fi router into a wall Ethernet jack. The rogue router starts broadcasting `DHCPOFFER` packets, assigning incorrect IP gateways to colleagues (causing DoS or Man-in-the-Middle traffic interception):
+* Enterprise switches (Cisco Catalyst, Arista) implement **DHCP Snooping**:
+  * Network administrator explicitly designates switch uplinks to legitimate corporate servers as **Trusted Ports**.
+  * All user-facing wall jacks are categorized as **Untrusted Ports**.
+  * If an untrusted port receives a `DHCPOFFER` or `DHCPACK` frame, the switch silicon drops the frame instantly and disables the offending switch port (`errdisable`).
+* The switch builds a dynamic **DHCP Snooping Binding Table** (`MAC Address -> IP Address -> Lease -> Port`), which fuels **Dynamic ARP Inspection (DAI)** to block ARP poisoning attacks!
+
+### 2. Cloud Virtual Private Clouds (AWS EC2 & GCP Hypervisors)
+How do virtual machine instances in AWS EC2 or Google Cloud receive their private IP addresses?
+* When an EC2 Linux VM boots, its virtual `eth0` interface broadcasts a standard DHCPDISCOVER packet.
+* There is no physical DHCP server on the rack. The **Nitro Hypervisor virtual switch** intercepts the broadcast, intercepts the MAC, queries the AWS VPC control plane, and crafts an immediate `DHCPOFFER` containing the exact private IP assigned to the instance.
+* The hypervisor also routes queries to the magic link-local address **`169.254.169.254`** (the **Instance Metadata Service - IMDS**), allowing EC2 instances to retrieve IAM role tokens, public keys, and VPC subnets securely.
+
+### 3. The Demise of FTP: Evolution to SFTP & FTPS
+Plaintext FTP transmits passwords and file contents completely unencrypted over the wire. Anyone running Wireshark on an intermediate router can capture user credentials.
+* **SFTP (SSH File Transfer Protocol)**: Operates over **TCP Port 22**. It is an extension of SSH, requiring only a single encrypted connection with full public-key authentication and zero NAT/firewall traversal issues.
+* **FTPS (FTP over SSL/TLS)**: Wraps legacy FTP within TLS on port 990 (Implicit) or port 21 (Explicit STARTTLS), though it retains the complex two-connection (control + data) architecture.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Active FTP PORT Command Parsing & Ephemeral Port Synthesis
+**Problem Statement:** An FTP client initiates an Active FTP data transfer. In the control session, the client issues the following command to the server:
+`PORT 192,168,1,45,195,84`
+1. Extract the IP address and determine the exact TCP port number the client has opened for the incoming data connection.
+2. If the client is behind a NAT firewall that does not support Application Layer Gateway (ALG) inspection, explain why the transfer will hang indefinitely.
+
+**Step-by-Step Solution:**
+1. **IP and Port Extraction:**
+   * The first 4 octets represent the IPv4 address:
+     $$\text{IP Address} = \mathbf{192.168.1.45}$$
+   * The last 2 numbers ($p_1, p_2$) encode the 16-bit TCP port number:
+     $$\text{Port} = (p_1 \times 256) + p_2 = (195 \times 256) + 84 = 49,920 + 84 = \mathbf{50,004}$$
+   * The client instructs the server: *"Connect back to my IP `192.168.1.45` on TCP Port `50004`"*.
+2. **NAT Firewall Consequence:**
+   * `192.168.1.45` is a private RFC 1918 address that cannot be routed across the public Internet.
+   * The server attempts to initiate a TCP SYN connection from Port 20 to `192.168.1.45:50004`. The packet is dropped immediately by intermediate routers.
+   * Even if the client announced its public IP, the client's stateful firewall blocks incoming unsolicited TCP SYNs from external IP addresses, causing the data connection to time out.
+
+---
+
+### Example 2: DHCP Lease Renewal Lifecycle Timers (T1, T2 & Expiration)
+**Problem Statement:** An enterprise workstation obtains a DHCP lease for an IP address with a lease duration of $T = 8\text{ days}$ ($192\text{ hours}$) at time $t = 0$.
+1. Calculate the exact time at which the client transitions to the **RENEWING** state (Timer T1) and describe the communication method used.
+2. If the primary DHCP server is unresponsive, calculate the time at which the client transitions to the **REBINDING** state (Timer T2) and describe how the query changes.
+3. If no server responds by the lease expiration time, what action must the client take?
+
+**Step-by-Step Solution:**
+1. **Timer T1 (Renewal Timer):**
+   * Standardized at **$50\%$ of total lease time**:
+     $$T_1 = 0.50 \times T = 0.50 \times 8\text{ days} = \mathbf{4\text{ days} \ (96\text{ hours})}$$
+   * At $t = 4\text{ days}$, the client issues a **unicast `DHCPREQUEST`** directly to the original DHCP server.
+2. **Timer T2 (Rebinding Timer):**
+   * Standardized at **$87.5\%$ ($7/8$) of total lease time**:
+     $$T_2 = 0.875 \times T = 0.875 \times 8\text{ days} = \mathbf{7\text{ days} \ (168\text{ hours})}$$
+   * If the original server did not respond between Day 4 and Day 7, the client enters the REBINDING state. It switches from unicast to a **broadcast `DHCPREQUEST` (`255.255.255.255`)**, attempting to renew its lease with *any* available DHCP server on the subnet.
+3. **Lease Expiration ($t = 8\text{ days}$):**
+   * If no server responds by $t = 8\text{ days}$, the lease expires.
+   * The client **must immediately unbind the IP address**, drop all active TCP connections, release the interface, and restart the entire **DORA process** from `DHCPDISCOVER`.
+
+---
+
+### Example 3: DHCP Address Pool Sizing & Subnet Depletion Analysis
+**Problem Statement:** A university campus library has 300 seating desks with Wi-Fi coverage. On average, 120 new students arrive every hour, stay for 2 hours, and leave.
+1. If the network administrator configures a standard `/24` subnet ($254$ usable host IPs) with a default DHCP lease time of **$24\text{ hours}$**, calculate the number of active IP leases after 4 hours and determine if the pool depletes.
+2. What optimal lease time should the administrator configure to ensure the pool never runs out of IP addresses during peak hours?
+
+**Step-by-Step Solution:**
+1. **Analysis with 24-Hour Lease Time:**
+   * Even though students leave after 2 hours, the DHCP server holds each allocated IP for the full 24 hours unless an explicit `DHCPRELEASE` is sent (rare on mobile phones).
+   * Rate of new leases $= 120\text{ students/hour}$.
+   * At $t = 2\text{ hours}$: $2 \times 120 = 240$ leases assigned.
+   * At $t = 2.5\text{ hours}$: $2.5 \times 120 = 300$ leases demanded.
+   * Since the `/24` subnet has only **$254$ usable IP addresses**, the pool completely **exhausts in approximately 2.1 hours**! Arriving students receive zero DHCPOFFERs, fail to connect to Wi-Fi, and default to useless APIPA (`169.254.x.x`) addresses.
+2. **Optimal Lease Time Calculation:**
+   * Maximum concurrent users seated at any moment $= 2\text{ hours} \times 120\text{ students/hour} = 240\text{ users}$.
+   * The maximum pool capacity is 254 IPs.
+   * To maintain a $15\%$ safety buffer ($240 / 0.85 \approx 280$ IPs needed, or keeping occupancy under 220):
+     $$\text{Optimal Lease Time} \approx 2\text{ hours} \text{ (or } 90 \text{ to } 120\text{ minutes)}$$
+   * Shortening the lease time to 2 hours allows expired leases to be recycled immediately after students depart, keeping the 254-IP pool stable indefinitely.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+**Question 1:** Why does FTP utilize two separate TCP connections (Port 21 and Port 20)? Contrast Active FTP with Passive FTP and explain why Active FTP fails in the presence of modern client firewalls.
+
+**Answer:**
+* **Why FTP Uses Two Connections**: FTP separates control signals from data transfer (**out-of-band signaling**). The **Control Connection (TCP Port 21)** carries client authentication, directory navigation commands, and server status codes throughout the session. The **Data Connection (TCP Port 20 / Ephemeral)** is created dynamically exclusively to carry raw file bytes and closes immediately upon transfer completion. This decoupling allows users to send abort commands (`ABOR`) over control while data is flying, and eliminates the need for byte-escaping in the data stream.
+* **Active vs Passive Mode**:
+  * In **Active FTP**, the client sends a `PORT h1,h2,h3,h4,p1,p2` command over Port 21, instructing the server to connect back to the client's IP and port $P$. The server initiates an inbound TCP connection from Server Port 20 to Client Port $P$.
+  * In **Passive FTP**, the client sends `PASV`. The server opens an ephemeral listening port $P$ and informs the client. The client initiates the outbound TCP connection from its ephemeral port to Server Port $P$.
+* **Why Active FTP Fails Behind Firewalls**: Modern client devices reside behind NAT gateways and stateful firewalls. When the FTP server initiates a connection from Port 20 back to the client, the client's firewall perceives an unsolicited inbound connection from an external entity and drops the TCP SYN packet. Passive FTP succeeds because both the control and data connections originate **outbound from the client**, traversing stateful firewalls without issue.
+
+---
+
+**Question 2:** Trace the 4 steps of the DHCP DORA process. Why is the DHCPREQUEST packet sent as a broadcast even though the client has already received a unicast DHCPOFFER?
+
+**Answer:**
+* **The 4 Steps of DORA**:
+  1. *DHCPDISCOVER*: Client broadcasts (`255.255.255.255`) from `0.0.0.0:68` to port `67` with its MAC address and transaction ID.
+  2. *DHCPOFFER*: DHCP server reserves an IP and sends proposed IP (`yiaddr`), lease time, subnet mask, default gateway, and DNS server IPs.
+  3. *DHCPREQUEST*: Client broadcasts its formal request for the selected offer, specifying the server ID.
+  4. *DHCPACK*: Server commits the lease to its database and confirms the network parameters to the client.
+* **Why DHCPREQUEST is Broadcasted**: Multiple DHCP servers may exist on the same physical link, each responding with a different `DHCPOFFER` and reserving that IP address in memory. By broadcasting the `DHCPREQUEST` containing the `Server Identifier` option of the chosen server, the client **publicly announces its choice to the entire network**. This serves two critical purposes:
+  1. It confirms the lease with the selected server.
+  2. It explicitly informs all other non-selected DHCP servers that their offers were rejected, allowing them to release their reserved IP addresses back into their allocation pools immediately rather than holding them until offer timeouts expire.
+
+---
+
+:::tip Core Conceptual Questions
+* **What is APIPA (Automatic Private IP Addressing)?**: If a host issues a DHCPDISCOVER broadcast and receives zero responses (e.g. DHCP server is down or link cable is disconnected), modern operating systems (Windows, macOS) assign a fallback link-local IP in the range `169.254.0.1` to `169.254.255.254` with subnet mask `255.255.0.0` (RFC 3927). It allows hosts on the same physical switch to communicate with each other, though internet routing is impossible.
+* **Can a host release its DHCP IP address before the lease expires?**: Yes. When a client performs an orderly shutdown or disconnects from a network, it issues a **unicast `DHCPRELEASE`** packet to the DHCP server, releasing the IP address back to the pool immediately.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Confusing Port 67 with Port 68**: Remember: **Server = 67, Client = 68**. Think alphabetical: **C**lient comes first in alphabet, but in port numbers client is higher: Client $= 68$, Server $= 67$.
+* **Trap: Believing DHCP Operates Over TCP**: DHCP uses **UDP**. An unconfigured host has no IP address and cannot establish a TCP 3-way handshake. UDP allows connectionless broadcasting to `255.255.255.255`.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "8.4 Electronic Mail Protocols: SMTP, POP3 & IMAP4 Architecture",
+    url: "/coredose/cn/module-08/electronic-mail-protocols-smtp-pop3-and-imap4-architecture"
+  }}
+  next={{
+    title: "9.1 Network Security Foundations: Confidentiality, Integrity & Availability",
+    url: "/coredose/cn/module-09/network-security-foundations-confidentiality-integrity-availability"
+  }}
+  courseUrl="/coredose/cn"
+/>

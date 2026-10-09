@@ -1,0 +1,529 @@
+---
+title: "1.1 Network Fundamentals & Data Communication"
+description: "Foundational concepts of computer networks, data communication systems, the 5 core components, 4 effectiveness criteria, and transmission modes (Simplex, Half-Duplex, Full-Duplex)."
+hide_table_of_contents: true
+---
+
+# 1.1 Network Fundamentals & Data Communication
+
+<CoreDoseLessonHeader
+  module="Module 01: Introduction & Network Architectures"
+  topic="Topic 1.1"
+  courseUrl="/coredose/cn"
+  readTime="8 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition
+
+### 🍳 The Everyday Analogy: The Postal Service & Walkie-Talkie Channels
+Imagine you want to send a handwritten greeting card to a close friend living in another city:
+* You write your heartfelt thoughts down on paper—that is your **Message**.
+* You, holding the pen, are the **Sender**.
+* Your friend waiting by their mailbox is the **Receiver**.
+* The asphalt highways, postal delivery trucks, and flights bridging the cities form the physical **Transmission Medium**.
+* The agreed language (English or Hindi), the envelope format, the postal stamp, and the postal PIN code represent the **Protocol**—the mutually agreed rules of communication. If you wrote the letter in an ancient undecipherable cipher, your friend would receive the physical paper but could never decode the message.
+
+Now, consider how the conversation flows depending on the tool you use:
+1. **FM Radio Station**: The radio tower transmits songs to your car antenna. Your car radio can only receive; it can never talk back to the RJ. This is **Simplex** communication (a strictly one-way street).
+2. **Police Walkie-Talkie**: Two officers communicate over a single shared radio frequency. Officer A speaks while Officer B listens. When finished, Officer A says *"Over!"*, yielding control so Officer B can reply. Both can speak, but **never at the exact same moment**. This is **Half-Duplex** communication.
+3. **Smartphone Telephone Call**: You and your friend talk simultaneously over a mobile connection. You can speak, laugh, and listen at the very same instant without cutting each other off. This is **Full-Duplex** communication (a two-lane highway).
+
+<FlowPipeline
+  title="The Data Communication Transmission Pipeline"
+  subtitle="End-to-end signal trajectory carrying application data from source station to destination sink"
+  nodes={[
+    {
+      badge: "Source Station",
+      title: "Sender Device",
+      icon: "💻",
+      color: "purple",
+      description: "Generates digital bitstream according to protocol rules.",
+      connectorLabel: "Data Output",
+    },
+    {
+      badge: "Information Payload",
+      title: "The Message",
+      icon: "✉️",
+      color: "blue",
+      description: "Structured text, binary, audio, or video payload.",
+      connectorLabel: "Modulated onto Medium",
+    },
+    {
+      badge: "Physical Conduit",
+      title: "Transmission Medium",
+      icon: "🔌",
+      color: "cyan",
+      description: "Guided copper/fiber cables or unguided radio airwaves.",
+      connectorLabel: "Delivered to Sink",
+    },
+    {
+      badge: "Destination Station",
+      title: "Receiver Device",
+      icon: "🖥️",
+      color: "emerald",
+      description: "Captures physical signals and decodes message payload.",
+    },
+  ]}
+/>
+
+### 💻 Bridging to Computer Science
+At the silicon and optical level, computers communicate by converting application objects into serial bitstreams (`0`s and `1`s). These bits travel across guided copper wires (as electrical voltages), optical fibers (as laser light pulses), or unguided atmosphere (as electromagnetic radio waves).
+
+A **Computer Network** is formally defined as:
+> *"A telecommunications network allowing autonomous digital devices (nodes) to exchange data and share physical or software resources over wired or wireless media."*  
+> — *Andrew S. Tanenbaum & Behrouz A. Forouzan*
+
+The term **autonomous** is crucial: it means no computer can forcibly start, stop, or commandeer another computer against its programmed policies. A mainframe connected to dumb terminals is **not** a computer network; a distributed cluster of autonomous workstations communicating over Ethernet **is**.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🔬 The 5 Components of Data Communication
+
+Every data communication system—from a simple Bluetooth mouse connection up to a global transoceanic internet pipeline—is constructed from exactly five fundamental components:
+
+<FlowDiagram
+  title="The 5 Core Components of Data Communication"
+  subtitle="Hierarchical 2D architecture: governing protocol rules orchestrating end-to-end signal flow from sender to receiver"
+  domains={[
+    {
+      id: "standards_domain",
+      title: "Control & Standards Authority",
+      color: "amber",
+      icon: "📜",
+      position: "top",
+    },
+    {
+      id: "physical_domain",
+      title: "Physical Data Transmission Line",
+      color: "blue",
+      icon: "🌐",
+      position: "bottom",
+    },
+  ]}
+  nodes={[
+    {
+      id: "protocol",
+      domain: "standards_domain",
+      col: 1,
+      row: 0,
+      title: "5. Protocol",
+      sublabel: "Syntax • Semantics • Timing",
+      badge: "Governing Rules",
+      icon: "📜",
+      color: "amber",
+      details: "A mutually agreed set of rules governing communication. Characterized by Syntax (data format), Semantics (meaning of control bits), and Timing (flow control and clock synchronization).",
+    },
+    {
+      id: "sender",
+      domain: "physical_domain",
+      col: 0,
+      row: 1,
+      title: "2. Sender (Source)",
+      sublabel: "Transmitting Host",
+      badge: "Origin Station",
+      icon: "💻",
+      color: "purple",
+      details: "Autonomous digital device (workstation, server, phone, IoT sensor) that generates the raw bitstream and modulates it according to protocol specifications.",
+    },
+    {
+      id: "medium",
+      domain: "physical_domain",
+      col: 1,
+      row: 1,
+      title: "4. Transmission Medium",
+      sublabel: "Physical Conduit (Channel)",
+      badge: "Physical Path",
+      icon: "🔌",
+      color: "cyan",
+      details: "Physical conduit (guided copper wire, optical glass fiber, or unguided radio waves) carrying electromagnetic or optical energy containing the data message.",
+    },
+    {
+      id: "receiver",
+      domain: "physical_domain",
+      col: 2,
+      row: 1,
+      title: "3. Receiver (Sink)",
+      sublabel: "Destination Host",
+      badge: "Target Station",
+      icon: "🖥️",
+      color: "emerald",
+      details: "Target destination device (database server, browser, printer) that accepts physical waveforms, decodes the bitstream, verifies checksums, and consumes the message.",
+    },
+  ]}
+  edges={[
+    {
+      from: "sender",
+      to: "medium",
+      fromPort: "right",
+      toPort: "left",
+      step: "1",
+      label: "Transmit Bitstream (Message)",
+    },
+    {
+      from: "medium",
+      to: "receiver",
+      fromPort: "right",
+      toPort: "left",
+      step: "2",
+      label: "Deliver Encoded Signal",
+    },
+    {
+      from: "protocol",
+      to: "sender",
+      fromPort: "left",
+      toPort: "top",
+      step: "A",
+      label: "Enforce Framing & Clock",
+      bend: "top",
+      style: "dashed",
+    },
+    {
+      from: "protocol",
+      to: "receiver",
+      fromPort: "right",
+      toPort: "top",
+      step: "B",
+      label: "Enforce Parsing & Syntax",
+      bend: "top",
+      style: "dashed",
+    },
+  ]}
+/>
+
+### Detailed Analysis: The 5 Elements
+
+### 1. Message
+The **Message** is the information (data) intended for communication. Modern digital payloads come in diverse formats:
+* **Text**: Represented as bit sequences encoded in standard character sets such as ASCII (7-bit), Extended ASCII (8-bit), or UTF-8 / Unicode (variable 1 to 4 bytes).
+* **Numbers**: Encoded directly into mathematical binary representations (2's complement integers, IEEE 754 floating-point numbers).
+* **Images**: Digitized into a matrix of pixels, where each pixel has a color depth (e.g., 24-bit RGB) compressed via formats like JPEG, PNG, or WebP.
+* **Audio & Video**: Continuous analog sound waves and optical frames converted into discrete digital samples using pulse code modulation (PCM) and streaming compression codecs (AAC, H.264, AV1).
+
+### 2. Sender
+The **Sender** is the device that creates and transmits the data message. Examples include client workstations, cloud servers, mobile phones, security cameras, IoT sensor boards, and point-of-sale terminals.
+
+### 3. Receiver
+The **Receiver** is the target destination device that accepts and processes the transmitted message. Examples include web servers, database clusters, television sets, printer spoolers, and consumer smartphones.
+
+### 4. Transmission Medium
+The **Transmission Medium** is the physical transmission path over which the signal travels from sender to receiver. It is broadly categorized into:
+* **Guided Media (Wired / Bounded)**: Physical cables directing electromagnetic waves along a solid conductor (Twisted Pair, Coaxial Cable, Fiber Optic Cable).
+* **Unguided Media (Wireless / Unbounded)**: Atmospheric or free-space propagation of electromagnetic waves without a physical conductor (Radio Waves, Microwaves, Infrared).
+
+### 5. Protocol
+A **Protocol** is a strict set of rules, standards, and conventions that govern data communication. It represents an agreement between communicating devices:
+* Without a protocol, two devices may be physically connected with copper cables, but communication is impossible (equivalent to an English speaker talking to someone who only understands Japanese).
+* Every protocol is characterized by three fundamental key elements:
+  1. **Syntax**: The structure or format of the data, including field lengths, header offsets, and delimiter bits. (e.g., the first 4 bits of an IPv4 packet define the version).
+  2. **Semantics**: The meaning and interpretation of each section of bits. (e.g., does an address field specify the final destination or the next intermediate hop router?).
+  3. **Timing**: Characteristics defining *when* data should be transmitted and *how fast* it can be received (speed matching, flow control, sequencing, and timeouts).
+
+---
+
+## 📊 The 4 Effectiveness Criteria of Data Communication
+
+The operational utility of any communication network depends on four fundamental engineering metrics:
+
+| Metric | Formal Definition | Failure Impact | Real-World Mitigation |
+| :--- | :--- | :--- | :--- |
+| **1. Delivery** | The system must deliver data to the correct, intended destination and **only** to that destination. | Data delivered to the wrong node leaks privacy; lost data breaks application state. | Physical MAC addressing, Logical IP routing, firewall egress filtering. |
+| **2. Accuracy** | The system must deliver data accurately without bit-flips, corruption, or alterations. | Corrupted bits cause silent data corruption, application crashes, or checksum rejections. | CRC (Cyclic Redundancy Checks), TCP/UDP checksums, parity bits, ECC memory. |
+| **3. Timeliness** | Data must be delivered within an acceptable, predictable latency window. Late data is often useless. | In real-time video/audio (VoIP), delayed packets result in unlistenable garble. | Priority queuing (QoS), low-latency UDP streams, DiffServ packet labeling. |
+| **4. Jitter** | The variation in packet arrival times (delay variance between consecutive packets). | Uneven inter-arrival delay causes video stuttering, audio gaps, and lip-sync mismatch. | Jitter buffers at the application receiver that smooth out arrival spikes. |
+
+### Mathematical Intuition of Jitter
+Let packet $P_i$ leave the sender at time $t_i^{\text{send}}$ and arrive at the receiver at time $t_i^{\text{recv}}$. The transit delay for packet $i$ is:
+
+$$D_i = t_i^{\text{recv}} - t_i^{\text{send}}$$
+
+If packet $P_1$ experiences a transit delay of $30\text{ ms}$, packet $P_2$ takes $32\text{ ms}$, and packet $P_3$ takes $31\text{ ms}$, the delay is nearly uniform and the jitter is negligible ($< 2\text{ ms}$).
+
+However, if packet $P_1$ takes $20\text{ ms}$, packet $P_2$ takes $95\text{ ms}$ (due to queue congestion in an intermediate router), and packet $P_3$ takes $22\text{ ms}$, the **jitter** $\Delta D = |D_2 - D_1| = 75\text{ ms}$ is severe. Without a receiver-side playback buffer, the user experiences jarring audio dropouts.
+
+---
+
+## 📈 Network Evaluation Criteria
+
+When network architects assess an enterprise or cloud network, three primary criteria govern design decisions:
+
+<SubsystemGrid
+  title="The 3 Core Network Evaluation Criteria"
+  subtitle="The fundamental architectural pillars governing network design, service level agreements, and optimization"
+  items={[
+    {
+      icon: "⚡",
+      title: "Performance",
+      tag: "Speed & Capacity",
+      color: "blue",
+      points: [
+        "Evaluates the speed, latency, and data-carrying capacity of the network link.",
+        "Governed by Transit Time (one-way propagation) and Response Time (round-trip + server processing).",
+        "Measured via raw throughput (bits/sec) and aggregate queuing latency.",
+      ],
+      syscalls: ["Transit Time", "Response Time", "Throughput", "Delay / Jitter"],
+    },
+    {
+      icon: "🛡️",
+      title: "Reliability",
+      tag: "Availability & Fault Tolerance",
+      color: "emerald",
+      points: [
+        "Measures how consistently the network maintains uptime under real-world operating conditions.",
+        "Evaluated via MTBF (Mean Time Between Failures) and MTTR (Mean Time To Repair).",
+        "Requires redundant failover links to survive hardware crashes and physical cable cuts.",
+      ],
+      syscalls: ["MTBF (Uptime)", "MTTR (Repair)", "Fault Tolerance", "Redundancy"],
+    },
+    {
+      icon: "🔒",
+      title: "Security",
+      tag: "Data Protection & Access Control",
+      color: "purple",
+      points: [
+        "Protects network hardware and in-flight data against unauthorized access and tampering.",
+        "Guarantees confidentiality via encryption (AES-256, TLS) and integrity via cryptographic hashes.",
+        "Prevents service disruption by defending against Denial of Service (DoS / DDoS) attacks.",
+      ],
+      syscalls: ["Confidentiality", "Integrity", "Availability", "Access Control"],
+    },
+  ]}
+/>
+
+### 1. Performance
+Network performance is measured using several interrelated metrics:
+* **Transit Time**: The elapsed time required for a message to travel from the sender host to the receiver host.
+* **Response Time**: The total elapsed time between an inquiry sent by a client and the corresponding response returned by the server (Transit Time Outbound + Server Processing Time + Transit Time Return).
+* **Throughput**: The actual volume of useful data bits successfully transmitted through the network link per unit of time (e.g., $100\text{ Mbps}$, $10\text{ Gbps}$).
+* **Latency (Delay)**: The total round-trip or one-way delay composed of four sub-delays:
+  $$\text{Latency} = \text{Transmission Delay} + \text{Propagation Delay} + \text{Queuing Delay} + \text{Processing Delay}$$
+
+### 2. Reliability
+Reliability measures how consistently the network maintains uptime and handles hardware or software anomalies:
+* **Frequency of Failure**: How often network links, routers, or switches fail under workload, measured as **MTBF (Mean Time Between Failures)**.
+* **Recovery Time After Failure**: The duration required for the network to detect a severed cable or dead link and re-route traffic around it, measured as **MTTR (Mean Time To Repair)**.
+* **Catastrophe Robustness**: The ability of the network to survive environmental disasters (fires, power outages, earthquakes) via redundant dual-homed links and automatic failover protocols.
+
+### 3. Security
+Security protects network assets against unauthorized access, eavesdropping, and destruction:
+* **Confidentiality**: Ensuring that unauthorized snooping nodes cannot decipher data payloads (enforced via AES-256, TLS 1.3 encryption).
+* **Integrity**: Protecting data from malicious tampering or in-flight modification (enforced via HMACs, digital signatures, and cryptographic hashes).
+* **Availability**: Protecting network services from Denial-of-Service (DoS / DDoS) saturation attacks.
+
+---
+
+## 🔄 Transmission Modes in Data Communication
+
+The direction of signal flow between two interconnected communicating devices determines the **Transmission Mode** (also termed **Direction of Data Flow**).
+
+<ConceptComparison
+  title="Transmission Modes: Architectural Comparison"
+  subtitle="Comparative analysis of directional data flow, channel capacity utilization, and physical mechanics"
+  concepts={[
+    {
+      badge: "Simplex",
+      title: "Simplex Transmission Mode",
+      icon: "➡️",
+      color: "blue",
+      domain: "Unidirectional Channels",
+      points: [
+        "Communication is strictly unidirectional (a permanent one-way street).",
+        "One station is a dedicated transmitter; the other is a dedicated receiver.",
+        "100% of the channel capacity is permanently allocated to the single direction.",
+        "Zero reverse feedback or acknowledgment mechanism possible over the link.",
+      ],
+      quote: "Single-direction flow: maximum channel capacity dedicated strictly to outward transmission.",
+    },
+    {
+      badge: "Half-Duplex",
+      title: "Half-Duplex Transmission Mode",
+      icon: "🔁",
+      color: "amber",
+      domain: "Alternating Bidirectional",
+      points: [
+        "Each station can both transmit and receive, but NOT at the exact same instant.",
+        "When Device A is transmitting, Device B must listen; roles reverse sequentially.",
+        "100% of channel capacity is used by whichever station owns the medium at that time.",
+        "Requires access-control coordination or turn-taking tokens to prevent collisions.",
+      ],
+      quote: "Two-way communication over a single shared lane: efficient hardware reuse with turn-taking latency.",
+    },
+    {
+      badge: "Full-Duplex",
+      title: "Full-Duplex Transmission Mode",
+      icon: "🔄",
+      color: "emerald",
+      domain: "Simultaneous Bidirectional",
+      points: [
+        "Both stations can transmit and receive data simultaneously at the exact same time.",
+        "Operates as two independent half-duplex links operating concurrently in reverse directions.",
+        "Channel capacity is divided between the two directions (via dual wires or frequency division).",
+        "Highest throughput with zero turn-around switching delays between transmission directions.",
+      ],
+      quote: "Simultaneous two-way highway: maximum interactivity and zero line-reversal stalls.",
+    },
+  ]}
+/>
+
+### Deep-Dive Analysis: The Three Modes
+
+<FlowPipeline
+  title="Transmission Modes: Signal Propagation Pipelines"
+  subtitle="Comparing one-way dedicated flow, alternating time-slots, and concurrent bidirectional streams"
+  stages={[
+    {
+      badge: "Mode 1",
+      title: "Simplex Transmission (Permanent One-Way)",
+      icon: "➡️",
+      color: "blue",
+      steps: [
+        {
+          badge: "Transmitter Only",
+          title: "Station A",
+          icon: "💻",
+          color: "blue",
+          description: "Permanent dedicated sender.",
+          connectorLabel: "100% Bandwidth A → B",
+        },
+        {
+          badge: "Receiver Only",
+          title: "Station B",
+          icon: "🖥️",
+          color: "blue",
+          description: "Permanent dedicated sink with zero return path.",
+        },
+      ],
+      transition: { label: "Versus Alternating Flow", badge: "Next Mode" },
+    },
+    {
+      badge: "Mode 2",
+      title: "Half-Duplex Transmission (Alternating Turns)",
+      icon: "🔁",
+      color: "amber",
+      steps: [
+        {
+          badge: "Turn 1: Transmitting",
+          title: "Station A",
+          icon: "💻",
+          color: "amber",
+          description: "Sends frame over shared channel.",
+          connectorLabel: "Turn 1: Forward",
+        },
+        {
+          badge: "Turn 1: Receiving",
+          title: "Station B",
+          icon: "🖥️",
+          color: "amber",
+          description: "Listens while Station A owns channel.",
+          connectorLabel: "Line Turnaround Delay",
+        },
+        {
+          badge: "Turn 2: Response",
+          title: "Station B → Station A",
+          icon: "🔄",
+          color: "amber",
+          description: "Roles reverse sequentially for reply.",
+        },
+      ],
+      transition: { label: "Versus Simultaneous Flow", badge: "Next Mode" },
+    },
+    {
+      badge: "Mode 3",
+      title: "Full-Duplex Transmission (Simultaneous Two-Way)",
+      icon: "🔄",
+      color: "emerald",
+      steps: [
+        {
+          badge: "Channel 1 (Forward)",
+          title: "Station A → Station B",
+          icon: "💻",
+          color: "emerald",
+          description: "Continuous transmit stream over dedicated Tx wire pair.",
+          connectorLabel: "Independent Tx",
+        },
+        {
+          badge: "Channel 2 (Reverse)",
+          title: "Station B → Station A",
+          icon: "🖥️",
+          color: "emerald",
+          description: "Simultaneous receive stream over dedicated Rx wire pair.",
+        },
+      ],
+    },
+  ]}
+/>
+
+### Comprehensive Technical Matrix
+
+| Dimension | Simplex | Half-Duplex | Full-Duplex |
+| :--- | :--- | :--- | :--- |
+| **Directionality** | Unidirectional ($A \to B$ only) | Bidirectional ($A \to B$ OR $B \to A$, alternating) | Bidirectional ($A \to B$ AND $B \to A$, simultaneous) |
+| **Send/Receive Timing** | Device can only send OR receive | Device can send AND receive, but **never simultaneously** | Device can send AND receive **at the exact same time** |
+| **Channel Capacity Allocation** | 100% dedicated to one direction | 100% utilized by the transmitting station during its turn | Capacity is shared/split between both directions |
+| **Line Reversal Overhead** | None ($0\text{ ms}$) | High (requires turnaround time to reverse link direction) | Zero (independent channels operate concurrently) |
+| **Hardware Complexity** | Lowest (unidirectional circuits) | Moderate (transceiver with direction-switching logic) | Highest (dual circuits, hybrid transformers, or echo cancelers) |
+| **Canonical Examples** | Keyboard $\to$ CPU, Monitor display, FM Radio | Walkie-Talkies, Classical Bus CSMA/CD Ethernet, Push-to-Talk | Modern Switched Ethernet (Cat6), Mobile Phone Calls, WebSockets |
+
+---
+
+## 🏭 Real-World Production Context
+
+### How High-Performance Systems Eliminate Half-Duplex Bottlenecks
+In early computer networking (1980s–1990s), local area networks used coaxial cables operating in **Half-Duplex mode** (10BASE2 and 10BASE5 Ethernet). Multiple computers tapped into a shared wire. If two computers transmitted data at the same instant, an electrical collision occurred, corrupting both frames.
+
+#### The Production Bottleneck:
+* As company networks grew from 10 to 100 computers, the probability of collisions grew exponentially.
+* Network efficiency plummeted below $30\%$ of rated wire speed because stations spent most of their time waiting out randomized exponential backoff delays.
+
+#### The Modern Switched Full-Duplex Solution:
+Modern data centers and enterprise networks (running 10G, 25G, 40G, and 100G Ethernet) operate strictly in **Full-Duplex mode**:
+1. **Dedicated Twisted Pairs**: Cat6/Cat6a cables contain four twisted pairs. One pair is dedicated strictly to transmission ($Tx$), while a separate pair is dedicated to reception ($Rx$).
+2. **Layer 2 Switches**: Each host is connected directly to a dedicated switch port. The switch maintains separate internal hardware buffers for incoming and outgoing frames.
+3. **Collision Elimination**: Because transmission and reception occur over physically isolated circuits, the concept of an Ethernet collision is **completely eliminated**. Network links sustain $100\%$ wire-speed utilization simultaneously in both directions!
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** *"List and explain the five indispensable components of a data communication system. Why is communication impossible if one component is missing?"*  
+**Key Focus Points:**
+* Name all five: Message, Sender, Receiver, Transmission Medium, and Protocol.
+* Emphasize that without a **Protocol**, physical connectivity is meaningless because neither host understands the syntax or semantics of the bitstream. Without a **Medium**, electromagnetic waves have no conduit to propagate. Without a **Message**, no meaningful information exists to justify link utilization.
+
+**Question 2:** *"Define Jitter in the context of computer networking. Explain why Jitter is catastrophic for real-time video streaming but harmless for file downloads (FTP)."*  
+**Key Focus Points:**
+* **Definition**: Jitter is the variation or variance in packet arrival delay ($\Delta \text{Delay}$).
+* **Real-time Streaming (VoIP/Video)**: Humans perceive delays $>20\text{ ms}$ between consecutive audio samples as stutter, echo, or robotic clipping. Late packets cannot be replayed retroactively.
+* **File Downloads (FTP/HTTP)**: File transfers care only about total completion time and accuracy. Whether packet 10 arrives $5\text{ ms}$ or $50\text{ ms}$ after packet 9, the OS buffer holds it until the entire file is reconstructed.
+
+**Question 3:** *"Differentiate between Transit Time and Response Time."*  
+**Key Focus Points:**
+* **Transit Time**: The one-way duration required for a message to propagate from the source device to the destination device across the medium.
+* **Response Time**: The total round-trip elapsed duration from when a client submits a request until it receives the complete resulting response from the server (Transit Out + Processing at Server + Transit In).
+:::
+
+:::warning Common Interview Traps
+
+**Trap 1: "Does Full-Duplex mean the channel has twice the bandwidth of Half-Duplex?"**  
+**Answer: Technically, no.** Full-duplex allows bidirectional transfer, but the total physical bandwidth of the medium is partitioned (either divided into two separate frequency bands or allocated over two distinct physical wire pairs). For example, a $1\text{ Gbps}$ full-duplex Ethernet link supports $1\text{ Gbps}$ transmit and $1\text{ Gbps}$ receive concurrently—often colloquially termed "$2\text{ Gbps}$ aggregate bandwidth"—but an individual unidirectional transfer cannot exceed $1\text{ Gbps}$.
+
+**Trap 2: "Is a computer monitor connected via HDMI a Simplex or Full-Duplex system?"**  
+**Answer:** While video display data flows unidirectionally from GPU to monitor (Simplex video stream), modern HDMI and DisplayPort cables actually incorporate bidirectional auxiliary channels (**DDC / EDID / CEC / HPD**) so the monitor can communicate its supported resolutions, color profiles, and refresh rates back to the graphics card! Thus, the video pipeline is simplex, but the overarching interface cable is technically asymmetric half/full duplex.
+:::
+
+---
+
+<CoreDoseNav
+  prev={null}
+  next={{
+    title: "1.2 Network Topologies & Connection Types",
+    url: "/coredose/cn/module-01/network-topologies-and-connection-types",
+  }}
+  courseUrl="/coredose/cn"
+/>

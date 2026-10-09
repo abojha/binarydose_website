@@ -33,6 +33,8 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.35rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .titleBadge {
@@ -46,6 +48,58 @@
   background: rgba(56, 189, 248, 0.15);
   color: #38bdf8;
   border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.stepperContainer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+  padding: 0.18rem 0.45rem;
+}
+
+[data-theme='light'] .stepperContainer {
+  background: rgba(241, 245, 249, 0.9);
+  border-color: rgba(203, 213, 225, 0.85);
+}
+
+.stepBtn {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 9999px;
+  padding: 0.12rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 750;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1.4;
+}
+
+.stepBtn:hover {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+[data-theme='light'] .stepBtn {
+  background: rgba(37, 99, 235, 0.08);
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.3);
+}
+
+.stepCounter {
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: #94a3b8;
+  padding: 0 0.35rem;
+  white-space: nowrap;
+}
+
+[data-theme='light'] .stepCounter {
+  color: #475569;
 }
 
 .title {
@@ -185,14 +239,14 @@
 
 .domainHeader {
   position: absolute;
-  top: -11px;
+  top: -12px;
   left: 50%;
   transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  padding: 0.12rem 0.6rem;
+  padding: 0.16rem 0.75rem;
   border-radius: 9999px;
   background: #0f172a;
   border: 1px solid rgba(148, 163, 184, 0.3);
@@ -203,9 +257,10 @@
   color: #94a3b8;
   max-width: calc(100% - 16px);
   text-align: center;
-  white-space: normal;
-  line-height: 1.25;
+  white-space: nowrap !important;
+  line-height: 1.2;
   box-sizing: border-box;
+  z-index: 5;
 }
 
 .domainHeaderBottom {
@@ -333,6 +388,7 @@
   border-color: #38bdf8 !important;
   color: #ffffff !important;
   box-shadow: 0 0 16px rgba(56, 189, 248, 0.65) !important;
+  z-index: 50 !important;
 }
 
 [data-theme='light'] .edgeBadge:hover,
@@ -462,6 +518,9 @@
   font-family: var(--ifm-font-family-monospace, monospace);
   white-space: nowrap !important;
   flex-shrink: 0;
+  max-width: 95px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .purpleCard .cardBadge { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border-color: rgba(168, 85, 247, 0.4); }

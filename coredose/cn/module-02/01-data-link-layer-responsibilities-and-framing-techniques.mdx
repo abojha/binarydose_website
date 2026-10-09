@@ -1,0 +1,551 @@
+---
+title: "2.1 Data Link Layer Responsibilities & Framing Techniques"
+description: "Exhaustive exploration of Data Link Layer responsibilities, framing motivations, fixed vs variable-size framing, character-oriented framing (byte stuffing), bit-oriented framing (bit stuffing with 01111110), physical layer violations, and solved engineering numericals."
+hide_table_of_contents: true
+---
+
+# 2.1 Data Link Layer Responsibilities & Framing Techniques
+
+<CoreDoseLessonHeader
+  module="Module 02: Data Link Layer: Framing, Flow & Error Control"
+  topic="Topic 2.1"
+  courseUrl="/coredose/cn"
+  readTime="9 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Shipping Container Principle
+
+### 🍳 The Everyday Analogy: Standardized Freight Containers
+Imagine a freight railway company tasked with transporting thousands of loose personal packages from Mumbai to Delhi. If the railway staff simply dumped every item into one gigantic, continuous open trench on the train:
+1. **The Error Disaster**: If a single bottle of ink broke anywhere during transit, the entire massive trench would be ruined. You would have to cancel the entire train and reload every single package from scratch.
+2. **The Lost Boundary Problem**: When the train arrived, workers would have no idea where one customer's property ended and the next customer's belongings began.
+
+To prevent this chaos, logistics companies pack goods into discrete, standardized **shipping containers** (called **Frames** in computer networking):
+* Each container has a standardized barcode seal at the start and end (**Delimiters / Flags**).
+* If one container gets damaged or derailed in transit, only that specific container needs to be re-sent—not the whole freight train!
+* If a customer ships goods that happen to look identical to the railway's official barcode seal, railway operators apply a protective tamper sleeve (**Stuffing**) so scanners do not mistake the cargo for an official boundary tag.
+
+### 💻 Bridging to Computer Science
+In computer networks, the Physical Layer transmits a raw, unorganized stream of bits across a physical wire or radio frequency. The **Data Link Layer (DLL)** sits directly above the physical medium, packaging this continuous bitstream into discrete, structured units called **Frames**. Framing isolates physical link transmission errors, enforces flow control, and synchronizes sender and receiver clocks.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🎯 Core Responsibilities of the Data Link Layer (OSI Layer 2)
+
+The Data Link Layer transforms a raw, unreliable physical transmission line into an organized, error-checked communication link for the Network Layer.
+
+<ArchitectureStack
+  title="Data Link Layer Encapsulation Hierarchy"
+  subtitle="Layer 2 boundary packaging Network Layer packets into physical frames"
+  layers={[
+    {
+      badge: "Layer 3",
+      title: "Network Layer (Packets)",
+      icon: "🌐",
+      color: "purple",
+      description: "Provides end-to-end logical addressing and routing across internetworks.",
+      items: ["IPv4 / IPv6 Datagrams", "Logical IP Addressing", "Routing Algorithms"],
+      connectorText: "Encapsulation: Packet injected into L2 Frame Payload",
+    },
+    {
+      badge: "Layer 2",
+      title: "Data Link Layer (Frames)",
+      icon: "📦",
+      color: "blue",
+      description: "Transforms raw physical bitstreams into discrete, error-checked frames for hop-to-hop transfer.",
+      items: ["Framing & Delimiting", "Physical MAC Addressing", "Flow Control", "Error Detection (CRC)", "Medium Access Control"],
+      connectorText: "Serialization: Frame converted to Raw Bitstream",
+    },
+    {
+      badge: "Layer 1",
+      title: "Physical Layer (Raw Bits)",
+      icon: "⚡",
+      color: "amber",
+      description: "Transmits raw electromagnetic signals across physical transmission media.",
+      items: ["Twisted Pair Copper", "Single-Mode Fiber", "RF Radio Airwaves"],
+    },
+  ]}
+/>
+
+### The 6 Foundational Services
+
+1. **Framing**: Divides the continuous stream of bits received from the physical layer into distinct, manageable data units called **Frames** by appending a **Header** (addressing & control data) and a **Trailer** (error detection redundant bits).
+2. **Physical (MAC) Addressing**: If frames are to be distributed to different systems on the same local network, the DLL adds the hardware MAC addresses of the sender and immediate next-hop receiver to the frame header.
+3. **Flow Control**: Prevents a high-speed transmitting station from swamping a slower receiving station with more data than its local memory buffers can store.
+4. **Error Control**: Adds redundant bits (such as CRC checksums) to the frame trailer to detect bit corruption, lost frames, or duplicates, triggering automatic retransmissions (ARQ).
+5. **Access Control**: When two or more devices share a common multipoint communication medium (e.g., Ethernet bus, Wi-Fi radio airwaves), MAC sublayer protocols (CSMA/CD, CSMA/CA, Token Ring) arbitrate which device has the right to transmit at any given instant.
+6. **Hop-to-Hop (Node-to-Node) Delivery**: Ensures error-free delivery of frames across a single physical link connecting two neighboring nodes, in contrast to the end-to-end host delivery provided by the Network Layer.
+
+---
+
+## 📦 Why Do We Need Framing?
+
+Why does the Data Link Layer enforce framing instead of transmitting the entire message as one huge data unit?
+
+* **Error Isolation**: On any physical channel, electromagnetic noise causes bit flips. If a $100\text{ MB}$ file is sent as one giant frame, a single-bit flip corrupts the entire $100\text{ MB}$ payload, forcing the sender to retransmit all $100\text{ MB}$. Dividing the message into $1500\text{-byte}$ frames ensures that a single-bit error only requires retransmitting that specific $1500\text{-byte}$ frame.
+* **Buffer Management**: Network switches and network interface cards (NICs) have limited finite RAM. Frames provide bounded, predictable memory allocations.
+* **Fair Link Sharing (Multiplexing)**: Small frames prevent a single host from monopolizing a shared link for minutes at a time, allowing round-robin statistical multiplexing for all network participants.
+
+---
+
+## 🔀 Framing Paradigms: Fixed-Size vs. Variable-Size
+
+<ConceptComparison
+  title="Framing Paradigms Comparison"
+  subtitle="Architectural trade-offs between fixed boundary slicing and variable payload delimiting"
+  left={{
+    badge: "Deterministic Slicing",
+    title: "Fixed-Size Framing",
+    icon: "📏",
+    color: "purple",
+    domain: "Cell Relay Networks (e.g., ATM)",
+    points: [
+      "Every frame has an identical, predetermined byte length (e.g., ATM 53-byte cells: 5 bytes header + 48 bytes payload).",
+      "Zero boundary delimiter overhead: the receiver simply counts the fixed number of incoming bits to determine frame boundaries.",
+      "Hardware switches process fixed frames at line-rate with deterministic silicon pipelines.",
+      "Disadvantage: High internal fragmentation when transmitting tiny payloads (e.g., a 1-byte keystroke requires padding to 48 bytes).",
+    ],
+    quote: "Deterministic hardware simplicity at the cost of payload padding overhead.",
+  }}
+  right={{
+    badge: "Dynamic Delimiting",
+    title: "Variable-Size Framing",
+    icon: "📦",
+    color: "blue",
+    domain: "Modern Packet Networks (Ethernet, Wi-Fi, HDLC)",
+    points: [
+      "Frame length varies dynamically based on upper-layer payload sizes (e.g., Ethernet frames range from 64 to 1518 bytes).",
+      "High bandwidth efficiency: zero internal fragmentation because frames shrink to fit small payloads.",
+      "Requires explicit boundary demarcation: the receiver must have an unambiguous mechanism to detect where one frame ends and the next begins.",
+      "Delimiting methods: Character Count, Character-Oriented (Byte Stuffing), and Bit-Oriented (Bit Stuffing).",
+    ],
+    quote: "Maximum channel utilization requiring robust delimiter demarcation algorithms.",
+  }}
+/>
+
+---
+
+## 🛠️ Variable-Size Framing Techniques
+
+To delineate variable-size frames, four major techniques have been utilized historically:
+1. **Character Count (Length Indicator)**
+2. **Character-Oriented Framing (Byte Stuffing)**
+3. **Bit-Oriented Framing (Bit Stuffing)**
+4. **Physical Layer Coding Violations**
+
+### 1. Character Count Method (The Fragile Approach)
+
+In this technique, the frame header includes an integer field specifying the total number of characters in the frame (including the length byte itself).
+
+<FlowPipeline
+  title="The Character Count Framing Method"
+  subtitle="Each frame prepends an integer byte declaring its total character count including the length field"
+  nodes={[
+    {
+      badge: "Frame 1 (5 Chars)",
+      title: "Count: 5 [A, B, C, D]",
+      icon: "📄",
+      color: "purple",
+      description: "Header byte '5' indicates this frame spans exactly 5 characters.",
+      connectorLabel: "Next Frame",
+    },
+    {
+      badge: "Frame 2 (5 Chars)",
+      title: "Count: 5 [E, F, G, H]",
+      icon: "📄",
+      color: "blue",
+      description: "Receiver reads next length byte '5' to slice frame boundary.",
+      connectorLabel: "Next Frame",
+    },
+    {
+      badge: "Frame 3 (8 Chars)",
+      title: "Count: 8 [I, J, K, L, M, N, O]",
+      icon: "📄",
+      color: "emerald",
+      description: "Single-bit error in count cascades into complete desynchronization.",
+    },
+  ]}
+/>
+
+* **The Fatal Flaw**: If channel noise flips even a single bit inside the count field (e.g., the second count field changes from `5` to `7`), the receiver count loses frame synchronization completely!
+* The receiver reads 7 characters, mistaking payload data for the next frame's count field. This triggers a catastrophic **framing desynchronization cascade**, invalidating all subsequent frames. Consequently, character count is virtually never used alone in modern production protocols.
+
+---
+
+### 2. Character-Oriented Framing (Byte Stuffing)
+
+In character-oriented protocols (such as BISYNC), frames carry 8-bit characters (e.g., ASCII). To mark frame boundaries, an 8-bit delimiter called a **Flag** (e.g., `FLAG`) is placed at the beginning and end of each frame.
+
+#### The Transparency Dilemma
+When sending arbitrary binary files (compiled machine code, compressed images, audio streams), the binary bit pattern of a payload byte might happen to match the `FLAG` character pattern. The receiver encounters this pattern mid-frame, assumes it has reached the closing delimiter, and truncates the frame prematurely!
+
+#### The Byte Stuffing Solution
+Whenever the sender detects a character matching the `FLAG` pattern inside the payload, it prepends a special **Escape byte (`ESC`)** right before it:
+* **Rule 1 (Flag in Payload)**: If `FLAG` appears in data $\to$ Transmit `ESC FLAG`.
+* **Rule 2 (Escape in Payload)**: If `ESC` appears in data $\to$ Transmit `ESC ESC`.
+* **Receiver Action**: Whenever the receiver encounters `ESC`, it discards the `ESC` byte and interprets the immediately following byte strictly as literal payload data, never as a delimiter!
+
+<FlowPipeline
+  title="Byte Stuffing (Character Stuffing) Transformation"
+  subtitle="Escaping internal FLAG and ESC characters with predefined ESC bytes"
+  nodes={[
+    {
+      badge: "Original Data",
+      title: "Raw: A | FLAG | B | ESC | C",
+      icon: "📄",
+      color: "purple",
+      description: "Payload contains literal FLAG and ESC byte patterns.",
+      connectorLabel: "Sender Stuffs ESC",
+    },
+    {
+      badge: "Stuffed Payload",
+      title: "Stuffed: A [ESC FLAG] B [ESC ESC] C",
+      icon: "⚙️",
+      color: "cyan",
+      description: "Transmitter prepends ESC byte before each occurrence of FLAG or ESC.",
+      connectorLabel: "Wrap in Framing Flags",
+    },
+    {
+      badge: "On-the-Wire Frame",
+      title: "[FLAG] Payload [FLAG]",
+      icon: "📦",
+      color: "emerald",
+      description: "Receiver strips ESC bytes and interprets following bytes as literal data.",
+    },
+  ]}
+/>
+
+* **Limitation**: Tied strictly to 8-bit character boundaries. It cannot handle bitstreams with non-byte alignment and creates substantial overhead when dealing with modern 16-bit/32-bit Unicode or raw binary data.
+
+---
+
+### 3. Bit-Oriented Framing (Bit Stuffing & Flag `01111110`)
+
+Bit-oriented framing (employed by **HDLC**, **SDLC**, and **PPP**) treats the frame payload as a raw sequence of bits regardless of character boundaries.
+
+#### The Universal Flag Pattern
+Every frame starts and ends with a standardized 8-bit delimiter flag:
+$$\text{FLAG} = \mathbf{01111110} \quad (\text{a } 0\text{, six consecutive } 1\text{s, and a } 0)$$
+
+<FlowPipeline
+  title="Universal Bit-Oriented Frame Format (HDLC / PPP)"
+  subtitle="Standard frame enclosure using 8-bit delimiter flags"
+  nodes={[
+    {
+      badge: "Start Delimiter",
+      title: "Flag: 01111110",
+      icon: "🏁",
+      color: "purple",
+      description: "8-bit synchronization pattern signaling start of frame.",
+      connectorLabel: "Link Headers",
+    },
+    {
+      badge: "Control Fields",
+      title: "Header (MAC & Control)",
+      icon: "🏷️",
+      color: "blue",
+      description: "Source/Destination hardware addresses and protocol control bits.",
+      connectorLabel: "Data Payload",
+    },
+    {
+      badge: "User Data",
+      title: "Network Layer Packet",
+      icon: "📄",
+      color: "cyan",
+      description: "Variable-length payload protected by bit stuffing.",
+      connectorLabel: "Error Check",
+    },
+    {
+      badge: "End Delimiter",
+      title: "Trailer (CRC) & Flag",
+      icon: "🛡️",
+      color: "emerald",
+      description: "Cyclic Redundancy Check bits followed by closing 01111110 flag.",
+    },
+  ]}
+/>
+
+#### The Bit Stuffing Rule (Transmitter Algorithm)
+To ensure the delimiter `01111110` never accidentally appears within the body of the frame:
+> **Whenever the transmitter encounters five consecutive 1s (`11111`) following a `0` in the payload bitstream, it unconditionally injects an extra `0` bit immediately after the fifth `1`, regardless of what the next bit actually is.**
+
+* **Payload Input**: `... 0 1 1 1 1 1 1 0 ...` (contains six consecutive 1s).
+* **Pattern Match**: After five 1s (`0 1 1 1 1 1`), the sender injects a stuffed `0`.
+* **Stuffed Output**: `... 0 1 1 1 1 1 [0] 1 0 ...` (the injected `0` prevents `01111110` from forming!).
+
+#### The De-stuffing Rule (Receiver State Machine)
+The receiver monitors the incoming bitstream bit by bit:
+1. When it detects a `0` followed by **five consecutive 1s (`011111`)**, it immediately inspects the **6th bit following the `0`**:
+   * **Case A (6th bit is `0`)**: It is a stuffed bit! The receiver **strips (drops) this `0`** and delivers the remaining bits to the upper layer.
+   * **Case B (6th bit is `1`)**: The receiver checks the **7th bit**:
+     * **If 7th bit is `0`**: The sequence is `01111110` $\to$ **Valid Frame Delimiter (End of Frame)**!
+     * **If 7th bit is `1`**: The sequence is `01111111...` (7 or more consecutive 1s) $\to$ **Abort Signal / Channel Error**! Discard frame.
+
+---
+
+## 🔄 Interactive Flagship Pipeline: Bit Stuffing & Un-stuffing
+
+The interactive pipeline below demonstrates how the Data Link Layer detects five consecutive 1s, injects the protective zero, transmits the framed packet across the physical medium, and reconstructs the pristine payload at the receiver.
+
+<FlowDiagram
+  title="Bit-Oriented Framing: Zero-Bit Stuffing & De-stuffing Pipeline"
+  subtitle="Interactive state sequence showing flag delimiting, bit stuffing upon five consecutive 1s, and receiver un-stuffing"
+  nodes={[
+    {
+      id: "node_src",
+      col: 0,
+      row: 0,
+      title: "Raw Payload Generator",
+      sublabel: "Network Layer L3 Packet",
+      badge: "Input Bitstream",
+      icon: "📄",
+      color: "purple",
+      details: "Application payload contains arbitrary binary patterns, including sequences with five or more consecutive 1s.",
+    },
+    {
+      id: "node_detector",
+      col: 1,
+      row: 0,
+      title: "5-Ones Pattern Detector",
+      sublabel: "Bit-level Sliding Window",
+      badge: "Pattern Scanner",
+      icon: "🔍",
+      color: "blue",
+      details: "Hardware shift register continuously counts consecutive 1-bits. Upon reaching five consecutive 1s, triggers the stuffer.",
+    },
+    {
+      id: "node_stuffer",
+      col: 2,
+      row: 0,
+      title: "Zero-Bit Stuffer",
+      sublabel: "Transmitter Hardware",
+      badge: "Stuffing Engine",
+      icon: "⚙️",
+      color: "cyan",
+      details: "Unconditionally injects a single 0-bit after 5 consecutive 1s, ensuring the pattern 01111110 never occurs in payload.",
+    },
+    {
+      id: "node_channel",
+      col: 2,
+      row: 1,
+      title: "Physical Transmission Link",
+      sublabel: "L1 Line Encoding",
+      badge: "Framed Bitstream",
+      icon: "⚡",
+      color: "amber",
+      details: "Delimited frame is transmitted across the channel enclosed by 01111110 flags at the leading and trailing edges.",
+    },
+    {
+      id: "node_destuffer",
+      col: 1,
+      row: 1,
+      title: "Receiver De-Stuffer",
+      sublabel: "Frame Synchronizer",
+      badge: "Un-stuffing Logic",
+      icon: "✂️",
+      color: "emerald",
+      details: "Inspects incoming bitstream: after five consecutive 1s, strips the succeeding 0-bit to recover original user data.",
+    },
+    {
+      id: "node_sink",
+      col: 0,
+      row: 1,
+      title: "Reconstructed Data Sink",
+      sublabel: "Network Layer L3 Sink",
+      badge: "Error-Free Delivery",
+      icon: "🎯",
+      color: "emerald",
+      details: "Pristine payload bitstream is delivered to the receiving network layer with zero delimiter leakage.",
+    },
+  ]}
+  edges={[
+    {
+      from: "node_src",
+      to: "node_detector",
+      fromPort: "right",
+      toPort: "left",
+      step: "1",
+      label: "Step 1: Ingest Bitstream",
+      detail: "Raw bitstream containing arbitrary data (e.g., 011111101) enters the Data Link Layer encoder.",
+    },
+    {
+      from: "node_detector",
+      to: "node_stuffer",
+      fromPort: "right",
+      toPort: "left",
+      step: "2",
+      label: "Step 2: Detect 5 Consecutive 1s",
+      detail: "Hardware detects '011111'. Counter fires an interrupt to pause bit transmission and force a 0-bit insertion.",
+    },
+    {
+      from: "node_stuffer",
+      to: "node_channel",
+      fromPort: "bottom",
+      toPort: "top",
+      step: "3",
+      label: "Step 3: Inject 0-bit & Append Flags",
+      detail: "Stuffed 0 is appended after 5th one. Leading and trailing 01111110 flags wrap the payload into a complete frame.",
+    },
+    {
+      from: "node_channel",
+      to: "node_destuffer",
+      fromPort: "left",
+      toPort: "right",
+      step: "4",
+      label: "Step 4: Detect Flag & Ingest Bits",
+      detail: "Receiver synchronizes on leading 01111110 flag. Bitstream is clocked into the receiver sliding register.",
+    },
+    {
+      from: "node_destuffer",
+      to: "node_sink",
+      fromPort: "left",
+      toPort: "right",
+      step: "5",
+      label: "Step 5: Strip Stuffed 0-bit",
+      detail: "Upon seeing 5 consecutive 1s followed by a 0, the receiver removes the 0-bit, recreating the original message.",
+    },
+  ]}
+/>
+
+---
+
+## ⚡ 4. Physical Layer Coding Violations
+
+Certain physical layer transmission standards utilize **line coding violations** as natural frame delimiters, completely eliminating the need for bit or byte stuffing:
+
+* In **Manchester Encoding**, every valid data bit must have a mid-bit transition:
+  * A logic `0` has a Low-to-High transition.
+  * A logic `1` has a High-to-Low transition.
+* Consequently, signal states with **no transition** (High-High or Low-Low throughout the entire bit duration) are physically invalid data symbols.
+* Protocols such as **IEEE 802.5 Token Ring** deliberately employ these **illegal transitions** (called $J$ and $K$ non-data symbols) as starting and ending frame delimiters:
+  * Because valid payload bits can *never* produce an illegal transition, hardware immediately detects frame boundaries without inspecting or modifying payload bits.
+  * **Zero stuffing overhead** is introduced.
+
+---
+
+## 🏭 Real-World Production Context
+
+### How HDLC and PPP Delimit Frames in Cellular Modems & Cable Links
+In modern cellular LTE/5G baseband chipsets and DOCSIS cable modems, Point-to-Point Protocol (**PPP**) over High-Level Data Link Control (**HDLC**) is implemented directly in hardware:
+* Dedicated ASIC shift registers process serial bitstreams at line rate.
+* As bits flow out of the transmit buffer, an onboard combinatorial counter tracks running consecutive 1s.
+* When the counter hits 5, the hardware serializer pauses the buffer clock for exactly 1 bit period, forces a `0` onto the transmitter pin, and resumes the clock.
+* At the receiver, an inverse de-stuffing shift register executes the exact reverse operation with zero CPU intervention, providing microsecond-level framing latency.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Reconstructing Payload Bitstream from Zero-Stuffed Sequence
+
+**Problem Statement:**  
+A bit-stuffing framing protocol uses the standard 8-bit delimiter flag `01111110`. If the received bitstream after stuffing is `01111100101`, determine the original input sequence transmitted by the sender.
+
+#### Step-by-Step Solution:
+1. **Analyze the Protocol Rule**:
+   * The protocol flags boundaries with `01111110`.
+   * Transmitter rule: after five consecutive 1s (`11111`), a `0` is unconditionally stuffed.
+   * Receiver rule: scan the bitstream. Whenever five consecutive `1`s are encountered, the immediately following `0` is the stuffed bit and must be stripped.
+2. **Scan the Output Bitstream**:
+   $$\text{Received Sequence: } \mathbf{0} \quad \mathbf{1} \quad \mathbf{1} \quad \mathbf{1} \quad \mathbf{1} \quad \mathbf{1} \quad \underline{\mathbf{0}} \quad \mathbf{0} \quad \mathbf{1} \quad \mathbf{0} \quad \mathbf{1}$$
+3. **Identify the Stuffed Bit**:
+   * Bit 0: `0`
+   * Bits 1 to 5: five consecutive 1s (`1 1 1 1 1`).
+   * Bit 6: `0`. This `0` was injected by the sender's stuffer!
+4. **Remove the Stuffed Bit**:
+   $$\text{Original Sequence: } 0 \, 1 \, 1 \, 1 \, 1 \, 1 \, \cancel{0} \, 0 \, 1 \, 0 \, 1 \implies \mathbf{0111110101}$$
+5. **Final Result**:
+   The reconstructed original payload bitstream is **`0111110101`**.
+
+---
+
+### Example 2: Transmitter Zero-Bit Stuffing with Custom Delimiter
+
+**Problem Statement:**  
+In a specialized data link protocol, the frame delimiter flag is defined as `0111`. Assuming bit stuffing is employed, determine the exact bit sequence sent by the transmitter for the payload `01110110`.
+
+#### Step-by-Step Solution:
+1. **Determine the Stuffing Rule for Delimiter `0111`**:
+   * The delimiter consists of a `0` followed by **three consecutive 1s** (`0111`).
+   * To prevent the delimiter pattern from accidentally appearing in payload data, the transmitter must insert a `0` whenever it encounters a `0` followed by **two consecutive 1s** (`011`), so that a third `1` cannot complete the flag pattern!
+2. **Trace the Data Sequence**:
+   $$\text{Payload: } 0 \, 1 \, 1 \, 1 \, 0 \, 1 \, 1 \, 0$$
+   * Read `0`: bit 0.
+   * Read `1 1`: two consecutive 1s encountered after `0` (`011`).
+   * **Stuff a `0` immediately**: sequence becomes `0 1 1 [0] ...`
+   * Next bit of original payload is `1`: sequence becomes `0 1 1 [0] 1 ...`
+   * Next bit of original payload is `0`: sequence becomes `0 1 1 [0] 1 0 ...`
+   * Next bits are `1 1`: two consecutive 1s after `0` (`011`).
+   * **Stuff a `0` immediately**: sequence becomes `0 1 1 [0] 1 0 1 1 [0] ...`
+   * Final bit of original payload is `0`: sequence becomes `0 1 1 [0] 1 0 1 1 [0] 0`.
+3. **Final Result**:
+   The transmitted sequence is **`0110101100`**.
+
+---
+
+### Example 3: Worst-Case Bit Stuffing Expansion Overhead
+
+**Problem Statement:**  
+A network layer packet of size $N$ bits consists entirely of `1`s. If bit stuffing with flag `01111110` is used, calculate the maximum number of extra bits added and the theoretical maximum expansion overhead.
+
+#### Step-by-Step Solution:
+1. **Analyze the Input Pattern**:
+   * The input bitstream is $1111111\dots$ ($N$ continuous ones).
+   * The sender injects one `0` after every five consecutive `1`s.
+2. **Calculate Extra Stuffed Bits**:
+   $$\text{Stuffed Bits} = \left\lfloor \frac{N}{5} \right\rfloor$$
+3. **Calculate Total Transmitted Length**:
+   $$L_{\text{transmitted}} = N + \left\lfloor \frac{N}{5} \right\rfloor$$
+4. **Determine Expansion Overhead**:
+   $$\text{Maximum Theoretical Overhead} \approx \frac{N/5}{N} = \frac{1}{5} = \mathbf{20\%}$$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+
+**Question 1:** *"Why is bit stuffing considered superior to byte stuffing in modern high-speed data link protocols?"*  
+**Key Focus Points:**
+* **Arbitrary Bit-Alignment**: Bit stuffing operates at the bit level and does not assume characters are 8 bits wide, easily supporting arbitrary data word lengths.
+* **Lower Overhead**: Bit stuffing inserts a single bit (`0`) after five 1s, whereas byte stuffing must insert an entire 8-bit escape byte (`ESC`), resulting in an $8\times$ higher overhead per stuffed instance.
+* **Encoding Agnostic**: Byte stuffing conflicts with variable-width character encodings like UTF-8 and UTF-16, whereas bit stuffing is completely agnostic to payload encoding.
+
+**Question 2:** *"What occurs if the receiver observes seven or more consecutive 1-bits (`01111111...`) in a bit-oriented framing protocol?"*  
+**Key Focus Points:**
+* In standard HDLC/PPP, six consecutive 1s (`01111110`) represent a valid delimiter flag.
+* Seven to fourteen consecutive 1s represent an **Abort Signal**, indicating that the transmitter intentionally terminated transmission or experienced a hardware failure.
+* Fifteen or more consecutive 1s indicate an **Idle Channel** state.
+
+**Question 3:** *"Does the physical layer coding violation technique introduce any bandwidth overhead?"*  
+**Key Focus Points:**
+* **Zero Bandwidth Overhead**: Unlike bit stuffing (which expands payload bits) and byte stuffing (which inserts extra bytes), coding violations use unused physical signal states (e.g., Manchester invalid transitions) that exist naturally in the signaling scheme, preserving $100\%$ of channel bandwidth for real data.
+:::
+
+:::warning Common Interview Traps
+
+**Trap 1: "Does the sender only stuff a 0 if the 6th bit is actually a 1?"**  
+**Answer: Absolutely NOT.** The sender stuffs a `0` unconditionally after five consecutive `1`s, regardless of whether the next bit is a `0` or a `1`. If the sender only stuffed when the 6th bit was `1`, the receiver would have no way to distinguish whether an incoming `0` was original payload data or an injected stuffed bit! Unconditional stuffing ensures unambiguous decoding.
+
+**Trap 2: "Is framing performed at the Network Layer?"**  
+**Answer: No.** The Network Layer handles logical addressing and routing of packets from source to destination across multiple networks. The **Data Link Layer** is solely responsible for packaging those packets into frames for transmission across a single physical hop.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "1.4 Physical Layer & Transmission Media",
+    url: "/coredose/cn/module-01/physical-layer-and-transmission-media",
+  }}
+  next={{
+    title: "2.2 Error Detection: Parity, Checksum & Cyclic Redundancy Check (CRC)",
+    url: "/coredose/cn/module-02/error-detection-parity-checksum-and-crc",
+  }}
+  courseUrl="/coredose/cn"
+/>

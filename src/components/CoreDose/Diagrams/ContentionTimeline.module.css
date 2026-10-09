@@ -1,0 +1,323 @@
+/**
+ * ContentionTimeline Module CSS
+ * Delta styling for Medium Access Contention & Slotted Channel Timelines.
+ */
+
+.timelineCanvas {
+  position: relative;
+  width: 100%;
+  min-width: 680px;
+  padding: 1rem 1.25rem 0.6rem;
+  box-sizing: border-box;
+}
+
+.vulnerableBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px dashed rgba(244, 63, 94, 0.4);
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  margin-bottom: 1.1rem;
+}
+
+[data-theme='light'] .vulnerableBanner {
+  background: rgba(244, 63, 94, 0.06);
+  border-color: rgba(244, 63, 94, 0.35);
+}
+
+.vulnerableBadge {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #f43f5e;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.vulnerableText {
+  font-size: 0.78rem;
+  color: var(--ifm-color-emphasis-700, #cbd5e1);
+  line-height: 1.35;
+}
+
+[data-theme='light'] .vulnerableText {
+  color: #475569;
+}
+
+.tracksContainer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.slotsBackgroundLayer {
+  position: absolute;
+  top: 0;
+  left: 140px;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.slotColumn {
+  flex: 1;
+  border-right: 1px dashed rgba(148, 163, 184, 0.22);
+  display: flex;
+  flex-direction: column;
+}
+
+.slotColumn:last-child {
+  border-right: none;
+}
+
+.slotColHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.3rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.slotColLabel {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #38bdf8;
+}
+
+.slotColDuration {
+  font-size: 0.65rem;
+  color: #94a3b8;
+}
+
+.stationRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  z-index: 2;
+}
+
+.stationLabelCol {
+  width: 140px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding-right: 0.75rem;
+  box-sizing: border-box;
+}
+
+.stationDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #38bdf8;
+}
+
+.stationDot[data-color='purple'] { background: #a855f7; }
+.stationDot[data-color='emerald'] { background: #10b981; }
+.stationDot[data-color='amber'] { background: #f59e0b; }
+.stationDot[data-color='rose'] { background: #f43f5e; }
+
+.stationName {
+  font-size: 0.82rem;
+  font-weight: 750;
+  color: var(--ifm-heading-color, #f8fafc);
+  white-space: nowrap;
+}
+
+[data-theme='light'] .stationName {
+  color: #0f172a;
+}
+
+.stationTrack {
+  position: relative;
+  flex: 1;
+  height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.trackGuideLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(148, 163, 184, 0.2);
+  z-index: 1;
+}
+
+.frameBlock {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 6px;
+  padding: 4px 8px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 3;
+}
+
+.frameSuccess {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1.5px solid #10b981;
+  color: #a7f3d0;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+}
+
+[data-theme='light'] .frameSuccess {
+  background: #ecfdf5;
+  border-color: #059669;
+  color: #065f46;
+}
+
+.frameCollision {
+  background: rgba(244, 63, 94, 0.24);
+  border: 1.5px solid #f43f5e;
+  color: #fecdd3;
+  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.3);
+}
+
+[data-theme='light'] .frameCollision {
+  background: #fff1f2;
+  border-color: #e11d48;
+  color: #9f1239;
+}
+
+.frameActive {
+  transform: translateY(-2px) scale(1.02);
+  z-index: 10;
+}
+
+.frameSuccess.frameActive {
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.7) !important;
+  border-color: #34d399 !important;
+}
+
+.frameCollision.frameActive {
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.7) !important;
+  border-color: #fb7185 !important;
+}
+
+.frameHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
+  line-height: 1;
+}
+
+.frameTag {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.frameStatusBadge {
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.frameSub {
+  font-size: 0.6rem;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+.timeAxisRow {
+  display: flex;
+  align-items: center;
+  margin-top: 0.5rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.axisOriginPad {
+  width: 140px;
+  flex-shrink: 0;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.axisTicksTrack {
+  position: relative;
+  flex: 1;
+  height: 24px;
+}
+
+.timeTick {
+  position: absolute;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tickLine {
+  width: 1.5px;
+  height: 6px;
+  background: rgba(148, 163, 184, 0.5);
+  margin-bottom: 2px;
+}
+
+.tickLabel {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.stationBadge {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+}
+
+[data-theme='light'] .stationBadge {
+  color: #334155;
+  background: #e2e8f0;
+}
+
+.collisionStatusPill {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(244, 63, 94, 0.25);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.45);
+}
+
+.successStatusPill {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.25);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+}

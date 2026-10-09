@@ -7,6 +7,24 @@
 
 html {
   scrollbar-gutter: stable;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Branded text selection across entire platform */
+::selection {
+  background: rgba(37, 99, 235, 0.22);
+  color: inherit;
+}
+
+[data-theme='dark'] ::selection {
+  background: rgba(96, 165, 250, 0.32);
+  color: #ffffff;
 }
 
 /* Prevent horizontal overflow scrolling and ensure crisp typography across entire site */
@@ -121,6 +139,27 @@ body {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   display: inline-block !important;
+}
+
+.navbar__logo {
+  width: 34px !important;
+  height: 34px !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+  overflow: hidden !important;
+  margin-right: 0.65rem !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease !important;
+}
+
+[data-theme='light'] .navbar__logo {
+  border: 1.5px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.navbar__brand:hover .navbar__logo {
+  transform: scale(1.06) !important;
 }
 
 /* ===================================================

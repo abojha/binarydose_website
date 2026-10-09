@@ -1,0 +1,457 @@
+---
+title: "6.3 Transmission Control Protocol (TCP): Segment Header Structure"
+description: "Exhaustive breakdown of TCP segment format (RFC 793): 20 to 60-byte header layout, sequence and cumulative acknowledgment mechanics, 6 control flags, window size scaling, urgent pointer, wrap-around mathematical proofs, and lifetime constraints."
+hide_table_of_contents: true
+---
+
+# 6.3 Transmission Control Protocol (TCP): Segment Header Structure
+
+<CoreDoseLessonHeader
+  module="Module 06: Transport Layer: UDP, TCP & Connection Flow"
+  topic="Topic 6.3"
+  courseUrl="/coredose/cn"
+  readTime="25 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Numbered Conveyor Belt
+
+### 🍳 The Everyday Analogy: The Parcel Dispatch Ledger
+Imagine an industrial logistics conveyor belt transporting thousands of numbered metal components between two factories:
+* **The Continuous Stream:** The sender does not care whether components are packed 10 per box or 100 per box. Every single individual component is stamped with an indelible serial number ($1, 2, 3, 4\dots$).
+* **The Dispatch Ledger (Sequence Number):** When a crate containing components $501$ through $600$ is dispatched, the packing manifest on the crate lid reads:
+  $$\text{"Starting Serial Number: 501. Crate Contains: 100 components."}$$
+* **The Cumulative Receipt (Acknowledgment Number):** The receiver checks each component. If components $1$ through $600$ arrive safely, the receiver sends back a postcard stating:
+  $$\text{"ACK 601: I have received everything up to 600; send component 601 next."}$$
+* **Missing Items:** If the crate carrying items $501-600$ falls off the truck, but the next crate carrying items $601-700$ arrives safely, the receiver **cannot** acknowledge $701$. The receiver repeats:
+  $$\text{"ACK 501: I am still missing item 501!"}$$
+
+### 💻 Bridging to Computer Science: Reliable Byte-Stream Virtual Circuit
+This is the exact operational model of the **Transmission Control Protocol (TCP, RFC 793)**. It turns the unreliable, best-effort packet world of IP into an unbroken, reliable, full-duplex **byte stream** where every octet is tracked, buffered, and acknowledged.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🌊 The Byte-Stream Abstraction vs Message Streams
+
+A foundational architectural principle of the transport layer is TCP's data abstraction:
+
+:::important The Byte-Stream Invariant (RFC 793)
+**TCP connections are Byte Streams, NOT Message Streams.**  
+If an application process writes three separate messages ($100\text{ bytes}$, $200\text{ bytes}$, $300\text{ bytes}$) into a TCP socket, TCP makes **no guarantee** that the receiver will read them as three separate messages. The operating system kernel may coalesce them into a single $600\text{ byte}$ segment, or fragment them into four $150\text{ byte}$ segments. The receiving process simply reads an unbroken stream of $600$ sequential bytes.
+:::
+
+* **Full-Duplex Delivery:** Data flows independently in both directions simultaneously. Each direction maintains its own independent sequence number space, acknowledgment tracking, and flow control windows.
+
+---
+
+## 📦 The 20 to 60-Byte TCP Header Architecture
+
+The TCP header has a dynamic size ranging from a minimum of **$20\text{ bytes}$** (when no options are present) up to a maximum of **$60\text{ bytes}$** (with $40\text{ bytes}$ of optional fields).
+
+<PacketHeaderGrid
+  title="RFC 793 Transmission Control Protocol (TCP) Header Architecture"
+  subtitle="Interactive 32-bit word grid with proportional fields, control flags, and hardware inspector"
+  standardBadge="Layer 4 Transport Protocol (RFC 793)"
+  totalSizeBytes="20 to 60 Bytes Header + Variable Payload"
+  bitsPerRow={32}
+  showBitRuler={true}
+  rows={[
+    [
+      {
+        id: "tcp-src-port",
+        name: "Source Port Number",
+        bits: 16,
+        bitRange: "0 - 15",
+        color: "blue",
+        role: "Originating Port Identifier",
+        desc: "16-bit port number of the transmitting process on the source host.",
+        details: [
+          { label: "Bit Width", value: "16 Bits (2 Bytes)" },
+          { label: "Range", value: "0 to 65,535" },
+          { label: "Function", value: "Identifies local application socket." }
+        ]
+      },
+      {
+        id: "tcp-dst-port",
+        name: "Destination Port Number",
+        bits: 16,
+        bitRange: "16 - 31",
+        color: "purple",
+        role: "Target Port Demultiplexing Key",
+        desc: "16-bit port number of the receiving process on the destination host.",
+        details: [
+          { label: "Bit Width", value: "16 Bits (2 Bytes)" },
+          { label: "Range", value: "0 to 65,535 (e.g., 80 HTTP, 443 HTTPS, 22 SSH)" },
+          { label: "Demux", value: "Combines with Source IP/Port to route segment to socket." }
+        ]
+      }
+    ],
+    [
+      {
+        id: "tcp-seq-num",
+        name: "Sequence Number (SEQ)",
+        bits: 32,
+        bitRange: "32 - 63",
+        color: "cyan",
+        role: "Byte Stream Offset Tracker",
+        desc: "32-bit byte number assigned to the first data byte in this segment. During SYN, represents the Initial Sequence Number (ISN).",
+        details: [
+          { label: "Bit Width", value: "32 Bits (4 Bytes)" },
+          { label: "Range", value: "0 to 2^32 - 1 (4,294,967,295)" },
+          { label: "Granularity", value: "Assigned per individual byte, not per segment!" }
+        ]
+      }
+    ],
+    [
+      {
+        id: "tcp-ack-num",
+        name: "Acknowledgment Number (ACK)",
+        bits: 32,
+        bitRange: "64 - 95",
+        color: "emerald",
+        role: "Cumulative Next Expected Byte",
+        desc: "32-bit number identifying the NEXT byte the receiver expects to receive. Valid whenever ACK flag is set to 1.",
+        details: [
+          { label: "Bit Width", value: "32 Bits (4 Bytes)" },
+          { label: "Semantics", value: "Cumulative ACK: Confirms all bytes up to (ACK - 1) arrived safely." },
+          { label: "Piggybacked", value: "Carried in outbound data segments to minimize control overhead." }
+        ]
+      }
+    ],
+    [
+      {
+        id: "tcp-hlen",
+        name: "Data Offset / HLEN",
+        bits: 4,
+        bitRange: "96 - 99",
+        color: "amber",
+        role: "Header Length in 32-bit Words",
+        desc: "Number of 4-byte (32-bit) words in the TCP header. Specifies where header ends and data begins.",
+        details: [
+          { label: "Scale Factor", value: "Multiplied by 4 bytes" },
+          { label: "Minimum Value", value: "5 (5 * 4 = 20 Bytes, no options)" },
+          { label: "Maximum Value", value: "15 (15 * 4 = 60 Bytes, 40B options)" }
+        ]
+      },
+      {
+        id: "tcp-reserved",
+        name: "Reserved",
+        bits: 4,
+        bitRange: "100 - 103",
+        color: "gray",
+        role: "Future Expansion",
+        desc: "Must be zero in RFC 793. Modern standards use bits for ECN (CWR, ECE).",
+        details: [
+          { label: "Bit Width", value: "4 to 6 Bits (depending on ECN implementation)" }
+        ]
+      },
+      {
+        id: "tcp-flags",
+        name: "Control Flags (URG, ACK, PSH, RST, SYN, FIN)",
+        bits: 8,
+        bitRange: "104 - 111",
+        color: "rose",
+        role: "Protocol State & Control Signals",
+        desc: "6 core 1-bit control flags governing connection establishment, termination, push delivery, and reset.",
+        details: [
+          { label: "SYN", value: "Synchronize ISN (Connection open)" },
+          { label: "ACK", value: "Acknowledgment field is valid" },
+          { label: "FIN", value: "Finish (Graceful close)" },
+          { label: "RST", value: "Reset (Abrupt abort)" },
+          { label: "PSH", value: "Push data to application immediately" },
+          { label: "URG", value: "Urgent pointer field is valid" }
+        ]
+      },
+      {
+        id: "tcp-window",
+        name: "Advertised Window Size",
+        bits: 16,
+        bitRange: "112 - 127",
+        color: "indigo",
+        role: "Flow Control Credit (rcv_wnd)",
+        desc: "Number of bytes the receiver is currently willing to accept without being overwhelmed.",
+        details: [
+          { label: "Bit Width", value: "16 Bits" },
+          { label: "Max Base Window", value: "65,535 Bytes" },
+          { label: "Window Scale Option", value: "Scales window up to 1 GB via bit shifting" }
+        ]
+      }
+    ],
+    [
+      {
+        id: "tcp-checksum",
+        name: "TCP Checksum",
+        bits: 16,
+        bitRange: "128 - 143",
+        color: "emerald",
+        role: "Mandatory End-to-End Integrity",
+        desc: "16-bit 1's complement sum over TCP Header, Data, and 12-byte IPv4 Pseudo-Header (Protocol = 6).",
+        details: [
+          { label: "Status", value: "Strictly Mandatory in TCP" },
+          { label: "Pseudo-Header", value: "Includes Source/Dest IP, Protocol 6, TCP Length" }
+        ]
+      },
+      {
+        id: "tcp-urgent-ptr",
+        name: "Urgent Pointer",
+        bits: 16,
+        bitRange: "144 - 159",
+        color: "amber",
+        role: "Out-of-Band Data Offset",
+        desc: "Valid only if URG = 1. Points to the byte offset after the last byte of urgent out-of-band data.",
+        details: [
+          { label: "Bit Width", value: "16 Bits" },
+          { label: "Condition", value: "Ignored if URG flag is 0" }
+        ]
+      }
+    ],
+    [
+      {
+        id: "tcp-options",
+        name: "Options & Padding (0 to 40 Bytes)",
+        bits: 32,
+        bitRange: "160 - 191+",
+        color: "purple",
+        role: "Protocol Extensions & Negotiations",
+        desc: "Optional variable-length parameters negotiated during handshake: MSS, Window Scale, Timestamps, SACK.",
+        details: [
+          { label: "Max Options Size", value: "40 Bytes (60 max header - 20 base header)" },
+          { label: "Alignment", value: "Padded with 0x00 to guarantee 32-bit word alignment" }
+        ]
+      }
+    ]
+  ]}
+  payload={{
+    name: "TCP Segment Data (Byte Stream Payload)",
+    color: "blue",
+    role: "User application data payload",
+    desc: "Application layer payload sliced into Maximum Segment Size (MSS) units.",
+    details: [
+      { label: "Typical MSS", value: "1460 Bytes (1500 Ethernet MTU - 20 IP - 20 TCP)" },
+      { label: "Empty Data Allowed?", value: "Yes! Pure ACKs and SYN/FIN probes carry 0 data bytes." }
+    ]
+  }}
+/>
+
+---
+
+## 🔍 Deep-Dive: Comprehensive Breakdown of Header Fields
+
+### 1. Sequence Number ($32\text{ bits}$)
+* Identifies the sequence number of the **first byte of data** contained in the segment.
+* **Initial Sequence Number (ISN):** When a connection initializes, endpoints do not start from sequence number $0$. Instead, each host generates a pseudo-random ISN:
+  $$\text{Client ISN} = X, \quad \text{Server ISN} = Y$$
+  *Why randomize ISN?* If sequence numbers always started at $0$, a delayed old segment from a terminated previous connection could wander the internet and accidentally get accepted into a new connection between the same pair of sockets!
+* **Sequence Number Consumption Rule:**
+  * Application data bytes consume sequence numbers ($1\text{ seq num per byte}$).
+  * **Control flags with state changes (`SYN` and `FIN`) consume exactly $1$ sequence number** each, even though they carry $0$ bytes of application data!
+  * Pure acknowledgments (`ACK` with no data and no SYN/FIN) consume **$0$ sequence numbers**.
+
+---
+
+### 2. Acknowledgment Number ($32\text{ bits}$)
+* Specifies the **next sequential byte** that the receiver expects to receive.
+* **Cumulative Semantics:** If a host sends an acknowledgment with $\text{ACK} = 5001$, it confirms to the sender:
+  $$\textbf{"All bytes from the beginning up through 5000 have been safely received. Send byte 5001 next."}$$
+* **Piggybacking:** To maximize channel efficiency, acknowledgment numbers are piggybacked onto outbound data segments flowing in the opposite direction.
+
+---
+
+### 3. Header Length / Data Offset ($4\text{ bits}$)
+* Measures the length of the TCP header in units of **$4\text{ byte}$ ($32\text{ bit}$) words**.
+* **Scaling Factor $= 4$:**
+  $$\text{Total TCP Header Length (bytes)} = \text{HLEN} \times 4$$
+* **Boundary Conditions:**
+  * **Minimum Value:** $\text{HLEN} = 5$ ($5 \times 4 = 20\text{ bytes}$), representing a base TCP header with zero options.
+  * **Maximum Value:** $\text{HLEN} = 15$ ($15 \times 4 = 60\text{ bytes}$), representing a base header with the maximum allowed $40\text{ bytes}$ of options.
+
+---
+
+### 4. The Six Core Control Flags ($1\text{ bit}$ each)
+
+| Flag | Name | Semantic Role & Trigger Condition |
+| :--- | :--- | :--- |
+| **`URG`** | Urgent Pointer | When set to $1$, indicates the 16-bit Urgent Pointer field is valid and points to prioritized out-of-band data (e.g., sending `Ctrl+C` interrupt through Telnet/SSH). |
+| **`ACK`** | Acknowledgment | When set to $1$, indicates the 32-bit Acknowledgment Number field is valid. In TCP, **every single segment after the initial SYN segment** must have $\text{ACK} = 1$. |
+| **`PSH`** | Push Function | Instructs the sender transport layer to flush its buffer immediately to the network, and instructs the receiving host to push data immediately up to the application without waiting for buffers to fill (used in interactive terminal typing and chat). |
+| **`RST`** | Reset Connection | Forcibly and abruptly aborts an abnormal connection. Sent when a packet arrives for a closed port, or when a host crashes and reboots. |
+| **`SYN`** | Synchronize ISN | Used exclusively during connection establishment (the 3-way handshake) to synchronize initial sequence numbers. Consumes $1$ sequence number. |
+| **`FIN`** | Finish Connection | Informs the remote peer that the sender has finished transmitting application data and wishes to gracefully terminate its half of the full-duplex channel. Consumes $1$ sequence number. |
+
+---
+
+### 5. Advertised Window Size ($16\text{ bits}$)
+* Implements **Receiver Flow Control** (preventing a fast sender from overwhelming a slow receiver's memory buffer).
+* The receiver announces its available receive buffer space in bytes (`rcv_wnd`).
+* **Maximum Base Window Size:**
+  $$\text{Max Base Window} = 2^{16} - 1 = 65,535\text{ bytes} \approx 64\text{ KB}$$
+* **The High-Speed Network Bottleneck:** On modern gigabit and 10-gigabit links with high propagation delays, a $64\text{ KB}$ window artificially throttles throughput. To solve this, RFC 7323 introduces the **TCP Window Scale Option**:
+  * During the 3-way handshake, endpoints negotiate a window scaling shift count $S$ (up to $14\text{ bits}$).
+  * The actual receive window becomes:
+    $$\text{Effective Window} = \text{Advertised Window} \times 2^S$$
+  * Maximum scaled window $= 65,535 \times 2^{14} \approx 1,073,725,440\text{ bytes} \approx \textbf{1 Gigabyte}$!
+
+---
+
+### 6. Urgent Pointer ($16\text{ bits}$)
+* Valid **only** when the `URG` control flag is asserted ($1$).
+* Specifies a positive offset that, when added to the segment's sequence number, points to the byte offset immediately following the urgent data:
+  $$\text{End of Urgent Data Offset} = \text{Sequence Number} + \text{Urgent Pointer}$$
+
+---
+
+### 7. TCP Options ($0 \text{ to } 40\text{ bytes}$)
+Negotiated in the SYN segments during connection initialization:
+1. **Maximum Segment Size (MSS, Option 2, 4 bytes):** Tells the remote peer the largest payload chunk the host can receive without IP fragmentation:
+   $$\text{MSS} = \text{MTU} - \text{IP Header (20B)} - \text{TCP Header (20B)} = 1500 - 40 = \textbf{1460 bytes}$$
+2. **Window Scale Option (WSCALE, Option 3, 3 bytes):** Enables scaling up to $1\text{ GB}$.
+3. **Selective Acknowledgment (SACK-Permitted, Option 4):** Allows receiver to acknowledge non-contiguous blocks of received packets so sender only retransmits the missing gaps rather than the entire window.
+4. **Timestamps (Option 8, 10 bytes):** Used for precise Round Trip Time (RTT) measurement and **PAWS (Protect Against Wrapped Sequence Numbers)**.
+
+---
+
+## ⏱️ Sequence Number Wrap-Around Mathematics
+
+Because TCP sequence numbers are $32\text{ bits}$ wide, there are exactly:
+$$\text{Total Sequence Numbers} = 2^{32} = 4,294,967,296 \text{ distinct byte identifiers } (\approx 4.29\text{ GB})$$
+
+When a high-speed host transmits more than $4\text{ GB}$ of data, the sequence number counter overflows and wraps around back to $0$.
+
+### 1. General Wrap-Around Time Formula
+Let the end-to-end transmission bandwidth of the link be $B$:
+$$\textbf{Wrap-Around Time } (T_{\text{wrap}}) = \frac{2^{32} \text{ bytes}}{\text{Bandwidth (bytes/sec)}} = \frac{2^{32} \times 8 \text{ bits}}{\text{Bandwidth (bits/sec)}}$$
+
+### 2. Wrap-Around Time vs Segment Lifetime Constraint
+In the internet, an IP packet has a maximum time it can survive in network buffers before TTL expires, known as the **Maximum Segment Lifetime (MSL)** (typically standardized as $120\text{ seconds}$ or $180\text{ seconds}$ in classical textbooks).
+
+:::caution The Wrap-Around Collision Danger
+If $T_{\text{wrap}} \le \text{MSL}$, sequence numbers wrap around faster than an old delayed packet can die! An old delayed packet carrying sequence number $K$ could re-emerge from a network loop and be mistakenly accepted by the receiver as fresh data for the newly wrapped sequence number $K$.
+:::
+
+To prevent this catastrophic data corruption on modern high-speed links, TCP employs **PAWS (Protect Against Wrapped Sequence Numbers)** using the 32-bit TCP Timestamp option.
+
+---
+
+## 🏭 Real-World Production Context: High-Speed Gigabit Data Centers & Window Scaling
+
+In modern 10GbE, 40GbE, and 100GbE data centers and inter-continental cloud networks, classical TCP defaults trigger severe performance ceilings without modern extensions:
+
+### 1. Protect Against Wrapped Sequence Numbers (PAWS)
+* At $10\text{ Gbps}$, the entire 32-bit sequence number space wraps around in just **$3.44\text{ seconds}$**.
+* If a packet gets caught in a transient routing loop and re-emerges $5\text{ seconds}$ later, sequence numbers have already wrapped around!
+* Production Linux systems enable **TCP Timestamps (RFC 7323)** by default:
+  ```bash
+  sysctl net.ipv4.tcp_timestamps
+  # Output: net.ipv4.tcp_timestamps = 1
+  ```
+  Every packet carries a monotonically increasing hardware clock timestamp. The receiver drops any segment whose timestamp is older than the current valid window, completely eliminating wrap-around corruption!
+
+### 2. High Bandwidth-Delay Product (BDP) & Window Scaling
+* For a $10\text{ Gbps}$ cross-country cloud link with $50\text{ ms}$ RTT:
+  $$\text{BDP} = 10 \times 10^9 \times 0.050 = 500,000,000\text{ bits} \approx 62.5\text{ Megabytes}$$
+* The base 16-bit TCP header window is hard-capped at $64\text{ KB}$ ($0.064\text{ MB}$), which would choke link utilization to less than $0.1\%$!
+* Modern Linux kernels automatically enable window scaling (`net.ipv4.tcp_window_scaling = 1`), shifting the window by up to 14 bits to unlock up to $1\text{ GB}$ of in-flight buffer data.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Minimum Wrap-Around Time on Gigabit Links
+**Problem Statement:**  
+Consider a long-lived TCP session operating over an end-to-end communication channel with a bandwidth of $1\text{ Gbps}$ ($10^9\text{ bits/second}$). The transmission starts at sequence number $1234$. Calculate the minimum elapsed time in seconds before this exact sequence number can be legally reassigned.
+
+**Step-by-Step Solution:**
+1. **Identify Total Sequence Number Space:**  
+   TCP sequence numbers are 32 bits wide, representing $2^{32} = 4,294,967,296$ distinct byte identifiers.
+2. **Calculate Total Bits Transmitted in One Cycle:**  
+   $$\text{Total Bits} = 2^{32} \text{ bytes} \times 8 \text{ bits/byte} = 34,359,738,368\text{ bits}$$
+3. **Calculate Elapsed Time at Line Rate:**  
+   $$T_{\text{wrap}} = \frac{34,359,738,368\text{ bits}}{10^9\text{ bits/sec}} = 34.3597\dots\text{ seconds}$$
+4. **Conclusion:**  
+   Rounding to the nearest whole integer, the minimum time before the sequence number wraps around and repeats is **$34\text{ seconds}$**.
+
+---
+
+### Example 2: Window Scale Option and RTT Thresholds
+**Problem Statement:**  
+Assume a network connection operates with an end-to-end bandwidth of $1,048,560\text{ bits/sec}$.  
+1. Determine the threshold Round Trip Time (RTT) in milliseconds beyond which the standard 16-bit TCP window size is insufficient and the TCP window scale option becomes mandatory.  
+2. Compute the theoretical maximum window size achievable using the 14-bit window scale option.
+
+**Step-by-Step Solution:**
+1. **Calculate Maximum Base Window Capacity:**  
+   The standard 16-bit Advertised Window field holds at most:
+   $$W_{\text{base}} = 2^{16} - 1 = 65,535\text{ bytes} = 65,535 \times 8 = 524,280\text{ bits}$$
+2. **Apply Bandwidth-Delay Product (BDP) Constraint:**  
+   To prevent sender stalling, the window size must satisfy $\text{Window} \ge \text{Bandwidth} \times \text{RTT}$.  
+   The standard window becomes saturated when:
+   $$\text{Bandwidth} \times \text{RTT} > 524,280\text{ bits}$$
+   $$\text{RTT} > \frac{524,280\text{ bits}}{1,048,560\text{ bits/sec}} = 0.5\text{ seconds} = \mathbf{500\text{ ms}}$$
+3. **Compute Maximum Scaled Window:**  
+   The TCP Window Scale option supports a maximum left-shift count of 14 bits ($2^{14} = 16,384$):
+   $$\text{Max Scaled Window} = 65,535 \times 2^{14} = \mathbf{1,073,725,440\text{ bytes}} \quad (\approx 1\text{ Gigabyte})$$
+
+---
+
+### Example 3: Cumulative Acknowledgment under Packet Loss
+**Problem Statement:**  
+A TCP sender transmits two segments back to back with sequence numbers $230$ and $290$. The first segment is lost in transit due to router congestion, but the second segment arrives correctly at the receiver. Determine:
+1. The exact amount of application data (in bytes) carried inside the first segment.
+2. The acknowledgment number generated by the receiver upon receiving the second segment.
+
+**Step-by-Step Solution:**
+1. **Determine Data Size of First Segment:**  
+   Since sequence numbers in TCP advance byte-by-byte, the difference between the starting byte of the second segment ($290$) and the first segment ($230$) gives the payload of the first segment:
+   $$\text{Data Size} = 290 - 230 = \mathbf{60\text{ bytes}}$$
+   The first segment carried bytes $230$ through $289$.
+2. **Determine Receiver Acknowledgment:**  
+   TCP uses strictly cumulative acknowledgments. The receiver cannot acknowledge byte $290$ because an unacknowledged gap exists for bytes $230$ through $289$.  
+   The receiver generates an acknowledgment advertising the earliest missing byte in sequence:
+   $$\text{ACK Number} = \mathbf{230}$$
+
+---
+
+### Example 4: Full-Duplex Byte-Stream Characteristics
+**Problem Statement:**  
+Evaluate the architectural nature of TCP data streams, its duplexity, and whether selective acknowledgments are supported in modern implementations.
+
+**Step-by-Step Solution:**
+1. **Byte Stream vs Message Stream:** TCP is strictly a **byte-stream protocol**. It does not preserve application-layer message boundaries; chunks written by user space may be coalesced or fragmented arbitrarily by the transport layer.
+2. **Duplexity:** TCP provides **full-duplex** communication. Two independent, concurrent data streams with independent sequence numbers and window advertisements flow in opposite directions over a single connection.
+3. **Selective Acknowledgment (SACK):** While basic RFC 793 TCP uses cumulative acknowledgments, RFC 2018 standardizes the **Selective Acknowledgment (SACK)** option, allowing receivers to acknowledge non-contiguous packets and avoiding wasteful window-wide retransmissions.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does the TCP header specify Header Length in 4-byte words instead of bytes?**  
+  With only 4 bits allocated for the HLEN field, the maximum expressible integer is $15$ ($1111_2$). If measured in single bytes, the header could only be $15$ bytes long (less than the minimum 20 bytes!). Multiplying by $4$ allows 4 bits to express header lengths from $20$ to $60$ bytes ($5 \times 4$ to $15 \times 4$).
+* **Does a TCP segment containing only an ACK flag consume a sequence number?**  
+  No! Pure acknowledgment segments carry no application data and consume $0$ sequence numbers. Only segments carrying data, `SYN` flags, or `FIN` flags consume sequence numbers.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Confusing Advertised Window with Congestion Window.**  
+  **Debunked:** The Advertised Window (`rwnd`) is announced by the receiver in the TCP header to enforce **Flow Control**. The Congestion Window (`cwnd`) is maintained privately inside the sender's kernel based on network packet drops/delays to enforce **Congestion Control**. The sender transmits $\min(\text{rwnd}, \text{cwnd})$.
+* **Trap: Believing sequence numbers restart at 0 after a reboot.**  
+  **Debunked:** Operating systems randomize the Initial Sequence Number (ISN) using clock counters and cryptographic hashes to prevent delayed duplicate packets from prior closed connections from polluting newly established connections.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "6.2 User Datagram Protocol (UDP): Header Format & Lightweight Delivery",
+    url: "/coredose/cn/module-06/user-datagram-protocol-udp-header-format-and-lightweight-delivery",
+  }}
+  next={{
+    title: "6.4 TCP Connection Management: 3-Way Handshake & 4-Way Teardown",
+    url: "/coredose/cn/module-06/tcp-connection-management-3-way-handshake-and-4-way-teardown",
+  }}
+  courseUrl="/coredose/cn"
+/>

@@ -1,0 +1,366 @@
+---
+title: "7.3 TCP Congestion Control: AIMD, Slow Start & Thresholds"
+description: "Foundations of TCP congestion control, dual-window governance, Slow Start exponential growth, Congestion Avoidance linear probing, Multiplicative Decrease, and the Chiu-Jain fairness proof."
+hide_table_of_contents: true
+---
+
+# 7.3 TCP Congestion Control: AIMD, Slow Start & Thresholds
+
+<CoreDoseLessonHeader
+  module="Module 07: Transport Layer: Congestion Control & Reliability"
+  topic="Topic 7.3"
+  courseUrl="/coredose/cn"
+  readTime="16 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Blind Explorer in an Uncharted Tunnel
+
+### 🍳 The Everyday Analogy: Navigating in Complete Darkness
+Imagine entering a pitch-black cave tunnel whose ceiling height you do not know:
+1. **Slow Start (Exponential Acceleration)**: At the cave entrance, you do not crawl forward at 1 centimeter an hour. You start by taking 1 confident stride. If you do not hit your head, you take 2 strides. If clear, you sprint 4 strides, then 8 strides. You double your pace every second because you know you are far below the tunnel ceiling.
+2. **Threshold Reached (Congestion Avoidance)**: Once you reach a marked checkpoint where you previously bumped your head (the **Slow Start Threshold**), sprinting blindly is dangerous. You immediately switch modes: you take exactly **one careful additional stride per step** ($+1$).
+3. **Bumping Your Head (Multiplicative Decrease)**: Suddenly, your forehead hits a low-hanging stalactite! You do not gently slow down by 1 stride; you violently duck down, drop your pace by **half** (or drop down to 1 step), establish that the new danger height is half of your current speed, and begin cautiously inching forward again.
+
+### 💻 Bridging to Computer Science
+In TCP:
+* The sender has zero advance knowledge of the intermediate routers' bottleneck bandwidth or buffer capacity.
+* **Slow Start** quickly ramps up transmission from $1\text{ MSS}$ to probe the link's capacity, doubling the Congestion Window ($\text{cwnd}$) every Round-Trip Time ($RTT$).
+* When $\text{cwnd}$ crosses $\text{ssthresh}$ (Slow Start Threshold), TCP switches to **Congestion Avoidance** (Additive Increase), incrementing $\text{cwnd}$ by only $1\text{ MSS}$ per $RTT$.
+* When packet loss occurs, TCP slashes its transmission window (**Multiplicative Decrease**), producing the famous **AIMD Sawtooth Waveform**.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🪟 Dual-Window Governance: The Effective Sender Window
+
+At any instant, a TCP sender is constrained by two entirely independent physical boundaries:
+1. **Flow Control Boundary ($\text{rwnd}$)**: Dictated by the destination receiver to prevent socket buffer overflow.
+2. **Congestion Control Boundary ($\text{cwnd}$)**: Maintained internally by the sender to prevent intermediate router queue exhaustion.
+
+| Constraint Dimension | Flow Control Boundary ($\text{rwnd}$) | Congestion Control Boundary ($\text{cwnd}$) |
+| :--- | :--- | :--- |
+| **Origin & Feedback** | Communicated dynamically by the receiving host in TCP header ACK packets | Estimated and maintained locally by the sending host's OS kernel state machine |
+| **Target Protected** | Protects the destination host's application socket receive buffer | Protects intermediate network routers, switch queues, and physical links |
+| **Constraint Dynamic** | Static physical cap based on allocated user-space buffer memory | Dynamic elastic boundary probing transit capacity via loss signals |
+| **Governing Policy** | Sliding Window Protocol (RFC 793, RFC 1323) | AIMD, Slow Start, Congestion Avoidance (RFC 5681) |
+
+The maximum volume of unacknowledged data the sender is permitted to inject into the transit path is strictly governed by the **Effective Sender Window**:
+
+$$\mathbf{\text{Send Window} = \min\big(\text{rwnd}, \; \text{cwnd}\big)}$$
+
+* If $\text{rwnd} < \text{cwnd}$: The bottleneck is the **Receiver's CPU/RAM**.
+* If $\text{cwnd} < \text{rwnd}$: The bottleneck is the **Intermediate Network Fabric**.
+
+---
+
+## 🚀 Phase 1: Slow Start (Exponential Acceleration)
+
+When a TCP connection begins, the sender does not know whether the path can support $10\text{ Kbps}$ or $10\text{ Gbps}$. Injecting a giant burst of packets immediately could cause instant buffer overflow.
+
+<ConceptComparison
+  title="Slow Start vs Congestion Avoidance: Two Modes of cwnd Growth"
+  subtitle="Contrasting rapid exponential bandwidth discovery against cautious linear capacity probing"
+  concepts={[
+    {
+      badge: "Discovery Phase",
+      title: "Slow Start Phase (Exponential)",
+      icon: "🚀",
+      color: "purple",
+      domain: "cwnd < ssthresh",
+      points: [
+        "Initial Window: Starts at 1 MSS (or modern IW10).",
+        "Per-ACK Rule: cwnd increases by +1 MSS for every arriving ACK.",
+        "Per-RTT Rule: cwnd doubles every round trip: cwnd(k) = 2^k MSS.",
+        "Rapidly discovers order of magnitude of link capacity."
+      ],
+      quote: "Double window every RTT until hitting the slow start threshold."
+    },
+    {
+      badge: "Sustained Probing",
+      title: "Congestion Avoidance Phase (Additive)",
+      icon: "🛡️",
+      color: "emerald",
+      domain: "cwnd >= ssthresh",
+      points: [
+        "Triggered when cwnd reaches or exceeds ssthresh.",
+        "Per-ACK Rule: cwnd increases by (1 / cwnd) MSS for each arriving ACK.",
+        "Per-RTT Rule: cwnd increases by exactly +1 MSS per round trip time.",
+        "Cautiously probes for incremental spare bandwidth without triggering loss."
+      ],
+      quote: "Inching forward by 1 MSS per RTT to respect link capacity limits."
+    }
+  ]}
+/>
+
+### The Algorithm: Slow Start Mechanics
+1. **Initialization**: Set $\text{cwnd} = 1\text{ MSS}$ (historically $1\text{ MSS}$, modern Linux defaults to $10\text{ MSS}$).
+2. **Per-ACK Increment Rule**: For **every individual incoming valid acknowledgment**:
+
+$$\text{cwnd} \leftarrow \text{cwnd} + 1\text{ MSS}$$
+
+3. **Per-RTT Growth Dynamic**:
+   * Round 0: Sender transmits $1\text{ MSS}$.
+   * Receiver sends 1 ACK $\implies \text{cwnd}$ becomes $1 + 1 = 2\text{ MSS}$.
+   * Round 1: Sender transmits $2\text{ MSS}$.
+   * Receiver sends 2 ACKs $\implies \text{cwnd}$ becomes $2 + 1 + 1 = 4\text{ MSS}$.
+   * Round 2: Sender transmits $4\text{ MSS}$.
+   * Receiver sends 4 ACKs $\implies \text{cwnd}$ becomes $4 + 4 = 8\text{ MSS}$.
+
+After $k$ round-trip times ($RTT$s) with no packet loss:
+
+$$\mathbf{\text{cwnd}(k) = 2^k \text{ MSS}}$$
+
+Despite its name ("Slow Start"), the growth is actually **exponential**! It is called "slow" only in comparison to naive blasting of maximum window size at connection startup.
+
+---
+
+## 🛡️ Phase 2: Congestion Avoidance (Additive Increase)
+
+Exponential doubling cannot continue indefinitely without overflowing router buffers. TCP introduces a governor called the **Slow Start Threshold ($\text{ssthresh}$)** (initially set to a large value, typically $64\text{ KB}$ or the maximum receiver window).
+
+<FlowPipeline
+  title="The TCP Congestion State Transition Lifecycle"
+  subtitle="How the transport layer navigates exponential growth, linear probing, and multiplicative recovery"
+  nodes={[
+    {
+      badge: "Startup",
+      title: "Slow Start",
+      icon: "🚀",
+      color: "purple",
+      description: "Exponential growth: cwnd doubles every RTT until ssthresh.",
+      connectorLabel: "cwnd >= ssthresh"
+    },
+    {
+      badge: "Steady State",
+      title: "Congestion Avoidance",
+      icon: "📈",
+      color: "emerald",
+      description: "Additive increase: cwnd increases by +1 MSS per RTT.",
+      connectorLabel: "Packet Loss Event"
+    },
+    {
+      badge: "Detection",
+      title: "Multiplicative Decrease",
+      icon: "💥",
+      color: "rose",
+      description: "Halve ssthresh: ssthresh = max(2, cwnd / 2).",
+      connectorLabel: "Timeout Recovery"
+    },
+    {
+      badge: "Reset",
+      title: "Re-Enter Slow Start",
+      icon: "🔄",
+      color: "blue",
+      description: "Set cwnd = 1 MSS (Tahoe) and ramp back up to new threshold.",
+    }
+  ]}
+/>
+
+### The Algorithm: Congestion Avoidance Mechanics
+Once $\text{cwnd} \ge \text{ssthresh}$, TCP switches to **Congestion Avoidance**:
+1. **Per-ACK Increment Rule**: For every incoming valid acknowledgment:
+
+$$\text{cwnd} \leftarrow \text{cwnd} + \frac{1}{\text{cwnd}} \text{ MSS}$$
+
+2. **Per-RTT Growth Dynamic**:
+   * During one $RTT$, the sender dispatches $\text{cwnd}$ segments.
+   * As all $\text{cwnd}$ segments are acknowledged:
+     $$\Delta \text{cwnd} = \text{cwnd} \times \left(\frac{1}{\text{cwnd}}\right) = 1\text{ MSS}$$
+   * The window increases by **exactly $1\text{ MSS}$ per $RTT$**:
+
+$$\mathbf{\text{cwnd}(k + 1) = \text{cwnd}(k) + 1\text{ MSS}}$$
+
+This linear, cautious pacing allows TCP to steadily probe for newly available bandwidth without shocking the network.
+
+---
+
+## 📉 Phase 3: Multiplicative Decrease & The Sawtooth Waveform
+
+When an intermediate router drops a packet due to buffer exhaustion, the sender detects packet loss.
+
+### The Multiplicative Decrease Rule
+Regardless of whether loss is detected via **Timeout** or **3 Duplicate ACKs**, the Slow Start Threshold is immediately cut in half:
+
+$$\mathbf{\text{ssthresh} \leftarrow \max\left(2\text{ MSS}, \; \left\lfloor \frac{\text{cwnd}}{2} \right\rfloor\right)}$$
+
+In classic **TCP Tahoe**:
+* After setting $\text{ssthresh} = \text{cwnd} / 2$, the sender **drops $\text{cwnd}$ back to $1\text{ MSS}$**:
+  $$\text{cwnd} \leftarrow 1\text{ MSS}$$
+* The sender re-enters **Slow Start**, exponentially doubling $\text{cwnd}$ up to the new $\text{ssthresh}$, and then switches to linear Congestion Avoidance.
+
+| Phase / State | Operational Condition | Rate of Change | Algorithmic Behavior & Waveform Trajectory |
+| :--- | :--- | :--- | :--- |
+| **Phase 1: Slow Start** | $\text{cwnd} < \text{ssthresh}$ | Exponential: doubles per $RTT$ | Rapidly escalates window ($1 \to 2 \to 4 \to 8\text{ MSS}$) to probe pipe capacity. Steep exponential rising edge. |
+| **Phase 2: Congestion Avoidance** | $\text{cwnd} \ge \text{ssthresh}$ | Additive: $+1\text{ MSS}$ per $RTT$ | Linear upward slope ($8 \to 9 \to 10 \dots 16\text{ MSS}$). Cautiously probes spare bandwidth without queue collapse. |
+| **Congestion / Loss Event** | Packet loss detected (e.g. at $16\text{ MSS}$) | Instantaneous threshold cut | Buffer overflow occurs. Threshold halved: $\text{ssthresh} \leftarrow \max(2, \lfloor 16 / 2 \rfloor) = 8\text{ MSS}$. |
+| **Tahoe Collapse** | Post-loss recovery | Floor reset: $\text{cwnd} \leftarrow 1\text{ MSS}$ | Immediate vertical plunge down to $1\text{ MSS}$. Re-enters Slow Start up to $8\text{ MSS}$, repeating the cycle. |
+
+This cycle of linear ramp-up followed by sudden downward cuts produces the famous **AIMD Sawtooth Waveform**.
+
+---
+
+## ⚖️ Mathematical Proof of Fairness: The Chiu-Jain Convergence Plane
+
+Why does TCP use **Additive Increase Multiplicative Decrease (AIMD)** rather than other combinations like Additive Increase Additive Decrease (AIAD) or Multiplicative Increase Multiplicative Decrease (MIMD)?
+
+In 1989, Dah-Ming Chiu and Raj Jain published a seminal mathematical paper proving that **only AIMD satisfies both optimal efficiency and distributive fairness** among competing flows sharing a bottleneck link.
+
+:::info Geometric Axes of the Chiu-Jain Phase Plane
+* **Flow State Vector**: $\mathbf{x} = \begin{pmatrix} x_1 \\ x_2 \end{pmatrix}$, where $x_1$ and $x_2$ represent the transmission rates of User 1 and User 2.
+* **The Efficiency Boundary**: The line $x_1 + x_2 = C$ with slope $-1$. Any operating point $\mathbf{x}$ below this line underutilizes the physical bottleneck; points above it overload router queues and induce loss.
+* **The Fairness Boundary**: The ray $x_1 = x_2$ radiating from the origin at $45^\circ$. All points along this line represent equal bandwidth allocation.
+* **The Optimal Operating Point**: The intersection of the Efficiency Line and Fairness Line: $\mathbf{x}^* = \left(\frac{C}{2}, \; \frac{C}{2}\right)$.
+:::
+
+| Allocation Scheme | Additive / Multiplicative Mechanics | Phase Plane Vector Behavior | Fairness Convergence Proof |
+| :--- | :--- | :--- | :--- |
+| **AIAD** (Additive Inc / Additive Dec) | Increase: $\mathbf{x} + \alpha\mathbf{1}$, Decrease: $\mathbf{x} - \beta\mathbf{1}$ | Moves parallel along a $45^\circ$ line back and forth | ❌ **Does Not Converge**: Trapped in a limit cycle; difference $(x_1 - x_2)$ never decreases. |
+| **MIMD** (Multiplicative Inc / Multiplicative Dec) | Increase: $\alpha\mathbf{x}$, Decrease: $\beta\mathbf{x}$ | Moves along rays passing through the origin | ❌ **Does Not Converge**: Ratio $x_1 / x_2$ remains fixed; unfair allocations remain permanently unfair. |
+| **AIMD** (Additive Inc / Multiplicative Dec) | Increase: $\mathbf{x} + \alpha\mathbf{1}$, Decrease: $\beta\mathbf{x}$ | Additive steps shift trajectory at $45^\circ$; multiplicative cuts pull toward origin | ✅ **Provably Converges**: Repeated AIMD cycles pull the operating state asymptotically toward $(C/2, C/2)$. |
+
+### The Chiu-Jain Convergence Geometry
+Consider two flows with throughputs $x_1$ and $x_2$ sharing a bottleneck pipe of capacity $C$:
+* **Efficiency Line**: $x_1 + x_2 = C$. (Points below the line underutilize the link; points above cause packet loss).
+* **Fairness Line**: $x_1 = x_2$ (a $45^\circ$ line passing through the origin).
+* **The Goal**: Drive any arbitrary starting point $(x_1, x_2)$ toward the **Optimal Intersection Point** $(C/2, C/2)$.
+
+### Vector Trajectories of Rate Adjustment Policies
+1. **Additive Increase ($+1, +1$)**:
+   * Both users increase throughput by the identical constant amount: $(x_1 + \alpha, \; x_2 + \alpha)$.
+   * The vector moves at a **$45^\circ$ angle parallel to the Fairness Line**.
+   * It moves closer to the efficiency line without changing the difference $(x_1 - x_2)$.
+2. **Multiplicative Decrease ($\times 0.5, \times 0.5$)**:
+   * Both users reduce throughput proportionally: $(\beta x_1, \; \beta x_2)$ where $\beta = 0.5$.
+   * The vector moves **directly toward the origin $(0, 0)$**.
+   * Because the line to the origin makes a steeper angle for the user with higher throughput, **the absolute gap $|x_1 - x_2|$ shrinks by $50\%$**!
+
+### The Proof of Convergence
+* **Additive Increase** pushes the state toward the efficiency line parallel to the fairness axis.
+* **Multiplicative Decrease** pulls the state toward the origin, halving the disparity between the two flows.
+* Together, each AIMD cycle acts as a spiral convergence that **inexorably drives competing flows to the intersection of fairness and efficiency**:
+
+$$\lim_{k \to \infty} \big|x_1(k) - x_2(k)\big| = 0 \quad \text{and} \quad \lim_{k \to \infty} \big(x_1(k) + x_2(k)\big) = C$$
+
+Under **MIMD** or **AIAD**, the trajectory forms closed loops or diverges, failing to provide distributed fairness.
+
+---
+
+## 🏭 Real-World Production Context: Modern Linux TCP & Bufferbloat
+
+### 1. Initial Congestion Window Evolution (IW10)
+In RFC 2581 (1999), TCP's initial window was strictly $1\text{ to }2\text{ MSS}$ ($1.4\text{ to }2.8\text{ KB}$).
+* In 2013, Google published measurements demonstrating that slow-start latency dominated web page retrieval times.
+* RFC 6928 updated the standard, setting **$\text{IW} = 10\text{ MSS}$** ($\approx 14.6\text{ KB}$).
+* This enables typical web requests (HTTP headers, small CSS/JS files) to complete in a single $RTT$, eliminating multiple round-trip slow-start stalls.
+
+### 2. The Bufferbloat Crisis & BBR
+Traditional AIMD assumes that **packet loss is the only signal of congestion**.
+* Modern router vendors installed massive multi-megabyte DRAM buffers to prevent packet drops.
+* Instead of dropping packets, routers buffer thousands of segments, inflating $RTT$s from $20\text{ ms}$ to $2,000\text{ ms}$—a pathology known as **Bufferbloat**.
+* In response, Google developed **BBR (Bottleneck Bandwidth and RTT)**: a model-based congestion control algorithm that tracks bottleneck bandwidth and minimum propagation delay ($RTprop$), capping in-flight data at the **Bandwidth-Delay Product ($BDP$)** without needing to induce packet loss.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Full TCP Tahoe Recovery Trace
+**Problem Statement:**  
+A TCP connection using TCP Tahoe experiences a timeout when its congestion window reaches $\text{cwnd} = 32\text{ KB}$. The Maximum Segment Size is $MSS = 2\text{ KB}$. The Round-Trip Time of the path is $RTT = 100\text{ ms}$. Assume receiver window $\text{rwnd}$ is unlimited.
+1. Find the new value of $\text{ssthresh}$ and $\text{cwnd}$ immediately after the timeout.
+2. Trace the value of $\text{cwnd}$ round-by-round until it reaches $32\text{ KB}$ again.
+3. Compute the total time (in milliseconds) required for the connection to recover back to $32\text{ KB}$.
+
+**Step-by-Step Solution:**
+1. **Identify Given Parameters:**
+   * $\text{cwnd}_{\text{loss}} = 32\text{ KB} = 16\text{ MSS}$
+   * $MSS = 2\text{ KB}$
+   * $RTT = 100\text{ ms}$
+
+2. **Compute New Threshold & Initial Recovery Window:**
+   $$\text{ssthresh} = \frac{\text{cwnd}_{\text{loss}}}{2} = \frac{16\text{ MSS}}{2} = \mathbf{8\text{ MSS}} \; (16\text{ KB})$$
+   $$\text{cwnd} = \mathbf{1\text{ MSS}} \; (2\text{ KB}) \quad \text{(Reset to Slow Start under Tahoe)}$$
+
+3. **Trace Window Progression Round-by-Round:**
+
+| RTT Round | Phase | cwnd at Start of Round | Window Growth Dynamic | cwnd at End of Round |
+| :---: | :--- | :---: | :--- | :---: |
+| **Round 1** | Slow Start | $1\text{ MSS}$ ($2\text{ KB}$) | Doubles ($1 \to 2$) | $2\text{ MSS}$ ($4\text{ KB}$) |
+| **Round 2** | Slow Start | $2\text{ MSS}$ ($4\text{ KB}$) | Doubles ($2 \to 4$) | $4\text{ MSS}$ ($8\text{ KB}$) |
+| **Round 3** | Slow Start | $4\text{ MSS}$ ($8\text{ KB}$) | Doubles ($4 \to 8$) | $8\text{ MSS}$ ($16\text{ KB}$) |
+| **Round 4** | Congestion Avoidance | $8\text{ MSS}$ ($16\text{ KB}$) | Linear ($+1\text{ MSS}$) | $9\text{ MSS}$ ($18\text{ KB}$) |
+| **Round 5** | Congestion Avoidance | $9\text{ MSS}$ ($18\text{ KB}$) | Linear ($+1\text{ MSS}$) | $10\text{ MSS}$ ($20\text{ KB}$) |
+| **...** | ... | ... | ... | ... |
+| **Round 11** | Congestion Avoidance | $15\text{ MSS}$ ($30\text{ KB}$) | Linear ($+1\text{ MSS}$) | $16\text{ MSS}$ ($32\text{ KB}$) |
+
+4. **Calculate Total Elapsed Recovery Time:**
+   * Slow Start Phase: $3\text{ RTTs}$ (reaches threshold of $8\text{ MSS}$ at end of Round 3).
+   * Congestion Avoidance Phase: Needs to advance from $8\text{ MSS}$ to $16\text{ MSS}$.
+     $$\text{Rounds in CA} = 16 - 8 = 8\text{ RTTs}$$
+   * Total RTTs required:
+     $$\text{Total Rounds} = 3 + 8 = \mathbf{11\text{ RTTs}}$$
+   * Total elapsed time:
+     $$\text{Time} = 11 \times 100\text{ ms} = \mathbf{1100\text{ ms}} \; (1.1\text{ seconds})$$
+
+---
+
+### Example 2: cwnd State Across Successive Transmissions
+**Problem Statement:**  
+Consider an instance of TCP's AIMD algorithm where the window size at the start of the slow start phase is $2\text{ MSS}$, and the threshold $\text{ssthresh}$ at the start of the first transmission is $8\text{ MSS}$. Assume that a timeout occurs during the fifth transmission. Find the congestion window size at the end of the sixth transmission under TCP Tahoe.
+
+**Step-by-Step Solution:**
+1. **Initial State:**
+   * $\text{cwnd}_1 = 2\text{ MSS}$, $\text{ssthresh} = 8\text{ MSS}$.
+2. **Transmission 1 (Slow Start):** Transmits $2\text{ MSS}$. ACKs received $\implies \text{cwnd}_2 = 2 \times 2 = 4\text{ MSS}$.
+3. **Transmission 2 (Slow Start):** Transmits $4\text{ MSS}$. ACKs received $\implies \text{cwnd}_3 = 4 \times 2 = 8\text{ MSS}$ (Hits threshold!).
+4. **Transmission 3 (Congestion Avoidance):** Starts at $\text{cwnd}_3 = 8\text{ MSS}$. Grows linearly $\implies \text{cwnd}_4 = 8 + 1 = 9\text{ MSS}$.
+5. **Transmission 4 (Congestion Avoidance):** Starts at $\text{cwnd}_4 = 9\text{ MSS}$. Grows linearly $\implies \text{cwnd}_5 = 9 + 1 = 10\text{ MSS}$.
+6. **Transmission 5:** Transmits with $\text{cwnd}_5 = 10\text{ MSS}$. **Timeout occurs!**
+   * New threshold: $\text{ssthresh}_{\text{new}} = \lfloor 10 / 2 \rfloor = 5\text{ MSS}$.
+   * Reset window: $\text{cwnd} = 1\text{ MSS}$.
+7. **Transmission 6 (Slow Start):** Transmits $1\text{ MSS}$. ACK received $\implies \text{cwnd} = 1 \times 2 = \mathbf{2\text{ MSS}}$.
+
+---
+
+### Example 3: Effective Transmit Window with Receiver Limitation
+**Problem Statement:**  
+A TCP sender has an estimated congestion window of $\text{cwnd} = 16\text{ KB}$. The receiver advertises $\text{rwnd} = 10\text{ KB}$. The sender has transmitted bytes up to $42,000$ ($\text{LastByteSent} = 42,000$) and received an ACK for byte $36,000$ ($\text{LastByteAcked} = 36,000$). How many additional bytes can the sender transmit immediately?
+
+**Step-by-Step Solution:**
+1. **Determine Effective Window:**
+   $$\text{Window} = \min(\text{rwnd}, \; \text{cwnd}) = \min(10\text{ KB}, \; 16\text{ KB}) = 10\text{ KB} = 10,240\text{ bytes}$$
+2. **Calculate Data Currently in Flight:**
+   $$\text{In Flight} = \text{LastByteSent} - \text{LastByteAcked} = 42,000 - 36,000 = 6,000\text{ bytes}$$
+3. **Calculate Usable Transmit Capacity:**
+   $$\text{Usable Capacity} = \text{Window} - \text{In Flight} = 10,240 - 6,000 = \mathbf{4,240\text{ bytes}}$$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does cwnd increase by 1 MSS per RTT in Congestion Avoidance if the formula is `cwnd = cwnd + 1/cwnd`?**: The formula `cwnd = cwnd + 1/cwnd` is applied **per incoming acknowledgment**. During one RTT, the sender has `cwnd` packets outstanding, which generates `cwnd` individual ACKs. Summing the increment across all ACKs in that RTT yields: $\text{Total Increment} = \text{cwnd} \times (1 / \text{cwnd}) = 1\text{ MSS}$.
+* **Why does AIMD converge to fair bandwidth sharing while AIAD does not?**: In Additive Increase Additive Decrease (AIAD), both the increase and decrease vectors move parallel to the $45^\circ$ fairness line. Consequently, the initial throughput disparity $(x_1 - x_2)$ is preserved forever. Only **Multiplicative Decrease** cuts the absolute gap by $50\%$ on every loss event, driving competing flows toward equal bandwidth allocation.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Confusing Per-ACK Updates with Per-RTT Updates**: In Slow Start, `cwnd` doubles every **RTT**, but it increments by **1 MSS per ACK**. If an exam question asks: *"If cwnd is 8 MSS and 1 ACK arrives in slow start, what is the new cwnd?"*, the answer is **$9\text{ MSS}$** (NOT 16 MSS!). It only becomes 16 MSS after all 8 ACKs return.
+* **Trap: Assuming ssthresh is Halved After Resetting cwnd**: The threshold must ALWAYS be computed from the **current window at the moment of loss** ($\text{ssthresh} = \text{cwnd} / 2$). Resetting $\text{cwnd} = 1\text{ MSS}$ happens *after* calculating $\text{ssthresh}$.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "7.2 TCP Sliding Window Flow Control & Silly Window Syndrome",
+    url: "/coredose/cn/module-07/tcp-sliding-window-flow-control-and-silly-window-syndrome"
+  }}
+  next={{
+    title: "7.4 Fast Retransmit & Fast Recovery (TCP Tahoe vs TCP Reno)",
+    url: "/coredose/cn/module-07/fast-retransmit-and-fast-recovery-tcp-tahoe-vs-tcp-reno"
+  }}
+  courseUrl="/coredose/cn"
+/>

@@ -27,18 +27,36 @@ export default function useSiteStats() {
     siteStatsFallback?.videoPlaylistsCount ??
     4;
 
-  const coredose =
-    customStats?.coredose?.subjects
-      ? customStats.coredose
-      : (siteStatsFallback?.coredose || {
-          activeCoursesCount: 2,
-          totalTopics: 99,
-          totalModules: 20,
-          subjects: {
-            os: { modules: 10, topics: 51 },
-            dbms: { modules: 10, topics: 48 },
-          },
-        });
+  // Blend subjects from runtime config and siteStatsFallback so newly created courses
+  // (such as Computer Networks) appear immediately without requiring a full server restart
+  const fallbackSubjects = siteStatsFallback?.coredose?.subjects || {};
+  const runtimeSubjects = customStats?.coredose?.subjects || {};
+  const mergedSubjects = {
+    ...runtimeSubjects,
+    ...fallbackSubjects,
+  };
+
+  const activeCoursesCount =
+    Object.values(mergedSubjects).filter((s) => s && s.topics > 0).length ||
+    siteStatsFallback?.coredose?.activeCoursesCount ||
+    2;
+
+  const totalTopics =
+    Object.values(mergedSubjects).reduce((sum, s) => sum + (s?.topics || 0), 0) ||
+    siteStatsFallback?.coredose?.totalTopics ||
+    99;
+
+  const totalModules =
+    Object.values(mergedSubjects).reduce((sum, s) => sum + (s?.modules || 0), 0) ||
+    siteStatsFallback?.coredose?.totalModules ||
+    20;
+
+  const coredose = {
+    activeCoursesCount,
+    totalTopics,
+    totalModules,
+    subjects: mergedSubjects,
+  };
 
   return {
     totalProblems,

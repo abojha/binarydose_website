@@ -1,0 +1,396 @@
+---
+title: "6.4 TCP Connection Management: 3-Way Handshake & 4-Way Teardown"
+description: "Comprehensive dissection of TCP connection lifecycle: 3-Way Handshake (SYN, SYN-ACK, ACK), Initial Sequence Number (ISN) negotiation, 4-Way Teardown (FIN, ACK, FIN, ACK), half-close connections, simultaneous close, and SYN flooding attacks with SYN Cookies mitigation."
+hide_table_of_contents: true
+---
+
+# 6.4 TCP Connection Management: 3-Way Handshake & 4-Way Teardown
+
+<CoreDoseLessonHeader
+  module="Module 06: Transport Layer: UDP, TCP & Connection Flow"
+  topic="Topic 6.4"
+  courseUrl="/coredose/cn"
+  readTime="24 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Diplomatic Bilateral Agreement
+
+### 🍳 The Everyday Analogy: Negotiating and Terminating a Formal Contract
+Imagine two corporate ambassadors, Alice (Client) and Bob (Server), drafting an exclusive business contract:
+* **Step 1 (Alice proposes):** Alice mails a signed proposal stating:
+  $$\text{"I wish to open business with you. My initial document serial is 1000. Do you agree?"} \quad (\mathbf{SYN})$$
+* **Step 2 (Bob confirms & proposes back):** Bob signs Alice's proposal and attaches his own ledger terms:
+  $$\text{"I accept your document 1000 (send 1001 next). My initial document serial is 5000. Do you agree?"} \quad (\mathbf{SYN + ACK})$$
+* **Step 3 (Alice acknowledges Bob):** Alice writes back:
+  $$\text{"I acknowledge your document 5000 (send 5001 next). We are officially open for business!"} \quad (\mathbf{ACK})$$
+
+Now, when business concludes, either party can close their side of the warehouse independently:
+* Alice says, *"I have shipped all my goods; my warehouse is closed to further dispatches"* ($\mathbf{FIN}$).
+* Bob acknowledges, *"Understood; I will sign your exit receipt"* ($\mathbf{ACK}$).
+* Bob can continue shipping his remaining inventory until he is done, after which Bob sends his own $\mathbf{FIN}$, and Alice sends the final $\mathbf{ACK}$.
+
+### 💻 Bridging to Computer Science: Synchronized Connection State Machines
+In computer networking, two independent endpoints communicating across an unreliable network cannot presuppose that the peer is alive, listening, and ready to receive. Before data streaming can begin, both endpoints must:
+1. Confirm bidirectional communication reachability (Host A can reach Host B, and Host B can reach Host A).
+2. Establish synchronized starting sequence numbers ($\text{ISN}$) so data bytes can be tracked without ambiguity.
+3. Exchange flow control window buffers ($\text{rwnd}$) and maximum segment sizes ($\text{MSS}$).
+
+Similarly, when tearing down the connection, each simplex direction must be closed independently without data loss. This bilateral lifecycle is achieved through the **TCP 3-Way Handshake** and **4-Way Teardown**.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🤝 TCP Connection Establishment: The 3-Way Handshake
+
+TCP creates a virtual full-duplex circuit between endpoints through a synchronized three-step message exchange.
+
+<ProtocolLadder
+  title="TCP 3-Way Handshake Sequence & State Transitions"
+  subtitle="Interactive sequence diagram tracing Initial Sequence Number (ISN) negotiation and control flags"
+  actors={[
+    { id: "client", label: "TCP Client (Host A)", icon: "💻", role: "Active Opener", color: "blue" },
+    { id: "server", label: "TCP Server (Host B)", icon: "🖥️", role: "Passive Opener", color: "emerald" }
+  ]}
+  steps={[
+    {
+      id: "step-1-syn",
+      from: "client",
+      to: "server",
+      title: "Step 1: Connection Request (SYN)",
+      flags: "SYN = 1, ACK = 0",
+      seq: "SEQ = X (Client ISN)",
+      ack: "ACK_NUM = 0 (Not Valid)",
+      desc: "Client initiates active open, synchronizes its Initial Sequence Number (ISN = X). Consumes 1 sequence number.",
+      stateChange: "Client transitions from CLOSED to SYN_SENT. Server remains in LISTEN."
+    },
+    {
+      id: "step-2-synack",
+      from: "server",
+      to: "client",
+      title: "Step 2: Server Acceptance & Reverse Sync (SYN + ACK)",
+      flags: "SYN = 1, ACK = 1",
+      seq: "SEQ = Y (Server ISN)",
+      ack: "ACK_NUM = X + 1 (Confirms Client ISN)",
+      desc: "Server acknowledges Client ISN and synchronizes its own Initial Sequence Number (ISN = Y). Consumes 1 sequence number.",
+      stateChange: "Server transitions from LISTEN to SYN_RCVD. Client transitions to ESTABLISHED upon receipt."
+    },
+    {
+      id: "step-3-ack",
+      from: "client",
+      to: "server",
+      title: "Step 3: Final Handshake Confirmation (ACK)",
+      flags: "SYN = 0, ACK = 1",
+      seq: "SEQ = X + 1",
+      ack: "ACK_NUM = Y + 1 (Confirms Server ISN)",
+      desc: "Client confirms Server ISN. Consumes 0 sequence numbers if carrying no payload. Full-duplex data flow is now unlocked.",
+      stateChange: "Server transitions from SYN_RCVD to ESTABLISHED upon receipt."
+    }
+  ]}
+/>
+
+---
+
+### Step-by-Step Handshake Protocol Analysis
+
+#### Step 1: Active Open (Client $\to$ Server)
+* **Control Flags:** $\text{SYN} = 1, \; \text{ACK} = 0$.
+* **Fields:** $\text{Sequence Number} = X$ (Client Initial Sequence Number, ISN). The Acknowledgment field contains no valid data.
+* **State Transition:** The client transitions from **`CLOSED`** to **`SYN_SENT`**.
+* **Sequence Consumption:** Although the SYN segment carries $0$ bytes of application data, **it consumes exactly $1$ sequence number** because it requires explicit acknowledgment.
+
+#### Step 2: Passive Open Response (Server $\to$ Client)
+* **Control Flags:** $\text{SYN} = 1, \; \text{ACK} = 1$.
+* **Fields:** $\text{Sequence Number} = Y$ (Server ISN), and $\text{Acknowledgment Number} = X + 1$ (confirming receipt of client's byte $X$).
+* **State Transition:** The server transitions from **`LISTEN`** to **`SYN_RCVD`**.
+* **Sequence Consumption:** Like the client SYN, the server SYN+ACK carries $0$ bytes of application data but **consumes exactly $1$ sequence number**.
+
+#### Step 3: Connection Confirmation (Client $\to$ Server)
+* **Control Flags:** $\text{SYN} = 0, \; \text{ACK} = 1$.
+* **Fields:** $\text{Sequence Number} = X + 1$, and $\text{Acknowledgment Number} = Y + 1$ (confirming receipt of server's byte $Y$).
+* **State Transitions:**
+  * The client transitions to **`ESTABLISHED`** immediately upon sending this segment.
+  * The server transitions from **`SYN_RCVD`** to **`ESTABLISHED`** upon receiving this segment.
+* **Sequence Consumption:** A pure ACK carries $0$ data bytes and **consumes $0$ sequence numbers**! (If the client attaches piggybacked data in this third packet, the sequence numbers advance by the length of that data).
+
+---
+
+### ❓ Why isn't a 2-Way Handshake Sufficient?
+
+A classic question asked across academia and industry: *Why does TCP mandate three messages instead of just two?*
+
+<ProtocolLadder
+  title="Why 2-Way Handshake Fails: The Delayed Duplicate SYN Hazard"
+  subtitle="How the 3rd handshake step empowers the client to abort phantom connections via RST"
+  actors={[
+    { id: "client", label: "Client (Host A)", icon: "💻", role: "Active Host", color: "blue" },
+    { id: "server", label: "Server (Host B)", icon: "🖥️", role: "Passive Host", color: "emerald" }
+  ]}
+  steps={[
+    {
+      id: "delayed-syn",
+      from: "client",
+      to: "server",
+      title: "Delayed Old Duplicate SYN Arrives",
+      flags: "SYN = 1, ACK = 0",
+      seq: "SEQ = X (Old Session)",
+      ack: "ACK_NUM = 0",
+      desc: "An old duplicate SYN packet wandering in network router loops arrives at the server months after the original session closed.",
+      stateChange: "Server opens half-open connection and allocates TCB memory buffers."
+    },
+    {
+      id: "server-synack",
+      from: "server",
+      to: "client",
+      title: "Server Acknowledges Old SYN",
+      flags: "SYN = 1, ACK = 1",
+      seq: "SEQ = Y",
+      ack: "ACK_NUM = X + 1",
+      desc: "Server attempts to complete the connection, returning SYN+ACK to the client.",
+      stateChange: "Server transitions to SYN_RCVD."
+    },
+    {
+      id: "client-rst",
+      from: "client",
+      to: "server",
+      title: "Client Aborts with RST",
+      flags: "RST = 1, ACK = 0",
+      seq: "SEQ = X + 1",
+      ack: "ACK_NUM = 0",
+      desc: "Client recognizes that SEQ X does not belong to any active session and immediately sends RST to abort the connection.",
+      stateChange: "Server frees TCB memory immediately, eliminating the phantom connection."
+    }
+  ]}
+/>
+
+1. **The Delayed Duplicate SYN Hazard:** Suppose a client transmits a SYN packet that gets stuck in an overloaded internet router queue for minutes. The client times out, opens another connection, completes data transfer, and terminates.
+2. Later, the old delayed SYN finally arrives at the server.
+3. If only a **2-Way Handshake** existed:
+   * The server would receive the old SYN, allocate socket memory buffers, and reply with an ACK.
+   * The server would immediately consider the connection **`ESTABLISHED`** and sit idle forever waiting for data!
+   * The client, having already finished its session, would ignore the server's ACK.
+4. With a **3-Way Handshake**:
+   * The server sends a `SYN+ACK` expecting the client's 3rd ACK.
+   * The client receives an unexpected `SYN+ACK` for an old sequence number $X$.
+   * The client detects the anomaly and transmits an active **`RST` (Reset)** segment, forcing the server to safely abort and release its allocated memory!
+
+---
+
+## ✂️ TCP Connection Termination: The 4-Way Teardown
+
+Because TCP is a **full-duplex** protocol, each direction of data transit operates independently. Closing a TCP connection requires gracefully shutting down both unidirectional channels.
+
+<ProtocolLadder
+  title="TCP 4-Way Connection Teardown & Half-Close Mechanics"
+  subtitle="Interactive sequence tracing graceful independent termination in each direction"
+  actors={[
+    { id: "client", label: "Client (Active Closer)", icon: "💻", role: "Initiates Close", color: "blue" },
+    { id: "server", label: "Server (Passive Closer)", icon: "🖥️", role: "Responds to Close", color: "purple" }
+  ]}
+  steps={[
+    {
+      id: "step-1-fin",
+      from: "client",
+      to: "server",
+      title: "Step 1: Client Close Request (FIN)",
+      flags: "FIN = 1, ACK = 1",
+      seq: "SEQ = u",
+      ack: "ACK_NUM = v",
+      desc: "Client signals it has no more application data to transmit. Consumes 1 sequence number.",
+      stateChange: "Client transitions from ESTABLISHED to FIN_WAIT_1. Server remains in ESTABLISHED until segment arrives."
+    },
+    {
+      id: "step-2-ack",
+      from: "server",
+      to: "client",
+      title: "Step 2: Server Acknowledgment of Client FIN",
+      flags: "ACK = 1",
+      seq: "SEQ = v",
+      ack: "ACK_NUM = u + 1",
+      desc: "Server acknowledges receipt of client FIN. Client channel is now closed. Half-Close state entered.",
+      stateChange: "Server transitions to CLOSE_WAIT. Client transitions from FIN_WAIT_1 to FIN_WAIT_2."
+    },
+    {
+      id: "step-3-fin",
+      from: "server",
+      to: "client",
+      title: "Step 3: Server Finish Request (FIN)",
+      flags: "FIN = 1, ACK = 1",
+      seq: "SEQ = w (after flushing server data)",
+      ack: "ACK_NUM = u + 1",
+      desc: "Server finishes sending all its pending data and signals it is ready to terminate its direction.",
+      stateChange: "Server transitions from CLOSE_WAIT to LAST_ACK. Client transitions from FIN_WAIT_2 to TIME_WAIT."
+    },
+    {
+      id: "step-4-ack",
+      from: "client",
+      to: "server",
+      title: "Step 4: Final Client Acknowledgment (ACK)",
+      flags: "ACK = 1",
+      seq: "SEQ = u + 1",
+      ack: "ACK_NUM = w + 1",
+      desc: "Client confirms receipt of server FIN. Server immediately enters CLOSED. Client starts 2*MSL timer.",
+      stateChange: "Server transitions to CLOSED. Client remains in TIME_WAIT for 2*MSL (120 to 240 seconds)."
+    }
+  ]}
+/>
+
+---
+
+### The Half-Close Connection State (`SHUT_WR`)
+* When the client sends `FIN` and the server replies with `ACK`, the connection enters the **Half-Close** state.
+* The client cannot transmit any further application bytes.
+* **However, the server can still transmit data to the client!** The client continues to accept and acknowledge the server's data until the server finally transmits its own `FIN` segment.
+* In C socket programming, an application creates a half-close by executing:
+  ```c
+  shutdown(sockfd, SHUT_WR); // Closes outbound write channel, leaves inbound read channel open
+  ```
+
+---
+
+## 🏭 Real-World Production Context: Mitigating SYN Flood Attacks with Linux SYN Cookies
+
+The 3-way handshake exposes a classic vulnerability known as the **SYN Flood Attack**.
+
+<FlowPipeline
+  title="SYN Flood Denial-of-Service Attack Cascade"
+  subtitle="How spoofed SYN packets deplete server kernel memory and block legitimate users"
+  nodes={[
+    {
+      badge: "Stage 1: Inundation",
+      title: "Spoofed SYN Avalanche",
+      icon: "🤖",
+      color: "rose",
+      description: "Attacker floods victim with thousands of SYN packets containing unreachable forged source IPs.",
+      connectorLabel: "SYN Floods",
+    },
+    {
+      badge: "Stage 2: Resource Drain",
+      title: "Kernel Backlog Saturation",
+      icon: "💾",
+      color: "amber",
+      description: "Server allocates TCB state memory and SYN-ACK timers for phantom clients that never respond.",
+      connectorLabel: "Queue 100% Full",
+    },
+    {
+      badge: "Stage 3: Service Outage",
+      title: "Legitimate Clients Blocked",
+      icon: "🚫",
+      color: "rose",
+      description: "Authentic client connection requests are dropped because the server's SYN queue has no free slots.",
+    },
+  ]}
+/>
+
+### The Attack Mechanism:
+1. An attacker transmits an overwhelming deluge of TCP `SYN` packets with randomized, spoofed source IP addresses.
+2. For each incoming `SYN`, the server allocates a **Transmission Control Block (TCB)** in kernel memory, allocates send/receive buffers, initializes timers, and returns a `SYN+ACK` to the spoofed IP.
+3. Because the spoofed IPs do not exist or ignore the unsolicited `SYN+ACK`, the 3rd `ACK` packet never arrives.
+4. The server's **Half-Open Connection Queue (SYN Backlog)** completely fills up. When legitimate clients attempt to connect, the server drops their SYN packets, resulting in a Denial of Service (DoS).
+
+### The Architectural Solution: SYN Cookies (RFC 4987)
+To neutralize SYN flood attacks without consuming server memory, modern operating systems implement **SYN Cookies**:
+1. When the server receives a `SYN`, **it allocates ZERO memory and creates NO kernel state block (TCB)**!
+2. Instead, the server encodes all connection parameters inside its choice of Initial Sequence Number ($Y$):
+   $$Y = \textbf{Hash}\Big(\text{Client IP}, \; \text{Client Port}, \; \text{Server IP}, \; \text{Server Port}, \; \text{Secret Key}, \; \text{MSS Index}\Big)$$
+3. The server transmits `SYN+ACK` with $\text{SEQ} = Y$. If the client was spoofed, nothing happens, and zero server memory is consumed.
+4. If the client is legitimate, it returns the 3rd `ACK` with $\text{ACK\_NUM} = Y + 1$.
+5. The server subtracts $1$ from the incoming acknowledgment number ($Y + 1 - 1 = Y$), re-computes the hash, and verifies that the cookie matches!
+6. Only upon successful cryptographic validation does the server finally allocate kernel memory for the TCB and transition to `ESTABLISHED`.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Handshake Flag and Sequence Number Negotiation
+**Problem Statement:**  
+Consider the three-way handshake mechanism followed during TCP connection establishment between Host $P$ (Client) and Host $Q$ (Server). Let $X$ and $Y$ be 32-bit Initial Sequence Numbers (ISNs) selected by $P$ and $Q$ respectively. Suppose $P$ initiates a connection request by transmitting a TCP segment with $\text{SYN} = 1$, $\text{SEQ} = X$, and $\text{ACK} = 0$. If $Q$ accepts the connection request, determine the exact control flags, sequence number, acknowledgment number, and payload consumption in the segment returned by $Q$ to $P$.
+
+**Step-by-Step Solution:**
+1. **Analyze Server Synchronization Requirements:**  
+   Host $Q$ must accomplish two distinct protocol requirements in its response:
+   * **Synchronize its local sequence space:** $Q$ asserts $\text{SYN} = 1$ and announces its own initial sequence number: $\text{SEQ} = Y$.
+   * **Acknowledge the client's request:** $Q$ asserts $\text{ACK} = 1$ to validate receipt of $P$'s initial segment.
+2. **Determine Acknowledgment Number:**  
+   Even though the initial connection request carries zero application payload bytes, RFC 793 dictates that a control $\text{SYN}$ segment consumes exactly $1$ sequence number ($X$). Therefore, $Q$ expects byte $X + 1$ next:
+   $$\text{ACK Number} = X + 1$$
+3. **Evaluate Remaining Flags:**  
+   Because this segment belongs to the connection establishment phase, the $\text{FIN}$ flag remains cleared ($\text{FIN} = 0$).
+4. **Resulting Segment Parameters:**  
+   $$\text{SYN} = 1, \quad \text{SEQ} = Y, \quad \text{ACK} = 1, \quad \text{ACK Number} = X + 1, \quad \text{FIN} = 0$$
+
+---
+
+### Example 2: Handshake Packet Loss and State Progression
+**Problem Statement:**  
+Evaluate the robustness of the TCP connection establishment protocol under packet loss and determine the validity of the following three architectural assertions:
+1. Loss of the server's $\text{SYN} + \text{ACK}$ segment in transit prevents connection establishment on that attempt.
+2. Loss of the client's final $\text{ACK}$ segment in transit permanently prevents connection establishment.
+3. During a standard passive open without loss, the server transitions through $\text{LISTEN} \to \text{SYN\_RCVD} \to \text{ESTABLISHED}$.
+
+**Step-by-Step Solution:**
+1. **Evaluate Assertion 1 (Loss of Server $\text{SYN}+\text{ACK}$):**  
+   If the server's $\text{SYN}+\text{ACK}$ is dropped in the network, the client never learns the server's ISN ($Y$) and never dispatches the third ACK. The client remains stuck in `SYN_SENT` until its retransmission timer expires to retry. For that exchange attempt, no connection is established. **Assertion 1 is Valid.**
+2. **Evaluate Assertion 2 (Loss of Final Client $\text{ACK}$):**  
+   Upon transmitting the final $\text{ACK}$, the client immediately transitions to `ESTABLISHED` and can immediately send application data. Any subsequent data segment carries the $\text{ACK}$ flag set, which satisfies the server. Furthermore, the server's retransmission timer in `SYN_RCVD` will re-send $\text{SYN}+\text{ACK}$, prompting the client to retransmit the ACK. Thus, establishment is not permanently precluded. **Assertion 2 is Invalid.**
+3. **Evaluate Assertion 3 (Server State Sequence):**  
+   In a normal passive open:
+   * Server begins in **`LISTEN`**.
+   * Receiving a client `SYN` causes the server to send `SYN+ACK` and enter **`SYN_RCVD`**.
+   * Receiving the client's `ACK` completes the handshake and moves the server to **`ESTABLISHED`**.
+   * Note that `SYN_SENT` is strictly an active-open client state and is never traversed by the server during passive open. **Assertion 3 is Valid.**
+
+---
+
+### Example 3: Half-Close Connection Data Flow and Sequence Numbers
+**Problem Statement:**  
+Host $A$ and Host $B$ operate an established TCP connection. Host $A$ initiates a half-close by transmitting a `FIN` segment with sequence number $\text{SEQ} = 3000$ and acknowledgment number $\text{ACK} = 5000$. Host $B$ receives this segment and acknowledges it. Subsequently, Host $B$ transmits $800$ bytes of application data to Host $A$. Determine the exact sequence and acknowledgment numbers used across all three exchanges.
+
+**Step-by-Step Solution:**
+1. **Host $B$'s Acknowledgment of Host $A$'s `FIN`:**  
+   Host $A$'s `FIN` consumes $1$ sequence number ($3000$). Host $B$ acknowledges this segment with:
+   $$\text{ACK Number} = 3000 + 1 = 3001, \quad \text{SEQ Number} = 5000$$
+   Host $A$ enters `FIN_WAIT_2`, and Host $B$ enters `CLOSE_WAIT`.
+2. **Host $B$'s 800-Byte Data Segment:**  
+   Because Host $B$ has not closed its outbound channel, it transmits its data starting at its current sequence number:
+   $$\text{SEQ Number} = 5000, \quad \text{Payload} = 800\text{ bytes}, \quad \text{ACK Number} = 3001$$
+   The sequence numbers consumed by this data span $[5000, 5799]$.
+3. **Host $A$'s Acknowledgment of Data:**  
+   Host $A$ receives the $800$ bytes and acknowledges the next expected byte:
+   $$\text{ACK Number} = 5000 + 800 = 5800, \quad \text{SEQ Number} = 3001$$
+   Host $A$ remains in `FIN_WAIT_2` until Host $B$ concludes its transfer and sends its own `FIN`.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **How many sequence numbers does a SYN segment consume?**  
+  Exactly **$1$ sequence number**, despite containing $0$ bytes of application data. This is necessary because any segment that changes state must be reliably acknowledged.
+* **How many sequence numbers does a pure ACK segment consume?**  
+  Exactly **$0$ sequence numbers**. An ACK that carries no data and no SYN/FIN flags does not advance the sequence number space and is never acknowledged by the peer (preventing infinite acknowledgment loops).
+:::
+
+:::warning Common Interview Traps
+* **Trap: Believing that a lost ACK causes the connection to instantly drop.**  
+  **Debunked:** If the client's 3rd ACK is lost, the server's retransmission timer fires and retransmits the `SYN+ACK`. When the client receives the duplicate `SYN+ACK`, it simply re-sends the ACK.
+* **Trap: Assuming both sides close simultaneously in everyday traffic.**  
+  **Debunked:** While simultaneous close is handled by the TCP specification, standard web traffic follows an asymmetrical teardown: one endpoint (often the client or web server) issues an active close (`FIN`), and the other responds passively before initiating its own close.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "6.3 Transmission Control Protocol (TCP): Segment Header Structure",
+    url: "/coredose/cn/module-06/transmission-control-protocol-tcp-segment-header-structure",
+  }}
+  next={{
+    title: "6.5 TCP State Machine & TIME_WAIT Socket Mechanics",
+    url: "/coredose/cn/module-06/tcp-state-machine-and-time-wait-socket-mechanics",
+  }}
+  courseUrl="/coredose/cn"
+/>

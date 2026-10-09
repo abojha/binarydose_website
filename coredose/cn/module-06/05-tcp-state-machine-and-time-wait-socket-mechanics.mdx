@@ -1,0 +1,552 @@
+---
+title: "6.5 TCP State Machine & TIME_WAIT Socket Mechanics"
+description: "Comprehensive mastery of the 11-state TCP Finite State Machine (RFC 793): Client vs Server transitions, TIME_WAIT socket mechanics (2*MSL), SO_REUSEADDR socket engineering, port exhaustion, and server crash/reset recovery."
+hide_table_of_contents: true
+---
+
+# 6.5 TCP State Machine & TIME_WAIT Socket Mechanics
+
+<CoreDoseLessonHeader
+  module="Module 06: Transport Layer: UDP, TCP & Connection Flow"
+  topic="Topic 6.5"
+  courseUrl="/coredose/cn"
+  readTime="25 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Diplomatic Demilitarized Zone
+
+### 🍳 The Everyday Analogy: The Mandatory Cooling-Off Period
+Imagine two sovereign nations signing a bilateral trade treaty and subsequently terminating it:
+* **The Active Treaty:** Both nations operate embassies, exchange goods, and log trade ledgers (**`ESTABLISHED`**).
+* **The Termination:** When the alliance ends, each nation packs its diplomats and vacates the borders (**`FIN_WAIT`** and **`CLOSE_WAIT`**).
+* **The Mandatory 30-Day Cooling-Off Period (`TIME_WAIT`):**  
+  Why don't the two countries immediately establish a brand-new, unrelated military base on that exact patch of border land the very next minute?
+  * Because rogue couriers carrying old diplomatic messages may still be traveling across mountainous roads! If an old delayed courier suddenly arrives and delivers an outdated treaty instruction, the new base might misunderstand it and trigger accidental chaos.
+  * Therefore, international law enforces a **mandatory cooling-off period**: no new installation can use the border coordinates until all old couriers are guaranteed to have expired.
+
+### 💻 Bridging to Computer Science: Preventing Old Segment Ghosting
+In the Transmission Control Protocol, this cooling-off period is the **`TIME_WAIT` state ($2 \times \text{MSL}$)**.
+
+When a TCP connection closes, the socket 4-tuple `(Source IP, Source Port, Dest IP, Dest Port)` is not instantly recycled. Lingering in `TIME_WAIT` accomplishes two vital distributed systems guarantees:
+1. **Graceful Teardown Guarantee:** It ensures that if the final acknowledgment ($\text{ACK}$) is lost in transit, the host can retransmit it when the peer re-sends its $\text{FIN}$, allowing the peer to close gracefully instead of encountering an abnormal connection reset ($\text{RST}$).
+2. **Flushing Old Duplicate Segments:** It guarantees that old delayed segments from the previous connection wander away and expire from intermediate router buffers, preventing them from corrupting a future incarnation of the connection on the exact same port tuple.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🗺️ The 11-State TCP Finite State Machine (RFC 793)
+
+Every TCP socket descriptor is governed by a deterministic **Finite State Machine (FSM)** consisting of exactly **11 states**.
+
+<FlowDiagram
+  title="Complete 11-State TCP Finite State Machine Architecture (RFC 793)"
+  subtitle="Interactive state transition map showing active open (client), passive open (server), and teardown paths"
+  badge="RFC 793 FSM Specification"
+  nodes={[
+    {
+      id: "state-closed",
+      col: 1,
+      row: 0,
+      label: "CLOSED",
+      sub: "Virtual starting/resting state",
+      color: "gray",
+      icon: "⭕",
+      details: "No connection exists. Socket is unallocated or fully destroyed."
+    },
+    {
+      id: "state-listen",
+      col: 2,
+      row: 0,
+      label: "LISTEN",
+      sub: "Server waiting for incoming SYNs",
+      color: "purple",
+      icon: "👂",
+      details: "Passive open executed via listen() syscall. Awaiting client connection attempts."
+    },
+    {
+      id: "state-synsent",
+      col: 0,
+      row: 1,
+      label: "SYN_SENT",
+      sub: "Client waiting for SYN+ACK",
+      color: "blue",
+      icon: "📤",
+      details: "Active open initiated via connect(). Client SYN dispatched with ISN=X."
+    },
+    {
+      id: "state-synrcvd",
+      col: 2,
+      row: 1,
+      label: "SYN_RCVD",
+      sub: "Server waiting for final ACK",
+      color: "purple",
+      icon: "📥",
+      details: "Server received client SYN, allocated half-open state, returned SYN+ACK."
+    },
+    {
+      id: "state-estab",
+      col: 1,
+      row: 2,
+      label: "ESTABLISHED",
+      sub: "Bidirectional Data Transfer",
+      color: "emerald",
+      icon: "🔄",
+      details: "Full-duplex channel unlocked. Both sequence number directions synchronized."
+    },
+    {
+      id: "state-finwait1",
+      col: 0,
+      row: 3,
+      label: "FIN_WAIT_1",
+      sub: "Client waiting for ACK/FIN",
+      color: "rose",
+      icon: "🛑",
+      details: "Active close: Client sent FIN. Cannot send further application data."
+    },
+    {
+      id: "state-closewait",
+      col: 2,
+      row: 3,
+      label: "CLOSE_WAIT",
+      sub: "Server waiting for local app close",
+      color: "amber",
+      icon: "⏳",
+      details: "Passive close: Received client FIN, sent ACK. Can still transmit outbound data."
+    },
+    {
+      id: "state-finwait2",
+      col: 0,
+      row: 4,
+      label: "FIN_WAIT_2",
+      sub: "Client waiting for server FIN",
+      color: "rose",
+      icon: "👁️",
+      details: "Client received ACK of its FIN. Half-close active. Waiting for server FIN."
+    },
+    {
+      id: "state-closing",
+      col: 1,
+      row: 4,
+      label: "CLOSING",
+      sub: "Simultaneous Close State",
+      color: "rose",
+      icon: "🔀",
+      details: "Both peers sent FIN simultaneously before receiving each other's ACKs."
+    },
+    {
+      id: "state-lastack",
+      col: 2,
+      row: 4,
+      label: "LAST_ACK",
+      sub: "Server waiting for final ACK",
+      color: "amber",
+      icon: "📮",
+      details: "Server sent FIN. Awaiting final acknowledgment from client before dying."
+    },
+    {
+      id: "state-timewait",
+      col: 0,
+      row: 5,
+      label: "TIME_WAIT",
+      sub: "2*MSL Cooling-Off Period",
+      color: "cyan",
+      icon: "⏲️",
+      details: "Client sent final ACK. Waits 2*MSL (60 to 240 sec) to drain old segments and ensure ACK delivery."
+    }
+  ]}
+  edges={[
+    {
+      from: "state-closed",
+      to: "state-listen",
+      label: "Passive Open: bind() & listen()",
+      color: "purple",
+      fromPort: "right",
+      toPort: "left"
+    },
+    {
+      from: "state-closed",
+      to: "state-synsent",
+      label: "Active Open: send SYN",
+      color: "blue",
+      fromPort: "bottom",
+      toPort: "top"
+    },
+    {
+      from: "state-listen",
+      to: "state-synrcvd",
+      label: "rcv SYN / snd SYN+ACK",
+      color: "purple",
+      fromPort: "bottom",
+      toPort: "top"
+    },
+    {
+      from: "state-synsent",
+      to: "state-estab",
+      label: "rcv SYN+ACK / snd ACK",
+      color: "emerald",
+      fromPort: "bottom",
+      toPort: "top",
+      toPortOffset: 0.3
+    },
+    {
+      from: "state-synrcvd",
+      to: "state-estab",
+      label: "rcv ACK",
+      color: "emerald",
+      fromPort: "bottom",
+      toPort: "top",
+      toPortOffset: 0.7
+    },
+    {
+      from: "state-estab",
+      to: "state-finwait1",
+      label: "Active Close: send FIN",
+      color: "rose",
+      fromPort: "bottom",
+      fromPortOffset: 0.3,
+      toPort: "top"
+    },
+    {
+      from: "state-estab",
+      to: "state-closewait",
+      label: "Passive Close: rcv FIN / snd ACK",
+      color: "amber",
+      fromPort: "bottom",
+      fromPortOffset: 0.7,
+      toPort: "top"
+    },
+    {
+      from: "state-finwait1",
+      to: "state-finwait2",
+      label: "rcv ACK of FIN",
+      color: "rose",
+      fromPort: "bottom",
+      toPort: "top"
+    },
+    {
+      from: "state-finwait1",
+      to: "state-closing",
+      label: "Simultaneous: rcv FIN / snd ACK",
+      color: "rose",
+      fromPort: "bottom",
+      fromPortOffset: 0.8,
+      toPort: "top"
+    },
+    {
+      from: "state-closewait",
+      to: "state-lastack",
+      label: "App Close: send FIN",
+      color: "amber",
+      fromPort: "bottom",
+      toPort: "top"
+    },
+    {
+      from: "state-finwait2",
+      to: "state-timewait",
+      label: "rcv FIN / snd ACK",
+      color: "cyan",
+      fromPort: "bottom",
+      toPort: "top"
+    },
+    {
+      from: "state-closing",
+      to: "state-timewait",
+      label: "rcv ACK of FIN",
+      color: "cyan",
+      fromPort: "bottom",
+      toPort: "top",
+      toPortOffset: 0.8
+    },
+    {
+      from: "state-lastack",
+      to: "state-closed",
+      label: "rcv ACK of FIN",
+      color: "gray",
+      fromPort: "right",
+      toPort: "top",
+      toPortOffset: 0.8
+    },
+    {
+      from: "state-timewait",
+      to: "state-closed",
+      label: "Timer Expires (2*MSL)",
+      color: "gray",
+      fromPort: "left",
+      toPort: "top",
+      toPortOffset: 0.2
+    }
+  ]}
+/>
+
+---
+
+## 🔍 Exhaustive Breakdown of the 11 States
+
+| State | Role | What Triggers Entry | Next Valid Transitions |
+| :--- | :--- | :--- | :--- |
+| **`CLOSED`** | Non-existent | System boot, socket destruction, or `TIME_WAIT` expiration. | $\to$ `LISTEN` (passive open) or $\to$ `SYN_SENT` (active open). |
+| **`LISTEN`** | Server | Application executes `listen()`. Server waits for inbound connections. | $\to$ `SYN_RCVD` (upon receiving a client `SYN`). |
+| **`SYN_SENT`** | Client | Application executes `connect()`. Client dispatches `SYN`. | $\to$ `ESTABLISHED` (upon receiving `SYN+ACK`). |
+| **`SYN_RCVD`** | Server | Server received client `SYN` and returned `SYN+ACK`. | $\to$ `ESTABLISHED` (upon receiving client 3rd `ACK`). |
+| **`ESTABLISHED`**| Both | Handshake complete. Bidirectional stream active. | $\to$ `FIN_WAIT_1` (active close) or $\to$ `CLOSE_WAIT` (passive close). |
+| **`FIN_WAIT_1`** | Active Closer | Process calls `close()`. Dispatches initial `FIN`. | $\to$ `FIN_WAIT_2` (received ACK), $\to$ `CLOSING` (simultaneous FIN), or $\to$ `TIME_WAIT` (piggybacked FIN+ACK). |
+| **`FIN_WAIT_2`** | Active Closer | Received ACK of its FIN. Waiting for peer's FIN. | $\to$ `TIME_WAIT` (upon receiving peer's `FIN`). |
+| **`CLOSE_WAIT`** | Passive Closer | Received peer's FIN, returned ACK. Half-close active. | $\to$ `LAST_ACK` (local application calls `close()`). |
+| **`LAST_ACK`** | Passive Closer | Local application closed; server dispatched its own `FIN`. | $\to$ `CLOSED` (upon receiving final client `ACK`). |
+| **`CLOSING`** | Both | Both peers issued active close simultaneously. | $\to$ `TIME_WAIT` (upon receiving ACK of local FIN). |
+| **`TIME_WAIT`** | Active Closer | Received peer's FIN, returned final ACK. | $\to$ `CLOSED` (after waiting $2 \times \text{MSL}$). |
+
+---
+
+## ⏳ Deep-Dive: The Mechanics of the `TIME_WAIT` State
+
+The **`TIME_WAIT`** state is the most heavily scrutinized state in network engineering interviews and systems design rounds.
+
+### What is MSL (Maximum Segment Lifetime)?
+* **MSL** is the maximum duration an IP datagram can theoretically survive wandering through internet router loops before its IP **Time To Live (TTL)** counter decrements to zero and the packet is dropped.
+* **RFC 793 Standard:** Recommends $\text{MSL} = 120\text{ seconds}$ ($2\text{ minutes}$).
+* **Real-World Linux Kernel:** Hardcoded to $\text{MSL} = 30\text{ seconds}$ (`TCP_TIMEWAIT_LEN = 60 * HZ`), meaning Linux sockets linger in `TIME_WAIT` for exactly:
+  $$2 \times \text{MSL} = 2 \times 30 = \mathbf{60\text{ seconds}}$$
+
+---
+
+### The Two Mandatory Reasons for `TIME_WAIT`
+
+<ProtocolLadder
+  title="TIME_WAIT Mechanics: Resending Dropped Final ACK"
+  subtitle="How lingering in TIME_WAIT enables recovery when the final ACK is lost in transit"
+  actors={[
+    { id: "client", label: "Client (TIME_WAIT)", icon: "💻", role: "Active Closer", color: "blue" },
+    { id: "server", label: "Server (LAST_ACK)", icon: "🖥️", role: "Passive Closer", color: "amber" }
+  ]}
+  steps={[
+    {
+      id: "lost-ack",
+      from: "client",
+      to: "server",
+      title: "Step 4: Final ACK Lost in Router Buffer",
+      flags: "ACK = 1",
+      seq: "SEQ = u + 1",
+      ack: "ACK_NUM = w + 1",
+      desc: "Client transmits final ACK and enters TIME_WAIT. However, the packet is dropped by an intermediate congested router.",
+      stateChange: "Server timer continues ticking in LAST_ACK."
+    },
+    {
+      id: "retransmit-fin",
+      from: "server",
+      to: "client",
+      title: "Server Retransmits FIN",
+      flags: "FIN = 1, ACK = 1",
+      seq: "SEQ = w",
+      ack: "ACK_NUM = u + 1",
+      desc: "Server's retransmission timer expires because ACK never arrived. Server safely re-sends its FIN segment.",
+      stateChange: "Server remains in LAST_ACK."
+    },
+    {
+      id: "resend-ack",
+      from: "client",
+      to: "server",
+      title: "Client Resends Final ACK",
+      flags: "ACK = 1",
+      seq: "SEQ = u + 1",
+      ack: "ACK_NUM = w + 1",
+      desc: "Client receives duplicate FIN in TIME_WAIT, realizes ACK was dropped, immediately retransmits ACK, and resets 2*MSL timer.",
+      stateChange: "Server receives fresh ACK and transitions cleanly to CLOSED."
+    }
+  ]}
+/>
+
+#### Reason 1: Graceful Termination Guarantee (Resending the Final ACK)
+* Suppose Host A sends the 4th ACK to Host B and immediately enters `CLOSED`.
+* If that 4th ACK is lost in a router buffer:
+  * Host B remains stuck in the **`LAST_ACK`** state.
+  * Host B's retransmission timer fires, and Host B retransmits its `FIN` segment.
+  * If Host A were already in `CLOSED`, Host A's operating system would not recognize the connection and would reply with an active **`RST` (Reset)** segment!
+  * Host B would perceive this as an ungraceful, abnormal network failure (`Connection reset by peer`).
+* Because Host A lingers in **`TIME_WAIT`**, when Host B's retransmitted `FIN` arrives, Host A recognizes the socket, **re-sends the final ACK**, and resets its $2\text{MSL}$ timer. Host B terminates gracefully!
+
+#### Reason 2: Flushing Delayed Duplicate Segments (Preventing Incarnation Corruption)
+* A TCP connection is uniquely identified by the socket 4-tuple:
+  $$\Big( \text{Source IP}, \; \text{Source Port}, \; \text{Destination IP}, \; \text{Destination Port} \Big)$$
+* If a connection terminates and the client immediately opens a brand-new connection reusing the **exact same ephemeral port** to the exact same server port, this new connection is called an **incarnation** of the old connection.
+* If old delayed data packets from the previous session were wandering through network loops, they might arrive after the new incarnation is established.
+* If sequence numbers coincidentally overlap, the receiving host would mistakenly inject old corrupted data into the brand-new application stream!
+* **Waiting $2\text{MSL}$ guarantees that all packets traveling in both directions will die in transit before the 4-tuple can ever be reused.**
+
+---
+
+## 🏭 Real-World Production Context: Microservice Ephemeral Port Exhaustion & TIME_WAIT Tuning
+
+In high-throughput microservices, API gateways, and reverse proxies (e.g., Nginx, Envoy, HAProxy), `TIME_WAIT` can trigger catastrophic downtime if not architected correctly.
+
+### The Ephemeral Port Exhaustion Crisis:
+1. Suppose an Nginx reverse proxy forwards incoming requests to an upstream backend on `10.0.0.5:8080`.
+2. Nginx opens a new TCP connection for each incoming HTTP request using an ephemeral port.
+3. If Nginx handles $10,000\text{ requests/sec}$ using short-lived connections (`Connection: close`):
+   * Each closed socket remains locked in `TIME_WAIT` for $60\text{ seconds}$.
+   * After 3 seconds, Nginx has consumed $30,000$ ephemeral ports!
+   * The Linux kernel runs out of free ephemeral ports (`net.ipv4.ip_local_port_range`).
+   * Subsequent connection attempts fail with the classic production error:
+     ```
+     connect() failed (99: Cannot assign requested address)
+     ```
+
+### Production Architectural Solutions:
+1. **HTTP Keep-Alive & Connection Pooling:** Reuse existing established TCP connections instead of opening and closing a new socket per HTTP request.
+2. **Enable Socket Reuse (`SO_REUSEADDR`):**  
+   In C/Go/Python network services, servers bind with `SO_REUSEADDR` so that if a server crashes and reboots, it can immediately re-bind to its well-known port even if old sockets remain in `TIME_WAIT`:
+   ```c
+   int opt = 1;
+   setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+   ```
+3. **Linux Kernel TCP Tuning:**
+   ```bash
+   # Allow reuse of TIME_WAIT sockets for outbound connections when safe (RFC 1323 timestamps)
+   sysctl -w net.ipv4.tcp_tw_reuse=1
+   
+   # Expand ephemeral port range
+   sysctl -w net.ipv4.ip_local_port_range="1024 65535"
+   ```
+
+---
+
+## ⚡ The TCP Reset (`RST`) Segment Mechanics
+
+While `FIN` represents a polite, graceful conversation conclusion, `RST` represents an immediate, unceremonious hang-up:
+
+<ProtocolLadder
+  title="TCP Reset (RST) Signal Mechanics: Closed Port Abort"
+  subtitle="Immediate connection rejection when connecting to an unopened destination port"
+  actors={[
+    { id: "sender", label: "Client Host", icon: "💻", role: "Originator", color: "blue" },
+    { id: "receiver", label: "Server Host", icon: "🖥️", role: "Target Endpoint", color: "rose" }
+  ]}
+  steps={[
+    {
+      id: "syn-closed-port",
+      from: "sender",
+      to: "receiver",
+      title: "Connection Attempt to Inactive Port",
+      flags: "SYN = 1, ACK = 0",
+      seq: "SEQ = X",
+      ack: "ACK_NUM = 0",
+      desc: "Client attempts to initiate a 3-way handshake to Port 9999 where no server application is listening.",
+      stateChange: "Server kernel scans local listening table and finds no matching socket."
+    },
+    {
+      id: "rst-ack-reply",
+      from: "receiver",
+      to: "sender",
+      title: "Abrupt Reset (RST + ACK)",
+      flags: "RST = 1, ACK = 1",
+      seq: "SEQ = 0",
+      ack: "ACK_NUM = X + 1",
+      desc: "Server kernel immediately returns RST+ACK to abort the invalid connection attempt without allocating any resources.",
+      stateChange: "Client socket immediately transitions to CLOSED and raises Connection Refused error."
+    }
+  ]}
+/>
+
+### Three Scenarios Where TCP Issues `RST`:
+1. **Port Unreachable:** A client sends a `SYN` to a server port where no application is currently listening. The server kernel responds with `RST+ACK`.
+2. **Process Abortion:** An application crashes or forcibly terminates a socket via `SO_LINGER` with a timeout of 0. TCP sends `RST` to immediately discard all unsent buffer data without waiting for acknowledgments.
+3. **Server Crash & Reboot Recovery:** A server hosting active TCP connections crashes and reboots. When a client sends a data packet over the old connection, the newly rebooted server has lost its in-memory TCB table and responds with `RST`.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Active Close State Progression and Waiting States
+**Problem Statement:**  
+Consider a TCP client and a TCP server communicating across a network. After completing data transmission, the client calls `close()` to terminate the connection, and an initial `FIN` segment is dispatched to the server. The server responds by transmitting an `ACK`, which is received by the client. As per RFC 793, determine:
+1. The exact intermediate state entered by the client while waiting for the server's acknowledgment.
+2. The state in which the client waits for the server's subsequent `FIN` segment.
+3. The final waiting state entered by the client upon receiving the server's `FIN`.
+
+**Step-by-Step Solution:**
+1. **Client Dispatches Initial `FIN`:**  
+   Upon executing `close()`, the client sends `FIN` and transitions from `ESTABLISHED` to **`FIN_WAIT_1`**.
+2. **Client Receives Server `ACK`:**  
+   When the server's `ACK` acknowledging the client's `FIN` arrives, the client transitions from **`FIN_WAIT_1`** to **`FIN_WAIT_2`**.
+3. **Waiting for the Server's `FIN`:**  
+   In **`FIN_WAIT_2`**, the client has finished its own transmissions and passively awaits the server's application to drain and dispatch the server's `FIN` segment. Thus, the state in which the client waits for the server's `FIN` is strictly **`FIN_WAIT_2`**.
+4. **Receipt of Server `FIN`:**  
+   When the server's `FIN` arrives, the client transmits the final `ACK` and transitions to **`TIME_WAIT`**, remaining there for $2\text{MSL}$ before transitioning to `CLOSED`.
+
+---
+
+### Example 2: Server Crash Recovery and Connection Reset Mechanics
+**Problem Statement:**  
+A TCP server application listens on port $P$ on host $S$. A client establishes an active TCP connection to this server. While the connection is active, host $S$ abruptly crashes and reboots. Assume that the client does not employ a TCP keepalive timer. Analyze the physical state of both endpoints and determine the validity of the following runtime behaviors:
+1. If the client sends a packet after the server reboots, it receives a `FIN` segment.
+2. If the client was blocked waiting to receive data from the server, it may wait indefinitely.
+3. The server application can successfully re-bind and listen on port $P$ after rebooting.
+4. If the client sends a data packet after the reboot, it receives an active `RST` segment.
+
+**Step-by-Step Solution:**
+1. **Analyze Behavior 1 (`FIN` upon transmission):**  
+   When host $S$ reboots, its kernel volatile memory is cleared, erasing all Transmission Control Blocks (TCBs). When the client sends data, the server's transport stack receives packets for a non-existent connection. RFC 793 requires the host to respond with an active `RST` (Reset), NOT a `FIN` (`FIN` requires an existing connection state and indicates an orderly close). **Behavior 1 is False.**
+2. **Analyze Behavior 2 (Indefinite wait):**  
+   If the client is blocked on a `read()` socket call waiting for server data and keepalives are disabled, zero packets traverse the wire. The client kernel receives no notification of the crash. The client socket remains stuck in `ESTABLISHED` indefinitely until an explicit transmission or timeout occurs. **Behavior 2 is True.**
+3. **Analyze Behavior 3 (Server re-binds on $P$):**  
+   Following reboot, port $P$ is completely free in the new operating system kernel table. The server process can restart and execute `bind()` and `listen()` on port $P$ without conflict. **Behavior 3 is True.**
+4. **Analyze Behavior 4 (`RST` upon transmission):**  
+   When the client eventually sends data, the server kernel finds no matching socket in its connection table for that 4-tuple and immediately issues an active `RST` segment, terminating the client's orphaned connection. **Behavior 4 is True.**
+
+---
+
+### Example 3: TCP Connection Invariants and Window Dynamics
+**Problem Statement:**  
+Two hosts transfer a large file using an established TCP connection. Evaluate the following architectural statements regarding TCP invariants:
+1. If a segment begins with sequence number $m$, the subsequent segment always begins with sequence number $m + 1$.
+2. If the estimated round-trip time is $t\text{ seconds}$, the retransmission timeout ($\text{RTO}$) is always set greater than or equal to $t$.
+3. The size of the advertised receiver window (`rwnd`) remains constant throughout the connection lifecycle.
+4. The total number of unacknowledged in-flight bytes at the sender is strictly bounded by the receiver's advertised window.
+
+**Step-by-Step Solution:**
+1. **Evaluate Statement 1 (Sequence progression):**  
+   If a segment carries $L$ bytes of application payload starting at sequence number $m$, the subsequent segment begins at sequence number $m + L$. Sequence number increments by $1$ only for pure $1$-byte segments or control flags ($\text{SYN}$ / $\text{FIN}$). For bulk file transfer with $1460$-byte payloads, subsequent sequence numbers increment by $1460$. **Statement 1 is False.**
+2. **Evaluate Statement 2 ($\text{RTO}$ threshold):**  
+   Under Jacobson's algorithm, the retransmission timeout is calculated as:
+   $$\text{RTO} = \text{SRTT} + 4 \times \text{RTTVAR}$$
+   Because variance $\text{RTTVAR} \ge 0$, $\text{RTO}$ is mathematically guaranteed to be greater than or equal to the smoothed round-trip time $\text{SRTT} = t$. **Statement 2 is True.**
+3. **Evaluate Statement 3 (Advertised window constancy):**  
+   The advertised window (`rwnd`) dynamically reflects the receiver's instantaneous available buffer space. As inbound data arrives faster than the application drains it, `rwnd` shrinks; as the application reads data, `rwnd` expands. Thus, `rwnd` is dynamic. **Statement 3 is False.**
+4. **Evaluate Statement 4 (In-flight byte limit):**  
+   By definition of TCP flow control, the sender must never have more unacknowledged in-flight bytes than the receiver's currently advertised window: $\text{In-Flight Bytes} \le \text{rwnd}$. **Statement 4 is True.**
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Which side of the TCP connection enters the `TIME_WAIT` state?**  
+  Exclusively the side that performs the **Active Close** (the endpoint that transmits the very first `FIN` segment). The passive closer transitions through `CLOSE_WAIT` and `LAST_ACK` directly to `CLOSED` upon receiving the final ACK, never touching `TIME_WAIT`.
+* **Why does a server crash cause an RST instead of an ICMP Port Unreachable?**  
+  If the destination host is reachable and its IP stack is running, but no socket matches the incoming transport segment's 4-tuple, Layer 4 handles the mismatch directly by issuing a TCP `RST` segment. (ICMP Port Unreachable is generated for UDP datagrams directed to inactive ports).
+:::
+
+:::warning Common Interview Traps
+* **Trap: Believing that CLOSE_WAIT and TIME_WAIT are equivalent.**  
+  **Debunked:** `CLOSE_WAIT` is a passive closer state indicating the local application has not yet closed its socket; lingering in `CLOSE_WAIT` indicates an **application software bug** (a leaked file descriptor). `TIME_WAIT` is an active closer kernel state enforced intentionally by RFC 793 to ensure network reliability.
+* **Trap: Assuming the TIME_WAIT timer is fixed and cannot be reset.**  
+  **Debunked:** If a host in `TIME_WAIT` receives a duplicate `FIN` from the peer (because its previous ACK was lost), it retransmits the ACK and **resets the $2\text{MSL}$ timer back to zero**, restarting the full waiting period.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "6.4 TCP Connection Management: 3-Way Handshake & 4-Way Teardown",
+    url: "/coredose/cn/module-06/tcp-connection-management-3-way-handshake-and-4-way-teardown",
+  }}
+  next={{
+    title: "7.1 Congestion Principles: Leaky Bucket & Token Bucket Algorithms",
+    url: "/coredose/cn/module-07/congestion-principles-and-leaky-bucket-token-bucket-algorithms",
+  }}
+  courseUrl="/coredose/cn"
+/>

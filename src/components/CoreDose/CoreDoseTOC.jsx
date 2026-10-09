@@ -15,14 +15,21 @@ export default function CoreDoseTOC({
 }) {
   const filteredToc = React.useMemo(() => {
     if (!toc || !Array.isArray(toc)) return [];
-    return toc.filter((item) => {
-      const val = item.value?.toLowerCase() || "";
-      return (
-        !val.includes("everyday analogy") &&
-        !val.includes("bridging to") &&
-        !val.includes("bridge to")
-      );
-    });
+    return toc
+      .map((item) => ({
+        ...item,
+        value: item.value || item.title || "",
+        level: item.level || 2,
+      }))
+      .filter((item) => {
+        const val = item.value?.toLowerCase() || "";
+        return (
+          !val.includes("everyday analogy") &&
+          !val.includes("bridging to") &&
+          !val.includes("bridge to") &&
+          !val.includes("core intuition")
+        );
+      });
   }, [toc]);
 
   if (!filteredToc || filteredToc.length === 0) {

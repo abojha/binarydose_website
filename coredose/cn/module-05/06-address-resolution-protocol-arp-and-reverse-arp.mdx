@@ -1,0 +1,432 @@
+---
+title: "5.6 Address Resolution Protocol (ARP) & Reverse ARP (RARP)"
+description: "Mastery of Address Resolution Protocol (RFC 826), 28-byte packet architecture, ARP Request broadcast vs ARP Reply unicast, Proxy ARP, Gratuitous ARP for failover/DAD, and the architectural evolution from RARP to BOOTP and DHCP."
+hide_table_of_contents: true
+---
+
+# 5.6 Address Resolution Protocol (ARP) & Reverse ARP (RARP)
+
+<CoreDoseLessonHeader
+  module="Module 05: Network Layer: Routing Protocols & Control Plane"
+  topic="Topic 5.6"
+  courseUrl="/coredose/cn"
+  readTime="20 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Classroom Roll Call
+
+### 🍳 The Everyday Analogy: Name vs Desk Number
+Imagine a teacher who needs to hand an exam paper to a student:
+* The teacher knows the student's legal name: *"Alice Smith"* (the **Logical Layer 3 IP Address**).
+* However, to physically deliver the paper, the teacher must know which specific physical chair Alice occupies: *"Row 2, Desk 4"* (the **Physical Layer 2 MAC Address**).
+* If the teacher does not know where Alice sits, the teacher stands at the front of the classroom and speaks aloud to the entire room:
+  $$\text{"Who is Alice Smith? Tell me your desk number!"} \quad \implies \quad \textbf{Broadcast (All students listen)}$$
+* Every student hears the announcement. Thirty students realize their name is not Alice and remain silent.
+* Alice hears her name, raises her hand, and speaks directly back to the teacher:
+  $$\text{"I am Alice Smith; I am sitting at Desk 4."} \quad \implies \quad \textbf{Unicast (Direct response)}$$
+* The teacher hands the paper to Desk 4 and writes down `Alice Smith -> Desk 4` in a notebook (**ARP Cache**) so they never have to shout to the entire room again!
+
+### 💻 Bridging to Computer Science: Bridging the Layer 3 to Layer 2 Gap
+Applications and routing tables operate entirely in the domain of 32-bit **Logical IP Addresses**. 
+* However, physical hardware network interface cards (NICs), switches, and Ethernet cables know nothing about IP addresses.
+* An Ethernet frame traveling across a local area network (LAN) can only be delivered if the frame header contains the correct 48-bit **Physical Hardware (MAC) Address**.
+
+The **Address Resolution Protocol (ARP)** serves as the critical Layer 2.5 "glue" that dynamically discovers and binds a host's physical MAC address to its known IP address.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🔬 The 28-Byte ARP Packet Architecture (RFC 826)
+
+ARP is encapsulated directly inside a Data Link Layer frame (such as Ethernet II with `EtherType = 0x0806`), bypassing the IP protocol entirely.
+
+<PacketHeaderGrid
+  title="Standard 28-Byte ARP Packet Format (RFC 826)"
+  subtitle="Hardware and Protocol address mapping structured across 32-bit word boundaries"
+  totalBits={32}
+  rows={[
+    {
+      rowNumber: 0,
+      bitRange: "Bits 0 - 31",
+      fields: [
+        { name: "Hardware Type (HTYPE)", bits: 16, color: "blue", bitPattern: "0x0001", description: "Identifies link-layer protocol. Set to 1 for Ethernet." },
+        { name: "Protocol Type (PTYPE)", bits: 16, color: "purple", bitPattern: "0x0800", description: "Identifies network-layer protocol. Set to 0x0800 for IPv4." },
+      ],
+    },
+    {
+      rowNumber: 1,
+      bitRange: "Bits 32 - 63",
+      fields: [
+        { name: "HLEN", bits: 8, color: "cyan", bitPattern: "0x06", description: "Hardware address length in bytes (6 for 48-bit MAC)." },
+        { name: "PLEN", bits: 8, color: "emerald", bitPattern: "0x04", description: "Protocol address length in bytes (4 for 32-bit IPv4)." },
+        { name: "Operation Code (Opcode)", bits: 16, color: "amber", bitPattern: "0x0001", description: "1 = ARP Request, 2 = ARP Reply, 3 = RARP Request, 4 = RARP Reply." },
+      ],
+    },
+    {
+      rowNumber: 2,
+      bitRange: "Bits 64 - 95",
+      fields: [
+        { name: "Sender Hardware Address (SHA) - First 32 Bits", bits: 32, color: "rose", description: "First 4 bytes of sender's 48-bit MAC address." },
+      ],
+    },
+    {
+      rowNumber: 3,
+      bitRange: "Bits 96 - 127",
+      fields: [
+        { name: "SHA - Last 16 Bits", bits: 16, color: "rose", description: "Remaining 2 bytes of sender's 48-bit MAC address." },
+        { name: "Sender Protocol Address (SPA) - First 16 Bits", bits: 16, color: "emerald", description: "First 2 bytes of sender's 32-bit IPv4 address." },
+      ],
+    },
+    {
+      rowNumber: 4,
+      bitRange: "Bits 128 - 159",
+      fields: [
+        { name: "SPA - Last 16 Bits", bits: 16, color: "emerald", description: "Remaining 2 bytes of sender's 32-bit IPv4 address." },
+        { name: "Target Hardware Address (THA) - First 16 Bits", bits: 16, color: "gray", description: "First 2 bytes of target MAC (All 0s in ARP Request)." },
+      ],
+    },
+    {
+      rowNumber: 5,
+      bitRange: "Bits 160 - 191",
+      fields: [
+        { name: "Target Hardware Address (THA) - Last 32 Bits", bits: 32, color: "gray", description: "Remaining 4 bytes of target MAC (All 0s in ARP Request; filled in Reply)." },
+      ],
+    },
+    {
+      rowNumber: 6,
+      bitRange: "Bits 192 - 223",
+      fields: [
+        { name: "Target Protocol Address (TPA)", bits: 32, color: "purple", description: "The 32-bit IPv4 address the sender is attempting to resolve." },
+      ],
+    },
+  ]}
+  payload={{
+    name: "Ethernet Minimum Frame Padding",
+    sizeLabel: "18 Bytes",
+    color: "gray",
+    description: "Because 28-byte ARP is smaller than Ethernet's 46-byte minimum payload, 18 padding bytes are appended to satisfy the 64-byte minimum frame size.",
+  }}
+/>
+
+---
+
+## 🔄 The ARP Operational Cycle: Request vs Reply
+
+When Host A (`192.168.1.10`, `MAC_A`) wants to send an IP datagram to Host B (`192.168.1.20`, `MAC_B`) on the same local subnet:
+
+<FlowDiagram
+  title="ARP Resolution: Broadcast Request and Unicast Reply Cycle"
+  subtitle="Host A broadcasts to all nodes; Host B unicasts its hardware MAC address directly back to Host A"
+  domains={[
+    { id: "lan", title: "Local Area Broadcast Domain (VLAN 10)", color: "blue", icon: "🌐", position: "top" }
+  ]}
+  nodes={[
+    { id: "hostA", domain: "lan", col: 0, row: 0, title: "Host A (Sender)", sublabel: "IP: 192.168.1.10", badge: "Requester", icon: "💻", color: "blue" },
+    { id: "switch", domain: "lan", col: 1, row: 0, title: "Layer 2 Switch", sublabel: "Floods Broadcast", badge: "Switch", icon: "⚡", color: "purple" },
+    { id: "hostB", domain: "lan", col: 2, row: 0, title: "Host B (Target)", sublabel: "IP: 192.168.1.20", badge: "Target", icon: "🖥️", color: "emerald" },
+    { id: "hostC", domain: "lan", col: 1, row: 1, title: "Host C (Peer)", sublabel: "IP: 192.168.1.30", badge: "Discard", icon: "🛑", color: "gray" },
+  ]}
+  edges={[
+    { from: "hostA", to: "switch", fromPort: "right", toPort: "left", step: "1", label: "ARP Request (BCast)" },
+    { from: "switch", to: "hostB", fromPort: "right", toPort: "left", step: "2", label: "Flood to Target" },
+    { from: "switch", to: "hostC", fromPort: "bottom", toPort: "top", step: "3", label: "Flood (Ignored)" },
+    { from: "hostB", to: "switch", fromPort: "left", toPort: "right", step: "4", label: "ARP Reply (UCast)" },
+    { from: "switch", to: "hostA", fromPort: "left", toPort: "right", step: "5", label: "Deliver to Host A" },
+  ]}
+/>
+
+### 1. ARP Request: The Broadcast Phase
+1. Host A checks its local OS **ARP Cache Table**. If no entry exists for `192.168.1.20`, Host A generates an ARP Request:
+   * **Sender MAC**: `MAC_A`
+   * **Sender IP**: `192.168.1.10`
+   * **Target MAC**: `00:00:00:00:00:00` (Unknown)
+   * **Target IP**: `192.168.1.20`
+   * **Opcode**: `1` (Request)
+2. Host A encapsulates the packet inside an Ethernet frame with:
+   $$\text{Destination MAC} = \mathbf{FF:FF:FF:FF:FF:FF} \quad (\text{Ethernet Broadcast})$$
+3. The Layer 2 switch receives the frame on port 1 and floods it across all active ports.
+
+### 2. Processing at Receiving Hosts
+* **Host C (`192.168.1.30`)**: Receives the broadcast frame, decapsulates the ARP payload, and compares `Target IP` against its own IP address. Because `192.168.1.20 != 192.168.1.30`, Host C **silently drops the packet**.
+* **Host B (`192.168.1.20`)**:
+  1. Inspects the packet and detects a match: `Target IP == My IP`.
+  2. **Proactive Cache Update**: Host B extracts Host A's mapping (`192.168.1.10 -> MAC_A`) from the request and installs or refreshes it in its own ARP cache!
+  3. Formats an **ARP Reply**.
+
+### 3. ARP Reply: The Unicast Phase
+Because Host B already learned Host A's physical address from the incoming request, Host B does **not need to broadcast**:
+* **Sender MAC**: `MAC_B`
+* **Sender IP**: `192.168.1.20`
+* **Target MAC**: `MAC_A`
+* **Target IP**: `192.168.1.10`
+* **Opcode**: `2` (Reply)
+* Encapsulated inside an Ethernet frame with:
+  $$\text{Destination MAC} = \mathbf{MAC\_A} \quad (\text{Unicast})$$
+The switch forwards the frame directly to Host A's port. Host A updates its ARP cache with `192.168.1.20 -> MAC_B`.
+
+---
+
+## ⚡ Advanced ARP Variants: Proxy ARP & Gratuitous ARP
+
+### 1. Proxy ARP (RFC 1027)
+**Proxy ARP** is a technique where a router answers an ARP Request on behalf of a target host that resides on a completely different subnet:
+
+<FlowPipeline
+  title="Proxy ARP Interception Mechanics"
+  subtitle="Router intercepts ARP on behalf of a remote subnet and responds with its own MAC address"
+  nodes={[
+    {
+      badge: "Source",
+      title: "Host A (Misconfigured /16)",
+      icon: "💻",
+      color: "blue",
+      description: "Believes Host B is on local LAN; broadcasts ARP Request for 192.168.2.20.",
+      connectorLabel: "ARP Request",
+    },
+    {
+      badge: "Proxy Gateway",
+      title: "Router Egress Interface",
+      icon: "🔀",
+      color: "purple",
+      description: "Intercepts request and replies with its own MAC address to rescue Host A.",
+      connectorLabel: "Proxy Reply",
+    },
+    {
+      badge: "Destination",
+      title: "Host B (Remote Subnet)",
+      icon: "🖥️",
+      color: "emerald",
+      description: "Resides on 192.168.2.0/24; receives forwarded packets seamlessly.",
+    },
+  ]}
+/>
+
+* **The Problem**: A legacy host is misconfigured with a `/16` subnet mask instead of `/24`. When it wants to reach `192.168.2.20`, it believes the destination is on the local LAN and broadcasts an ARP Request instead of sending to its default gateway!
+* **The Proxy Solution**: The intermediate router knows how to reach subnet `192.168.2.0/24`. It intercepts the ARP Request and transmits an ARP Reply containing **the router's own MAC address**!
+* Host A transparently sends packets to the router's MAC, which then forwards them across subnets.
+
+### 2. Gratuitous ARP
+A **Gratuitous ARP** is an anomalous ARP packet where a host broadcasts an ARP Request or Reply for its **own IP address**:
+$$\text{Sender IP} = \mathbf{Target\ IP} \quad \text{and} \quad \text{Sender MAC} = \mathbf{My\ MAC}$$
+
+Gratuitous ARP serves two vital production functions:
+1. **Duplicate Address Detection (DAD)**:
+   * When a machine boots or receives a new IP address, it immediately broadcasts a Gratuitous ARP request.
+   * If any machine replies, the operating system instantly alerts: *"IP Address Conflict Detected"* and shuts down the interface.
+2. **High-Availability Cluster Failover (VRRP / CARP / VIPs)**:
+   * When an active load balancer or database server crashes, the backup server takes over the shared Virtual IP (VIP).
+   * The backup server immediately broadcasts a Gratuitous ARP announcement with the VIP and its own MAC address.
+   * Every switch on the network updates its MAC address table, and every server updates its ARP cache instantly, redirecting production traffic in under $10\text{ milliseconds}$ without dropping TCP connections.
+
+---
+
+## 🏛️ The Evolutionary Hierarchy: RARP $\to$ BOOTP $\to$ DHCP
+
+In early computing, diskless workstations lacked hard drives and stored only a burned-in MAC address in ROM. To communicate on the network, they needed to discover their assigned IP address upon boot.
+
+<ConceptComparison
+  title="The Architectural Evolution: RARP vs BOOTP vs DHCP"
+  subtitle="From physical Layer 2 ROM bindings to enterprise Layer 4 dynamic configuration pools"
+  concepts={[
+    {
+      badge: "RARP",
+      title: "Reverse ARP (RARP - RFC 903)",
+      icon: "📼",
+      color: "amber",
+      domain: "Physical Layer 2 Broadcast Only",
+      points: [
+        "Resolves known 48-bit MAC address to unknown 32-bit IP address.",
+        "Operates directly on raw Ethernet (EtherType 0x8035); cannot cross routers.",
+        "Requires a dedicated RARP server on every physical cable segment.",
+        "Supplies strictly an IP address; cannot provide subnet mask or gateway.",
+      ],
+      quote: "Rigid Layer 2 hardware discovery bounded by a single broadcast domain.",
+    },
+    {
+      badge: "DHCP",
+      title: "Dynamic Host Configuration (DHCP - RFC 2131)",
+      icon: "⚡",
+      color: "emerald",
+      domain: "Application Layer over UDP 67/68",
+      points: [
+        "Successor to BOOTP; provides complete network configuration in 4 steps (DORA).",
+        "Traverses routers via DHCP Relay Agents (ip helper-address).",
+        "Dynamic IP lease pools: automatically allocates, reclaims, and renews IPs.",
+        "Delivers IP, Subnet Mask, Default Gateway, DNS servers, NTP, and domain names.",
+      ],
+      quote: "Modern scalable configuration plane with dynamic leases and cross-subnet relaying.",
+    },
+  ]}
+/>
+
+### The DORA Process in DHCP
+DHCP (which evolved from BOOTP) runs entirely over **UDP Port 67 (Server) and Port 68 (Client)**:
+1. **Discover**: Client broadcasts `DHCPDISCOVER` (`255.255.255.255`, source `0.0.0.0`).
+2. **Offer**: DHCP Server reserves an IP and unicasts/broadcasts `DHCPOFFER`.
+3. **Request**: Client broadcasts `DHCPREQUEST` formalizing its choice.
+4. **Acknowledge**: Server responds with `DHCPACK` granting the lease and configuration parameters.
+
+---
+
+## 🏭 Real-World Production Context: ARP Spoofing (Poisoning) & Dynamic ARP Inspection (DAI)
+
+### 1. The ARP Cache Poisoning Attack (Man-in-the-Middle)
+Because ARP was designed without authentication, an operating system will blindly accept an ARP reply **even if it never sent an ARP request**:
+* An attacker on the local Wi-Fi sends continuous unsolicited ARP replies to Host A:
+  $$\text{"192.168.1.1 (Gateway) is at MAC\_ATTACKER"}$$
+* The attacker also sends unsolicited ARP replies to the Default Gateway:
+  $$\text{"192.168.1.10 (Host A) is at MAC\_ATTACKER"}$$
+* **Result**: Host A sends all outbound Internet traffic to the attacker; the gateway sends all inbound return traffic to the attacker. The attacker sniffs or tampers with the traffic before relaying it (**Man-in-the-Middle**).
+
+<FlowPipeline
+  title="ARP Cache Poisoning & Man-in-the-Middle (MitM) Interception"
+  subtitle="Attacker emits forged gratuitous ARP replies to redirect all bidirectional LAN traffic"
+  nodes={[
+    {
+      badge: "Victim Client",
+      title: "Host A (192.168.1.10)",
+      icon: "💻",
+      color: "blue",
+      description: "ARP cache poisoned: believes Gateway MAC is attacker MAC.",
+      connectorLabel: "Outbound Traffic",
+    },
+    {
+      badge: "Man-in-the-Middle",
+      title: "Attacker (Eavesdropper)",
+      icon: "🕵️",
+      color: "rose",
+      description: "Inspects, alters, or logs cleartext packets before relaying.",
+      connectorLabel: "Relayed Traffic",
+    },
+    {
+      badge: "Default Gateway",
+      title: "Router (192.168.1.1)",
+      icon: "🔀",
+      color: "purple",
+      description: "ARP cache poisoned: believes Host A MAC is attacker MAC.",
+    },
+  ]}
+/>
+
+### 2. Enterprise Mitigation: Dynamic ARP Inspection (DAI)
+Modern enterprise switches (Cisco, Arista, Juniper) eradicate ARP spoofing using **Dynamic ARP Inspection (DAI)** coupled with **DHCP Snooping**:
+1. The switch monitors all DHCP transactions on access ports and builds a trusted **DHCP Snooping Binding Table** recording `(Port, MAC, IP, VLAN)`.
+2. When any host transmits an ARP packet, the switch hardware intercepts the frame and validates:
+   $$\text{Does the ARP Sender MAC and Sender IP match the DHCP binding on this physical port?}$$
+3. If an attacker attempts to claim another host's IP address, the switch **instantly drops the packet in hardware** and disables the port (`err-disable`), stopping MitM attacks at line-rate.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Full Ethernet Frame Analysis for an ARP Request
+**Problem Statement:** Host A emits an ARP Request on a standard Ethernet II network.
+1. What is the exact payload size of the ARP packet?
+2. How many bytes of padding must the network interface append?
+3. What is the total length of the frame transmitted on the physical wire including physical layer preamble, SFD, and Inter-Frame Gap (IFG)?
+
+**Step-by-Step Solution:**
+1. **Analyze Base Frame Sizes:**
+   * ARP Packet Size $= 28\text{ bytes}$.
+   * Ethernet II Header $= 14\text{ bytes}$ (Destination MAC $6\text{B}$ + Source MAC $6\text{B}$ + EtherType $2\text{B}$).
+   * Ethernet FCS (CRC-32) $= 4\text{ bytes}$.
+   * Ethernet II requires a **minimum payload of $46\text{ bytes}$** to achieve the minimum frame size of $64\text{ bytes}$ ($14 + 46 + 4 = 64$).
+2. **Calculate Padding:**
+   $$\text{Padding} = 46\text{ (Min Payload)} - 28\text{ (ARP Size)} = \mathbf{18\text{ bytes of padding}}$$
+   * Total Ethernet Frame Size (Header + ARP + Padding + FCS) $= 14 + 28 + 18 + 4 = \mathbf{64\text{ bytes}}$.
+3. **Calculate Total Wire Overhead:**
+   * Preamble $= 7\text{ bytes}$.
+   * Start Frame Delimiter (SFD) $= 1\text{ byte}$.
+   * Ethernet Frame $= 64\text{ bytes}$.
+   * Inter-Frame Gap (IFG) $= 12\text{ bytes}$ equivalent.
+   $$\text{Total Wire Span} = 7 + 1 + 64 + 12 = \mathbf{84\text{ byte-times on the physical channel}}$$
+
+---
+
+### Example 2: Inter-Subnet Hop-by-Hop Address Mutation Across Routers
+**Problem Statement:** Host $S$ (`IP_S: 10.0.1.5, MAC_S`) on Subnet 1 wants to transmit an HTTP request to Server $D$ (`IP_D: 10.0.2.8, MAC_D`) on Subnet 2.
+The subnets are connected by Router $R$, with interface `eth0` on Subnet 1 (`IP_R1: 10.0.1.1, MAC_R1`) and interface `eth1` on Subnet 2 (`IP_R2: 10.0.2.1, MAC_R2`).
+Trace the exact Source IP, Destination IP, Source MAC, and Destination MAC on:
+1. Subnet 1 (from Host $S$ to Router $R$).
+2. Subnet 2 (from Router $R$ to Server $D$).
+
+**Step-by-Step Solution:**
+1. **Analyze Address Roles Across Routing Boundaries:**
+   * **Logical IP Addresses**: Define **end-to-end identity** between original source and final destination. They **NEVER change** during normal hop-by-hop forwarding!
+   * **Physical MAC Addresses**: Define **local link-layer hop** between adjacent physical interfaces. They **change at EVERY router hop**!
+
+2. **Frame on Subnet 1 ($S \to R$):**
+   * Host $S$ determines that $D$ is on a remote subnet. It performs ARP for its **Default Gateway ($R_1$)**.
+   * $\text{Source IP} = \mathbf{10.0.1.5 \ (IP\_S)}$
+   * $\text{Destination IP} = \mathbf{10.0.2.8 \ (IP\_D)}$
+   * $\text{Source MAC} = \mathbf{MAC\_S}$
+   * $\text{Destination MAC} = \mathbf{MAC\_R1}$
+
+3. **Frame on Subnet 2 ($R \to D$):**
+   * Router $R$ strips the Ethernet header, looks up $D$ in its routing table, and performs ARP for $D$ on interface `eth1`.
+   * $\text{Source IP} = \mathbf{10.0.1.5 \ (IP\_S)} \quad (\text{Unchanged!})$
+   * $\text{Destination IP} = \mathbf{10.0.2.8 \ (IP\_D)} \quad (\text{Unchanged!})$
+   * $\text{Source MAC} = \mathbf{MAC\_R2} \quad (\text{Changed to egress interface MAC!})$
+   * $\text{Destination MAC} = \mathbf{MAC\_D} \quad (\text{Changed to destination host MAC!})$
+
+---
+
+### Example 3: ARP Cache Invalidation & Flooding Evaluation
+**Problem Statement:** A switched LAN consists of $100$ active workstations. Host 1 sends a packet to Host 2. Neither host has any entries in their ARP caches.
+1. How many hosts receive the ARP Request frame?
+2. How many hosts process the ARP Request up to the Network/ARP layer?
+3. How many hosts update their ARP cache upon receiving the request?
+4. How many hosts receive the ARP Reply frame?
+
+**Step-by-Step Solution:**
+1. **ARP Request Reception:**
+   * Because the ARP Request has destination MAC `FF:FF:FF:FF:FF:FF`, the switch floods it to all ports.
+   * All remaining $99$ hosts receive the frame.
+2. **ARP Processing:**
+   * Every NIC recognizes the broadcast MAC and passes the payload to the OS ARP subsystem.
+   * All **$99$ hosts** process the ARP Request.
+3. **ARP Cache Update:**
+   * Standard RFC 826 specifies that hosts only update their cache if they already have an existing entry for the sender, or if they are the target of the request.
+   * Host 2 is the intended target; it installs Host 1's mapping into its cache.
+   * Therefore, exactly **$1$ host** (Host 2) installs the new entry.
+4. **ARP Reply Reception:**
+   * The ARP Reply is unicast directly to Host 1's MAC address. The switch forwards it strictly to Host 1's physical port.
+   * Exactly **$1$ host** (Host 1) receives the ARP Reply frame.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why is an ARP Request broadcast while an ARP Reply is unicast?**  
+  An ARP Request must be broadcast because the sender does not know which physical machine owns the target IP address; every machine on the local link must receive the query to check if it is the intended owner. The ARP Reply is unicast because the replying host learned the sender's physical MAC address directly from the incoming ARP Request, making a wasteful broadcast unnecessary.
+
+* **Does an ARP packet cross a Layer 3 router?**  
+  No! Routers do not forward Layer 2 broadcasts (`FF:FF:FF:FF:FF:FF`). An ARP packet is strictly confined to the local broadcast domain (VLAN / subnet). To reach a host on a remote subnet, the sender ARPs for the MAC address of its local default gateway router.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Believing that ARP operates at Layer 3 or Layer 2.**  
+  **Debunked:** ARP is classified as a **Layer 2.5 protocol**. It is encapsulated directly inside Layer 2 data link frames (without an IP header), yet its sole purpose is to translate and bind Layer 3 logical IP addresses.
+
+* **Trap: Confusing Proxy ARP with Default Gateway routing.**  
+  **Debunked:** In standard Default Gateway routing, the sending host knows the destination IP is on another subnet and intentionally sends the packet to the router's MAC address. In Proxy ARP, the sending host is fooled into believing the remote destination is on the local LAN, and the router secretly answers the ARP request with its own MAC address to rescue the misconfigured host.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "5.5 Internet Control Message Protocol (ICMP) & Ping / Traceroute",
+    url: "/coredose/cn/module-05/internet-control-message-protocol-icmp-and-ping-traceroute",
+  }}
+  next={{
+    title: "6.1 Transport Layer Services & Port Addressing Architecture",
+    url: "/coredose/cn/module-06/transport-layer-services-and-port-addressing-architecture",
+  }}
+  courseUrl="/coredose/cn"
+/>

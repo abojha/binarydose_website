@@ -13,3 +13,7 @@ export { default as FlowDiagram } from './FlowDiagram';
 export { default as ProcessMemoryMap } from './ProcessMemoryMap';
 export { default as GanttChart } from './GanttChart';
 export { default as DiskSchedulingChart } from './DiskSchedulingChart';
+export { default as ProtocolLadder } from './ProtocolLadder';
+export { default as ContentionTimeline } from './ContentionTimeline';
+export { default as FrameFormat } from './FrameFormat';
+export { default as PacketHeaderGrid } from './PacketHeaderGrid';

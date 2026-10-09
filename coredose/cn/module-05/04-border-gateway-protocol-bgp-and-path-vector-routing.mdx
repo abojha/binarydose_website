@@ -1,0 +1,376 @@
+---
+title: "5.4 Border Gateway Protocol (BGP) & Path Vector Routing"
+description: "Mastery of Autonomous Systems (AS), Path Vector routing mechanics, loop prevention via AS-PATH, BGP-4 protocol architecture (RFC 4271), eBGP vs iBGP peering over TCP 179, and the 9-step BGP path selection algorithm."
+hide_table_of_contents: true
+---
+
+# 5.4 Border Gateway Protocol (BGP) & Path Vector Routing
+
+<CoreDoseLessonHeader
+  module="Module 05: Network Layer: Routing Protocols & Control Plane"
+  topic="Topic 5.4"
+  courseUrl="/coredose/cn"
+  readTime="22 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The International Diplomatic Passport Routing
+
+### 🍳 The Everyday Analogy: Domestic Highways vs Sovereign Foreign Borders
+Imagine traveling by car across the globe:
+* **Domestic Navigation (Intra-Domain Routing)**: Within your home state, you follow highway signs and GPS algorithms designed purely for speed and lowest mileage. There are no toll gates checking passports or commercial treaties; every driver freely takes the fastest road.
+* **International Crossings (Inter-Domain Routing)**: When you reach international frontiers, physical distance ceases to be the governing factor. Even if driving through Country $X$ is $300\text{ miles}$ shorter, you cannot traverse it if:
+  1. Your home country lacks a diplomatic treaty with Country $X$.
+  2. Country $X$ charges an exorbitant transit tariff that your shipping company refuses to pay.
+  3. Transit laws require cargo to travel strictly through designated trade-bloc allies.
+
+At international borders, **economic contracts, commercial policies, and geopolitical sovereignty dictate transit paths**, not geometric distance.
+
+### 💻 Bridging to Computer Science: The Internet as a Federation of Autonomous Systems
+The global Internet is not a single giant network managed by a unified administrator. It is an interconnected mesh of tens of thousands of independent networks called **Autonomous Systems (AS)** operated by internet service providers (ISPs), cloud hyperscalers (Google, AWS, Microsoft), and universities.
+
+While protocols like OSPF and RIP calculate the fastest path within a single organization (Interior Gateway Protocols), the **Border Gateway Protocol (BGP)** stitches together the entire global Internet across independent sovereign domains using **Path Vector Routing** and business policies.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🌐 Autonomous Systems (AS) & The Path Vector Paradigm
+
+An **Autonomous System (AS)** is defined as a collection of IP networks and routers under the control of a single administrative authority that presents a unified, consistent routing policy to the global Internet.
+
+### 1. Autonomous System Numbers (ASN)
+Every globally routable AS is assigned a unique **Autonomous System Number (ASN)** by IANA and regional registries (ARIN, RIPE, APNIC):
+* **16-bit ASNs (Legacy)**: Range from $1$ to $65,535$. (Public: $1 - 64,511$; Private: $64,512 - 65,534$).
+* **32-bit ASNs (Modern, RFC 4893)**: Range from $65,536$ to $4,294,967,295$, preventing exhaustion in the global routing table.
+
+### 2. Taxonomies of Autonomous Systems
+Autonomous Systems are classified into three operational categories based on how they route external traffic:
+
+| AS Category | Definition | Real-World Example |
+| :--- | :--- | :--- |
+| **Stub AS** | Connected to only **one** upstream AS. Carries strictly local traffic; never carries transit traffic. | A small enterprise, local college campus, or municipal network. |
+| **Multihomed AS** | Connected to **two or more** upstream ASes for redundancy/reliability, but **refuses to carry transit traffic** between them. | Large banks, e-commerce platforms, or corporate headquarters with dual ISP uplinks. |
+| **Transit AS** | Connected to multiple ASes and actively forwards third-party traffic between them for commercial fees. | Tier-1 and Tier-2 telecommunication transit providers (Lumen, NTT, Telia, AT&T). |
+
+---
+
+## 🧭 The Path Vector Algorithm & Loop Prevention
+
+Why couldn't the Internet simply use Distance Vector or Link State across all global networks?
+1. **Distance Vector Fails**: DVR only provides a scalar cost without path visibility, leading to the devastating Count-to-Infinity problem and slow convergence over worldwide spans.
+2. **Link State Fails**: LSR requires every router to maintain an identical, full map of every link and router in the world. With over $1,000,000$ active Internet routes, flooding every local link flap worldwide would swamp router memory and consume massive bandwidth.
+
+### The Path Vector Solution: Explicit AS Paths
+The **Path Vector algorithm** solves both problems with mathematical elegance:
+* Instead of advertising a scalar distance metric ($5\text{ hops}$), a router advertises the **full sequence of Autonomous Systems** that traffic must traverse to reach the destination prefix.
+* This sequence is recorded in the **`AS-PATH`** attribute.
+
+$$\text{Prefix: } 198.51.100.0/24 \quad \implies \quad \text{AS-PATH: } [\text{AS 400}, \ \text{AS 200}, \ \text{AS 100}]$$
+
+<FlowDiagram
+  title="Path Vector Routing & Loop Rejection Architecture"
+  subtitle="Tracing AS-PATH propagation and instant loop detection when an AS detects its own ASN"
+  domains={[
+    { id: "tier1", title: "Global Transit Core", color: "purple", icon: "🌐", position: "top" },
+    { id: "regional", title: "Regional & Customer Domains", color: "blue", icon: "🏢", position: "bottom" }
+  ]}
+  nodes={[
+    { id: "as100", domain: "tier1", col: 0, row: 0, title: "AS 100 (Origin)", sublabel: "Owns 192.0.2.0/24", badge: "ASN 100", icon: "🏠", color: "purple" },
+    { id: "as200", domain: "tier1", col: 1, row: 0, title: "AS 200 (Transit)", sublabel: "Prepends 200", badge: "ASN 200", icon: "⚡", color: "purple" },
+    { id: "as300", domain: "regional", col: 2, row: 1, title: "AS 300 (Peer)", sublabel: "Prepends 300", badge: "ASN 300", icon: "🔀", color: "blue" },
+    { id: "as100_rx", domain: "regional", col: 0, row: 1, title: "AS 100 (Receiver)", sublabel: "Detects ASN 100!", badge: "LOOP REJECT", icon: "🛑", color: "rose" },
+  ]}
+  edges={[
+    { from: "as100", to: "as200", fromPort: "right", toPort: "left", step: "1", label: "AS-PATH: [100]" },
+    { from: "as200", to: "as300", fromPort: "right", toPort: "top", step: "2", label: "AS-PATH: [200, 100]" },
+    { from: "as300", to: "as100_rx", fromPort: "left", toPort: "right", step: "3", label: "AS-PATH: [300, 200, 100]" },
+  ]}
+/>
+
+### Instant Loop Prevention Invariant
+The loop prevention mechanism in Path Vector routing operates in **$O(1)$ constant time**:
+$$\text{If } \text{Local\_ASN} \in \text{AS-PATH}(\text{Route}) \implies \mathbf{DISCARD\_IMMEDIATELY}$$
+
+When Router in AS 100 receives the advertisement with `AS-PATH: [300, 200, 100]`, it scans the list and finds its own identifier (`AS 100`). It immediately knows that accepting this route would create a circular loop ($100 \to 300 \to 200 \to 100$). The route is discarded without any delay, without timers, and without poison reverse!
+
+---
+
+## 🏛️ BGP Architecture: eBGP vs iBGP Sessions
+
+The standard protocol implementing Path Vector routing on the Internet is **BGP-4 (RFC 4271)**.
+
+### Transport Layer Mechanism: TCP Port 179
+Unlike RIP (UDP port 520) or OSPF (IP Protocol 89), **BGP runs on top of TCP (Port 179)**:
+* BGP relies on TCP's built-in 3-way handshake, sequence numbers, checksums, window flow control, and retransmission mechanisms.
+* BGP routers do not need to implement custom fragmentation, loss detection, or periodic table refreshes. BGP updates are sent **incrementally** only when routes change.
+* BGP maintains periodic `KEEPALIVE` messages (default every 60s) to monitor TCP connection health.
+
+<ConceptComparison
+  title="External BGP (eBGP) vs Internal BGP (iBGP)"
+  subtitle="The architectural duality of inter-domain boundary exchange vs intra-domain route distribution"
+  concepts={[
+    {
+      badge: "eBGP",
+      title: "External BGP Peering",
+      icon: "🌐",
+      color: "purple",
+      domain: "Between Different Autonomous Systems",
+      points: [
+        "Connects border routers across distinct sovereign administrative domains.",
+        "Typically direct physical point-to-point links with IP TTL = 1.",
+        "Prepends local ASN to AS-PATH attribute upon advertisement.",
+        "Governed by commercial peering contracts and transit policies.",
+      ],
+      quote: "Advertises prefix reachability across sovereign network borders.",
+    },
+    {
+      badge: "iBGP",
+      title: "Internal BGP Peering",
+      icon: "🏢",
+      color: "blue",
+      domain: "Within the Same Autonomous System",
+      points: [
+        "Distributes externally learned BGP prefixes across all internal border routers.",
+        "Sessions established between loopback IPs routed by local IGP (OSPF/IS-IS).",
+        "Does NOT prepend local ASN to AS-PATH; preserves NEXT-HOP by default.",
+        "Split Horizon rule: routes learned via iBGP are never passed to other iBGP peers.",
+      ],
+      quote: "Synchronizes external route knowledge across the internal core without loops.",
+    },
+  ]}
+/>
+
+1. **External BGP (eBGP)**:
+   * Established between border routers belonging to **different Autonomous Systems**.
+   * Neighbors are typically connected over a direct physical link; the default IP TTL is set to **`1`**.
+   * Prepends the local AS Number to the `AS-PATH` attribute upon advertisement.
+2. **Internal BGP (iBGP)**:
+   * Established between BGP routers located **inside the same Autonomous System**.
+   * Purpose: Transports external routes learned at an edge eBGP router to all other edge routers across the AS.
+   * Routers may be multiple hops apart inside the AS; TCP sessions are established between loopback IP addresses, routed by the underlying IGP (OSPF/IS-IS).
+   * **The iBGP Split Horizon Rule**: To prevent routing loops inside an AS, **a route learned from an iBGP peer is NEVER advertised to another iBGP peer**.
+   * Because of this rule, standard iBGP requires a **Full Mesh** of TCP peering sessions across all internal BGP routers:
+     $$N_{\text{iBGP\_sessions}} = \frac{n(n - 1)}{2}$$
+   * In large networks, full mesh is replaced by **Route Reflectors (RR)** (RFC 4456) or **BGP Confederations** (RFC 5065).
+
+---
+
+## 🏷️ Key BGP Path Attributes
+
+BGP routes are enriched with metadata called **Path Attributes**. Attributes are categorized into four classes:
+
+| Class | Definition | Attributes |
+| :--- | :--- | :--- |
+| **Well-Known Mandatory** | Must be recognized by every BGP implementation and **must be included** in every BGP update. | `ORIGIN`, `AS-PATH`, `NEXT-HOP` |
+| **Well-Known Discretionary** | Must be recognized by every implementation, but **optional to include** in an update. | `LOCAL_PREF`, `ATOMIC_AGGREGATE` |
+| **Optional Transitive** | Might not be recognized by all implementations; if not recognized, the router **passes it along** to other peers intact. | `COMMUNITY`, `AGGREGATOR` |
+| **Optional Non-Transitive** | If not recognized, the router drops the attribute; it is **never forwarded** to other ASes. | `MED` (Multi-Exit Discriminator) |
+
+### Deep-Dive into the Core Attributes
+
+1. **`AS-PATH`**:
+   An ordered list of ASNs. Used for loop detection and path length evaluation. A shorter `AS-PATH` is generally preferred.
+2. **`NEXT-HOP`**:
+   The IP address of the next router to send packets to. 
+   * Across eBGP, `NEXT-HOP` is set to the IP address of the eBGP neighbor.
+   * In iBGP, the `NEXT-HOP` attribute learned from an eBGP peer is **not modified** by default when passed internally, requiring internal routers to know how to reach that external IP or configuring `next-hop-self`.
+3. **`LOCAL_PREF` (Local Preference)**:
+   * Strictly internal to an AS (communicated via iBGP; never advertised across eBGP borders).
+   * Range: 32-bit integer (Default: `100`).
+   * **Controls OUTBOUND (egress) traffic policy**: If an AS has two links to the Internet, setting `LOCAL_PREF = 200` on Link A and `LOCAL_PREF = 100` on Link B forces all internal traffic to exit through Link A. Higher is preferred.
+4. **`MED` (Multi-Exit Discriminator)**:
+   * Also known as the BGP Metric. Advertised across eBGP to a neighboring AS.
+   * **Suggests INBOUND (ingress) traffic preferences**: When an AS has multiple connections to the *same* neighboring AS, `MED` indicates which link the neighbor should use to send traffic in. Lower is preferred.
+
+---
+
+## ⚖️ Architectural Comparison: IGP vs EGP
+
+<ConceptComparison
+  title="Interior Gateway Protocols (IGP) vs Exterior Gateway Protocols (EGP)"
+  subtitle="The fundamental distinction between intra-domain performance optimization and inter-domain policy governance"
+  concepts={[
+    {
+      badge: "IGP",
+      title: "Interior Gateway Protocols (OSPF / IS-IS / RIP)",
+      icon: "⚡",
+      color: "blue",
+      domain: "Within a Single Autonomous System",
+      points: [
+        "Focuses strictly on optimal performance, shortest latency, and lowest link cost.",
+        "Operates under unified administrative control; full mutual trust between all routers.",
+        "Scales to hundreds or thousands of routers within bounded hierarchical areas.",
+        "Uses raw IP (Protocol 89) or UDP (Port 520); recalculates topology dynamically.",
+      ],
+      quote: "Find the fastest, lowest-cost mathematical path through the local network.",
+    },
+    {
+      badge: "EGP",
+      title: "Exterior Gateway Protocols (BGP-4)",
+      icon: "🌐",
+      color: "purple",
+      domain: "Between Distinct Sovereign Autonomous Systems",
+      points: [
+        "Governed by commercial treaties, transit costs, peering contracts, and security policies.",
+        "Operates across zero-trust administrative boundaries; strict ingress/egress filtering.",
+        "Scales to millions of global routes across 100,000+ distinct autonomous systems.",
+        "Uses reliable TCP (Port 179); incremental event-driven Path Vector updates.",
+      ],
+      quote: "Enforce geopolitical and commercial policy contracts between sovereign networks.",
+    },
+  ]}
+/>
+
+---
+
+## 🧠 The 9-Step BGP Path Selection Algorithm
+
+When a BGP router receives multiple valid paths to the same destination prefix, it executes a deterministic, hierarchical tie-breaking algorithm to select the **single best path** to install into the IP Forwarding Information Base (FIB):
+
+
+1. **Highest Weight** (Cisco Proprietary): Local to the individual router. Default `32768` for locally generated routes, `0` for others.
+2. **Highest `LOCAL_PREF`**: Policy decision across the entire AS. Higher value wins.
+3. **Locally Originated Route**: Routes generated locally via `network` or `redistribute` statements win over learned routes.
+4. **Shortest `AS-PATH`**: The path traversing the fewest Autonomous System numbers wins (ignoring AS-Set brackets).
+5. **Lowest Origin Code**: Prefers routes with lower origin types:
+   $$\text{IGP} \ (i) \quad < \quad \text{EGP} \ (e) \quad < \quad \text{INCOMPLETE} \ (?)$$
+6. **Lowest `MED`**: Multi-Exit Discriminator; compared only between routes received from the **same** neighboring AS. Lower value wins.
+7. **Prefer eBGP over iBGP**: External paths learned from an outside neighbor win over internal iBGP paths.
+8. **Lowest IGP Metric to Next-Hop ("Hot-Potato Routing")**: The egress router closest to the local router according to the internal OSPF metric wins (dump the packet out of the local AS as quickly as possible!).
+9. **Lowest BGP Router ID**: Final deterministic tie-breaker comparing the 32-bit IP Router IDs.
+
+---
+
+## 🏭 Real-World Production Context: BGP Hijacking, RPKI & Peering Fabrics
+
+### 1. The BGP Prefix Hijacking Threat
+Because standard BGP was designed in 1989 on mutual trust, any BGP router can technically advertise that it owns an IP prefix belonging to someone else:
+* **The 2008 YouTube Hijack**: Pakistan Telecom was ordered to block YouTube locally. Instead of blocking it internally, they accidentally announced a more-specific route (`208.65.153.0/24`) to their upstream Tier-1 provider (PCCW).
+* Because `/24` is more specific than YouTube's legitimate `/22` advertisement, **the Longest Prefix Match rule caused the entire global Internet's YouTube traffic to get swallowed into Pakistan**, knocking YouTube offline globally for 2 hours!
+
+### 2. Modern Defense: RPKI (Resource Public Key Infrastructure)
+To eradicate BGP hijacking, modern Internet backbones deploy **RPKI**:
+* Address holders sign cryptographic **Route Origin Authorizations (ROAs)** tied to their ASN.
+* Border routers validate incoming BGP advertisements against RPKI caches:
+  * **Valid**: Origin ASN matches cryptographic ROA.
+  * **Invalid**: Prefix hijacked or unauthorized ASN; dropped immediately in hardware.
+  * **NotFound / Unknown**: Unsigned legacy prefix; handled via standard policy.
+
+```bash
+# Querying BGP route table for a prefix with RPKI validation status
+$ vtysh -c "show ip bgp 8.8.8.0/24"
+BGP routing table entry for 8.8.8.0/24
+Paths: (2 available, best #1)
+  Advertised to non-peer-group peers:
+    192.0.2.1
+  15169 (Google)
+    198.51.100.1 from 198.51.100.1 (198.51.100.1)
+      Origin IGP, metric 0, localpref 200, valid, external, best
+      RPKI Validation: Valid (ROA matches AS15169)
+```
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: BGP Best Path Selection Trace
+**Problem Statement:** A border router in AS 500 receives three distinct BGP path announcements for destination subnet `198.51.100.0/24`:
+* **Path A**: `AS-PATH: [100, 200, 300]`, `LOCAL_PREF: 150`, `MED: 50`, learned via eBGP.
+* **Path B**: `AS-PATH: [200, 300]`, `LOCAL_PREF: 100`, `MED: 10`, learned via eBGP.
+* **Path C**: `AS-PATH: [400]`, `LOCAL_PREF: 150`, `MED: 80`, learned via eBGP.
+
+Which path is selected as the best route, and why?
+
+**Step-by-Step Solution:**
+1. **Step 1 (Weight):** Assume default weight ($0$) for all paths.
+2. **Step 2 (LOCAL_PREF):**
+   * Path A: `LOCAL_PREF = 150`
+   * Path B: `LOCAL_PREF = 100`
+   * Path C: `LOCAL_PREF = 150`
+   * Path B is eliminated because its `LOCAL_PREF` ($100$) is strictly lower than Path A and C ($150$).
+3. **Step 3 (Locally Originated):** Both Path A and C were learned from external neighbors.
+4. **Step 4 (Shortest AS-PATH Length):**
+   * Path A has `AS-PATH: [100, 200, 300]` $\implies \text{Length} = \mathbf{3}$.
+   * Path C has `AS-PATH: [400]` $\implies \text{Length} = \mathbf{1}$.
+   * Path C has a strictly shorter `AS-PATH` ($1 < 3$).
+5. **Conclusion:** **Path C** is chosen as the best path.
+   * Notice that Path C has a higher `MED` ($80$ vs $50$), but `MED` is only evaluated at Step 6. Because the tie was broken at Step 4 by `AS-PATH` length, `MED` is never reached!
+
+---
+
+### Example 2: iBGP Full-Mesh Peering Scalability
+**Problem Statement:** An Autonomous System contains $30$ internal BGP routers.
+1. How many iBGP TCP sessions are required to maintain a full mesh?
+2. If the network transitions to using Route Reflectors with $2$ central Route Reflectors and $28$ Route Reflector Clients, how many total iBGP sessions are required?
+
+**Step-by-Step Solution:**
+1. **Full-Mesh iBGP Session Calculation:**
+   $$N_{\text{mesh}} = \frac{n(n - 1)}{2} = \frac{30 \times 29}{2} = \mathbf{435\text{ sessions}}$$
+   Every router must maintain $29$ distinct TCP connections, creating massive socket and memory overhead.
+
+2. **Route Reflector (RR) Architecture Session Calculation:**
+   * Session between the $2$ Route Reflectors: $1$ session.
+   * Sessions between each RR and the $28$ client routers:
+     $$2 \times 28 = 56\text{ sessions}$$
+   * Total sessions across the entire network:
+     $$N_{\text{RR}} = 1 + 56 = \mathbf{57\text{ sessions}}$$
+   * **Result:** Route Reflectors reduce the number of active BGP peering sessions by over **$86\%$** ($435 \to 57$).
+
+---
+
+### Example 3: Hot-Potato Routing (Early-Exit) Analysis
+**Problem Statement:** A nationwide transit ISP (AS 1) spans between New York and Los Angeles.
+* A customer in New York sends traffic destined for a server in London.
+* AS 1 connects to European Transit Provider AS 2 at two border peering points:
+  * Peering Point NY: Internal IGP distance from source $= 5\text{ ms}$.
+  * Peering Point LA: Internal IGP distance from source $= 45\text{ ms}$.
+* AS 2 charges identical transit rates at both locations.
+Explain which peering point AS 1 chooses under standard BGP routing, and contrast this with Cold-Potato Routing.
+
+**Step-by-Step Solution:**
+1. **Evaluate Hot-Potato (Default) Decision:**
+   * In standard BGP step 8, when external path attributes (`LOCAL_PREF`, `AS-PATH`, `MED`) are tied, the router selects the egress point with the **lowest internal IGP metric**.
+   * IGP metric to NY border $= 5\text{ ms}$.
+   * IGP metric to LA border $= 45\text{ ms}$.
+   * Router selects **Peering Point NY**.
+   * **Intuition:** The ISP wants to get rid of the packet as quickly as possible ("hot potato") to avoid consuming internal backbone fiber bandwidth.
+
+2. **Contrast with Cold-Potato Routing:**
+   * If the customer negotiated Quality-of-Service or AS 1 agreed to carry the packet across its premium backbone before handing off, AS 1 would carry the packet further internally. Hot-potato routing minimizes internal transit costs at the expense of end-to-end path control.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does BGP run over TCP (Port 179) while OSPF runs directly over IP (Protocol 89) and RIP over UDP (Port 520)?**  
+  OSPF operates strictly within a single local area or AS where links are directly adjacent or tightly controlled; it does not need TCP's heavy connection state machine and implements its own lightweight ACK mechanism. RIP is a legacy protocol that relied on UDP for broadcast simplicity. BGP, however, must exchange millions of routes across distant, non-adjacent routers spanning the entire globe. TCP provides guaranteed end-to-end reliability, congestion control, fragmentation handling, and sliding window flow control, allowing BGP to focus entirely on route policy.
+
+* **What is the crucial operational difference between `LOCAL_PREF` and `MED`?**  
+  `LOCAL_PREF` is an internal attribute used strictly **within an AS** (via iBGP) to control which exit point traffic uses to **leave the AS** (outbound egress traffic; higher is preferred). `MED` is an attribute advertised **outward to a neighboring AS** (via eBGP) to suggest which entry point the neighbor should use to **enter our AS** (inbound ingress traffic; lower is preferred).
+:::
+
+:::warning Common Interview Traps
+* **Trap: Equating the number of AS hops in `AS-PATH` with physical latency or router hops.**  
+  **Debunked:** An AS hop represents an entire administrative organization. An `AS-PATH` of length $2$ might traverse two giant Tier-1 networks spanning $10,000\text{ miles}$ and $40$ physical router hops. Conversely, an `AS-PATH` of length $4$ might connect four small local ISPs in the same city traversing only $6$ physical routers. BGP chooses the shortest AS-PATH, which is **not necessarily the lowest latency path**!
+
+* **Trap: Forgetting that iBGP does NOT modify the `NEXT-HOP` attribute by default.**  
+  **Debunked:** When an edge router learns an external route via eBGP and advertises it internally via iBGP, it keeps the original external eBGP neighbor's IP address as the `NEXT-HOP`. If internal routers do not know how to route to that external IP, the route becomes unusable. To fix this, administrators must configure `neighbor <ip> next-hop-self` on the border router.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "5.3 Link State Routing (Dijkstra's Algorithm) & OSPF Internals",
+    url: "/coredose/cn/module-05/link-state-routing-dijkstras-algorithm-and-ospf-internals",
+  }}
+  next={{
+    title: "5.5 Internet Control Message Protocol (ICMP) & Ping / Traceroute",
+    url: "/coredose/cn/module-05/internet-control-message-protocol-icmp-and-ping-traceroute",
+  }}
+  courseUrl="/coredose/cn"
+/>

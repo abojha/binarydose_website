@@ -1,0 +1,465 @@
+---
+title: "3.1 Random Access Protocols: Pure ALOHA & Slotted ALOHA"
+description: "Comprehensive mathematical analysis of Medium Access Control (MAC) sublayer, Random Access contention mechanisms, Pure ALOHA vs Slotted ALOHA vulnerable time, throughput derivations, and Poisson distribution models."
+hide_table_of_contents: true
+---
+
+# 3.1 Random Access Protocols: Pure ALOHA & Slotted ALOHA
+
+<CoreDoseLessonHeader
+  module="Module 03: Data Link Layer: MAC Sublayer & Ethernet"
+  topic="Topic 3.1"
+  courseUrl="/coredose/cn"
+  readTime="11 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Unmoderated Dinner Table
+
+### 🍳 The Everyday Analogy: Talking in a Loud Group
+Imagine a dinner party where 10 friends sit around a single table without any moderator:
+* **Pure ALOHA**: Anyone speaks **immediately** whenever a thought crosses their mind. If Alice begins speaking at 7:00:00 and Bob blurts out a word at 7:00:01 while Alice is still speaking, their voices overlap. Neither message is understood by anyone at the table—both utterances turn into garbled noise (**Collision**). Because there is zero coordination, the chances of two speeches overlapping are extremely high.
+* **Slotted ALOHA**: A grandfather clock in the dining room chimes every minute on the dot (7:01:00, 7:02:00, 7:03:00). A strict house rule is instituted: **guests can only start speaking at the exact chime of a clock tick**. If Alice has an idea mid-minute, she must bite her tongue and wait for the chime. If only Alice speaks when the bell rings, she enjoys the entire minute uninterrupted. Collisions can now only happen if two guests decide to speak at the *exact same chime*, cutting the vulnerable collision window in half!
+
+### 💻 Bridging to Computer Science
+When multiple computing nodes share a single broadcast transmission medium (such as a shared wireless radio frequency or a single coaxial wire), multiple simultaneous electrical or radio emissions interfere destructively. 
+
+The **Media Access Control (MAC)** sublayer provides protocols to coordinate channel access. In **Random Access** protocols, there is no centralized master station and no scheduled turn-taking. Stations compete (**contend**) for the channel freely, using mathematical backoff strategies to recover from collisions.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🔀 The Two Sublayers of the Data Link Layer (LLC vs MAC)
+
+In point-to-point links (like a dedicated fiber connecting two core routers), only two nodes exist on the cable; there is no competition for transmission rights. However, in broadcast networks (Ethernet bus, Wi-Fi radio, satellite channels), the medium is shared among tens or hundreds of stations.
+
+To handle both link-layer framing and channel arbitration cleanly, the IEEE 802 committee split the Data Link Layer into two distinct sublayers:
+
+<ConceptComparison
+  subtitle="Separation of logical framing from physical channel contention"
+  concepts={[
+    {
+      badge: "Upper Sublayer",
+      title: "Logical Link Control (LLC - IEEE 802.2)",
+      icon: "🧠",
+      color: "blue",
+      domain: "Media-Independent Logic",
+      points: [
+        "Provides Service Access Points (SAPs) to interface with the Network Layer.",
+        "Manages software flow control, packet sequencing, and error management.",
+        "Completely agnostic to physical wiring, antenna design, or modulation.",
+        "Presents a unified link interface regardless of underlying LAN hardware."
+      ],
+      quote: "Software-level logical framing independent of transmission technology."
+    },
+    {
+      badge: "Lower Sublayer",
+      title: "Media Access Control (MAC - IEEE 802.3 / 802.11)",
+      icon: "⚡",
+      color: "cyan",
+      domain: "Hardware & Contention Arbitration",
+      points: [
+        "Directly interfaces with the Physical Layer transmission medium.",
+        "Embeds unique physical hardware addresses (48-bit MAC addresses).",
+        "Determines which station transmits next on a shared collision domain.",
+        "Implements collision detection, collision avoidance, and backoff timers."
+      ],
+      quote: "Arbitrates channel access among multiple contending transmitters."
+    }
+  ]}
+/>
+
+---
+
+## ❓ Random Access Foundations: The 4 Core Questions
+
+In random access (contention-based) protocols:
+1. **No Master / Slave Hierarchy**: No station is superior to another; no central controller grants transmission tokens.
+2. **No Predetermined Scheduling**: Stations do not have fixed time slots reserved in advance.
+3. **Open Contention**: Stations compete with one another. If two or more stations transmit simultaneously, an **access conflict (collision)** occurs, destroying all overlapping frames.
+
+Every random access protocol must answer **four fundamental operational questions**:
+
+| Question | Operational Concern | Protocol Mechanism |
+| :--- | :--- | :--- |
+| **1. When can a station access?** | Can the station transmit immediately or wait for an idle line? | Immediate transmission in ALOHA; Carrier sensing in CSMA. |
+| **2. What if the medium is busy?** | How does the station respond if another frame is in flight? | Persistence algorithms (1-persistent, non-persistent, $p$-persistent). |
+| **3. How to detect success/failure?** | Does the station listen while talking or rely on receiver ACKs? | Transceiver energy sensing (CSMA/CD) vs timeout-based ACKs (ALOHA). |
+| **4. What if a collision occurs?** | How to prevent colliding stations from re-colliding immediately? | Randomized Backoff Time ($T_B$) with exponential contention windows. |
+
+---
+
+## 📡 Pure ALOHA: Mechanics, Vulnerable Time & Throughput
+
+Developed by Norman Abramson at the University of Hawaii in 1970 to connect remote island campuses via ground radio transceivers, ALOHA is the pioneering foundation of all random access networks.
+
+### Protocol Rule
+> **A station transmits a frame whenever it has data ready to send.**
+
+After transmitting, the station starts a retransmission timer. If an acknowledgment (ACK) is received before the timer expires, the transmission succeeded. If no ACK arrives within the timeout window, the station concludes a collision occurred.
+
+### Why Collisions Occur
+Because stations have no clocks synchronizing their start times, frames can overlap partially or completely. Even if the trailing bit of Frame $A$ collides with the leading bit of Frame $B$, the receiver's CRC check will fail on both frames, forcing both to be discarded entirely.
+
+### Derivation of Vulnerable Time ($V_t$)
+Let all frames have a constant transmission time $T_t = \frac{L}{B}$, where $L$ is frame length in bits and $B$ is bandwidth in bps.
+
+Suppose Station $A$ begins transmitting a frame at time $t_0$. Its transmission completes at time $t_0 + T_t$.
+
+<ContentionTimeline
+  subtitle="Frames can overlap asynchronously at any instant, creating a vulnerable interval of 2 × Tt"
+  mode="pure"
+  vulnerableWindowLabel="2 × Tt"
+  stations={[
+    { id: "S_B", label: "Station B", color: "purple" },
+    { id: "S_A", label: "Station A (Target)", color: "blue" },
+    { id: "S_C", label: "Station C", color: "rose" },
+  ]}
+  timeMarkers={[
+    { time: 0, label: "t0 - Tt" },
+    { time: 1, label: "t0" },
+    { time: 2, label: "t0 + Tt" },
+    { time: 3, label: "t0 + 2·Tt" },
+  ]}
+  frames={[
+    {
+      id: "f_b",
+      station: "S_B",
+      start: 0.4,
+      duration: 1,
+      label: "Frame B",
+      status: "collision",
+      details: "Station B transmits at t0 - 0.6·Tt. The trailing bits of Frame B collide with the leading bits of Frame A.",
+    },
+    {
+      id: "f_a",
+      station: "S_A",
+      start: 1.0,
+      duration: 1,
+      label: "Frame A",
+      status: "collision",
+      details: "Station A transmits at time t0. Both prior transmission B and subsequent transmission C collide with it, destroying Frame A completely.",
+    },
+    {
+      id: "f_c",
+      station: "S_C",
+      start: 1.6,
+      duration: 1,
+      label: "Frame C",
+      status: "collision",
+      details: "Station C transmits at t0 + 0.6·Tt. The leading bits of Frame C collide with the trailing bits of Frame A.",
+    },
+  ]}
+/>
+
+1. **Prior Overlap**: If any Station $B$ began transmitting between $t_0 - T_t$ and $t_0$, the tail of $B$'s frame collides with the head of $A$'s frame.
+2. **Subsequent Overlap**: If any Station $C$ begins transmitting between $t_0$ and $t_0 + T_t$, the head of $C$'s frame collides with the tail of $A$'s frame.
+
+Therefore, for Station $A$'s frame to survive without collision, **no other station must generate or transmit a frame during the entire window of length $2 T_t$**:
+
+$$\Large V_{t,\text{Pure ALOHA}} = 2 \times T_t$$
+
+---
+
+## ⏱️ Slotted ALOHA: Synchronization & Efficiency Doubling
+
+Introduced by Lawrence Roberts in 1972, Slotted ALOHA introduces a global discrete clock to eliminate partial frame overlaps.
+
+### Protocol Rule
+1. Time on the shared channel is segmented into uniform discrete slots of duration equal to the frame transmission time:
+   $$\text{Slot Duration} = T_t = \frac{L}{B}$$
+2. A station is **strictly forbidden** from transmitting mid-slot.
+3. If a station generates a frame at time $t$, it must buffer the frame and wait until the **exact start boundary of the next time slot**.
+
+<ContentionTimeline
+  subtitle="Transmissions forced to discrete slot boundaries, cutting vulnerable time to exactly 1 × Tt"
+  mode="slotted"
+  slotDurationLabel="Tt"
+  vulnerableWindowLabel="1 × Tt"
+  slots={[
+    { id: 1, label: "Slot 1" },
+    { id: 2, label: "Slot 2" },
+    { id: 3, label: "Slot 3" },
+    { id: 4, label: "Slot 4" },
+  ]}
+  stations={[
+    { id: "S_A", label: "Station A", color: "blue" },
+    { id: "S_B", label: "Station B", color: "purple" },
+    { id: "S_C", label: "Station C", color: "emerald" },
+  ]}
+  frames={[
+    {
+      id: "f_s1_a",
+      station: "S_A",
+      start: 0,
+      duration: 1,
+      label: "Frame A",
+      status: "collision",
+      details: "Station A transmits at Slot 1 boundary. Station B also transmits at Slot 1, causing a synchronized collision in Slot 1.",
+    },
+    {
+      id: "f_s1_b",
+      station: "S_B",
+      start: 0,
+      duration: 1,
+      label: "Frame B",
+      status: "collision",
+      details: "Station B transmits at Slot 1 boundary, colliding with Station A. Both stations must execute backoff.",
+    },
+    {
+      id: "f_s3_c",
+      station: "S_C",
+      start: 2,
+      duration: 1,
+      label: "Frame C",
+      status: "success",
+      details: "Station C is the only node transmitting at Slot 3 boundary. Zero collision occurs; frame is delivered cleanly with 100% efficiency.",
+    },
+  ]}
+/>
+
+### Reduction of Vulnerable Time
+Because every transmission is aligned to slot boundaries, frames can no longer collide partially. If Station $A$ begins transmitting at the boundary of Slot $k$ ($t_0$):
+* Any station that generated a frame during Slot $k-1$ transmitted at $t_0 - T_t$ and has **already finished completely**.
+* Any station that generates a frame during Slot $k$ must wait until $t_0 + T_t$.
+
+Hence, a collision can only occur if another station transmits at the **exact same start boundary** ($t_0$). The vulnerable window is reduced to exactly one slot:
+
+$$\Large V_{t,\text{Slotted ALOHA}} = 1 \times T_t$$
+
+---
+
+## ⚖️ Pure vs Slotted ALOHA: Architectural Comparison
+
+<ConceptComparison
+  subtitle="Examining the engineering tradeoff between simplicity and slot synchronization"
+  concepts={[
+    {
+      badge: "Asynchronous",
+      title: "Pure ALOHA Protocol",
+      icon: "🌊",
+      color: "rose",
+      domain: "Zero-Coordination Random Access",
+      points: [
+        "Vulnerable collision time: 2 * Tt (double the frame time).",
+        "Transmission policy: Transmit immediately whenever data is generated.",
+        "Synchronization: Completely asynchronous; zero clock coordination required.",
+        "Maximum Channel Throughput (S_max): 18.4% (occurs at G = 0.5 frames/Tt).",
+        "Overhead: Extremely simple transmitter hardware, zero synchronization beacons."
+      ],
+      quote: "Simplicity at the cost of over 81% wasted channel capacity due to collisions."
+    },
+    {
+      badge: "Synchronous",
+      title: "Slotted ALOHA Protocol",
+      icon: "⏱️",
+      color: "emerald",
+      domain: "Discrete Time-Slot Arbitration",
+      points: [
+        "Vulnerable collision time: 1 * Tt (exactly one frame slot duration).",
+        "Transmission policy: Wait and transmit strictly at next slot boundary.",
+        "Synchronization: Requires global clock synchronization across all stations.",
+        "Maximum Channel Throughput (S_max): 36.8% (occurs at G = 1.0 frame/Tt).",
+        "Overhead: Master station beaconing or GPS receiver sync required on each node."
+      ],
+      quote: "Doubles the usable channel throughput by eliminating partial frame overlaps."
+    }
+  ]}
+/>
+
+---
+
+## 📐 Rigorous Mathematical Throughput Derivations
+
+### Definitions & Parameters
+* $G$: **Offered Channel Load** — the average number of total frame transmission attempts (both newly generated frames and retransmitted collision frames) per frame time $T_t$.
+* $S$: **Throughput** — the average number of successfully delivered frames per frame time $T_t$ ($0 \le S \le 1$).
+* By definition:
+  $$S = G \times P(\text{Successful Transmission})$$
+  $$S = G \times P(\text{Zero other frames transmitted during the vulnerable window})$$
+
+### The Poisson Arrival Model
+In large networks with many independent stations, frame arrivals follow a Poisson distribution with mean arrival rate $\lambda$ frames per second. The probability that exactly $k$ frames are generated in a time window of duration $\Delta t$ is:
+
+$$P(k) = \frac{(\lambda \Delta t)^k \cdot e^{-\lambda \Delta t}}{k!}$$
+
+Let $G = \lambda \cdot T_t$ represent the normalized arrival rate per frame transmission time. For a vulnerable window duration $V_t$:
+
+$$\text{Mean arrivals in } V_t = \lambda \cdot V_t = G \cdot \left(\frac{V_t}{T_t}\right)$$
+
+The probability of zero collisions is the probability of zero frame arrivals in $V_t$ ($k = 0$):
+
+$$P(0) = \frac{(G \cdot \frac{V_t}{T_t})^0 \cdot e^{-G \cdot \frac{V_t}{T_t}}}{0!} = e^{-G \cdot \frac{V_t}{T_t}}$$
+
+---
+
+### Derivation for Pure ALOHA
+For Pure ALOHA, $V_t = 2 T_t$, so $\frac{V_t}{T_t} = 2$:
+
+$$P(\text{Success}) = e^{-2G}$$
+
+$$\Large S_{\text{Pure}} = G \cdot e^{-2G}$$
+
+#### Finding Maximum Throughput
+To find the load $G$ that maximizes throughput $S$, take the first derivative with respect to $G$ and set it to zero:
+
+$$\frac{dS}{dG} = \frac{d}{dG} \left[ G \cdot e^{-2G} \right] = 1 \cdot e^{-2G} + G \cdot (-2 e^{-2G}) = e^{-2G} (1 - 2G) = 0$$
+
+Since $e^{-2G} \ne 0$, we have:
+
+$$1 - 2G = 0 \implies \Large G = \frac{1}{2} = 0.5$$
+
+Substitute $G = 0.5$ into the throughput formula:
+
+$$S_{\max} = 0.5 \cdot e^{-2(0.5)} = 0.5 \cdot e^{-1} = \frac{1}{2e} \approx \frac{1}{2 \times 2.71828} \approx \mathbf{0.1839 \approx 18.4\%}$$
+
+---
+
+### Derivation for Slotted ALOHA
+For Slotted ALOHA, $V_t = 1 T_t$, so $\frac{V_t}{T_t} = 1$:
+
+$$P(\text{Success}) = e^{-G}$$
+
+$$\Large S_{\text{Slotted}} = G \cdot e^{-G}$$
+
+#### Finding Maximum Throughput
+Take the first derivative with respect to $G$ and set it to zero:
+
+$$\frac{dS}{dG} = \frac{d}{dG} \left[ G \cdot e^{-G} \right] = 1 \cdot e^{-G} + G \cdot (-e^{-G}) = e^{-G} (1 - G) = 0$$
+
+$$1 - G = 0 \implies \Large G = 1.0$$
+
+Substitute $G = 1.0$ into the throughput formula:
+
+$$S_{\max} = 1.0 \cdot e^{-1} = \frac{1}{e} \approx \frac{1}{2.71828} \approx \mathbf{0.3679 \approx 36.8\%}$$
+
+> **Key Takeaway**: Synchronizing transmissions to discrete time slots eliminates partial overlaps, exactly **doubling** maximum channel efficiency from $\frac{1}{2e}$ ($18.4\%$) to $\frac{1}{e}$ ($36.8\%$).
+
+---
+
+## 🏭 Real-World Production Context: Satellite Networks & IoT Uplinks
+
+Why study ALOHA if modern Ethernet and Wi-Fi use CSMA/CD and CSMA/CA?
+
+1. **Satellite Ground Terminals (VSAT Uplinks)**:
+   A geostationary satellite orbits $36,000\text{ km}$ above the equator. The propagation delay ($T_p$) to the satellite and back is approximately $250\text{ ms}$–$270\text{ ms}$. 
+   If a ground station attempts to "sense" the channel before transmitting (carrier sensing), the channel status it hears is already $250\text{ ms}$ out of date! Carrier sensing is completely ineffective over high-latency satellite links. Satellites use **Slotted ALOHA** for initial terminal registration and bursty reservation requests.
+2. **Cellular Control Channels (LTE / 5G PRACH)**:
+   When your smartphone transitions from idle sleep mode to active data transfer, it does not yet have a dedicated radio resource block allocated. It transmits a small random preamble over the **Physical Random Access Channel (PRACH)**, which operates on **Slotted ALOHA**.
+3. **IoT Sensor Networks (LoRaWAN Uplink)**:
+   Battery-powered smart water meters and agricultural sensors wake up once an hour to transmit a 50-byte reading. Keeping a GPS or receiver powered on to coordinate slots would deplete their 10-year battery. Instead, LoRaWAN devices transmit via **Pure ALOHA**, keeping circuitry in ultra-low-power sleep 99.9% of the time.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Collision-Free Requirement on Pure ALOHA
+**Problem Statement:** A pure ALOHA network transmits $200\text{-bit}$ frames over a shared wireless channel with a transmission bandwidth of $200\text{ kbps}$. What is the time requirement between any two consecutive frame generation events to guarantee collision-free transmission?
+
+**Step-by-Step Solution:**
+1. **Calculate Transmission Time ($T_t$):**
+   $$T_t = \frac{\text{Frame Size } L}{\text{Bandwidth } B} = \frac{200\text{ bits}}{200 \times 10^3\text{ bps}} = 10^{-3}\text{ seconds} = 1\text{ ms}$$
+2. **Determine Vulnerable Window ($V_t$):**
+   In Pure ALOHA, a frame can collide with transmissions initiated in the prior $T_t$ or subsequent $T_t$:
+   $$V_t = 2 \times T_t = 2 \times 1\text{ ms} = 2\text{ ms}$$
+3. **Conclusion:**
+   To guarantee collision-free operation, no other station must initiate a transmission within $1\text{ ms}$ before or after the current frame. The arrival gap between distinct frame starts must be strictly greater than $2\text{ ms}$.
+
+---
+
+### Example 2: Slotted LAN Transmission Probabilities
+**Problem Statement:** Consider a local area network with four nodes: $S_1, S_2, S_3, S_4$. Time is divided into synchronized slots of length $T_t$. In any given slot, each node independently generates a frame with probabilities:
+$$P(S_1) = 0.1, \quad P(S_2) = 0.2, \quad P(S_3) = 0.3, \quad P(S_4) = 0.4$$
+Calculate the probability that **exactly one station** successfully transmits a frame in the first slot without collision.
+
+**Step-by-Step Solution:**
+1. Let $T_i$ denote the event that station $S_i$ transmits, and $\overline{T_i}$ denote the event that station $S_i$ stays silent:
+   $$P(\overline{T_1}) = 1 - 0.1 = 0.9, \quad P(\overline{T_2}) = 1 - 0.2 = 0.8$$
+   $$P(\overline{T_3}) = 1 - 0.3 = 0.7, \quad P(\overline{T_4}) = 1 - 0.4 = 0.6$$
+2. A successful transmission occurs if and only if **one station transmits while all other three remain silent**. Because station choices are mutually independent, the total success probability is the sum of four disjoint scenarios:
+   $$P(\text{Success}) = P(E_1) + P(E_2) + P(E_3) + P(E_4)$$
+   where:
+   * $P(E_1) = P(S_1 \text{ only}) = 0.1 \times 0.8 \times 0.7 \times 0.6 = 0.1 \times 0.336 = \mathbf{0.0336}$
+   * $P(E_2) = P(S_2 \text{ only}) = 0.9 \times 0.2 \times 0.7 \times 0.6 = 0.18 \times 0.42 = \mathbf{0.0756}$
+   * $P(E_3) = P(S_3 \text{ only}) = 0.9 \times 0.8 \times 0.3 \times 0.6 = 0.72 \times 0.18 = \mathbf{0.1296}$
+   * $P(E_4) = P(S_4 \text{ only}) = 0.9 \times 0.8 \times 0.7 \times 0.4 = 0.72 \times 0.28 = \mathbf{0.2016}$
+3. Sum the four probabilities:
+   $$P(\text{Success}) = 0.0336 + 0.0756 + 0.1296 + 0.2016 = \mathbf{0.4404}$$
+
+---
+
+### Example 3: Symmetric $n$-Station Slotted ALOHA
+**Problem Statement:** In a slotted broadcast channel with $n$ active stations, each station independently attempts transmission in any given slot with probability $p$.
+1. Derive the mathematical expression for the probability that **exactly one** station successfully transmits in a given slot.
+2. Determine the optimal value of $p$ that maximizes system efficiency.
+3. Show the limiting throughput as $n \to \infty$.
+
+**Step-by-Step Solution:**
+1. **Derivation of Success Probability $P_{\text{succ}}$:**
+   For a specific station $A$ to succeed, $A$ must transmit (probability $p$) and all remaining $(n-1)$ stations must remain silent (probability $(1-p)^{n-1}$).
+   Since any of the $n$ stations can be the successful transmitter:
+   $$\Large P_{\text{succ}} = \binom{n}{1} p^1 (1-p)^{n-1} = n p (1-p)^{n-1}$$
+2. **Finding the Optimal Attempt Probability $p^*$:**
+   To maximize $P_{\text{succ}}$, differentiate with respect to $p$ and set to 0:
+   $$\frac{d}{dp} \left[ n p (1-p)^{n-1} \right] = n \left[ (1-p)^{n-1} + p (n-1) (1-p)^{n-2} (-1) \right] = 0$$
+   $$n (1-p)^{n-2} \left[ (1-p) - p(n-1) \right] = 0$$
+   $$1 - p - np + p = 0 \implies 1 - np = 0 \implies \Large p^* = \frac{1}{n}$$
+   > **Intuition**: To maximize success, the expected number of transmissions per slot ($n \times p$) should be exactly equal to $1$.
+3. **Limiting Throughput as $n \to \infty$:**
+   Substitute $p^* = \frac{1}{n}$ into $P_{\text{succ}}$:
+   $$P_{\text{succ},\max} = n \left(\frac{1}{n}\right) \left(1 - \frac{1}{n}\right)^{n-1} = \frac{\left(1 - \frac{1}{n}\right)^n}{1 - \frac{1}{n}}$$
+   As $n \to \infty$, recall the fundamental calculus identity $\lim_{n \to \infty} \left(1 - \frac{1}{n}\right)^n = e^{-1} = \frac{1}{e}$:
+   $$\lim_{n \to \infty} P_{\text{succ},\max} = \frac{e^{-1}}{1 - 0} = \frac{1}{e} \approx \mathbf{0.368 \ (36.8\%)}$$
+   This confirms that Slotted ALOHA achieves a universal asymptotic bound of $36.8\%$ even when scaled to thousands of contending stations.
+
+---
+
+### Example 4: Channel Capacity & Usable Bit Rate
+**Problem Statement:** A pure ALOHA network operates on a shared channel with a transmission bandwidth of $56\text{ kbps}$. If each frame is $1000\text{ bits}$ long:
+1. What is the maximum throughput in frames per second?
+2. What is the maximum usable data rate of the channel?
+
+**Step-by-Step Solution:**
+1. **Frame Transmission Time ($T_t$):**
+   $$T_t = \frac{1000\text{ bits}}{56 \times 10^3\text{ bps}} = \frac{1}{56}\text{ seconds} \approx 0.01786\text{ s} \ (17.86\text{ ms})$$
+2. **Channel Capacity in Frames/Second:**
+   $$\text{Raw Frame Rate} = \frac{1}{T_t} = 56\text{ frames/second}$$
+3. **Maximum Throughput ($S_{\max}$):**
+   $$S_{\max} = 18.4\% \implies \text{Throughput} = 56 \times 0.1839 \approx \mathbf{10.3\text{ frames/second}}$$
+4. **Maximum Usable Data Rate:**
+   $$\text{Usable Bitrate} = \text{Bandwidth} \times S_{\max} = 56\text{ kbps} \times 0.1839 \approx \mathbf{10.3\text{ kbps}}$$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why is Pure ALOHA's vulnerable period $2 T_t$ while Slotted ALOHA's is $1 T_t$?**
+  In Pure ALOHA, stations transmit without synchronization. A transmission started at $t_0$ collides with any frame started between $t_0 - T_t$ and $t_0$ (tail collision) OR between $t_0$ and $t_0 + T_t$ (head collision), spanning a continuous interval of $2 T_t$. In Slotted ALOHA, discrete slot boundaries eliminate all partial overlaps; frames can only collide if stations transmit at the exact same slot boundary, reducing the vulnerable period to $T_t$.
+* **At what offered load $G$ does Slotted ALOHA achieve maximum throughput?**
+  At $G = 1.0$ (meaning an average of 1 transmission attempt per time slot), yielding $S = 1 \cdot e^{-1} = 36.8\%$. For Pure ALOHA, the optimum occurs at $G = 0.5$, yielding $S = 0.5 \cdot e^{-1} = 18.4\%$.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Assuming $G$ equals $S$.**
+  $G$ is the **total offered channel traffic** (new frames + retransmitted colliding frames), while $S$ is the **successful throughput**. For any non-zero collision probability, $G > S$. In heavily congested channels ($G \gg 1$), throughput drops towards zero as almost all transmissions collide ($S \to 0$).
+* **Trap: Forgetting that Carrier Sensing fails over long-delay satellite links.**
+  Interviewers often ask: *"Why not use CSMA/CD on satellite links instead of Slotted ALOHA?"* Because $T_p$ is $\sim 250\text{ ms}$. By the time a station senses an idle carrier, another station hundreds of kilometers away transmitted hundreds of milliseconds ago. The carrier sense signal is stale, making CSMA/CD useless on satellite links.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "2.5 Sliding Window Protocol: Selective Repeat (SR) ARQ",
+    url: "/coredose/cn/module-02/sliding-window-protocol-selective-repeat-arq"
+  }}
+  next={{
+    title: "3.2 CSMA, CSMA/CD & Exponential Backoff Algorithm",
+    url: "/coredose/cn/module-03/csma-csma-cd-and-exponential-backoff-algorithm"
+  }}
+  courseUrl="/coredose/cn"
+/>

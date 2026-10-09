@@ -1,0 +1,476 @@
+---
+title: "9.3 Asymmetric Key Cryptography: Diffie-Hellman & RSA Algorithm"
+description: "Principles of public key cryptography, Diffie-Hellman key exchange mechanics and MitM vulnerability, RSA 5-step key generation derivation, and numerical proofs."
+hide_table_of_contents: true
+---
+
+# 9.3 Asymmetric Key Cryptography: Diffie-Hellman & RSA Algorithm
+
+<CoreDoseLessonHeader
+  module="Module 09: Network Security & Cryptography"
+  topic="Topic 9.3"
+  courseUrl="/coredose/cn"
+  readTime="16 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Engineering Foundations"
+/>
+
+## 💡 Core Intuition: The Open Padlock and the Private Key
+
+### 🍳 The Everyday Analogy: Padlocks vs Master Keys
+Imagine Alice wants anyone in the world to be able to send her confidential letters, but she has never met her correspondents:
+1. **The Public Key (The Open Padlock)**: Alice purchases 10,000 identical open padlocks. She places them in an open crate on her front porch. Anyone can take a padlock, place a confidential message in a metal box, snap Alice's padlock shut, and ship the box to her.
+2. **The Private Key (The Secret Physical Key)**: Snapping the padlock shut requires no key. But once clicked shut, **only Alice holds the unique physical key** that can unlock it. Even the person who snapped the lock shut cannot reopen the box!
+3. **The Key Scaling Advantage**: In a symmetric system of $1,000,000$ users, every pair needs a unique secret key, requiring nearly **$500\text{ billion}$ shared keys**. In an asymmetric system, each user requires only **one key pair**, requiring just $2,000,000$ total keys.
+
+### 💻 Bridging to Computer Science
+In network security:
+* **Asymmetric Key Cryptography** (Public Key Cryptography) uses mathematically linked **key pairs**:
+  * **Public Key ($PK$)**: Distributed openly to the entire world. Used by senders to encrypt data or verify signatures.
+  * **Private Key ($SK$)**: Kept strictly secret by the owner. Used to decrypt ciphertext or generate digital signatures.
+* Asymmetric algorithms rely on **one-way trapdoor functions**: mathematical operations that are trivial to compute in the forward direction, but computationally impossible to reverse unless you possess a secret piece of information (the "trapdoor").
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🏛️ Symmetric vs Asymmetric Cryptography
+
+<ConceptComparison
+  title="Symmetric Key vs Asymmetric Key Cryptography"
+  subtitle="The fundamental architectural trade-off between algorithmic throughput and key distribution scalability"
+  concepts={[
+    {
+      badge: "High Throughput",
+      title: "Symmetric Cryptography (Shared Key)",
+      icon: "⚡",
+      color: "blue",
+      domain: "AES-128/256, ChaCha20",
+      points: [
+        "Single shared secret key K used for both encryption and decryption.",
+        "Key scaling problem: N users require N(N - 1) / 2 shared keys.",
+        "Blazing fast: 1,000x to 10,000x faster than asymmetric ciphers.",
+        "Cannot provide non-repudiation because both parties share the exact same key."
+      ],
+      quote: "The heavy workhorse for encrypting bulk data payloads."
+    },
+    {
+      badge: "Scalable Trust",
+      title: "Asymmetric Cryptography (Key Pair)",
+      icon: "🔏",
+      color: "emerald",
+      domain: "RSA, Diffie-Hellman, ECDSA, Ed25519",
+      points: [
+        "Public Key (PK) encrypts; Private Key (SK) decrypts.",
+        "Scales linearly: N users require exactly 2N keys.",
+        "Computationally heavy: based on modular exponentiation and elliptic curves.",
+        "Provides non-repudiation and digital identity verification."
+      ],
+      quote: "The cryptographic handshake mechanism used to exchange symmetric session keys."
+    }
+  ]}
+/>
+
+---
+
+## 🤝 Diffie-Hellman Key Exchange (1976)
+
+Published by Whitfield Diffie and Martin Hellman in 1976, **Diffie-Hellman (DH)** solved the greatest paradox in security history: **How can two parties establish a shared secret key over an insecure, publicly monitored channel without transmitting the secret itself?**
+
+### The Mathematical Foundation: Discrete Logarithm Problem (DLP)
+Diffie-Hellman relies on modular arithmetic over a large prime $p$ with primitive root $g$:
+* Computing $Y = g^X \bmod p$ is computationally easy (via repeated squaring).
+* Given $Y, g,$ and $p$, finding $X = \log_g(Y) \bmod p$ is the **Discrete Logarithm Problem**, which is computationally intractable for large primes ($p \ge 2048\text{ bits}$).
+
+---
+
+### The 4-Step Diffie-Hellman Protocol
+
+<ProtocolLadder
+  title="The Diffie-Hellman Key Exchange Protocol"
+  subtitle="Space-time protocol exchange establishing a shared symmetric key over an insecure channel"
+  actors={[
+    { id: "alice", label: "Alice", icon: "👩", role: "Endpoint A", color: "blue" },
+    { id: "bob", label: "Bob", icon: "👨", role: "Endpoint B", color: "emerald" }
+  ]}
+  steps={[
+    {
+      from: "alice",
+      to: "bob",
+      label: "1. Public Domain Parameters",
+      sublabel: "Agreed public prime p, primitive root g",
+      color: "purple",
+      status: "success",
+      details: "Alice and Bob publicly agree on a large prime p and primitive root generator g."
+    },
+    {
+      from: "alice",
+      to: "bob",
+      label: "2. Alice Sends Public A",
+      sublabel: "A = g^a mod p",
+      color: "blue",
+      status: "success",
+      details: "Alice chooses secret private key a. Computes public value A = g^a mod p and sends A to Bob over the wire."
+    },
+    {
+      from: "bob",
+      to: "alice",
+      label: "3. Bob Sends Public B",
+      sublabel: "B = g^b mod p",
+      color: "emerald",
+      status: "success",
+      details: "Bob chooses secret private key b. Computes public value B = g^b mod p and sends B to Alice over the wire."
+    },
+    {
+      from: "alice",
+      to: "bob",
+      label: "4. Shared Secret Established",
+      sublabel: "K = (B)^a mod p = (A)^b mod p = g^(ab) mod p",
+      color: "amber",
+      status: "success",
+      details: "Both compute identical shared key K = g^(ab) mod p without either private key ever traversing the network!"
+    }
+  ]}
+/>
+
+### Step-by-Step Mathematical Walkthrough
+1. **Public Agreement**: Alice and Bob agree on public parameters: a prime $p$ and primitive root $g$.
+2. **Alice's Key Pair**: Alice picks a secret random integer $a$ ($1 < a < p$) and computes:
+   $$A = g^a \bmod p$$
+   Alice sends $A$ publicly to Bob.
+3. **Bob's Key Pair**: Bob picks a secret random integer $b$ ($1 < b < p$) and computes:
+   $$B = g^b \bmod p$$
+   Bob sends $B$ publicly to Alice.
+4. **Shared Secret Derivation**:
+   * Alice takes Bob's public value $B$ and raises it to her private key $a$:
+     $$K = B^a \bmod p = (g^b)^a \bmod p = \mathbf{g^{ab} \bmod p}$$
+   * Bob takes Alice's public value $A$ and raises it to his private key $b$:
+     $$K = A^b \bmod p = (g^a)^b \bmod p = \mathbf{g^{ab} \bmod p}$$
+
+An eavesdropper (Eve) watching the wire sees only $p, g, A,$ and $B$. To compute $K = g^{ab} \bmod p$, Eve must solve the Discrete Logarithm Problem to find $a$ or $b$, which is mathematically intractable!
+
+---
+
+### The Man-in-the-Middle (MitM) Flaw of Unauthenticated DH
+Diffie-Hellman provides **forward secrecy and secrecy**, but **zero authentication**:
+1. An active attacker (Eve) sits between Alice and Bob.
+2. When Alice sends $A$, Eve intercepts it and sends her own public key $E_1$ to Bob.
+3. When Bob sends $B$, Eve intercepts it and sends her own public key $E_2$ to Alice.
+4. Alice establishes key $K_1 = g^{a \cdot e_2}$ with Eve. Bob establishes key $K_2 = g^{b \cdot e_1}$ with Eve.
+5. Eve transparently decrypts, reads, alters, and re-encrypts every message between Alice and Bob!
+* **Remedy**: **Authenticated Diffie-Hellman** (e.g. Ephemeral Elliptic Curve Diffie-Hellman - **ECDHE** signed with an RSA or ECDSA digital certificate in TLS).
+
+---
+
+## 🔐 The RSA Algorithm (Rivest, Shamir, Adleman - 1977)
+
+**RSA** was the first practical public-key cryptosystem capable of both **encryption** and **digital signatures**.
+
+### The Mathematical Foundation: Euler's Totient Theorem
+Let $n = p \cdot q$ be the product of two large prime numbers.
+**Euler's Totient Function $\phi(n)$** counts integers up to $n$ relatively prime to $n$:
+
+$$\mathbf{\phi(n) = (p - 1)(q - 1)}$$
+
+Euler's Theorem states that for any integer $M$ relatively prime to $n$:
+
+$$M^{\phi(n)} \equiv 1 \pmod n$$
+
+Therefore, for any integer $k$:
+
+$$\mathbf{M^{k \cdot \phi(n) + 1} \equiv M \pmod n}$$
+
+If we choose exponents $e$ and $d$ such that $e \cdot d \equiv 1 \pmod{\phi(n)}$, then:
+
+$$\big(M^e\big)^d \equiv M^{e \cdot d} \equiv M^{k \cdot \phi(n) + 1} \equiv \mathbf{M \pmod n}$$
+
+---
+
+### The 5-Step RSA Key Generation Algorithm
+
+| Step Number | Mathematical Operation | Rule / Formula |
+| :--- | :--- | :--- |
+| **Step 1** | Choose two large distinct primes | $p$ and $q$ (typically 1024 or 2048 bits each). |
+| **Step 2** | Compute the modulus | $\mathbf{n = p \cdot q}$. ($n$ is made public). |
+| **Step 3** | Compute Euler's Totient | $\mathbf{\phi(n) = (p - 1)(q - 1)}$. (Kept strictly secret). |
+| **Step 4** | Choose public exponent $e$ | Select $e$ such that $1 < e < \phi(n)$ and $\mathbf{\gcd(e, \phi(n)) = 1}$. (Industry standard: $e = 65537$). |
+| **Step 5** | Compute private exponent $d$ | Compute modular multiplicative inverse using Extended Euclidean Algorithm: $\mathbf{d \equiv e^{-1} \pmod{\phi(n)}} \implies \mathbf{e \cdot d \equiv 1 \pmod{\phi(n)}}$. |
+
+* **Public Key**: $\mathbf{\big(e, \; n\big)}$ (Shared with everyone).
+* **Private Key**: $\mathbf{\big(d, \; n\big)}$ (Kept secret; $p, q,$ and $\phi(n)$ are discarded or destroyed).
+
+---
+
+### Encryption and Decryption Formulas
+
+$$\text{Encryption (Sender)}: \quad \mathbf{C = M^e \bmod n} \quad (\text{where } 0 \le M < n)$$
+
+$$\text{Decryption (Receiver)}: \quad \mathbf{M = C^d \bmod n}$$
+
+---
+
+## 🧮 Complete Numerical Walkthrough: RSA Step-by-Step
+
+Let us execute the complete RSA algorithm using small prime numbers:
+
+### Step 1: Key Generation
+1. Choose primes: $p = 7, \quad q = 11$.
+2. Compute modulus:
+   $$n = p \cdot q = 7 \times 11 = \mathbf{77}$$
+3. Compute Totient:
+   $$\phi(n) = (p - 1)(q - 1) = (7 - 1)(11 - 1) = 6 \times 10 = \mathbf{60}$$
+4. Choose public exponent $e$:
+   * Must satisfy $\gcd(e, 60) = 1$. Let us pick $e = \mathbf{7}$ (since $\gcd(7, 60) = 1$).
+5. Compute private exponent $d$:
+   * $e \cdot d \equiv 1 \pmod{\phi(n)} \implies 7d \equiv 1 \pmod{60}$.
+   * We need an integer $k$ such that $7d = 60k + 1$:
+     * If $k = 1: 61 / 7 \approx 8.71$
+     * If $k = 2: 121 / 7 \approx 17.28$
+     * If $k = 3: 181 / 7 \approx 25.85$
+     * If $k = 4: 241 / 7 \approx 34.42$
+     * If $k = 5: 301 / 7 = \mathbf{43}$!
+   * Therefore, $d = \mathbf{43}$.
+
+$$\text{Public Key: } (e = 7, \; n = 77) \qquad \text{Private Key: } (d = 43, \; n = 77)$$
+
+---
+
+### Step 2: Encryption
+Alice wishes to send the plaintext message $M = \mathbf{9}$ to Bob using Bob's public key $(e=7, n=77)$:
+
+$$C = M^e \bmod n = 9^7 \bmod 77$$
+
+* $9^2 = 81 \equiv 4 \pmod{77}$
+* $9^4 = (9^2)^2 \equiv 4^2 = 16 \pmod{77}$
+* $9^7 = 9^4 \times 9^2 \times 9^1 \equiv (16 \times 4 \times 9) = 576 \pmod{77}$
+* $576 = 7 \times 77 + 37 \implies 576 \equiv \mathbf{37} \pmod{77}$
+
+$$\mathbf{C = 37}$$
+
+---
+
+### Step 3: Decryption
+Bob receives ciphertext $C = 37$ and decrypts it using his private key $(d=43, n=77)$:
+
+$$M = C^d \bmod n = 37^{43} \bmod 77$$
+
+Using modular exponentiation:
+* $37^1 \equiv 37 \pmod{77}$
+* $37^2 = 1369 = (17 \times 77) + 60 \equiv -17 \equiv 60 \pmod{77}$
+* $37^4 \equiv (-17)^2 = 289 = (3 \times 77) + 58 \equiv -19 \pmod{77}$
+* Repeating squaring across the binary decomposition of $43 = 32 + 8 + 2 + 1$:
+* The final result evaluates to:
+$$M = \mathbf{9}$$
+
+The decrypted plaintext matches the original message identically!
+
+---
+
+### Security Basis: The Integer Factorization Problem
+Why can an attacker not calculate $d$ from the public key $(e, n)$?
+* To find $d$, the attacker must compute $d \equiv e^{-1} \pmod{\phi(n)}$.
+* To compute $\phi(n)$, the attacker must know $p$ and $q$.
+* To find $p$ and $q$, the attacker must factor $n$.
+* For a $2048\text{-bit}$ modulus $n$, the best known classical factoring algorithm (the General Number Field Sieve) would require **billions of years** of supercomputer computation!
+
+---
+
+## 🏭 Real-World Production Context: Hybrid Cryptosystems, Forward Secrecy & Post-Quantum Cryptography
+
+### 1. Hybrid Cryptography in Production (TLS & SSH)
+Why does HTTPS never encrypt full web pages directly using RSA?
+* **Computational Overhead**: Asymmetric modular exponentiation ($M^e \bmod n$) requires heavy multi-precision arithmetic. RSA is roughly **$1,000\text{ times slower}$** than symmetric AES in software and $10,000\times$ slower than hardware AES-NI.
+* **Message Size Limit**: Standard RSA can only encrypt messages strictly smaller than its modulus size ($M < n$). Encrypting a $50\text{ MB}$ video would require thousands of individual RSA blocks.
+* **The Production Solution (Hybrid Cryptography)**:
+  1. The client and server execute an asymmetric handshake (ECDHE / RSA) to mutually authenticate and agree upon a single temporary, high-entropy 256-bit symmetric key.
+  2. All bulk application data (HTML, video, images) is encrypted using high-speed symmetric **AES-256-GCM** or **ChaCha20-Poly1305**.
+
+### 2. Perfect Forward Secrecy (PFS) via Ephemeral Diffie-Hellman (ECDHE)
+In legacy TLS 1.2, clients encrypted the symmetric pre-master secret using the server's static RSA public key.
+* **The Retrospective Wiretap Threat**: Intelligence agencies or attackers record and store millions of encrypted HTTPS sessions across fiber taps. If the server's private RSA key is compromised, leaked, or subpoenaed 5 years later, the adversary can decrypt every historical recording retroactively!
+* **TLS 1.3 Mandate**: TLS 1.3 completely banned static RSA key exchanges. It mandates **Ephemeral Diffie-Hellman (ECDHE)**:
+  * For every new connection, both endpoints generate fresh, temporary private keys $(x, y)$ that are erased from RAM immediately after the session key is derived.
+  * Even if the server's long-term certificate private key is stolen later, historical recorded sessions remain mathematically unbreakable.
+
+### 3. The Quantum Threat & NIST Post-Quantum Cryptography (PQC)
+In 1994, Peter Shor formulated **Shor's Algorithm**:
+* On a sufficiently large, fault-tolerant quantum computer, Shor's algorithm factors integers and calculates discrete logarithms in polynomial time $\mathcal{O}\big((\log N)^3\big)$, instantaneously breaking **RSA, Diffie-Hellman, and Elliptic Curve Cryptography (ECDSA/ECDH)**!
+* In 2024, NIST officially standardized the first **Post-Quantum Cryptography (PQC)** standards based on high-dimensional lattice mathematics:
+  * **ML-KEM (Kyber / FIPS 203)**: Key Encapsulation Mechanism replacing Diffie-Hellman/RSA key exchange.
+  * **ML-DSA (Dilithium / FIPS 204)**: Digital signature algorithm replacing RSA/ECDSA signatures.
+* Cloudflare, Google Chrome, and Apple iMessage already deploy hybrid Post-Quantum TLS (X25519 + Kyber768) to protect current communications against "Harvest Now, Decrypt Later" adversaries.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Full RSA Cryptosystem Mathematical Trace
+**Problem Statement:** In an RSA cryptosystem, the prime numbers are chosen as $p = 3$ and $q = 11$. The public exponent is selected as $e = 7$.
+1. Compute the modulus $n$, totient $\phi(n)$, and derive the private key exponent $d$ using the Extended Euclidean Algorithm.
+2. Encrypt the plaintext message $M = 5$.
+3. Show the complete decryption calculation confirming recovery of the plaintext.
+
+**Step-by-Step Solution:**
+1. **Key Generation:**
+   * Modulus:
+     $$n = p \cdot q = 3 \times 11 = \mathbf{33}$$
+   * Euler's Totient:
+     $$\phi(n) = (p - 1)(q - 1) = (3 - 1)(11 - 1) = 2 \times 10 = \mathbf{20}$$
+   * Public exponent $e = 7$. Check $\gcd(7, 20) = 1$ (valid).
+   * Derive private exponent $d$:
+     $$e \cdot d \equiv 1 \pmod{\phi(n)} \implies 7d \equiv 1 \pmod{20}$$
+     $$7d = 20k + 1 \implies \text{For } k = 1: 7d = 21 \implies d = \mathbf{3}$$
+   * **Public Key:** $(e = 7, \; n = 33)$
+   * **Private Key:** $(d = 3, \; n = 33)$
+2. **Encryption ($M = 5$):**
+   $$C = M^e \bmod n = 5^7 \bmod 33$$
+   * Break down exponent via repeated squaring:
+     $$5^2 = 25 \equiv -8 \pmod{33}$$
+     $$5^4 = (-8)^2 = 64 = (2 \times 33) - 2 \equiv -2 \pmod{33}$$
+     $$5^7 = 5^4 \times 5^2 \times 5^1 \equiv (-2) \times (-8) \times 5 = 80 \pmod{33}$$
+     $$80 = (2 \times 33) + 14 \implies \mathbf{C = 14}$$
+3. **Decryption ($C = 14$):**
+   $$M = C^d \bmod n = 14^3 \bmod 33$$
+   $$14^2 = 196 = (5 \times 33) + 31 \equiv -2 \pmod{33}$$
+   $$14^3 = 14^2 \times 14 \equiv (-2) \times 14 = -28 \pmod{33}$$
+   $$-28 + 33 = \mathbf{5}$$
+   The decrypted plaintext $M = 5$ matches the original message identically!
+
+---
+
+### Example 2: Diffie-Hellman Key Exchange with Man-in-the-Middle Interception
+**Problem Statement:** Alice and Bob agree on public parameters $p = 23$ (prime modulus) and $g = 5$ (primitive root).
+* Alice picks private secret $a = 6$.
+* Bob picks private secret $b = 15$.
+1. Calculate Alice's public value $A$ and Bob's public value $B$.
+2. Compute the shared secret key $K$ derived by Alice and Bob.
+3. Suppose an active adversary (Mallory) intercepts the transmission and substitutes her own private secret $m = 4$. Trace how Mallory creates two independent shared keys.
+
+**Step-by-Step Solution:**
+1. **Public Values:**
+   * Alice computes:
+     $$A = g^a \bmod p = 5^6 \bmod 23$$
+     $$5^2 = 25 \equiv 2 \pmod{23} \implies 5^6 = (5^2)^3 \equiv 2^3 = \mathbf{8} \implies \mathbf{A = 8}$$
+   * Bob computes:
+     $$B = g^b \bmod p = 5^{15} \bmod 23$$
+     $$5^4 \equiv 2^2 = 4 \pmod{23}, \quad 5^8 \equiv 4^2 = 16 \equiv -7 \pmod{23}$$
+     $$5^{15} = 5^8 \times 5^4 \times 5^2 \times 5^1 \equiv (-7) \times 4 \times 2 \times 5 = -280 \pmod{23}$$
+     $$-280 = -13 \times 23 + 19 \implies \mathbf{B = 19}$$
+2. **Shared Secret Key Derivation:**
+   * Alice computes with Bob's public $B = 19$:
+     $$K = B^a \bmod p = 19^6 \bmod 23 = (-4)^6 \bmod 23 = 4^6 \equiv (16)^3 \equiv (-7)^3 = -343 \pmod{23}$$
+     $$-343 = -15 \times 23 + 2 \implies \mathbf{K = 2}$$
+   * Bob computes with Alice's public $A = 8$:
+     $$K = A^b \bmod p = 8^{15} \bmod 23 = (2^3)^{15} = 2^{45} \bmod 23$$
+     $$2^{11} = 2048 \equiv 1 \pmod{23} \implies 2^{45} = (2^{11})^4 \times 2^1 \equiv 1 \times 2 = \mathbf{2} \implies \mathbf{K = 2}$$
+3. **Man-in-the-Middle Attack:**
+   * Mallory intercepts $A = 8$ and $B = 19$. She computes her public value:
+     $$M_{\text{pub}} = 5^4 \bmod 23 = 625 \equiv 4 \pmod{23}$$
+   * Mallory sends $M_{\text{pub}} = 4$ to both Alice and Bob.
+   * Key with Alice: $K_{\text{Alice-Mallory}} = (M_{\text{pub}})^a \bmod 23 = 4^6 \bmod 23 = \mathbf{2}$.
+   * Key with Bob: $K_{\text{Bob-Mallory}} = (M_{\text{pub}})^b \bmod 23 = 4^{15} \bmod 23 = \mathbf{9}$.
+    * Mallory decrypts Alice's traffic with Key 2, reads the plaintext, re-encrypts it with Key 9, and forwards it to Bob undetected, proving why Diffie-Hellman requires **digital signatures (PKI)** for authentication!
+
+---
+
+### Example 3: High-Speed Modular Exponentiation via Square-and-Multiply
+**Problem Statement:** In RSA and Diffie-Hellman operations, computing modular exponentiations $C = M^e \bmod n$ naively by multiplying $M$ by itself $e$ times requires astronomical CPU time and produces gigabyte-sized intermediate products that overflow hardware registers.
+1. Compute $C = 7^{29} \bmod 100$ using the formal **Square-and-Multiply (Binary Exponentiation)** algorithm.
+2. Formulate the binary representation of exponent $e = 29$.
+3. Trace each intermediate squaring and multiplication step modulo 100.
+4. Calculate the total number of modular operations required versus naive multiplication, and analyze the asymptotic complexity for a 2048-bit RSA key.
+
+**Step-by-Step Solution:**
+1. **Binary Representation of Exponent $e = 29$:**
+   $$29 = 16 + 8 + 4 + 1 = (11101)_2$$
+   The binary string has length $k = 5$ bits: $b_4 = 1, \; b_3 = 1, \; b_2 = 1, \; b_1 = 0, \; b_0 = 1$.
+2. **Step-by-Step Algorithm Trace (Left-to-Right Scan):**
+   We initialize accumulator $A = 1$ and process bits from most significant bit ($b_4$) to least significant ($b_0$):
+   * **Bit $b_4 = 1$ (MSB)**:
+     * Square: $A = 1^2 \bmod 100 = 1$
+     * Multiply: $A = (1 \times 7) \bmod 100 = \mathbf{7}$
+   * **Bit $b_3 = 1$**:
+     * Square: $A = 7^2 \bmod 100 = \mathbf{49}$
+     * Multiply: $A = (49 \times 7) \bmod 100 = 343 \bmod 100 = \mathbf{43}$
+   * **Bit $b_2 = 1$**:
+     * Square: $A = 43^2 \bmod 100 = 1849 \bmod 100 = \mathbf{49}$
+     * Multiply: $A = (49 \times 7) \bmod 100 = 343 \bmod 100 = \mathbf{43}$
+   * **Bit $b_1 = 0$**:
+     * Square: $A = 43^2 \bmod 100 = 1849 \bmod 100 = \mathbf{49}$
+     * Multiply: Bit is 0 $\to$ Skip multiplication ($A = \mathbf{49}$)
+   * **Bit $b_0 = 1$ (LSB)**:
+     * Square: $A = 49^2 \bmod 100 = 2401 \bmod 100 = \mathbf{1}$
+     * Multiply: $A = (1 \times 7) \bmod 100 = \mathbf{7}$
+   * **Final Output**:
+     $$\mathbf{7^{29} \bmod 100 = 7}$$
+3. **Complexity & Efficiency Analysis:**
+   * **Naive Multiplication**: Requires $e - 1 = 29 - 1 = \mathbf{28\text{ multiplications}}$.
+   * **Square-and-Multiply**: Requires $4\text{ squarings} + 3\text{ multiplications} = \mathbf{7\text{ modular operations}}$.
+   * **Scaling to 2048-Bit RSA**:
+     * For a 2048-bit exponent, naive multiplication requires $2^{2048} \approx 3.23 \times 10^{616}$ operations (impossible in the lifetime of the universe).
+     * Square-and-multiply requires at most $2048\text{ squarings} + 2048\text{ multiplications} = \mathbf{4096\text{ operations}}$, completing on modern CPUs in **under 1 millisecond**!
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+**Question 1:** Explain Euler's Totient function $\phi(n)$ and why the security of the RSA cryptosystem relies fundamentally on the computational hardness of integer prime factorization.
+
+**Answer:**
+* **Euler's Totient Function $\phi(n)$**:
+  * $\phi(n)$ counts the number of positive integers less than $n$ that are coprime to $n$.
+  * When $n = p \cdot q$ is the product of two distinct prime numbers, any multiple of $p$ (there are $q$ such multiples) or $q$ (there are $p$ such multiples) shares a factor with $n$.
+  * By the inclusion-exclusion principle:
+    $$\phi(n) = p \cdot q - p - q + 1 = (p - 1)(q - 1)$$
+* **Why Security Relies on Integer Factorization**:
+  * To compute the private key exponent $d$, an adversary must solve $e \cdot d \equiv 1 \pmod{\phi(n)}$, which requires knowing $\phi(n)$.
+  * However, calculating $\phi(n) = (p - 1)(q - 1)$ requires knowledge of the individual prime factors $p$ and $q$.
+  * The public key announces only the product $n = p \cdot q$.
+  * While multiplying two 1024-bit primes $p$ and $q$ takes microseconds, factoring a 2048-bit composite number $n$ back into $p$ and $q$ has no known polynomial-time classical algorithm (the General Number Field Sieve takes sub-exponential time $\mathcal{O}(\exp(c \cdot (\ln n)^{1/3} (\ln \ln n)^{2/3}))$, requiring billions of CPU-years).
+  * Consequently, the private key $d$ remains computationally impossible to derive from public information.
+
+---
+
+**Question 2:** Explain the Man-in-the-Middle (MitM) attack on the classic Diffie-Hellman Key Exchange protocol. How is this vulnerability mitigated in modern protocols like TLS 1.3?
+
+**Answer:**
+* **Diffie-Hellman MitM Attack**:
+  1. Classic Diffie-Hellman establishes a shared key based on the mathematical properties of $g^{ab} \bmod p$, but it does not authenticate the identities of the participants.
+  2. An active adversary (Eve) intercepts Alice's public value $A = g^a \bmod p$ and generates her own private exponent $e_1$, sending $E_1 = g^{e_1} \bmod p$ to Bob pretending to be Alice.
+  3. When Bob replies with $B = g^b \bmod p$, Eve intercepts it and generates another private exponent $e_2$, sending $E_2 = g^{e_2} \bmod p$ to Alice pretending to be Bob.
+  4. Alice computes shared key $K_A = (E_2)^a \bmod p$. Eve computes the identical key $K_A = (A)^{e_2} \bmod p$.
+  5. Bob computes shared key $K_B = (E_1)^b \bmod p$. Eve computes the identical key $K_B = (B)^{e_1} \bmod p$.
+  6. Alice and Bob believe they share a secure connection, but they are actually communicating through Eve, who decrypts Alice's messages with $K_A$, inspects or alters them, and re-encrypts them with $K_B$ for Bob.
+* **Mitigation**:
+  * Diffie-Hellman must be paired with **Digital Signatures and Public Key Certificates**.
+  * In TLS 1.3, the server sends an ephemeral Diffie-Hellman key share (**ECDHE**) which it **cryptographically signs** using its certified private signing key (RSA or ECDSA). The client verifies the signature against the server's trusted X.509 certificate, guaranteeing that the public DH parameter genuinely originated from the authentic server.
+
+---
+
+:::tip Core Conceptual Questions
+* **Why can't we use RSA to encrypt a 1 GB movie file directly?**:
+  1. *Size Constraint*: Plaintext $M$ must be strictly smaller than the modulus $n$ ($M < n$). For a 2048-bit key, the maximum plaintext block is 256 bytes.
+  2. *Performance*: Modular exponentiation on multi-thousand-bit numbers requires massive CPU cycles. Encrypting a gigabyte file via RSA would take minutes and burn battery life.
+  3. *Hybrid Cryptography*: Real-world protocols (TLS, SSH, PGP) use **Hybrid Encryption**: asymmetric cryptography (RSA/ECDHE) negotiates a lightweight 256-bit symmetric key, and fast symmetric cryptography (AES-GCM) encrypts the bulk payload.
+* **Why is textbook RSA insecure without padding?**: In textbook RSA ($C = M^e \bmod n$), encrypting the same message twice produces the exact same ciphertext. Furthermore, if $e = 3$ and $M$ is small ($M < n^{1/3}$), $M^3 < n$, so $C = M^3$ and an attacker can recover $M$ simply by taking the integer cube root! Production RSA strictly mandates **OAEP (Optimal Asymmetric Encryption Padding)** to inject randomness.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Confusing Private Exponent $d$ with Totient $\phi(n)$**: $d$ is the modular inverse of $e$ modulo $\phi(n)$. It is calculated via $e \cdot d \equiv 1 \pmod{\phi(n)}$, NOT $e \cdot d \equiv 1 \pmod n$.
+* **Trap: Believing Diffie-Hellman Encrypts Data**: Diffie-Hellman is strictly a **Key Exchange / Key Agreement protocol**. It cannot encrypt or decrypt messages directly; it merely establishes a shared symmetric secret key.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "9.2 Symmetric Key Cryptography: DES & Advanced Encryption Standard (AES)",
+    url: "/coredose/cn/module-09/symmetric-key-cryptography-des-and-advanced-encryption-standard-aes"
+  }}
+  next={{
+    title: "9.4 Cryptographic Hash Functions (SHA-256) & Digital Signatures",
+    url: "/coredose/cn/module-09/cryptographic-hash-functions-sha-256-and-digital-signatures"
+  }}
+  courseUrl="/coredose/cn"
+/>

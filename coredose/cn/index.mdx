@@ -1,0 +1,174 @@
+---
+title: "Computer Networks (CN) Notes & Roadmap"
+description: "Complete module-wise notes and roadmap for Computer Networks covering Network Fundamentals, Topologies, OSI 7-Layer Model, Transmission Media, Data Link Layer, Network Layer, Routing, Transport Layer, and Application Layer protocols."
+hide_title: true
+hide_table_of_contents: true
+---
+
+<BackNav
+  backUrl="/coredose"
+  backLabel="Back to CoreDose Hub"
+  breadcrumbs={[
+    { label: "CoreDose", url: "/coredose" },
+    { label: "Computer Networks" },
+  ]}
+/>
+
+<HeroHeader
+  badge={{ icon: "🌐", text: "Computer Networks Notes" }}
+  title="Computer Networks"
+  gradient="(CN)"
+  subtitle="Zero-fluff engineering notes, layered architecture deep-dives, protocol packet traces, and high-yield interview frameworks for university semester exams, engineering foundations, and technical placement rounds."
+  stats={[
+    { number: 10, label: "Modules" },
+    { number: 42, label: "Topics" },
+    { number: "100%", label: "Free Access" },
+  ]}
+/>
+
+<CourseCurriculum
+  hideStats={true}
+  modules={[
+    {
+      num: "01",
+      title: "Introduction & Network Architectures",
+      icon: "🏗️",
+      color: "purple",
+      description: "Data communication components, network criteria, transmission modes, physical topologies, OSI 7-layer architecture, and transmission media.",
+      topics: [
+        { num: "1.1", title: "Network Fundamentals & Data Communication", url: "/coredose/cn/module-01/network-fundamentals-and-data-communication" },
+        { num: "1.2", title: "Network Topologies & Connection Types", url: "/coredose/cn/module-01/network-topologies-and-connection-types" },
+        { num: "1.3", title: "The OSI Reference Model & 7-Layer Architecture", url: "/coredose/cn/module-01/osi-reference-model-and-7-layer-architecture" },
+        { num: "1.4", title: "Physical Layer & Transmission Media", url: "/coredose/cn/module-01/physical-layer-and-transmission-media" },
+      ],
+    },
+    {
+      num: "02",
+      title: "Data Link Layer: Framing, Flow & Error Control",
+      icon: "📦",
+      color: "blue",
+      description: "Bit-oriented and byte-oriented framing, stop-and-wait, sliding window protocols (GBN, Selective Repeat), and CRC error detection.",
+      topics: [
+        { num: "2.1", title: "Data Link Layer Responsibilities & Framing Techniques", url: "/coredose/cn/module-02/data-link-layer-responsibilities-and-framing-techniques" },
+        { num: "2.2", title: "Error Detection: Parity, Checksum & Cyclic Redundancy Check (CRC)", url: "/coredose/cn/module-02/error-detection-parity-checksum-and-crc" },
+        { num: "2.3", title: "Flow Control: Stop-and-Wait ARQ & Efficiency Derivation", url: "/coredose/cn/module-02/flow-control-stop-and-wait-arq-and-efficiency" },
+        { num: "2.4", title: "Sliding Window Protocol: Go-Back-N (GBN) ARQ", url: "/coredose/cn/module-02/sliding-window-protocol-go-back-n-arq" },
+        { num: "2.5", title: "Sliding Window Protocol: Selective Repeat (SR) ARQ", url: "/coredose/cn/module-02/sliding-window-protocol-selective-repeat-arq" },
+      ],
+    },
+    {
+      num: "03",
+      title: "Data Link Layer: MAC Sublayer & Ethernet",
+      icon: "⚡",
+      color: "cyan",
+      description: "Multiple access protocols (ALOHA, CSMA/CD, CSMA/CA), collision domains, Ethernet frame format, and transparent bridging.",
+      topics: [
+        { num: "3.1", title: "Random Access Protocols: Pure ALOHA & Slotted ALOHA", url: "/coredose/cn/module-03/random-access-protocols-pure-and-slotted-aloha" },
+        { num: "3.2", title: "CSMA, CSMA/CD & Exponential Backoff Algorithm", url: "/coredose/cn/module-03/csma-csma-cd-and-exponential-backoff-algorithm" },
+        { num: "3.3", title: "Ethernet Frame Format (IEEE 802.3) & Minimum Frame Size", url: "/coredose/cn/module-03/ethernet-frame-format-and-minimum-frame-size" },
+        { num: "3.4", title: "Controlled Access & Channelization: Token Ring, FDMA, TDMA, CDMA", url: "/coredose/cn/module-03/controlled-access-and-channelization-protocols" },
+        { num: "3.5", title: "Network Switching: Bridges, Collision vs Broadcast Domains", url: "/coredose/cn/module-03/network-switching-bridges-collision-and-broadcast-domains" },
+      ],
+    },
+    {
+      num: "04",
+      title: "Network Layer: IPv4/IPv6 Addressing & Subnetting",
+      icon: "🎯",
+      color: "emerald",
+      description: "Classful vs classless addressing (CIDR), variable length subnet masking (VLSM), IPv4 header analysis, and NAT translation.",
+      topics: [
+        { num: "4.1", title: "Network Layer Core Goals & Virtual Circuits vs Datagrams", url: "/coredose/cn/module-04/network-layer-core-goals-and-virtual-circuits-vs-datagrams" },
+        { num: "4.2", title: "Classful IP Addressing (Classes A, B, C, D, E) & Special Addresses", url: "/coredose/cn/module-04/classful-ip-addressing-and-special-addresses" },
+        { num: "4.3", title: "Classless Inter-Domain Routing (CIDR) & Subnetting", url: "/coredose/cn/module-04/classless-inter-domain-routing-cidr-and-subnetting" },
+        { num: "4.4", title: "Variable Length Subnet Masking (VLSM) & Route Aggregation", url: "/coredose/cn/module-04/variable-length-subnet-masking-vlsm-and-route-aggregation" },
+        { num: "4.5", title: "IPv4 Datagram Header Format, Flags & Fragmentation Mechanics", url: "/coredose/cn/module-04/ipv4-datagram-header-format-flags-and-fragmentation" },
+        { num: "4.6", title: "Network Address Translation (NAT) & IPv6 Header Architecture", url: "/coredose/cn/module-04/network-address-translation-nat-and-ipv6-header-architecture" },
+      ],
+    },
+    {
+      num: "05",
+      title: "Network Layer: Routing Protocols & Control Plane",
+      icon: "🗺️",
+      color: "amber",
+      description: "Intra-domain and inter-domain routing, Distance Vector (Bellman-Ford), Link State (Dijkstra), Count-to-Infinity, and ICMP.",
+      topics: [
+        { num: "5.1", title: "Shortest Path Routing: Distance Vector Routing & Bellman-Ford", url: "/coredose/cn/module-05/shortest-path-routing-distance-vector-and-bellman-ford" },
+        { num: "5.2", title: "Count-to-Infinity Problem, Split Horizon & Poison Reverse", url: "/coredose/cn/module-05/count-to-infinity-problem-split-horizon-and-poison-reverse" },
+        { num: "5.3", title: "Link State Routing (Dijkstra's Algorithm) & OSPF Internals", url: "/coredose/cn/module-05/link-state-routing-dijkstras-algorithm-and-ospf-internals" },
+        { num: "5.4", title: "Border Gateway Protocol (BGP) & Path Vector Routing", url: "/coredose/cn/module-05/border-gateway-protocol-bgp-and-path-vector-routing" },
+        { num: "5.5", title: "Internet Control Message Protocol (ICMP) & Ping / Traceroute", url: "/coredose/cn/module-05/internet-control-message-protocol-icmp-and-ping-traceroute" },
+        { num: "5.6", title: "Address Resolution Protocol (ARP) & Reverse ARP (RARP)", url: "/coredose/cn/module-05/address-resolution-protocol-arp-and-reverse-arp" },
+      ],
+    },
+    {
+      num: "06",
+      title: "Transport Layer: UDP, TCP & Connection Flow",
+      icon: "🔄",
+      color: "purple",
+      description: "Process-to-process multiplexing, port numbers, User Datagram Protocol (UDP), TCP segment format, and 3-way handshake.",
+      topics: [
+        { num: "6.1", title: "Transport Layer Services & Port Addressing Architecture", url: "/coredose/cn/module-06/transport-layer-services-and-port-addressing-architecture" },
+        { num: "6.2", title: "User Datagram Protocol (UDP): Header Format & Lightweight Delivery", url: "/coredose/cn/module-06/user-datagram-protocol-udp-header-format-and-lightweight-delivery" },
+        { num: "6.3", title: "Transmission Control Protocol (TCP): Segment Header Structure", url: "/coredose/cn/module-06/transmission-control-protocol-tcp-segment-header-structure" },
+        { num: "6.4", title: "TCP Connection Management: 3-Way Handshake & 4-Way Teardown", url: "/coredose/cn/module-06/tcp-connection-management-3-way-handshake-and-4-way-teardown" },
+        { num: "6.5", title: "TCP State Machine & TIME_WAIT Socket Mechanics", url: "/coredose/cn/module-06/tcp-state-machine-and-time-wait-socket-mechanics" },
+      ],
+    },
+    {
+      num: "07",
+      title: "Transport Layer: Congestion Control & Reliability",
+      icon: "🛑",
+      color: "rose",
+      description: "TCP flow control vs congestion control, Slow Start, Congestion Avoidance, Fast Retransmit, Fast Recovery, and TCP timers.",
+      topics: [
+        { num: "7.1", title: "Congestion Principles & Leaky Bucket / Token Bucket Algorithms", url: "/coredose/cn/module-07/congestion-principles-and-leaky-bucket-token-bucket-algorithms" },
+        { num: "7.2", title: "TCP Sliding Window Flow Control & Silly Window Syndrome", url: "/coredose/cn/module-07/tcp-sliding-window-flow-control-and-silly-window-syndrome" },
+        { num: "7.3", title: "TCP Congestion Control: AIMD, Slow Start & Thresholds", url: "/coredose/cn/module-07/tcp-congestion-control-aimd-slow-start-and-thresholds" },
+        { num: "7.4", title: "Fast Retransmit & Fast Recovery (TCP Tahoe vs TCP Reno)", url: "/coredose/cn/module-07/fast-retransmit-and-fast-recovery-tcp-tahoe-vs-tcp-reno" },
+        { num: "7.5", title: "TCP Retransmission Timers, Karn's Algorithm & Round Trip Estimation", url: "/coredose/cn/module-07/tcp-retransmission-timers-karns-algorithm-and-round-trip-estimation" },
+      ],
+    },
+    {
+      num: "08",
+      title: "Application Layer Protocols",
+      icon: "🌐",
+      color: "blue",
+      description: "Client-server architecture, Domain Name System (DNS), HTTP/1.1 vs HTTP/2 vs HTTP/3, email protocols (SMTP, IMAP, POP3), and FTP.",
+      topics: [
+        { num: "8.1", title: "Client-Server Architecture vs Peer-to-Peer (P2P)", url: "/coredose/cn/module-08/client-server-architecture-vs-peer-to-peer-p2p" },
+        { num: "8.2", title: "Domain Name System (DNS): Hierarchical Namespaces & Resolution", url: "/coredose/cn/module-08/domain-name-system-dns-hierarchical-namespaces-and-resolution" },
+        { num: "8.3", title: "Hypertext Transfer Protocol: HTTP/1.0, HTTP/1.1, HTTP/2 & QUIC", url: "/coredose/cn/module-08/hypertext-transfer-protocol-http-1-0-http-1-1-http-2-and-quic" },
+        { num: "8.4", title: "Electronic Mail Protocols: SMTP, POP3 & IMAP4 Architecture", url: "/coredose/cn/module-08/electronic-mail-protocols-smtp-pop3-and-imap4-architecture" },
+        { num: "8.5", title: "File Transfer Protocol (FTP) & Dynamic Host Configuration (DHCP)", url: "/coredose/cn/module-08/file-transfer-protocol-ftp-and-dynamic-host-configuration-dhcp" },
+      ],
+    },
+    {
+      num: "09",
+      title: "Network Security & Cryptography",
+      icon: "🔒",
+      color: "emerald",
+      description: "Symmetric vs asymmetric encryption, RSA mathematics, digital signatures, hash functions, TLS/SSL handshakes, and firewalls.",
+      topics: [
+        { num: "9.1", title: "Network Security Foundations: Confidentiality, Integrity & Availability", url: "/coredose/cn/module-09/network-security-foundations-confidentiality-integrity-availability" },
+        { num: "9.2", title: "Symmetric Key Cryptography: DES & Advanced Encryption Standard (AES)", url: "/coredose/cn/module-09/symmetric-key-cryptography-des-and-advanced-encryption-standard-aes" },
+        { num: "9.3", title: "Asymmetric Key Cryptography: Diffie-Hellman & RSA Algorithm", url: "/coredose/cn/module-09/asymmetric-key-cryptography-diffie-hellman-and-rsa-algorithm" },
+        { num: "9.4", title: "Cryptographic Hash Functions (SHA-256) & Digital Signatures", url: "/coredose/cn/module-09/cryptographic-hash-functions-sha-256-and-digital-signatures" },
+        { num: "9.5", title: "Public Key Infrastructure (PKI), Digital Certificates & TLS/SSL", url: "/coredose/cn/module-09/public-key-infrastructure-pki-digital-certificates-and-tls-ssl" },
+        { num: "9.6", title: "Firewalls (Packet Filtering, Stateful Inspection) & IDS/IPS", url: "/coredose/cn/module-09/firewalls-packet-filtering-stateful-inspection-and-ids-ips" },
+      ],
+    },
+    {
+      num: "10",
+      title: "Physical Layer Devices & Wireless Networks",
+      icon: "📡",
+      color: "cyan",
+      description: "Modulation techniques, Nyquist and Shannon theorems, repeaters, hubs, Wi-Fi architectures (IEEE 802.11), and Bluetooth.",
+      topics: [
+        { num: "10.1", title: "Data Rate Limits: Nyquist Bit Rate & Shannon Channel Capacity", url: "/coredose/cn/module-10/data-rate-limits-nyquist-bit-rate-and-shannon-channel-capacity" },
+        { num: "10.2", title: "Digital-to-Digital Encoding: NRZ, Manchester & Differential Manchester", url: "/coredose/cn/module-10/digital-to-digital-encoding-nrz-manchester-and-differential-manchester" },
+        { num: "10.3", title: "Physical Layer Hardware: Repeaters, Active Hubs & Modems", url: "/coredose/cn/module-10/physical-layer-hardware-repeaters-active-hubs-and-modems" },
+        { num: "10.4", title: "Wireless LANs: IEEE 802.11 Architecture, CSMA/CA & RTS/CTS Handshake", url: "/coredose/cn/module-10/wireless-lans-ieee-802-11-architecture-csma-ca-and-rts-cts-handshake" },
+      ],
+    },
+  ]}
+/>
