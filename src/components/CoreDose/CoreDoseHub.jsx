@@ -72,6 +72,26 @@ const ALL_COURSES = [
     youtubeUrl: null,
   },
   {
+    id: "digital-logic",
+    icon: "🔌",
+    title: "Digital Logic & Design (DLD)",
+    accent: "emerald",
+    description:
+      "Master Boolean algebra postulates, logic gate schematics, Karnaugh map minimization, arithmetic circuits, flip-flops, and synchronous counters.",
+    chips: [
+      "Boolean Algebra & Duals",
+      "Universal Logic Gates",
+      "Karnaugh Maps (K-Maps)",
+      "Adders & Subtractors",
+      "Multiplexers & Decoders",
+      "Latches & Flip-Flops",
+      "Synchronous Counters",
+      "Number Systems & Radix",
+    ],
+    notesUrl: "/coredose/digital-logic",
+    youtubeUrl: null,
+  },
+  {
     id: "oops",
     icon: "🧱",
     title: "Object-Oriented Programming (OOPs)",

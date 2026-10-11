@@ -1,0 +1,570 @@
+---
+title: "7.2 r's and (r-1)'s Complements (1's & 2's Complement)"
+description: "Master diminished radix (r-1)'s complements, radix r's complements, 1's and 2's complements, the right-to-left bit scanning shortcut, subtraction using addition, end-around carry mechanics, and why 2's complement became the universal silicon standard."
+hide_table_of_contents: true
+---
+
+# 7.2 r's and (r-1)'s Complements (1's & 2's Complement)
+
+<CoreDoseLessonHeader
+  module="Module 07: Number Systems, Complements & Arithmetic"
+  topic="Topic 7.2"
+  courseUrl="/coredose/digital-logic"
+  readTime="22 min read"
+  relevance="University Semester Exams • GATE CS/EE • ALU Hardware Design"
+/>
+
+## 💡 Core Intuition: The Clock Face & Turning Backwards by Moving Forwards
+
+Why does every microprocessor on Earth use **complements** instead of ordinary subtraction?
+
+Building physical silicon subtraction circuits (borrow logic, borrow-propagation trees) requires almost twice the silicon real estate of an adder, drastically increasing chip die area, parasitic capacitance, and power consumption. Complements allow the CPU to perform **subtraction using purely additive hardware**!
+
+### 🍳 The Everyday Analogy: The 12-Hour Wall Clock
+
+Suppose your watch displays 9:00, and you need to set it back by 4 hours ($9 - 4 = 5$). You have two equivalent choices:
+1. **Rotate the dial counter-clockwise** by 4 hours: $9 - 4 = 5$.
+2. **Rotate the dial clockwise** by 8 hours: $9 + 8 = 17 \equiv 5 \pmod{12}$.
+
+$$
+-4 \equiv +8 \pmod{12}
+$$
+
+Because the clock dial wraps around modulo 12, **subtracting 4 is mathematically identical to adding 8** (the 12's complement of 4)! 
+
+In digital hardware with an $n$-bit register, numbers naturally wrap around modulo $2^n$. By substituting negative numbers with their radix complement, the Arithmetic Logic Unit (ALU) performs subtractions using the exact same silicon adder circuits that execute standard additions!
+
+### 💻 Bridging to Computer Science
+
+In processor architecture and compiler runtimes:
+1. **Unified Arithmetic Hardware**: An ALU does not need separate adder and subtractor silicon circuits. Subtraction $A - B$ is executed as $A + (\bar{B} + 1)$ on the exact same adder datapath.
+2. **Elimination of Negative Zero**: 1's complement has two representations for zero ($+0 = 0000_2$ and $-0 = 1111_2$), requiring extra logic in conditional branches (`if (x == 0)`). 2's complement has exactly one unique zero ($0000_2$), simplifying CPU control logic.
+3. **Asymmetric Dynamic Range**: In an $n$-bit 2's complement system, the range is $[-2^{n-1}, +(2^{n-1} - 1)]$. The extra negative value (e.g. $-128$ in 8-bit) explains why integer negation can overflow in C/C++ (`abs(INT_MIN)` undefined behavior).
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 📐 Mathematical Foundations of Complements
+
+For any positional number system with base (radix) $r$, there exist two distinct families of complements:
+1. **The Radix Complement ($r$'s complement)**:
+   * In Decimal ($r=10$): **10's complement**
+   * In Binary ($r=2$): **2's complement**
+2. **The Diminished Radix Complement ($(r-1)$'s complement)**:
+   * In Decimal ($r=10$): **9's complement**
+   * In Binary ($r=2$): **1's complement**
+
+The fundamental identity linking the two families is:
+
+<MathBox title="Fundamental Complement Relationship" type="formula">
+
+$$
+\text{Radix Complement } [r\text{'s}] = \text{Diminished Radix Complement } [(r-1)\text{'s}] + 1
+$$
+
+</MathBox>
+
+---
+
+## 🔟 Diminished Radix Complement: $(r-1)$'s Complement
+
+Given an $n$-digit integer $N$ in radix $r$:
+
+<MathBox title="Diminished Radix Complement Definition" type="formula">
+
+$$
+(r-1)\text{'s Complement of } N = (r^n - 1) - N
+$$
+
+If $N$ contains $m$ fractional digits:
+$$
+(r-1)\text{'s Complement of } N = (r^n - r^{-m}) - N
+$$
+
+</MathBox>
+
+Notice that $(r^n - 1)$ is simply a number consisting of $n$ repetitions of the **maximum digit** $(r-1)$!
+* In **Decimal ($r=10$)**, $10^4 - 1 = 9999$. To find the 9's complement, simply subtract every digit from $9$.
+* In **Binary ($r=2$)**, $2^4 - 1 = 15 = (1111)_2$. To find the 1's complement, simply subtract every bit from $1$.
+
+### Decimal 9's Complement Example
+Find the 9's complement of $(546700)_{10}$ ($n=6$ digits):
+$$
+\begin{aligned}
+9\text{'s Comp} &= 999999 - 546700 = \mathbf{453299}
+\end{aligned}
+$$
+
+### Binary 1's Complement Example
+Find the 1's complement of $(10110100)_2$ ($n=8$ bits):
+$$
+\begin{aligned}
+1\text{'s Comp} &= 11111111 - 10110100 = \mathbf{01001011}_2
+\end{aligned}
+$$
+Notice the physical rule: **Subtracting a binary bit from 1 simply inverts the bit ($1 - 0 = 1$ and $1 - 1 = 0$)!**
+In silicon, 1's complement is implemented with zero calculation: simply pass each bit through a single NOT gate inverter!
+
+---
+
+## ⚡ Radix Complement: $r$'s Complement
+
+Given an $n$-digit integer $N$ in radix $r$ (with $N \ne 0$):
+
+<MathBox title="Radix Complement Definition" type="formula">
+
+$$
+r\text{'s Complement of } N = r^n - N = \big[(r-1)\text{'s Complement}\big] + 1
+$$
+
+*(For $N=0$, the $r$'s complement is defined as $0$.)*
+
+</MathBox>
+
+### Decimal 10's Complement Example
+Find the 10's complement of $(546700)_{10}$:
+* **Method 1 (Definition)**: $10^6 - 546700 = 1000000 - 546700 = \mathbf{453300}$.
+* **Method 2 ($(r-1)\text{'s} + 1$)**: $9\text{'s Comp} + 1 = 453299 + 1 = \mathbf{453300}$.
+
+### Binary 2's Complement Example
+Find the 2's complement of $(10110100)_2$:
+* **Method 1**: Invert all bits (1's comp) and add 1:
+  $$
+  10110100 \xrightarrow{\text{Invert}} 01001011 \xrightarrow{+1} \mathbf{01001100}_2
+  $$
+
+---
+
+## 🚀 Fast Silicon Shortcuts (Bit Inversion & RTL Scan)
+
+In high-speed hardware and competitive timed exams, computing $(r-1)\text{'s} + 1$ with carry ripple is slow. Two high-speed shortcuts exist:
+
+### The Right-to-Left (RTL) Bit Scanning Shortcut
+To find the 2's complement of any binary vector:
+1. Scan the bits from **Right to Left (LSB toward MSB)**.
+2. Leave all trailing zeros **unchanged**.
+3. Leave the **first '1' bit encountered unchanged**.
+4. **Invert every bit to the left** of that first '1' ($0 \to 1, \, 1 \to 0$)!
+
+<ProcessFlow
+  title="Right-to-Left (RTL) Bit Scanning Shortcut Pipeline"
+  subtitle="O(1) inspection method for finding the 2's complement of any binary vector"
+  steps={[
+    {
+      title: "Step 1: Scan Right-to-Left",
+      tag: "LSB → MSB",
+      description: "Begin at the least significant bit (LSB) and scan leftward toward MSB.",
+      code: "Scan direction: ← (from bit 0)"
+    },
+    {
+      title: "Step 2: Copy Trailing Zeros Unchanged",
+      tag: "Unchanged Bits",
+      description: "All consecutive trailing zeros before the first 1-bit remain unmodified.",
+      code: "Original: ...00 → Output: ...00"
+    },
+    {
+      title: "Step 3: Copy First 1-Bit Unchanged",
+      tag: "Pivot Point",
+      description: "The very first encountered logic 1 is copied down without alteration.",
+      code: "Original: ...100 → Output: ...100"
+    },
+    {
+      title: "Step 4: Bitwise Invert All Remaining Bits to the Left",
+      tag: "Inversion Phase",
+      description: "Every bit strictly to the left of the pivot 1 is flipped (0 → 1, 1 → 0).",
+      code: "Original: 10110... → Output: 01001..."
+    }
+  ]}
+/>
+
+$$\mathbf{2\text{'s Complement}} = \mathbf{01001100}_2$$
+
+This single rule enables a hardware carry-chain or human engineer to evaluate 2's complement in $O(1)$ visual inspection!
+
+---
+
+## ➕ Subtraction via Addition (Case 1: $M \ge N$ & Case 2: $M < N$)
+
+Suppose an ALU needs to compute $M - N$ for two $n$-digit positive numbers using an adder.
+
+<ConceptComparison
+  title="Subtraction via Complements Decision Framework (M - N)"
+  subtitle="Hardware execution rules based on End Carry generation across 1's and 2's complement ALUs"
+  concepts={[
+    {
+      title: "Case 1: M ≥ N (End Carry = 1)",
+      badge: "Result is Positive (+)",
+      domain: "Carry-Out Generated (Cout = 1)",
+      color: "emerald",
+      points: [
+        "In 2's (r's) Complement: Simply DISCARD the end carry. The remaining n bits are already the true positive magnitude.",
+        "In 1's (r-1's) Complement: Add End-Around Carry (EAC) back to the LSB position (M + N' + 1).",
+        "Hardware Benefit: In 2's complement, no second addition step is required! Discarding the carry wire is instantaneous (zero delay)."
+      ]
+    },
+    {
+      title: "Case 2: M < N (End Carry = 0)",
+      badge: "Result is Negative (-)",
+      domain: "No Carry Generated (Cout = 0)",
+      color: "rose",
+      points: [
+        "Indicates the true result is negative. The raw sum bits are in COMPLEMENT form.",
+        "In 2's (r's) Complement: Take 2's complement of the sum to reveal the true magnitude, then prepend a '-' sign.",
+        "In 1's (r-1's) Complement: Take 1's complement of the sum to reveal the true magnitude, then prepend a '-' sign.",
+        "No End-Around Carry is generated or added."
+      ]
+    }
+  ]}
+/>
+
+<ProcessFlow
+  title="ALU Hardware Subtraction Pipeline"
+  subtitle="Step-by-step arithmetic path executed by adder-subtractor units"
+  steps={[
+    {
+      title: "Step 1: Complement Subtrahend",
+      tag: "Form Comp(N)",
+      description: "Invert all bits of N (1's comp) or invert and assert initial carry Cin = 1 (2's comp).",
+      code: "N* = N' (for 1's) or N' + 1 (for 2's)"
+    },
+    {
+      title: "Step 2: Binary Addition",
+      tag: "Sum Evaluation",
+      description: "Feed minuend M and complemented N* into n-bit binary full adder array.",
+      code: "Sum = M + N*"
+    },
+    {
+      title: "Step 3: End Carry Inspection",
+      tag: "Branch Decision",
+      description: "Inspect carry-out terminal Cout: If Cout = 1, result is positive. If Cout = 0, result is negative in complement form.",
+      code: "Cout = 1 → M ≥ N | Cout = 0 → M < N"
+    },
+    {
+      title: "Step 4: Final Normalization",
+      tag: "Final Answer",
+      description: "If Cout=1 in 2's comp: discard Cout. If Cout=1 in 1's comp: add EAC to LSB. If Cout=0: take complement of sum and prepend negative sign.",
+      code: "Result = Discard Cout | Add EAC | Invert Sum (-)"
+    }
+  ]}
+/>
+
+---
+
+### Case 1: Subtraction when $M \ge N$ (Result is Positive)
+
+When the minuend $M$ is greater than or equal to the subtrahend $N$ ($M \ge N$), the true arithmetic difference $M - N$ is non-negative ($\ge 0$). In hardware complement arithmetic, adding the complement of $N$ generates an overflow end carry ($C_{out} = 1$), confirming that the result is strictly positive and requires no secondary complementation.
+
+#### A. Using 2's Complement ($r$'s complement)
+1. Compute $M + (2\text{'s Complement of } N)$.
+2. An **End Carry-Out ($C_{out} = 1$) will be generated**.
+3. **Discard the End Carry!** The remaining bits represent the exact positive answer.
+
+**Problem**: Compute $(25)_{10} - (14)_{10}$ in 8-bit binary.
+* $M = 25 = 00011001_2$
+* $N = 14 = 00001110_2$
+* 2's Comp of $N = 11110001 + 1 = 11110010_2$
+
+$$
+\begin{array}{rl}
+  00011001 & (25) \\
++ 11110010 & (-14 \text{ in 2's comp}) \\
+\hline
+\mathbf{1} \, 00001011 & \\
+\end{array}
+$$
+* End Carry $= 1 \implies$ **Discard carry!**
+* Result $= 00001011_2 = \mathbf{+11}_{10}$. *(Correct!)*
+
+---
+
+#### B. Using 1's Complement ($(r-1)$'s complement)
+1. Compute $M + (1\text{'s Complement of } N)$.
+2. An **End Carry-Out ($C_{out} = 1$) will be generated**.
+3. **Add the Carry to the Least Significant Bit (LSB)**! This is called the **End-Around Carry (EAC)**.
+
+**Problem**: Compute $(25)_{10} - (14)_{10}$ in 8-bit binary using 1's complement.
+* $M = 25 = 00011001_2$
+* $1\text{'s Comp of } N = 11110001_2$
+
+$$
+\begin{array}{rl}
+  00011001 & (25) \\
++ 11110001 & (1\text{'s comp of } 14) \\
+\hline
+\mathbf{1} \, 00001010 & (\text{End Carry } = 1) \\
+         + 1 & (\text{End-Around Carry added to LSB}) \\
+\hline
+  \mathbf{00001011} & = \mathbf{+11}_{10} \quad \text{(Correct!)}
+\end{array}
+$$
+
+---
+
+### Case 2: Subtraction when $M < N$ (Result is Negative)
+
+When $M < N$, adding the complement does **not generate an End Carry ($C_{out} = 0$)**.
+* The absence of an end carry indicates that the result is **negative**.
+* The bit pattern obtained is **not** the true magnitude; it is **in complement form**.
+* To obtain the true magnitude, take the complement of the sum and prefix a minus sign!
+
+#### Example: Compute $(14)_{10} - (25)_{10}$ in 8-bit binary using 2's complement
+* $M = 14 = 00001110_2$
+* $N = 25 = 00011001_2$
+* 2's Comp of $N = 11100110 + 1 = 11100111_2$
+
+$$
+\begin{array}{rl}
+  00001110 & (14) \\
++ 11100111 & (2\text{'s comp of } 25) \\
+\hline
+\mathbf{0} \, 11110101 & (\text{No End Carry: } C_{out} = 0!)
+\end{array}
+$$
+* No End Carry $\implies$ Result is **negative** and stored in 2's complement form ($11110101_2$).
+* Take 2's complement of $11110101_2$:
+  $$
+  11110101 \xrightarrow{\text{2's Comp}} 00001010 + 1 = 00001011_2 = (11)_{10}
+  $$
+* Final Result: $\mathbf{-11}_{10}$. *(Correct!)*
+
+---
+
+## 🎛️ Interactive Complements & Subtraction Visualizer
+
+Experiment live with 4-bit, 8-bit, and 16-bit operands. Watch the hardware adder columns execute, observe carry propagation, inspect the End-Around Carry vs Discard rule, and test signed overflow detection:
+
+<NumberSystemSimulator
+  mode="complements"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+---
+
+## ⚔️ Architectural Showdown: 1's Complement vs. 2's Complement
+
+Why did the computer industry (from the CDC 6600 in the 1960s to modern Intel Core i9 and Apple M-series chips) completely abandon 1's complement in favor of 2's complement?
+
+<ConceptComparison
+  title="1's Complement vs. 2's Complement Silicon Comparison"
+  leftTitle="1's Complement (Historical / Obsolete)"
+  rightTitle="2's Complement (Modern Universal Standard)"
+  rows={[
+    {
+      feature: "Zero Representation",
+      left: "Dual Zeros: +0 (0000) and -0 (1111). Requires extra hardware logic to detect if two numbers equal zero.",
+      right: "Unique Zero: Only 0000 represents zero. Inverting 0000 and adding 1 rolls over to 0000, maintaining 1:1 mathematical bijection."
+    },
+    {
+      feature: "Dynamic Number Range (n bits)",
+      left: "Symmetric: -(2^(n-1) - 1) to +(2^(n-1) - 1). For 8 bits: -127 to +127.",
+      right: "Asymmetric: -2^(n-1) to +(2^(n-1) - 1). For 8 bits: -128 to +127. Stores one additional negative value!"
+    },
+    {
+      feature: "Hardware Subtraction Addition",
+      left: "Requires End-Around Carry (EAC). The carry from MSB must be routed back into the LSB carry-in, requiring a second adder pass and doubling delay!",
+      right: "Carry-out from MSB is simply discarded. Subtraction executes in a single clock cycle with zero extra latency."
+    },
+    {
+      feature: "ALU Gate Complexity",
+      left: "Adder cannot use simple ripple-carry or carry-lookahead without a circular feedback path.",
+      right: "Unified Adder-Subtractor requires only a bank of XOR gates on the B input and setting C_0 = 1."
+    }
+  ]}
+/>
+
+---
+
+<div id="real-world-production-context" />
+
+## 🏭 Real-World Production Context: ALU Hardware Simplicity & Zero-Cost Subtraction
+
+In real silicon microprocessors, complements eliminate the need for distinct subtraction circuits.
+
+<ArchitectureStack
+  title="Microprocessor Arithmetic Datapath Subtraction Stack"
+  description="How hardware ALUs execute subtraction using 2's complement inversion and adder reuse without dedicated subtraction circuits."
+  layers={[
+    {
+      badge: "Software Layer",
+      title: "Signed Primitive Types (C/C++, Rust, Java)",
+      icon: "💻",
+      color: "blue",
+      description: "Compilers map signed variables (int32_t, int64_t) into 2's complement bit patterns with asymmetric ranges [-2^(n-1) to +2^(n-1)-1].",
+      items: ["int32_t / int64_t Types", "Unique Zero Representation", "Overflow Flag Detection"],
+      connectorText: "Compiler Emits SUB Machine Instruction"
+    },
+    {
+      badge: "Instruction Decoder",
+      title: "ALU Control Signals (Mode M = 1)",
+      icon: "🎛️",
+      color: "purple",
+      description: "The control unit decodes the SUB opcode, asserting the subtraction control wire (M=1) across the datapath.",
+      items: ["M = 1 Asserted", "B-Input Inversion Enabled", "LSB Carry-in Forced High"],
+      connectorText: "Routes to Adder-Subtractor Datapath"
+    },
+    {
+      badge: "Arithmetic Core",
+      title: "Unified Adder-Subtractor (XOR Bank + Adder)",
+      icon: "⚡",
+      color: "amber",
+      description: "Input B passes through XOR gates with M, generating 1's complement. LSB Cin=1 adds 1, completing 2's complement on the fly.",
+      items: ["Single-Cycle Execution", "Zero Area Penalty", "Direct MSB Carry-out Discard"],
+      connectorText: "Results Stored in Register File"
+    },
+    {
+      badge: "Register & Flags",
+      title: "ALU Status Register (Carry & Overflow Flags)",
+      icon: "🚩",
+      color: "emerald",
+      description: "The ALU updates condition flags: Carry flag C reflects unsigned borrow, while Overflow flag V signals signed 2's complement overflow.",
+      items: ["Carry Flag (C = ~Cout)", "Signed Overflow (V = C_in ^ C_out)", "Zero Flag (Z = ~|Result)"]
+    }
+  ]}
+/>
+
+* **The Unified Adder-Subtractor**: Modern CPUs (x86, ARM, RISC-V) perform subtraction with zero added adder hardware. A bank of XOR gates conditionally inverts input $B$ when subtraction mode ($M=1$) is asserted, while feeding $C_{in} = 1$ into the LSB full adder.
+* **Instruction Set Encoding**: All modern programming languages (C, C++, Rust, Go, Java, Python) standardize on 2's complement for signed integer types (`int8_t`, `int16_t`, `int32_t`, `int64_t`), ensuring hardware-level binary compatibility.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Decimal Subtraction Using 9's and 10's Complements (Both Cases)
+**Problem Statement:**  
+Perform the subtraction of 5-digit decimal numbers $M = 72532$ and $N = 03250$:
+1. Compute $M - N$ using 10's complement (Case 1: $M \ge N$).
+2. Compute $N - M$ using 10's complement (Case 2: $M < N$).
+
+**Step-by-Step Solution:**
+1. **Case 1: Compute $M - N = 72532 - 03250$ using 10's Complement:**  
+   * 9's complement of $N = 03250$: $99999 - 03250 = 96749$  
+   * 10's complement of $N$: $96749 + 1 = 96750$  
+   * Add $M + (10\text{'s comp of } N)$:
+
+$$
+\begin{array}{rl}
+  & 72532 \\
++ & 96750 \\
+\hline
+\mathbf{1} & 69282 \quad (C_{out} = 1 \text{ generated})
+\end{array}
+$$
+
+   * An End Carry-Out ($C_{out} = 1$) is generated, indicating $M \ge N$ (result is positive).  
+   * **Discard the end carry**: Final Answer = $\mathbf{+69282}$.
+
+2. **Case 2: Compute $N - M = 03250 - 72532$ using 10's Complement:**  
+   * 9's complement of $M = 72532$: $99999 - 72532 = 27467$  
+   * 10's complement of $M$: $27467 + 1 = 27468$  
+   * Add $N + (10\text{'s comp of } M)$:
+
+$$
+\begin{array}{rl}
+  & 03250 \\
++ & 27468 \\
+\hline
+\mathbf{0} & 30718 \quad (C_{out} = 0 \text{ no carry})
+\end{array}
+$$
+
+   * No carry generated ($C_{out} = 0$), indicating $M < N$ (result is negative and in 10's complement form).  
+   * Take 10's complement of the sum $30718$: $99999 - 30718 = 69281 \implies 69281 + 1 = 69282$.  
+   * Prepend negative sign: Final Answer = $\mathbf{-69282}$.
+
+---
+
+### Example 2: 1's vs 2's Complement Subtraction in 6-Bit Binary
+**Problem Statement:**  
+Perform $(28)_{10} - (13)_{10}$ and $(13)_{10} - (28)_{10}$ in 6-bit binary arithmetic using:
+1. 1's complement representation.
+2. 2's complement representation.
+
+**Step-by-Step Solution:**
+1. **Represent Numbers in 6-Bit Binary:**  
+   * $M = 28_{10} = 011100_2$  
+   * $N = 13_{10} = 001101_2$
+2. **Compute $28 - 13$ in 1's Complement:**  
+   * 1's complement of $N$: invert all bits $\implies 110010_2$.  
+   * Add $M + N_{1\text{'s}}$:  
+     $$011100 + 110010 = \mathbf{1}\,001110 \quad (C_{out} = 1)$$  
+   * End carry generated! In 1's complement, add End-Around Carry (EAC) to LSB:  
+     $$001110 + 1 = \mathbf{001111}_2 = +15_{10}$$
+3. **Compute $28 - 13$ in 2's Complement:**  
+   * 2's complement of $N = 110010 + 1 = 110011_2$.  
+   * Add $M + N_{2\text{'s}}$:  
+     $$011100 + 110011 = \mathbf{1}\,001111 \quad (C_{out} = 1)$$  
+   * End carry generated! In 2's complement, **discard carry**:  
+     $$\text{Result} = \mathbf{001111}_2 = +15_{10}$$ (Notice: instantaneous zero extra gate delay!).
+4. **Compute $13 - 28$ in 2's Complement:**  
+   * 2's complement of $M = (011100)_{2\text{'s}} = 100011 + 1 = 100100_2$.  
+   * Add $N + M_{2\text{'s}}$:  
+     $$001101 + 100100 = \mathbf{0}\,110001 \quad (C_{out} = 0)$$  
+   * No carry generated $\implies$ negative result in 2's complement form.  
+   * Take 2's complement of sum $110001$:  
+     $$\text{Invert} = 001110 \implies +1 = 001111_2 = 15_{10}$$  
+   * Final Answer: $\mathbf{-001111}_2 = -15_{10}$.
+
+---
+
+### Example 3: Complements of Fractional Numbers & Radix Extension
+**Problem Statement:**  
+Find the diminished radix complement and radix complement for the fractional number $N = (0.3267)_{10}$ and binary fraction $B = (0.10110)_2$. State the generalized mathematical formula for fractional complements.
+
+**Step-by-Step Solution:**
+1. **Generalized Mathematical Formulas for Fractions:**  
+   For a number with $n$ integer digits and $m$ fractional digits:  
+   * Diminished Radix Complement:  
+     $$(r-1)\text{'s Complement} = (r^n - r^{-m}) - N$$  
+   * Radix Complement:  
+     $$r\text{'s Complement} = (r-1)\text{'s Complement} + r^{-m} = r^n - N$$
+2. **Compute for Decimal Fraction $N = 0.3267_{10}$ ($n=0, m=4$):**  
+   * 9's complement: subtract each digit from $9$:  
+     $$0.9999 - 0.3267 = \mathbf{0.6732}$$  
+   * 10's complement: add $10^{-m} = 0.0001$ to LSB:  
+     $$0.6732 + 0.0001 = \mathbf{0.6733}$$  
+   * Direct verification: $10^0 - 0.3267 = 1.0000 - 0.3267 = 0.6733$.
+3. **Compute for Binary Fraction $B = 0.10110_2$ ($n=0, m=5$):**  
+   * 1's complement: invert all bits after the binary point:  
+     $$0.10110 \implies \mathbf{0.01001}_2$$  
+   * 2's complement: add $2^{-5} = 0.00001_2$ to LSB:  
+     $$0.01001 + 0.00001 = \mathbf{0.01010}_2$$  
+   * Direct verification via RTL scan shortcut: scanning from right, trailing zero is $0$, first 1 is $1$, all bits to the left are inverted $\implies \mathbf{0.01010}_2$.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does 2's complement have one extra negative number than positive numbers?**  
+  In an $n$-bit system, there are $2^n$ unique bit combinations. Zero ($0000\dots0$) takes one combination, leaving $2^n - 1$ states (an odd number). Because zero is assigned to the non-negative group (its MSB is $0$), there are $2^{n-1} - 1$ positive numbers ($+1$ to $+2^{n-1}-1$) and $2^{n-1}$ negative numbers ($-1$ to $-2^{n-1}$).
+* **What happens if you take the 2's complement of the most negative number (e.g. $-128$ in 8-bit)?**  
+  In 8-bit 2's complement, $-128$ is represented as $10000000_2$.  
+  Inverting bits yields $01111111_2$.  
+  Adding 1 yields: $01111111 + 1 = 10000000_2$ (which is $-128$ again!).  
+  Because $+128$ cannot fit in 8-bit signed two's complement, the operation triggers an **Arithmetic Overflow**!
+:::
+
+:::warning Common Interview Traps
+* **Trap: Forgetting that End-Around Carry applies ONLY to 1's complement, NEVER 2's complement.**  
+  In 2's complement subtraction, if an end carry appears, **throw it away**. Never add it back to the LSB!
+* **Trap: Misidentifying the result of Case 2 ($M < N$).**  
+  When $C_{out} = 0$, students frequently read the bit pattern directly as the magnitude. Remember: the sum is in **complement form**. You must complement the sum to obtain the true magnitude, then write a negative sign in front!
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "7.1 Radix Number Systems & Inter-Base Conversion",
+    url: "/coredose/digital-logic/module-07/radix-number-systems-and-inter-base-conversion",
+  }}
+  next={{
+    title: "7.3 Binary Arithmetic, Overflow Detection & Floating Point",
+    url: "/coredose/digital-logic/module-07/binary-arithmetic-overflow-and-floating-point",
+  }}
+  courseUrl="/coredose/digital-logic"
+/>

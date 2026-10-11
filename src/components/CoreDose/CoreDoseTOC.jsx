@@ -8,17 +8,20 @@ import TOCInline from "@theme/TOCInline";
  */
 export default function CoreDoseTOC({
   toc,
+  items,
   title = "Table of Contents",
   minHeadingLevel = 2,
   maxHeadingLevel = 3,
   defaultOpen = true,
 }) {
+  const rawList = toc || items;
   const filteredToc = React.useMemo(() => {
-    if (!toc || !Array.isArray(toc)) return [];
-    return toc
+    if (!rawList || !Array.isArray(rawList)) return [];
+    return rawList
       .map((item) => ({
         ...item,
-        value: item.value || item.title || "",
+        value: item.value || item.title || item.label || "",
+        id: item.id || (item.value || item.label || "").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
         level: item.level || 2,
       }))
       .filter((item) => {
@@ -30,7 +33,7 @@ export default function CoreDoseTOC({
           !val.includes("core intuition")
         );
       });
-  }, [toc]);
+  }, [rawList]);
 
   if (!filteredToc || filteredToc.length === 0) {
     return null;

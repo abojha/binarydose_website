@@ -1,0 +1,127 @@
+---
+title: "Digital Logic & Design (DLD) Notes & Roadmap"
+description: "Complete module-wise notes and roadmap for Digital Logic covering Boolean Algebra, Logic Gates, Canonical Expressions, Karnaugh Maps, Combinational Circuits, Sequential Circuits, and Number Systems."
+hide_title: true
+hide_table_of_contents: true
+---
+
+<BackNav
+  backUrl="/coredose"
+  backLabel="Back to CoreDose Hub"
+  breadcrumbs={[
+    { label: "CoreDose", url: "/coredose" },
+    { label: "Digital Logic" },
+  ]}
+/>
+
+<HeroHeader
+  badge={{ icon: "🔌", text: "Digital Logic Notes" }}
+  title="Digital Logic & Design"
+  gradient="(DLD)"
+  subtitle="Zero-fluff engineering notes, first-principles gate schematics, Boolean derivations, and high-yield interview frameworks for university semester exams, hardware engineering rounds, and foundational computing."
+  stats={[
+    { number: 7, label: "Modules" },
+    { number: 23, label: "Topics" },
+    { number: "100%", label: "Free Access" },
+  ]}
+/>
+
+<CourseCurriculum
+  hideStats={true}
+  modules={[
+    {
+      num: "01",
+      title: "Understanding Digital Electronics & Boolean Laws",
+      icon: "🏗️",
+      color: "emerald",
+      description: "Analog vs digital systems, advantages of binary logic, 4-stage digital design cycle, Boolean algebra laws, and consensus theorems.",
+      topics: [
+        { num: "1.1", title: "Analog vs Digital Systems & The Digital Design Cycle", url: "/coredose/digital-logic/module-01/analog-vs-digital-systems-and-design-cycle" },
+        { num: "1.2", title: "Postulates & Fundamental Laws of Boolean Algebra", url: "/coredose/digital-logic/module-01/postulates-and-fundamental-laws-of-boolean-algebra" },
+        { num: "1.3", title: "Advanced Theorems: Consensus Theorem, Transposition & Redundancy", url: "/coredose/digital-logic/module-01/advanced-theorems-consensus-and-transposition" },
+      ],
+    },
+    {
+      num: "02",
+      title: "Logic Gates & Universal Realization",
+      icon: "⚡",
+      color: "blue",
+      description: "Basic gates (AND, OR, NOT), Universal gates (NAND, NOR), Exclusive gates (XOR, XNOR), and gate-level circuit minimization.",
+      topics: [
+        { num: "2.1", title: "Basic Logic Gates: Operations, Truth Tables & Switch Models", url: "/coredose/digital-logic/module-02/basic-logic-gates-operations-truth-tables-and-switch-models" },
+        { num: "2.2", title: "Universal Logic Gates: NAND and NOR Implementations", url: "/coredose/digital-logic/module-02/universal-logic-gates-nand-and-nor-implementations" },
+        { num: "2.3", title: "Special Logic Gates: XOR and XNOR Parity Generators", url: "/coredose/digital-logic/module-02/special-logic-gates-xor-and-xnor-parity-generators" },
+      ],
+    },
+    {
+      num: "03",
+      title: "Boolean Expressions & Canonical Forms",
+      icon: "📜",
+      color: "purple",
+      description: "Sum of Products (SOP), Product of Sums (POS), minterms, maxterms, canonical conversions, duality, and self-dual logic.",
+      topics: [
+        { num: "3.1", title: "Minterms, Maxterms & Canonical Representation", url: "/coredose/digital-logic/module-03/minterms-maxterms-and-canonical-representation" },
+        { num: "3.2", title: "Standard vs Canonical SOP & POS Conversion", url: "/coredose/digital-logic/module-03/standard-vs-canonical-sop-pos-conversion" },
+        { num: "3.3", title: "Duality, Neutral Functions & Self-Dual Logic", url: "/coredose/digital-logic/module-03/duality-neutral-functions-and-self-dual-logic" },
+      ],
+    },
+    {
+      num: "04",
+      title: "Simplification of Boolean Expressions & K-Maps",
+      icon: "🗺️",
+      color: "amber",
+      description: "Gray code addressing, 2, 3, and 4-variable Karnaugh maps, prime implicants, essential prime implicants, and don't care conditions.",
+      topics: [
+        { num: "4.1", title: "Karnaugh Map Foundations & Gray Code Adjacency", url: "/coredose/digital-logic/module-04/karnaugh-map-foundations-and-gray-code-adjacency" },
+        { num: "4.2", title: "3-Variable and 4-Variable K-Map Minimization", url: "/coredose/digital-logic/module-04/3-variable-and-4-variable-k-map-minimization" },
+        { num: "4.3", title: "Implicants, Prime Implicants & Don't Care Conditions", url: "/coredose/digital-logic/module-04/implicants-prime-implicants-and-dont-care-conditions" },
+      ],
+    },
+    {
+      num: "05",
+      title: "Combinational Logic Circuits",
+      icon: "⚙️",
+      color: "cyan",
+      description: "Arithmetic circuits (Adders, Subtractors, Lookahead), and data routing circuits (Multiplexers, Demultiplexers, Decoders, Encoders).",
+      topics: [
+        { num: "5.1", title: "Half Adder, Full Adder & Ripple Carry Architecture", url: "/coredose/digital-logic/module-05/half-adder-full-adder-and-ripple-carry-architecture" },
+        { num: "5.2", title: "Carry Lookahead Adder & High-Speed Addition", url: "/coredose/digital-logic/module-05/carry-lookahead-adder-and-high-speed-addition" },
+        { num: "5.3", title: "Multiplexers (MUX) & Function Implementation", url: "/coredose/digital-logic/module-05/multiplexers-mux-and-function-implementation" },
+        { num: "5.4", title: "Decoders, Encoders & Priority Encoders", url: "/coredose/digital-logic/module-05/decoders-encoders-and-priority-encoders" },
+      ],
+    },
+    {
+      num: "06",
+      title: "Sequential Logic Circuits: Latches & Flip-Flops",
+      icon: "🔄",
+      color: "rose",
+      description: "Bistable multivibrators, SR latches, JK flip-flops, race-around condition, Master-Slave architecture, and D/T flip-flops.",
+      topics: [
+        { num: "6.1", title: "Latches vs Flip-Flops & The SR Latch Architecture", url: "/coredose/digital-logic/module-06/latches-vs-flip-flops-and-the-sr-latch-architecture" },
+        { num: "6.2", title: "JK Flip-Flop, Race-Around Condition & Master-Slave Solution", url: "/coredose/digital-logic/module-06/jk-flip-flop-race-around-condition-and-master-slave-solution" },
+        { num: "6.3", title: "D and T Flip-Flops: Conversion & Excitation Tables", url: "/coredose/digital-logic/module-06/d-and-t-flip-flops-conversion-and-excitation-tables" },
+        { num: "6.4", title: "Registers, Shift Registers & Synchronous Counters", url: "/coredose/digital-logic/module-06/registers-shift-registers-and-synchronous-counters" },
+      ],
+    },
+    {
+      num: "07",
+      title: "Number Systems, Complements & Arithmetic",
+      icon: "🔢",
+      color: "indigo",
+      description: "Radix conversion (Binary, Octal, Hex, Decimal), r's and (r-1)'s complements, signed magnitude, 2's complement arithmetic, and overflow.",
+      topics: [
+        { num: "7.1", title: "Radix Number Systems & Inter-Base Conversion", url: "/coredose/digital-logic/module-07/radix-number-systems-and-inter-base-conversion" },
+        { num: "7.2", title: "r's and (r-1)'s Complements (1's & 2's Complement)", url: "/coredose/digital-logic/module-07/rs-and-r-minus-1s-complements-and-subtraction" },
+        { num: "7.3", title: "Binary Arithmetic, Overflow Detection & Floating Point", url: "/coredose/digital-logic/module-07/binary-arithmetic-overflow-and-floating-point" },
+      ],
+    },
+  ]}
+/>
+
+---
+
+## 🚀 Get Started
+
+Begin mastering Digital Logic from first principles:
+
+👉 [**Proceed to Topic 1.1: Analog vs Digital Systems & The Digital Design Cycle**](/coredose/digital-logic/module-01/analog-vs-digital-systems-and-design-cycle)

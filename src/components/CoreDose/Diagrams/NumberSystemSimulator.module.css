@@ -1,0 +1,623 @@
+.container {
+  margin: 2rem 0;
+  border-radius: 12px;
+  border: 1px solid var(--diagram-border, #334155);
+  background: var(--diagram-bg, #0f172a);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  font-family: var(--ifm-font-family-base, system-ui, -apple-system, sans-serif);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: var(--diagram-surface, #1e293b);
+  border-bottom: 1px solid var(--diagram-border, #334155);
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.categoryBadge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tabBar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid var(--diagram-border, #334155);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tabBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.tabBtn:hover {
+  background: rgba(51, 65, 85, 0.5);
+  color: #f1f5f9;
+}
+
+.tabBtnActive {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #a5b4fc;
+}
+
+.contentBody {
+  padding: 1.25rem;
+}
+
+/* Control Row */
+.controlRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding: 0.9rem 1.1rem;
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 8px;
+  border: 1px solid rgba(51, 65, 85, 0.6);
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.inputLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.textInput {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #f8fafc;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.9rem;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  outline: none;
+  transition: border-color 0.2s;
+  min-width: 140px;
+}
+
+.textInput:focus {
+  border-color: #6366f1;
+}
+
+.selectInput {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #f8fafc;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.presetGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.presetBtn {
+  background: rgba(51, 65, 85, 0.4);
+  border: 1px solid #334155;
+  color: #cbd5e1;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.presetBtn:hover {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: #6366f1;
+  color: #fff;
+}
+
+/* Grid of Base Cards */
+.baseGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.baseCard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  position: relative;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.baseCard:hover {
+  border-color: #6366f1;
+  transform: translateY(-2px);
+}
+
+.baseHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.4rem;
+}
+
+.baseTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.radixSub {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.baseValue {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f8fafc;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  word-break: break-all;
+  letter-spacing: 0.03em;
+}
+
+.baseSubtext {
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+/* Grouping breakdown */
+.groupingBox {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.groupingTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #38bdf8;
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.nibbleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.nibbleCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  min-width: 60px;
+}
+
+.nibbleBits {
+  font-family: monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.05em;
+}
+
+.nibbleDigit {
+  font-family: monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f59e0b;
+  border-top: 1px dashed #334155;
+  margin-top: 0.25rem;
+  padding-top: 0.2rem;
+  width: 100%;
+  text-align: center;
+}
+
+/* Derivation Steps Table */
+.stepsContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.stepSection {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+}
+
+.stepTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.6rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stepBadge {
+  font-size: 0.68rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.stepsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  font-family: var(--ifm-font-family-monospace, monospace);
+}
+
+.stepsTable th {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  background: rgba(15, 23, 42, 0.6);
+  color: #94a3b8;
+  border-bottom: 1px solid #334155;
+}
+
+.stepsTable td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+  color: #cbd5e1;
+}
+
+.highlightCell {
+  color: #38bdf8 !important;
+  font-weight: 700;
+}
+
+.arrowIndicator {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  font-size: 0.75rem;
+  color: #34d399;
+  font-weight: 600;
+}
+
+/* Complement & Arithmetic Mode Specifics */
+.complementCard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.bitRow {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.bitPill {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 36px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #f8fafc;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.bitPill:hover {
+  border-color: #6366f1;
+}
+
+.bitPillActive {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: #6366f1;
+  color: #a5b4fc;
+}
+
+.bitIndex {
+  font-size: 0.6rem;
+  color: #64748b;
+  font-weight: 400;
+}
+
+/* Arithmetic Table */
+.calcGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+}
+
+.calcRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 24px;
+}
+
+.calcLabel {
+  width: 140px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.calcBits {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.calcBit {
+  width: 20px;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.carryBit {
+  color: #f59e0b;
+}
+
+.operandBit {
+  color: #f8fafc;
+}
+
+.sumBit {
+  color: #38bdf8;
+}
+
+.calcDivider {
+  height: 1px;
+  background: #475569;
+  margin: 0.2rem 0;
+  width: 100%;
+}
+
+.statusBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.statusSuccess {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.statusDanger {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+/* IEEE 754 Floating Point Specifics */
+.fpRegister {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+}
+
+.fpBitBar {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  min-width: 680px;
+}
+
+.fpBit {
+  flex: 1;
+  min-width: 18px;
+  height: 38px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  cursor: pointer;
+  user-select: none;
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.8rem;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.fpBit:hover {
+  filter: brightness(1.25);
+  transform: translateY(-1px);
+}
+
+.fpSign {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+}
+
+.fpExp {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #6ee7b7;
+}
+
+.fpMantissa {
+  background: rgba(56, 189, 248, 0.25);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #7dd3fc;
+}
+
+.fpLegend {
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #94a3b8;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.fpMathBreakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.fpMathCard {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.fpMathTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.fpMathFormula {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.95rem;
+  color: #f8fafc;
+  word-break: break-all;
+}
+
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .baseGrid {
+    grid-template-columns: 1fr;
+  }
+  .stepsContainer {
+    grid-template-columns: 1fr;
+  }
+}

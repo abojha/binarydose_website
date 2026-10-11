@@ -1,0 +1,373 @@
+---
+title: "6.4 Registers, Shift Registers & Synchronous Counters"
+description: "Comprehensive first-principles engineering breakdown of data registers, the 4 shift register topologies (SISO, SIPO, PISO, PIPO), Universal Shift Registers, Ring vs Johnson counters, and the systematic design of Synchronous Counters."
+hide_table_of_contents: true
+---
+
+# 6.4 Registers, Shift Registers & Synchronous Counters
+
+<CoreDoseLessonHeader
+  module="Module 06: Sequential Logic Circuits: Latches & Flip-Flops"
+  topic="Topic 6.4"
+  courseUrl="/coredose/digital-logic"
+  readTime="21 min read"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Foundational Computing"
+/>
+
+## 💡 Core Intuition: The Conveyor Belt vs. The Clockwork Odometer
+
+In Topics 6.1 through 6.3, we engineered individual single-bit memory cells: the Latch and the Flip-Flop. However, real microprocessors do not process single isolated bits—they operate on **words** ($8$-bit bytes, $32$-bit integers, $64$-bit memory addresses, $512$-bit SIMD vectors).
+
+### 🍳 The Everyday Analogy: The Conveyor Belt Assembly vs. The Automobile Odometer
+
+* **The Shift Register (The Bucket Brigade)**: Imagine five firefighters lined up to put out a fire. The first scoops water from a reservoir, hands the bucket to the second, who hands it to the third, until the fifth pours it onto the flames. On each command whistle (clock edge), every bucket shifts right by one position. Serial data enters at one end and exits at the other.
+* **The Synchronous Counter (The Mechanical Odometer)**: In an automobile dashboard, rolling wheels track mileage. When transitioning from 009 to 010, the units wheel flips from 9 to 0 while simultaneously kicking the tens wheel from 0 to 1 on the exact same mechanical shaft rotation. All wheels transition in lockstep.
+
+### 💻 Bridging to Computer Science
+
+In computer systems engineering and VLSI hardware:
+1. **Serialization / Deserialization (SerDes)**: High-speed computer buses (PCIe 5.0, USB4, SATA, Gigabit Ethernet) cannot route 64 parallel copper traces across motherboards without timing skew. Instead, a PISO register converts internal 64-bit CPU words into an ultra-fast serial stream, which a SIPO register at the receiver reconstructs.
+2. **CPU Program Counter (`PC`)**: The Program Counter register in an instruction execution pipeline is a synchronous up-counter. On each fetched instruction, it increments by 4 (in 32-bit RISC architectures) or loads a jump target address.
+3. **Circular Ring Buffers**: High-speed memory controllers and hardware DMA engines use ring and Johnson counter topologies to generate multiphase non-overlapping clock pulses for dynamic RAM refreshing.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+<div id="registers-and-parallel-load" />
+
+## 💾 Data Storage Registers & Parallel Load Architecture
+
+An **$n$-bit Register** is a bank of $n$ edge-triggered D Flip-Flops sharing a common clock line. It can store an $n$-bit binary word simultaneously.
+
+### The Problem with Clock Gating:
+Beginners often attempt to control whether a register updates by placing an AND gate on the clock line ($CLK_{gated} = CLK \cdot \text{Load}$). **This is strictly prohibited in ASIC design**:
+* **Clock Skew**: The AND gate introduces an asymmetric propagation delay ($\Delta t$), meaning the gated register sees the clock edge later than the rest of the chip.
+* **Glitch Hazards**: If the `Load` enable line glitches while the clock is high, the register sees a spurious clock edge and corrupts its data.
+
+### The Production Solution: Multiplexer-Controlled Feedback
+Instead of gating the clock, we keep the clock ticking continuously to all flip-flops and place a **2:1 Multiplexer** on the $D$ input of each stage:
+
+<FlowPipeline
+  title="MUX-Steered Register Parallel Load Architecture"
+  subtitle="Replacing hazardous clock gating with continuous clocking and 2:1 MUX recirculating feedback"
+  steps={[
+    {
+      title: "Control: Load Signal",
+      sublabel: "Select Line (Sel)",
+      description: "Steers whether stage latches external input (Load = 1) or retains stored data (Load = 0).",
+      color: "cyan",
+      badge: "Control",
+      actionText: "Selects MUX input"
+    },
+    {
+      title: "2:1 Multiplexer",
+      sublabel: "D = Load · Din + Load' · Q",
+      description: "Directs Din to D when Load = 1. Recirculates Q feedback into D when Load = 0 without disturbing clock distribution.",
+      color: "amber",
+      badge: "Steering",
+      actionText: "Feeds D terminal"
+    },
+    {
+      title: "Edge-Triggered D-FF",
+      sublabel: "Continuous CLK Grid",
+      description: "Clock lines tick uniformly across entire chip with zero clock skew. Data updates deterministically on active edge.",
+      color: "purple",
+      badge: "Storage",
+      actionText: "Drives output Q"
+    },
+    {
+      title: "Feedback Loop & Output Q",
+      sublabel: "Q holds state",
+      description: "Output Q drives external datapath while simultaneously feeding back into MUX input 0 for glitch-free hold state.",
+      color: "emerald",
+      badge: "Output & Hold",
+      actionText: "Feedback to MUX"
+    }
+  ]}
+/>
+
+* When $\text{Load} = 0$: The MUX selects the feedback line ($D = Q$). On every clock edge, the flip-flop simply reloads its own current value (rock-solid hold).
+* When $\text{Load} = 1$: The MUX selects the external input pin ($D = D_{in}$). On the clock edge, the new word is latched.
+
+---
+
+<div id="the-four-shift-register-topologies" />
+
+## 🔄 The Four Shift Register Topologies (SISO, SIPO, PISO, PIPO)
+
+A **Shift Register** cascades flip-flops such that the output of stage $i$ connects directly to the data input of stage $i-1$. On every active clock pulse, the stored binary pattern shifts by one bit position.
+
+<SequentialSimulator
+  circuit="shift-register-4bit"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+Depending on how data enters and leaves the register, there are four fundamental operational topologies:
+
+| Topology | Data Input Method | Data Output Method | Clock Cycles to Load | Clock Cycles to Retrieve | Primary Hardware Application |
+| :--- | :--- | :--- | :---: | :---: | :--- |
+| **SISO** (Serial-In Serial-Out) | 1 bit per clock edge | 1 bit per clock edge | $N$ | $N - 1$ | Digital delay lines, temporary serial buffering. |
+| **SIPO** (Serial-In Parallel-Out) | 1 bit per clock edge | All $N$ bits simultaneously | $N$ | **$1$** | **UART Receiver, SPI, I2C, Serial-to-Parallel decoders.** |
+| **PISO** (Parallel-In Serial-Out) | All $N$ bits simultaneously | 1 bit per clock edge | **$1$** | $N - 1$ | **UART Transmitter, High-speed serial links (PCIe, SATA).** |
+| **PIPO** (Parallel-In Parallel-Out) | All $N$ bits simultaneously | All $N$ bits simultaneously | **$1$** | **$1$** | **CPU Pipeline Registers, ALU Input/Output Latches.** |
+
+---
+
+<div id="universal-shift-register" />
+
+## 🎛️ The 74194 Universal Bidirectional Shift Register
+
+A **Universal Shift Register** integrates all possible register behaviors into a single IC. Each flip-flop is preceded by a **4:1 Multiplexer** governed by two mode select lines ($S_1, S_0$):
+
+| $S_1$ | $S_0$ | Operating Mode | Input Selected by 4:1 MUX | Circuit Action |
+| :---: | :---: | :--- | :--- | :--- |
+| **0** | **0** | **Hold / No Change** | $I_0 = Q_i$ | Re-circulates own output; state holds indefinitely. |
+| **0** | **1** | **Shift Right** | $I_1 = Q_{i+1}$ (or Serial In Right) | Bits shift towards LSB ($Q_3 \to Q_2 \to Q_1 \to Q_0$). |
+| **1** | **0** | **Shift Left** | $I_2 = Q_{i-1}$ (or Serial In Left) | Bits shift towards MSB ($Q_0 \to Q_1 \to Q_2 \to Q_3$). |
+| **1** | **1** | **Parallel Load** | $I_3 = D_i$ | Loads all external bus lines simultaneously in 1 cycle. |
+
+---
+
+<div id="ring-vs-johnson-counters" />
+
+## 💍 Circulating Shift Counters: Ring vs. Johnson
+
+By looping the serial output of a shift register back into its serial input, we create circulating state counters:
+
+### 1. The Ring Counter (One-Hot Circulating Counter)
+In a 4-bit Ring Counter, the serial output $Q_0$ is tied directly back to $D_3$:
+$$D_3 = Q_0$$
+
+Starting from an initial seed of $1000_2$, the single logic `1` circulates continuously:
+$$1000 \longrightarrow 0100 \longrightarrow 0010 \longrightarrow 0001 \longrightarrow 1000$$
+
+* **Total Valid States**: $N$ states for an $N$-bit register ($4$ states for $4$ bits).
+* **Decoding Hardware**: Zero logic gates required! Each flip-flop output directly indicates the active state (One-Hot encoding).
+* **Silicon Efficiency**: Very low ($4$ states out of $2^4 = 16$ possible states; $12$ states are wasted).
+
+### 2. The Johnson (Twisted Ring / Moebius) Counter
+In a Johnson counter, the **inverted output $\bar{Q}_0$** is fed back to $D_3$:
+$$D_3 = \bar{Q}_0$$
+
+Starting from an all-zero state $0000_2$:
+$$0000 \to 1000 \to 1100 \to 1110 \to 1111 \to 0111 \to 0011 \to 0001 \to 0000$$
+
+* **Total Valid States**: $2N$ states ($8$ states for a $4$-bit register; exactly double the Ring counter!).
+* **Decoding Hardware**: Minimal—any state can be decoded using a single 2-input AND gate.
+* **Self-Starting Requirement**: If noise drops the counter into an unused state (e.g., $1010$), it may circulate indefinitely in an illegal loop. Production designs add corrective feedback logic: $D_3 = \bar{Q}_0 \cdot \bar{Q}_1$.
+
+---
+
+<div id="asynchronous-vs-synchronous-counters" />
+
+## ⏱️ Asynchronous (Ripple) vs. Synchronous Counters
+
+Binary counters fall into two fundamentally different timing categories:
+
+| Engineering Parameter | Asynchronous (Ripple) Counter | Synchronous Counter |
+| :--- | :--- | :--- |
+| **Clock Distribution** | Only stage 0 receives the master clock. Stage $i+1$ is clocked by output $Q_i$ of stage $i$. | **All flip-flops share the exact same master clock simultaneously.** |
+| **Propagation Delay** | **Cumulative**: $t_{total} = N \times t_{pd(FF)}$. Each stage must wait for the previous stage to finish settling. | **Constant**: $t_{total} = t_{pd(FF)}$ (plus gate steering delay). All bits update concurrently! |
+| **Maximum Frequency ($f_{max}$)** | Low: $f_{max} = \frac{1}{N \cdot t_{pd}}$. Speed degrades linearly with bit-width. | High: $f_{max} = \frac{1}{t_{pd} + t_{comb}}$. Speed is independent of bit-width! |
+| **Decoding Glitches (Spikes)** | **Severe**: Transient intermediate states (e.g., $011 \to 010 \to 000 \to 100$) generate false spikes on combinational decoders. | **Zero**: State transitions are strictly atomic and glitch-free. |
+| **Hardware Complexity** | Extremely simple (no external steering logic required). | Requires external AND gates to determine toggle conditions. |
+
+---
+
+<div id="systematic-synchronous-counter-design" />
+
+## ⚙️ Systematic Synchronous Counter Design Procedure
+
+<SequentialSimulator
+  circuit="synchronous-counter-3bit"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+### The 5-Step Universal Design Algorithm:
+1. **State Diagram & Count Sequence**: Define states ($0 \to 1 \dots \to M-1 \to 0$).
+2. **Determine Flip-Flop Count**: $2^N \ge M$.
+3. **Construct State Transition & Excitation Table**: Map $Q_n \to Q_{n+1}$ and look up required inputs for each flip-flop.
+4. **K-Map Simplification**: Solve for flip-flop inputs in terms of current state variables.
+5. **Logic Realization**: Connect gates to flip-flop clock and data pins.
+
+### Worked Example: Design a 3-Bit Synchronous Up Counter using T Flip-Flops
+We need $N = 3$ flip-flops ($Q_2, Q_1, Q_0$) counting from $000_2 \to 111_2$.
+
+#### Excitation Table for T Flip-Flop:
+Recall that $T = Q_n \oplus Q_{n+1}$ (if state changes, $T=1$; if state holds, $T=0$).
+
+| Present State ($Q_2 Q_1 Q_0$) | Next State ($Q_2^+ Q_1^+ Q_0^+$) | Required $T_2$ | Required $T_1$ | Required $T_0$ |
+| :---: | :---: | :---: | :---: | :---: |
+| **000** | **001** | $0$ | $0$ | $1$ |
+| **001** | **010** | $0$ | $1$ | $1$ |
+| **010** | **011** | $0$ | $0$ | $1$ |
+| **011** | **100** | $1$ | $1$ | $1$ |
+| **100** | **101** | $0$ | $0$ | $1$ |
+| **101** | **110** | $0$ | $1$ | $1$ |
+| **110** | **111** | $0$ | $0$ | $1$ |
+| **111** | **000** | $1$ | $1$ | $1$ |
+
+#### K-Map Derivation of Inputs:
+1. **For $T_0$**: Notice that $T_0 = 1$ in EVERY row!
+   $$\mathbf{T_0 = 1}$$
+   *(FF0 toggles on every single clock edge).*
+2. **For $T_1$**: $T_1 = 1$ whenever $Q_0 = 1$ (rows 001, 011, 101, 111):
+   $$\mathbf{T_1 = Q_0}$$
+   *(FF1 toggles whenever FF0 is currently high).*
+3. **For $T_2$**: $T_2 = 1$ only when both $Q_1 = 1$ and $Q_0 = 1$ (rows 011 and 111):
+   $$\mathbf{T_2 = Q_1 Q_0}$$
+   *(FF2 toggles only when both lower bits are high, preparing for rollover).*
+
+<MathBox title="Synchronous Binary Counter Governing Steering Equations" type="formula">
+
+$$
+T_0 = 1, \quad T_1 = Q_0, \quad T_2 = Q_1 Q_0, \quad \dots \quad T_k = \prod_{i=0}^{k-1} Q_i
+$$
+
+</MathBox>
+
+Each successive stage toggles if and only if **all previous lower-order stages are currently at logic 1**!
+
+---
+
+## 🏭 Real-World Production Context: SerDes Transceivers & Program Counter Microarchitecture
+
+In enterprise compute hardware and high-speed networking:
+* **Serializer/Deserializer (SerDes)**: When sending data across high-speed optical links or PCIe interconnects at 32 GT/s, parallel transmission is physically impossible due to trace length mismatches and cross-talk. Shift registers serialize parallel words into a single differential pair with embedded clocking.
+* **Instruction Sequencing**: Synchronous counters drive micro-operation sequencers within processor control units, stepping through microcode ROM cycles deterministically without intermediate decoding hazards.
+* **FIFO Memory Pointers**: High-throughput circular ring buffers in network interface cards (NICs) use Gray-code synchronous counters to prevent multi-bit transition glitches when passing head and tail pointers across asynchronous clock domains.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Latency & Clock Cycle Analysis Across Shift Register Topologies
+**Problem Statement:**  
+An $n$-bit binary data word ($n = 8$ bits) is to be transferred from a transmitter to a receiver across a synchronous digital interface. The interface can be implemented using one of four shift register configurations:
+1. Serial-In, Serial-Out (SISO)
+2. Serial-In, Parallel-Out (SIPO)
+3. Parallel-In, Serial-Out (PISO)
+4. Parallel-In, Parallel-Out (PIPO)
+
+For each topology:
+* Determine the number of clock pulses required to write (load) the $n$-bit word into the register.
+* Determine the number of clock pulses required to read (retrieve) the $n$-bit word from the register.
+* Calculate total latency for $n = 8$ bits.
+
+**Step-by-Step Solution:**
+1. **SISO Configuration:**  
+   * Write: Loading $n$ serial bits requires $n$ clock pulses ($8$ pulses).  
+   * Read: Unloading the stored bits serially requires $(n - 1)$ additional clock pulses ($7$ pulses), because the first bit is already available at the output after the $n$-th write pulse.  
+   * Total Latency: $n + (n - 1) = 2n - 1 = \mathbf{15\text{ clock cycles}}$.
+2. **SIPO Configuration:**  
+   * Write: Loading $n$ bits serially requires $n$ clock pulses ($8$ pulses).  
+   * Read: All $n$ parallel outputs are available immediately (0 additional clock pulses).  
+   * Total Latency: $n = \mathbf{8\text{ clock cycles}}$.
+3. **PISO Configuration:**  
+   * Write: Loading all $n$ bits in parallel requires $1$ clock pulse (with $\text{Load} = 1$).  
+   * Read: Shifting out the remaining $(n - 1)$ bits serially requires $(n - 1)$ pulses ($7$ pulses).  
+   * Total Latency: $1 + (n - 1) = n = \mathbf{8\text{ clock cycles}}$.
+4. **PIPO Configuration:**  
+   * Write: Loading all bits in parallel requires $1$ clock pulse.  
+   * Read: All outputs are available immediately ($0$ pulses).  
+   * Total Latency: $\mathbf{1\text{ clock cycle}}$ (Fastest, but requires $n$ input and $n$ output routing wires).
+
+---
+
+### Example 2: State Capacity & Decoding Complexity: 4-Bit Ring vs Johnson Counters
+**Problem Statement:**  
+Compare a 4-bit Ring Counter and a 4-bit Johnson (Twisted-Ring) Counter constructed using identical edge-triggered D flip-flops ($n = 4$):
+1. Determine the Modulo (number of valid states in the counting sequence).
+2. Calculate the number of unused (lockout candidate) states.
+3. Determine the minimum gate logic required to decode any individual state.
+
+**Step-by-Step Solution:**
+1. **Ring Counter Analysis ($n = 4$):**  
+   * Valid State Sequence: Circulates a single '1' through $n$ positions:  
+     $$1000_2 \to 0100_2 \to 0010_2 \to 0001_2 \to 1000_2$$  
+   * Modulo: $\text{Mod} = n = \mathbf{4\text{ states}}$.  
+   * Unused States: Total possible $2^n - n = 2^4 - 4 = 16 - 4 = \mathbf{12\text{ unused states}}$.  
+   * Decoding Logic: Because exactly one bit is active high at any time, each state is decoded with **zero combinational gates**! Simply tap output pin $Q_i$ directly.
+2. **Johnson Counter Analysis ($n = 4$):**  
+   * Valid State Sequence: Feeds inverted output $\bar{Q}_3$ back to $D_0$:  
+     $$0000 \to 1000 \to 1100 \to 1110 \to 1111 \to 0111 \to 0011 \to 0001 \to 0000$$  
+   * Modulo: $\text{Mod} = 2n = 2(4) = \mathbf{8\text{ states}}$ (Double the capacity of the ring counter!).  
+   * Unused States: $2^n - 2n = 16 - 8 = \mathbf{8\text{ unused states}}$.  
+   * Decoding Logic: Adjacent states differ by a single bit transition. Any state is uniquely decoded using a **single 2-input AND gate** (e.g., State $1100$ is decoded by $Q_1 \bar{Q}_2$).
+
+---
+
+### Example 3: Systematic Design of a Modulo-6 Synchronous Up-Counter using T Flip-Flops
+**Problem Statement:**  
+Design a synchronous counter that counts repeatedly through the sequence $0 \to 1 \to 2 \to 3 \to 4 \to 5 \to 0$ using positive edge-triggered T flip-flops.  
+1. Determine the required number of flip-flops.  
+2. Formulate the state transition table with T flip-flop excitations.  
+3. Derive minimized excitation equations for each stage using Karnaugh maps.
+
+**Step-by-Step Solution:**
+1. **Determine Flip-Flop Count:**  
+   * Number of states $N = 6$. Minimum flip-flops: $2^n \ge 6 \implies n = 3$ flip-flops ($Q_2, Q_1, Q_0$).  
+   * Unused states: $6$ ($110_2$) and $7$ ($111_2$).
+2. **State Transition & T Excitation Table:**  
+   Recall T excitation: $T = 0$ if $Q_n = Q_{n+1}$ (Hold), $T = 1$ if $Q_n \neq Q_{n+1}$ (Toggle).
+
+   | Present State ($Q_2 Q_1 Q_0$) | Next State ($Q_2^+ Q_1^+ Q_0^+$) | $T_2$ | $T_1$ | $T_0$ |
+   | :---: | :---: | :---: | :---: | :---: |
+   | $000$ (0) | $001$ (1) | 0 | 0 | 1 |
+   | $001$ (1) | $010$ (2) | 0 | 1 | 1 |
+   | $010$ (2) | $011$ (3) | 0 | 0 | 1 |
+   | $011$ (3) | $100$ (4) | 1 | 1 | 1 |
+   | $100$ (4) | $101$ (5) | 0 | 0 | 1 |
+   | $101$ (5) | $000$ (0) | 1 | 0 | 1 |
+   | $110$ (6) | Unused | $\times$ | $\times$ | $\times$ |
+   | $111$ (7) | Unused | $\times$ | $\times$ | $\times$ |
+
+3. **K-Map Minimization (Treating states 6 and 7 as don't-cares $\times$):**  
+   * **For $T_0$**: Every valid transition flips $Q_0 \implies \mathbf{T_0 = 1}$ (Tied high permanently).  
+   * **For $T_1$**: Min-terms are $m_1, m_3$ with don't-cares at $m_6, m_7$.  
+     In K-map ($Q_2$ vs $Q_1 Q_0$): cells $(1, 3)$ combined with don't care:  
+     $$\mathbf{T_1 = \bar{Q}_2 Q_0}$$  
+   * **For $T_2$**: Min-terms are $m_3, m_5$ with don't-cares at $m_6, m_7$.  
+     Grouping $m_3$ with $m_7 \implies Q_1 Q_0$; grouping $m_5$ with $m_7 \implies Q_2 Q_0$:  
+     $$\mathbf{T_2 = Q_1 Q_0 + Q_2 Q_0 = (Q_1 + Q_2) Q_0}$$
+4. **Self-Starting Lockout Verification:**  
+   * If counter starts in unused state $110$ ($6$): $T_0 = 1, T_1 = \bar{1}(0) = 0, T_2 = (1+1)(0) = 0 \implies \text{Next state} = 111$ ($7$).  
+   * From state $111$ ($7$): $T_0 = 1, T_1 = 0, T_2 = (1+1)(1) = 1 \implies \text{Next state} = 010$ ($2$).  
+   * State 2 is inside the valid loop! The counter is **self-starting** and completely immune to permanent lockouts.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why do Ripple Counters generate false decoding spikes, and how do Synchronous Counters eliminate them?**  
+  In a 4-bit ripple counter transitioning from $0111_2 \to 1000_2$, stage 0 flips first ($0110$), which triggers stage 1 ($0100$), which triggers stage 2 ($0000$), which triggers stage 3 ($1000$). For several nanoseconds, the outputs ripple through intermediate states ($6, 4, 0$) before settling at $8$. If an AND gate decodes state $0000$, it will output a momentary glitch pulse! Synchronous counters clock all flip-flops concurrently, so all bits transition in lockstep, eliminating intermediate states.
+* **How does a Johnson Counter decode any of its $2N$ states using only a 2-input AND gate?**  
+  Because adjacent states in a Johnson counter differ by only a single bit (like Gray code). For instance, state $1100$ is uniquely identified by the boundary condition where $Q_2 = 1$ and $Q_1 = 0$, requiring only $Q_2 \bar{Q}_1$.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Forgetting that a PISO register requires a Shift/Load control signal.**  
+  Unlike a pure serial register, a PISO register must be able to switch modes: load all parallel inputs simultaneously ($S/\bar{L} = 0$), then isolate inputs and shift serially ($S/\bar{L} = 1$).
+* **Trap: Overlooking lockout states in non-power-of-two counters.**  
+  When designing Modulo-5 or Modulo-6 counters using 3 flip-flops, $3$ states ($8 - 5 = 3$) are unused. Always verify using the state equations that if the counter accidentally powers up in an unused state, it transitions back into the main loop within 1 or 2 clock cycles rather than getting permanently trapped in a lockout loop!
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "6.3 D and T Flip-Flops: Conversion & Excitation Tables",
+    url: "/coredose/digital-logic/module-06/d-and-t-flip-flops-conversion-and-excitation-tables",
+  }}
+  next={{
+    title: "7.1 Radix Number Systems & Inter-Base Conversion",
+    url: "/coredose/digital-logic/module-07/radix-number-systems-and-inter-base-conversion",
+  }}
+  courseUrl="/coredose/digital-logic"
+/>

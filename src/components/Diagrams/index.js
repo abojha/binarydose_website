@@ -23,5 +23,11 @@ export {
   ContentionTimeline,
   FrameFormat,
   PacketHeaderGrid,
+  LogicGateSimulator,
+  MathBox,
+  KMapDiagram,
+  CircuitSimulator,
+  SequentialSimulator,
+  NumberSystemSimulator,
 } from '@site/src/components/CoreDose/Diagrams';
 

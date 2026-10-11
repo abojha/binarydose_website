@@ -5,9 +5,9 @@
   "visualizerEnginesCount": 4,
   "videoPlaylistsCount": 4,
   "coredose": {
-    "activeCoursesCount": 3,
-    "totalTopics": 150,
-    "totalModules": 30,
+    "activeCoursesCount": 4,
+    "totalTopics": 173,
+    "totalModules": 37,
     "subjects": {
       "cn": {
         "modules": 10,
@@ -16,6 +16,10 @@
       "dbms": {
         "modules": 10,
         "topics": 48
+      },
+      "digital-logic": {
+        "modules": 7,
+        "topics": 23
       },
       "os": {
         "modules": 10,

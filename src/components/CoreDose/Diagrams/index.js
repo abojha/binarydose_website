@@ -17,3 +17,10 @@ export { default as ProtocolLadder } from './ProtocolLadder';
 export { default as ContentionTimeline } from './ContentionTimeline';
 export { default as FrameFormat } from './FrameFormat';
 export { default as PacketHeaderGrid } from './PacketHeaderGrid';
+export { default as LogicGateSimulator } from './LogicGateSimulator';
+export { default as MathBox } from './MathBox';
+export { default as KMapDiagram } from './KMapDiagram';
+export { default as CircuitSimulator } from './CircuitSimulator';
+export { default as SequentialSimulator } from './SequentialSimulator';
+export { default as NumberSystemSimulator } from './NumberSystemSimulator';
+

@@ -1,0 +1,424 @@
+---
+title: "6.2 JK Flip-Flop, Race-Around Condition & Master-Slave Solution"
+description: "First-principles engineering breakdown of the JK Flip-Flop, elimination of the SR forbidden state, the race-around condition timing paradox, and the Master-Slave isolation architecture."
+hide_table_of_contents: true
+---
+
+# 6.2 JK Flip-Flop, Race-Around Condition & Master-Slave Solution
+
+<CoreDoseLessonHeader
+  module="Module 06: Sequential Logic Circuits: Latches & Flip-Flops"
+  topic="Topic 6.2"
+  courseUrl="/coredose/digital-logic"
+  readTime="19 min read"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Foundational Computing"
+/>
+
+## 💡 Core Intuition: The Submarine Airlock Chamber
+
+In Topic 6.1, we discovered the Achilles' heel of the SR latch: when both inputs are driven high ($S=R=1$), the circuit enters a forbidden state where outputs violate complementary logic ($Q = Q' = 0$), causing random oscillation when inputs drop.
+
+The **JK Flip-Flop** solves this by routing output lines $Q$ and $\bar{Q}$ back to the input steering gates. If you command both inputs high ($J=K=1$), the circuit no longer crashes—it cleanly **toggles** (inverts) its current state ($Q \to \bar{Q}$).
+
+However, in level-triggered latches, this feedback introduces a dangerous timing paradox known as the **Race-Around Condition**: while the clock stays high, the new output immediately loops back to the inputs and flips itself again, oscillating wildly like a ceiling fan stuck on high speed!
+
+### 🍳 The Everyday Analogy: The Two-Door Airlock vs. The Revolving Door
+* **The Level-Triggered JK Latch (The Jammed Revolving Door)**: If both doors of an airlock are held open simultaneously while people run through, water floods the submarine chamber uncontrollably.
+* **The Master-Slave Solution (The True Two-Stage Airlock)**: 
+  * **Step 1 ($CLK = 1$)**: Outer door (Master) opens. The diver steps inside the intermediate chamber and is registered. Meanwhile, the inner door (Slave) is strictly sealed shut with heavy steel bolts. The submarine interior is 100% isolated.
+  * **Step 2 ($CLK = 0$)**: Outer door (Master) locks shut. Only after the outer door is verified locked does the inner door (Slave) open to allow the diver into the submarine.
+### 💻 Bridging to Computer Science
+
+In computer systems engineering, race-around and edge-synchronization dictate CPU clock frequencies:
+1. **Clock Distribution Networks**: Synchronous digital microprocessors (ARM, x86, RISC-V) route clock signals across balanced H-trees. If clock pulse width $t_p$ exceeds flip-flop propagation delay without edge isolation, internal register state is corrupted.
+2. **Frequency Division & Prescalers**: By fixing $J=K=1$, a flip-flop toggles once per clock cycle, dividing input clock frequency exactly by 2 ($f_{out} = f_{in}/2$). Cascading $n$ JK flip-flops creates an asynchronous binary counter dividing by $2^n$.
+3. **Metastability Hardening**: When asynchronous peripherals interface with synchronous CPU buses, dual-stage flip-flop synchronizers (essentially back-to-back Master-Slave configurations) provide exponential resolution of metastable states.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## ⚡ The JK Flip-Flop Architecture & Feedback
+
+The JK flip-flop was engineered to eliminate the forbidden condition of the SR latch. It takes three inputs: $J$ (equivalent to Set), $K$ (equivalent to Reset), and $CLK$ (Clock).
+
+The internal architecture cross-connects the complementary outputs back to the front steering gates:
+* The $Q$ output is wired back to the bottom input AND gate (along with $K$ and $CLK$).
+* The $\bar{Q}$ output is wired back to the top input AND gate (along with $J$ and $CLK$).
+
+<SequentialSimulator
+  circuit="jk-flip-flop"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+### Why Feedback Prevents the Forbidden State:
+Suppose $J=1$ and $K=1$ are both applied simultaneously:
+1. If the current state is **$Q = 0$ (and $\bar{Q} = 1$)**:
+   * Top AND gate sees: $J = 1$, $CLK = 1$, and feedback $\bar{Q} = 1 \implies \text{Top Output} = 1$.
+   * Bottom AND gate sees: $K = 1$, $CLK = 1$, and feedback $Q = 0 \implies \text{Bottom Output} = 0$.
+   * Top input is $1$ and bottom is $0 \implies$ this automatically commands a **SET** operation ($Q \to 1$).
+2. If the current state is **$Q = 1$ (and $\bar{Q} = 0$)**:
+   * Top AND gate sees: $J = 1$, $CLK = 1$, and feedback $\bar{Q} = 0 \implies \text{Top Output} = 0$.
+   * Bottom AND gate sees: $K = 1$, $CLK = 1$, and feedback $Q = 1 \implies \text{Bottom Output} = 1$.
+   * Top input is $0$ and bottom is $1 \implies$ this automatically commands a **RESET** operation ($Q \to 0$).
+
+Thus, whenever $J = K = 1$, the circuit inherently senses its present state and automatically applies the opposite command, cleanly **toggling** from $0 \to 1$ or $1 \to 0$!
+
+---
+
+<div id="characteristic-equations-and-tables" />
+
+## 📊 Characteristic Equation & State Matrix
+
+Let us construct the complete state transition table for the JK Flip-Flop by mapping present state $Q_n$ and inputs $(J, K)$ to next state $Q_{n+1}$:
+
+| $J$ | $K$ | $Q_n$ (Present State) | $Q_{n+1}$ (Next State) | State Description |
+| :---: | :---: | :---: | :---: | :--- |
+| **0** | **0** | $0$ | $0$ | **Hold / No Change** ($Q_{n+1} = Q_n$) |
+| **0** | **0** | $1$ | $1$ | **Hold / No Change** ($Q_{n+1} = Q_n$) |
+| **0** | **1** | $0$ | $0$ | **Reset (Clear)** ($Q_{n+1} = 0$) |
+| **0** | **1** | $1$ | $0$ | **Reset (Clear)** ($Q_{n+1} = 0$) |
+| **1** | **0** | $0$ | $1$ | **Set** ($Q_{n+1} = 1$) |
+| **1** | **0** | $1$ | $1$ | **Set** ($Q_{n+1} = 1$) |
+| **1** | **1** | $0$ | $1$ | **Toggle** ($Q_{n+1} = \bar{Q}_n$) |
+| **1** | **1** | $1$ | $0$ | **Toggle** ($Q_{n+1} = \bar{Q}_n$) |
+
+### K-Map Derivation of the Characteristic Equation
+
+To derive the next-state equation, we plot $Q_{n+1}$ on a 3-variable Karnaugh Map with variables $J, K, Q$:
+
+```
+        KQ
+   J   00   01   11   10
+   0 [  0    1    0    0  ]  --> Cell 01 (m1) is 1: Qn=1, K=0, J=0
+   1 [  1    1    0    1  ]  --> Cells m4, m5, m6 are 1
+```
+
+Grouping the 1s:
+* Group 1 (Horizontal pair in row $J=1$): covers $m_4, m_5 \implies \mathbf{J\bar{Q}}$
+* Group 2 (Vertical pair in column $K=0$): covers $m_1, m_5 \implies \mathbf{\bar{K}Q}$
+
+<MathBox title="JK Flip-Flop Characteristic Equation" type="formula">
+
+$$
+Q_{next} = J\bar{Q} + \bar{K}Q
+$$
+
+</MathBox>
+
+Unlike the SR latch ($Q_{next} = S + \bar{R}Q$ with $SR=0$), the JK characteristic equation has **zero input restrictions** ($J=K=1$ is 100% mathematically and physically valid).
+
+---
+
+<div id="the-race-around-condition" />
+
+## ⏱️ The Race-Around Condition: Root Cause & Derivation
+
+While the JK architecture solves the forbidden state, it creates a severe timing flaw in level-triggered implementations:
+
+### The Timing Paradox
+Let:
+* $T$ = The clock period.
+* $t_p$ = The duration of the clock pulse (time during which $CLK = 1$).
+* $t_{pd(FF)}$ = The total propagation delay of the flip-flop (time required for an input transition to reach output terminals $Q$).
+
+In practical semiconductor gates, internal propagation delay is extremely small (e.g., $t_{pd(FF)} \approx 2\text{ ns}$), whereas the clock high duration is significantly wider (e.g., $t_p = 50\text{ ns}$ on a $10\text{ MHz}$ clock).
+
+<ProcessFlow
+  title="Step-by-Step Race-Around Oscillation Timeline"
+  subtitle="How propagation delay smaller than clock pulse width triggers uncontrollable toggling (t_pd < t_p)"
+  steps={[
+    {
+      title: "Clock Pulse Asserted (t = 0 ns)",
+      tag: "CLK = 1, J=1, K=1",
+      description: "Both inputs are active (toggle mode). The internal NAND steering gates become transparent while Q = 0, Q' = 1.",
+      code: "CLK = 1 | tp = 50 ns | Initial: Q = 0"
+    },
+    {
+      title: "First Toggle Transition (t = 2 ns)",
+      tag: "Δt = t_pd",
+      description: "After one flip-flop propagation delay (t_pd = 2 ns), the output flips from 0 to 1 (Q = 1, Q' = 0).",
+      code: "t = 2 ns | Q: 0 → 1"
+    },
+    {
+      title: "Feedback Loop While Clock Still High (t = 2 ns to 4 ns)",
+      tag: "t < t_p Hazard",
+      description: "Because clock high duration (tp = 50 ns) is vastly wider than gate delay, the clock is still HIGH. The newly updated Q = 1 feeds back to the K steering gate.",
+      code: "CLK is STILL 1 (2 ns < 50 ns)"
+    },
+    {
+      title: "Second Toggle Transition (t = 4 ns)",
+      tag: "Δt = 2 × t_pd",
+      description: "The flip-flop evaluates again with inverted inputs: Q flips back from 1 to 0 after another 2 ns delay.",
+      code: "t = 4 ns | Q: 1 → 0"
+    },
+    {
+      title: "Continuous High-Frequency Oscillation (t = 4 ns to 50 ns)",
+      tag: "25 Rapid Flips",
+      description: "Output oscillates back and forth continuously (50 ns / 2 ns = 25 toggles) throughout the entire clock pulse duration.",
+      code: "Oscillation Frequency = 1 / (2 × t_pd) = 250 MHz"
+    },
+    {
+      title: "Clock Edge Falls (t = 50 ns: Metastable Freeze)",
+      tag: "Indeterminate State",
+      description: "When CLK finally drops low to 0, gates lock instantly. The output freezes at whatever random state it happened to be in at that exact picosecond.",
+      code: "CLK → 0 | Final Q = Indeterminate / Random"
+    }
+  ]}
+/>
+
+### Mathematical Definition of the Race-Around Hazard:
+The race-around condition occurs in a level-triggered JK flip-flop whenever:
+
+<MathBox title="Condition for Race-Around" type="formula">
+
+$$
+t_{pd(FF)} < t_p < T
+$$
+
+</MathBox>
+
+Where:
+* If $t_p > t_{pd(FF)}$, the output will oscillate $N = \lfloor t_p / t_{pd(FF)} \rfloor$ times during a single clock pulse!
+* When the clock signal finally transitions back to $0$, the final resting value of $Q$ depends entirely on whether $N$ was even or odd, compounded by micro-variations in temperature and transistor jitter. **Deterministic state computation is completely destroyed.**
+
+---
+
+<div id="the-master-slave-solution" />
+
+## 🛡️ The Master-Slave JK Architecture
+
+To eliminate race-around, engineers invented the **Master-Slave JK Flip-Flop**, which cascades two separate latches controlled by complementary clock phases:
+
+1. **Master Latch**: Clocked directly by $CLK$.
+2. **Slave Latch**: Clocked by the inverted clock signal $\overline{CLK}$ (via an inverter).
+
+<FlowPipeline
+  title="Master-Slave Two-Phase Clock Isolation Architecture"
+  subtitle="Decoupling input sampling and output transfer via complementary clock phases (CLK and CLK')"
+  stages={[
+    {
+      id: "sampling-phase",
+      stageName: "Phase 1: Sampling (CLK = 1, CLK' = 0)",
+      steps: [
+        {
+          title: "Input & Feedback Steering",
+          sublabel: "J, K + Q(Slave), Q'(Slave)",
+          description: "External inputs J, K combined with feedback from frozen Slave outputs drive Master steering gates.",
+          color: "blue",
+          badge: "Inputs",
+          actionText: "Samples inputs"
+        },
+        {
+          title: "Master JK Latch (Active)",
+          sublabel: "CLK = 1 (Transparent)",
+          description: "Evaluates inputs and establishes intermediate latch node states Y and Y'.",
+          color: "amber",
+          badge: "Master Active",
+          actionText: "Holds Y, Y'"
+        },
+        {
+          title: "Slave SR Latch (Locked)",
+          sublabel: "CLK' = 0 (Opaque / Frozen)",
+          description: "Clock inverter keeps Slave disabled. Output Q and Q' are locked, completely breaking the feedback loop.",
+          color: "rose",
+          badge: "Slave Locked",
+          actionText: "Loop Broken"
+        }
+      ]
+    },
+    {
+      id: "transfer-phase",
+      stageName: "Phase 2: Transfer on Falling Edge (CLK = 0, CLK' = 1)",
+      steps: [
+        {
+          title: "Master Latch (Locked)",
+          sublabel: "CLK = 0 (Opaque / Isolated)",
+          description: "Master locks intermediate states Y and Y' securely, ignoring any subsequent input noise.",
+          color: "rose",
+          badge: "Master Locked",
+          actionText: "Isolates inputs"
+        },
+        {
+          title: "Clock Inverter Gate",
+          sublabel: "CLK = 0 → CLK' = 1",
+          description: "Inverted clock pulse asserts high to enable the Slave SR stage.",
+          color: "cyan",
+          badge: "Inverter",
+          actionText: "Enables Slave"
+        },
+        {
+          title: "Slave SR Latch (Active)",
+          sublabel: "CLK' = 1 (Transparent)",
+          description: "Copies intermediate states Y and Y' to final terminals Q and Q'. Outputs update cleanly without oscillation.",
+          color: "emerald",
+          badge: "Slave Active",
+          actionText: "Updates Q, Q'"
+        }
+      ]
+    }
+  ]}
+/>
+
+### Step-by-Step Two-Phase Execution
+
+The Master-Slave circuit eliminates the feedback loop by alternating activity across two distinct clock phases:
+
+#### Phase 1: Clock is High ($CLK = 1, \overline{CLK} = 0$)
+* The Master latch is **enabled**. It samples external inputs $J$ and $K$ along with the feedback lines from the Slave, and sets internal intermediate outputs $Y$ and $\bar{Y}$.
+* Meanwhile, the Slave latch receives $\overline{CLK} = 0$ and is **completely disabled (locked)**. Its outputs $Q$ and $\bar{Q}$ cannot change and remain frozen.
+* **Why this breaks race-around**: Because the Slave is disabled, the external outputs $Q$ and $\bar{Q}$ are held rock-solid. Even if the Master flips its internal nodes, the changes cannot reach the Slave, preventing any signal from completing the full loop back to the Master during the high clock level!
+
+#### Phase 2: Clock Transitions to Low ($CLK = 0, \overline{CLK} = 1$)
+* On the falling clock edge, $CLK$ drops to $0$. The Master latch is instantly **disabled (locked)**, isolating it from any further input fluctuations.
+* Simultaneously, $\overline{CLK}$ goes to $1$, enabling the Slave latch. The Slave latch transparently copies the Master's intermediate outputs ($Y, \bar{Y}$) and updates the final circuit terminals $Q$ and $\bar{Q}$.
+* **Result**: Output $Q$ changes state **exactly once per clock cycle**, strictly on the falling edge ($\downarrow$) of the clock! Race-around is mathematically impossible.
+
+---
+
+<div id="edge-triggering-mechanisms" />
+
+## 🚀 Alternative Solutions: Physical Edge-Triggering
+
+While Master-Slave architecture guarantees isolation, modern gigahertz microprocessors achieve edge-triggering directly using **narrow transition-aperture edge detectors**:
+
+1. **RC Differentiator Circuit**: Passes the clock signal through a small high-pass capacitor and resistor to create sharp spike pulses of duration $t_w \approx 0.1\text{ ns} < t_{pd(FF)}$.
+2. **Inverter Propagation Delay Generators**: An internal 3-inverter delay chain generates a momentary pulse ($t_w = 3 \times t_{pd(NOT)}$) on every clock transition edge:
+
+<MathBox title="Internal Edge Pulse Generation" type="formula">
+
+$$
+CLK_{pulse} = CLK \cdot \overline{\text{Delay}(CLK)} \implies t_{pulse} \approx 3 \cdot t_{pd(INV)}
+$$
+
+</MathBox>
+
+Because $t_{pulse} < t_{pd(FF)}$, the clock pulse has already returned to zero before the new output can physically propagate through the flip-flop gates, eliminating the feedback race entirely.
+
+---
+
+## 🏭 Real-World Production Context: Clock Distribution & Metastability Hardening
+
+In high-speed ASIC and FPGA designs operating at hundreds of megahertz to gigahertz, edge-triggering is paramount:
+* **Clock Skew Constraints**: Master-slave and edge-triggered flip-flops ensure data transitions are bounded strictly by clock edges. This allows static timing analysis (STA) tools to verify that setup time ($t_{su}$) and hold time ($t_h$) constraints are met across billions of silicon nodes.
+* **Synchronizer Chains**: When asynchronous external inputs (e.g., PCIe interrupts or keyboard keystrokes) cross into a CPU core's clock domain, cascaded edge-triggered flip-flop synchronizers absorb potential metastability before signals reach downstream logic.
+* **Frequency Synthesizers & Phase-Locked Loops (PLLs)**: By configuring JK / T flip-flops in toggle mode ($J=K=1$), hardware prescalers divide reference clock frequencies down to required operating frequencies across multiple chip domains.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Quantitative Analysis of the Race-Around Timing Paradox
+**Problem Statement:**  
+A level-triggered JK flip-flop has an internal gate propagation delay of $t_{pd(FF)} = 4\text{ ns}$. It is driven by a periodic symmetric square-wave clock signal of frequency $f = 10\text{ MHz}$ (50% duty cycle). Both inputs are tied to logic high ($J = K = 1$).  
+1. Calculate the clock period $T$ and the clock high pulse width $t_p$.  
+2. Determine whether the race-around condition occurs.  
+3. If it occurs, calculate the exact number of output state transitions that take place during a single clock pulse, and determine whether the final resting state at the end of the pulse is deterministic.
+
+**Step-by-Step Solution:**
+1. **Calculate Clock Parameters:**  
+   * Clock Period:  
+     $$T = \frac{1}{f} = \frac{1}{10 \times 10^6\text{ Hz}} = 100\text{ ns}$$  
+   * For a 50% duty cycle:  
+     $$t_p = \frac{T}{2} = \frac{100\text{ ns}}{2} = 50\text{ ns}$$
+2. **Evaluate the Race-Around Condition:**  
+   * The condition for race-around is $t_{pd(FF)} < t_p < T$.  
+   * Here: $4\text{ ns} < 50\text{ ns} < 100\text{ ns}$.  
+   * Because internal delay ($4\text{ ns}$) is vastly smaller than the clock pulse width ($50\text{ ns}$), **race-around occurs severely**.
+3. **Calculate Number of Toggles & Output Determinism:**  
+   * Number of toggles during the high clock level:  
+     $$N = \left\lfloor \frac{t_p}{t_{pd(FF)}} \right\rfloor = \left\lfloor \frac{50\text{ ns}}{4\text{ ns}} \right\rfloor = 12 \text{ complete transitions}$$  
+   * The output toggles 12 times within $48\text{ ns}$. At $t = 50\text{ ns}$, the clock transitions to $0$ while internal gates are midway through transitioning or settling.  
+   * Because minute variations in temperature, power supply voltage, and threshold noise introduce picosecond jitter, whether the circuit settles at $Q=0$ or $Q=1$ is mathematically **non-deterministic (random)**.
+
+---
+
+### Example 2: Mathematical Derivation of the JK Characteristic Equation via K-Map
+**Problem Statement:**  
+Construct the complete 3-variable next-state truth table for the JK flip-flop in terms of inputs $J, K$ and present state $Q_n$. Plot the minterms on a Karnaugh Map and derive the minimal characteristic equation $Q_{n+1} = f(J, K, Q_n)$.
+
+**Step-by-Step Solution:**
+1. **Construct the 3-Variable State Table:**
+
+   | $J$ | $K$ | $Q_n$ | $Q_{n+1}$ | Operation / Mode |
+   | :-: | :-: | :-: | :-: | :--- |
+   | 0 | 0 | 0 | 0 | Hold ($Q_{n+1} = Q_n$) |
+   | 0 | 0 | 1 | 1 | Hold ($Q_{n+1} = Q_n$) |
+   | 0 | 1 | 0 | 0 | Reset ($Q_{n+1} = 0$) |
+   | 0 | 1 | 1 | 0 | Reset ($Q_{n+1} = 0$) |
+   | 1 | 0 | 0 | 1 | Set ($Q_{n+1} = 1$) |
+   | 1 | 0 | 1 | 1 | Set ($Q_{n+1} = 1$) |
+   | 1 | 1 | 0 | 1 | Toggle ($Q_{n+1} = \bar{Q}_n$) |
+   | 1 | 1 | 1 | 0 | Toggle ($Q_{n+1} = \bar{Q}_n$) |
+
+2. **Map Output $Q_{n+1}$ onto a 3-Variable K-Map ($J$ vs $K Q_n$):**  
+   * Decimal minterms where $Q_{n+1} = 1$:  
+     $$m_1 (001), \; m_4 (100), \; m_5 (101), \; m_6 (110)$$  
+   * Row $J = 0$: cells $m_0=0, m_1=1, m_3=0, m_2=0$.  
+   * Row $J = 1$: cells $m_4=1, m_5=1, m_7=0, m_6=1$.
+3. **Group Prime Implicants:**  
+   * **Group 1 (Pair of 2 cells)**: Cells $(m_4, m_6)$ where $J=1, Q_n=0 \implies J \bar{Q}_n$.  
+   * **Group 2 (Pair of 2 cells)**: Cells $(m_1, m_5)$ where $K=0, Q_n=1 \implies \bar{K} Q_n$.  
+4. **Formulate Final Minimized Expression:**  
+   $$Q_{n+1} = J \bar{Q}_n + \bar{K} Q_n$$  
+   * Unlike the SR latch, this equation holds unconditionally for **all 8 possible input combinations** without requiring any forbidden-state constraints ($JK$ has zero don't-cares).
+
+---
+
+### Example 3: Master-Slave JK Waveform Transition Tracing
+**Problem Statement:**  
+A Master-Slave JK flip-flop with falling-edge output update has initial output $Q = 0$ ($Y = 0$). At time $t = 0$, input lines are held at $J = 1, K = 0$. The clock signal undergoes two complete cycles ($t_0 \to t_1$: High, $t_1 \to t_2$: Low, $t_2 \to t_3$: High, $t_3 \to t_4$: Low). Trace the states of intermediate Master output $Y$ and final Slave output $Q$ across both cycles.
+
+**Step-by-Step Solution:**
+1. **Cycle 1, Phase 1 (Clock High, $t_0 \to t_1$):**  
+   * Master is active ($CLK = 1$). Slave is disabled ($\overline{CLK} = 0$).  
+   * Master inputs: $J = 1, K = 0$, with feedback from Slave $Q = 0, \bar{Q} = 1$.  
+   * Master evaluates Set condition: intermediate output flips to $Y = 1$ ($\bar{Y} = 0$).  
+   * Slave remains locked: external output stays at initial state $Q = 0$.
+2. **Cycle 1, Phase 2 (Clock Falling Edge & Low, $t_1 \to t_2$):**  
+   * Falling edge strikes at $t_1$. Master is instantly isolated ($CLK = 0$).  
+   * Slave becomes active ($\overline{CLK} = 1$). It copies Master's intermediate output: $Q$ updates to $1$ ($\bar{Q} = 0$).  
+   * Intermediate state $Y = 1$ is maintained.
+3. **Cycle 2, Phase 1 (Clock High, $t_2 \to t_3$ with $J = 0, K = 1$ applied):**  
+   * Master is active ($CLK = 1$). Inputs are now $J = 0, K = 1$.  
+   * Master evaluates Reset: intermediate output flips to $Y = 0$ ($\bar{Y} = 1$).  
+   * Slave remains locked: external output stays frozen at $Q = 1$.
+4. **Cycle 2, Phase 2 (Clock Falling Edge & Low, $t_3 \to t_4$):**  
+   * Falling edge strikes at $t_3$. Master locks ($Y = 0$).  
+   * Slave becomes active: it copies $Y = 0$, and final output updates to $Q = 0$.  
+   * In both cycles, $Q$ transitions strictly on the falling clock edge, demonstrating complete immunity to intra-pulse input variations.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does the Master-Slave JK flip-flop eliminate the race-around condition without requiring narrow clock pulses?**  
+  Because of spatial and temporal isolation! The Master and Slave latches are never active simultaneously. While the Master is sampling ($CLK=1$), the Slave's outputs are locked, preventing feedback. While the Slave is updating ($CLK=0$), the Master's inputs are locked, preventing changes from entering. The full feedback loop is never closed at any single instant.
+* **What is the "1s-Catching" (Pulse-Triggered) hazard in Master-Slave JK Flip-Flops?**  
+  If $J$ or $K$ experiences a momentary 1-nanosecond noise spike while $CLK = 1$, the Master latch will "catch" this $1$ and set its internal node. Even if the input immediately drops back to $0$, the Master has already latched the high state, which is erroneously transferred to the Slave on the falling edge. This is why modern high-frequency design exclusively uses true **Edge-Triggered Flip-Flops** with strict setup and hold time windows rather than pulse-triggered Master-Slave flip-flops.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Stating that Race-Around occurs when $J = 0$ and $K = 0$.**  
+  Race-around happens **strictly in Toggle mode ($J = 1, K = 1$)**. In all other modes ($00, 01, 10$), the flip-flop is either holding or forcing a fixed state; it has no regenerative toggle feedback to cause oscillation.
+* **Trap: Confusing the Master-Slave trigger edge.**  
+  A standard Master-Slave flip-flop samples during $CLK = 1$, but its final outputs $Q$ and $\bar{Q}$ update exclusively on the **falling edge ($CLK \downarrow$)**. Do not claim it updates on the rising edge without an inverter on the master clock!
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "6.1 Latches vs Flip-Flops & The SR Latch Architecture",
+    url: "/coredose/digital-logic/module-06/latches-vs-flip-flops-and-the-sr-latch-architecture",
+  }}
+  next={{
+    title: "6.3 D and T Flip-Flops: Conversion & Excitation Tables",
+    url: "/coredose/digital-logic/module-06/d-and-t-flip-flops-conversion-and-excitation-tables",
+  }}
+  courseUrl="/coredose/digital-logic"
+/>

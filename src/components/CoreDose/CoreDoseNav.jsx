@@ -6,6 +6,7 @@ const COURSE_MAP = {
   dbms: { name: "DBMS", url: "/coredose/dbms" },
   os: { name: "Operating Systems", url: "/coredose/os" },
   cn: { name: "Computer Networks", url: "/coredose/cn" },
+  "digital-logic": { name: "Digital Logic", url: "/coredose/digital-logic" },
   oops: { name: "OOPs", url: "/coredose/oops" },
   coa: { name: "COA", url: "/coredose/coa" },
   compiler: { name: "Compiler Design", url: "/coredose/compiler" },
@@ -13,6 +14,7 @@ const COURSE_MAP = {
 
 function getCourse(courseUrl) {
   const target = courseUrl || "";
+  if (target.includes("/coredose/digital-logic")) return COURSE_MAP["digital-logic"];
   if (target.includes("/coredose/os")) return COURSE_MAP.os;
   if (target.includes("/coredose/cn")) return COURSE_MAP.cn;
   if (target.includes("/coredose/oops")) return COURSE_MAP.oops;

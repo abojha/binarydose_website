@@ -73,13 +73,13 @@
 
 /* Stages Wrapper */
 .stagesWrapper {
-  padding: 1.2rem 1.4rem;
+  padding: 1.1rem 1.2rem;
   display: flex;
   flex-direction: column;
   gap: 0;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  -webkit-overflow-scrolling: touch;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 /* Stage Card (Group Container) */
@@ -87,9 +87,11 @@
   border-radius: 12px;
   border: 1.5px solid rgba(148, 163, 184, 0.2);
   background: rgba(15, 23, 42, 0.45);
-  padding: 1rem 1.1rem;
+  padding: 0.9rem 1rem;
   position: relative;
   transition: border-color 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 [data-theme='light'] .stageCard {
@@ -154,16 +156,17 @@
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  gap: 0.6rem;
+  gap: 0.4rem;
   width: 100%;
+  box-sizing: border-box;
 }
 
-/* Individual Node Card */
+/* Individual Node Card - Vertical/Square compact layout */
 .nodeCard {
   flex: 1 1 0;
-  min-width: 120px;
+  min-width: 0;
   border-radius: 10px;
-  padding: 0.85rem 0.75rem;
+  padding: 0.75rem 0.6rem;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -175,6 +178,9 @@
   position: relative;
   cursor: pointer;
   user-select: none;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .nodeCard:hover,
@@ -222,25 +228,27 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.35rem;
+  gap: 0.25rem;
 }
 
 .nodeIcon {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   line-height: 1;
 }
 
 .nodeRole {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.12rem 0.45rem;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.35rem;
   border-radius: 9999px;
   background: rgba(56, 189, 248, 0.2);
   color: #38bdf8;
   border: 1px solid rgba(56, 189, 248, 0.35);
   font-family: var(--ifm-font-family-monospace, monospace);
+  white-space: nowrap;
 }
 
 .purpleTheme .nodeRole { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border-color: rgba(168, 85, 247, 0.4); }
@@ -251,11 +259,13 @@
 .cyanTheme .nodeRole { background: rgba(6, 182, 212, 0.2); color: #a5f3fc; border-color: rgba(6, 182, 212, 0.4); }
 
 .nodeTitle {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 750;
-  margin: 0 0 0.2rem 0;
+  line-height: 1.25;
+  margin: 0 0 0.25rem 0;
   color: var(--ifm-heading-color, #f8fafc);
   letter-spacing: -0.01em;
+  word-break: break-word;
 }
 
 [data-theme='light'] .nodeTitle {
@@ -263,10 +273,11 @@
 }
 
 .nodeSublabel {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--ifm-color-emphasis-600, #94a3b8);
   font-family: var(--ifm-font-family-monospace, monospace);
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.25rem;
+  word-break: break-word;
 }
 
 [data-theme='light'] .nodeSublabel {
@@ -274,10 +285,12 @@
 }
 
 .nodeDesc {
-  font-size: 0.74rem;
-  line-height: 1.4;
+  font-size: 0.71rem;
+  line-height: 1.35;
   color: var(--ifm-color-emphasis-700, #cbd5e1);
   margin: 0;
+  word-break: break-word;
+  white-space: pre-line;
 }
 
 [data-theme='light'] .nodeDesc {
@@ -290,7 +303,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 0.15rem;
+  padding: 0 0.05rem;
   flex-shrink: 0;
   text-align: center;
 }
@@ -299,13 +312,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #1e293b;
   border: 1px solid rgba(56, 189, 248, 0.4);
   color: #38bdf8;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 800;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
@@ -319,18 +332,19 @@
 
 .stepNum {
   font-family: var(--ifm-font-family-monospace, monospace);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 800;
 }
 
 .connectorText {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 700;
   color: #38bdf8;
-  margin-top: 0.3rem;
-  max-width: 90px;
-  line-height: 1.25;
+  margin-top: 0.2rem;
+  max-width: 58px;
+  line-height: 1.15;
   font-family: var(--ifm-font-family-monospace, monospace);
+  word-break: break-word;
 }
 
 [data-theme='light'] .connectorText {

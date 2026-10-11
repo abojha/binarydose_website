@@ -1,0 +1,502 @@
+.container {
+  margin: 1.75rem 0;
+  border-radius: 12px;
+  background: var(--diagram-surface, #0f172a);
+  border: 1px solid var(--diagram-border, #334155);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  font-family: inherit;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1.25rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid var(--diagram-border, #334155);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+[data-theme='light'] .header {
+  background: #f8fafc;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.icon {
+  font-size: 1.4rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--diagram-text, #f8fafc);
+  letter-spacing: -0.01em;
+}
+
+[data-theme='light'] .title {
+  color: #0f172a;
+}
+
+.subtitle {
+  margin: 0.15rem 0 0 0;
+  font-size: 0.8rem;
+  color: var(--diagram-text-muted, #94a3b8);
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.modeBadge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* Stage */
+.stage {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+/* K-Map Table Wrapper */
+.kmapScroll {
+  width: 100%;
+  overflow-x: auto;
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0;
+}
+
+.kmapTable {
+  border-collapse: separate;
+  border-spacing: 6px;
+  margin: 0 auto;
+}
+
+/* Axis Headers */
+.cornerHeader {
+  position: relative;
+  width: 76px;
+  height: 56px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1.5px solid var(--diagram-border, #334155);
+  border-radius: 8px;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+[data-theme='light'] .cornerHeader {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.colVarLabel {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  color: #38bdf8;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.78rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.rowVarLabel {
+  position: absolute;
+  bottom: 4px;
+  left: 6px;
+  color: #a855f7;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.78rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cornerArrow {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.colHeader,
+.rowHeader {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1.5px solid var(--diagram-border, #334155);
+  border-radius: 8px;
+  color: var(--diagram-text, #cbd5e1);
+  font-weight: 600;
+  text-align: center;
+  padding: 0.35rem 0.5rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+[data-theme='light'] .colHeader,
+[data-theme='light'] .rowHeader {
+  background: #e2e8f0;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+
+.colHeaderActive,
+.rowHeaderActive {
+  transform: scale(1.04);
+}
+
+.headerStack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.codeMono {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.84rem;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.literalSub {
+  display: block;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  color: #38bdf8;
+  line-height: 1.15;
+  margin-top: 1px;
+  transition: color 0.2s ease;
+}
+
+[data-theme='light'] .literalSub {
+  color: #0284c7;
+}
+
+.literalSeq {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.varBar {
+  text-decoration: overline;
+  text-decoration-thickness: 1.5px;
+  font-weight: 800;
+  display: inline-block;
+  padding: 0 1px;
+}
+
+.varNormal {
+  text-decoration: none;
+  font-weight: 800;
+  display: inline-block;
+  padding: 0 1px;
+}
+
+/* Cells */
+.cell {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  min-width: 68px;
+  min-height: 68px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 2px solid var(--diagram-border, #334155);
+  border-radius: 10px;
+  text-align: center;
+  vertical-align: middle;
+  cursor: default;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+[data-theme='light'] .cell {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+.cellHigh {
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.cellDontCare {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.cellActiveGroup {
+  transform: scale(1.04);
+}
+
+/* Minterm decimal index */
+.subIndex {
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  font-size: 0.62rem;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-weight: 600;
+  color: var(--diagram-text-muted, #64748b);
+  opacity: 0.8;
+}
+
+/* Cell Value */
+.cellValue {
+  font-size: 1.45rem;
+  font-weight: 800;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  display: block;
+  line-height: 1;
+}
+
+.valOne {
+  color: #10b981;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.valZero {
+  color: #64748b;
+  opacity: 0.55;
+}
+
+.valD {
+  color: #f59e0b;
+  font-style: italic;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+}
+
+/* Group indicator dots */
+.groupDots {
+  position: absolute;
+  bottom: 4px;
+  right: 5px;
+  display: flex;
+  gap: 3px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Group Inspector */
+.groupInspector {
+  width: 100%;
+  max-width: 680px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid var(--diagram-border, #334155);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+}
+
+[data-theme='light'] .groupInspector {
+  background: #f8fafc;
+}
+
+.groupInspectorTitle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--diagram-text, #cbd5e1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.65rem;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.groupHint {
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: none;
+  color: #94a3b8;
+}
+
+.groupPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.groupPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.groupPill:hover {
+  transform: translateY(-1px);
+}
+
+.pillBadge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #0f172a;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.pillName {
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: var(--ifm-font-family-monospace, monospace);
+}
+
+.pillCells {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-family: var(--ifm-font-family-monospace, monospace);
+}
+
+/* Active detail card */
+.groupDetailCard {
+  margin-top: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  background: rgba(30, 41, 59, 0.7);
+  border-radius: 6px;
+  border-left: 3px solid #60a5fa;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--diagram-text, #cbd5e1);
+  flex-wrap: wrap;
+}
+
+[data-theme='light'] .groupDetailCard {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.detailIcon {
+  font-size: 1rem;
+}
+
+.detailText {
+  flex: 1 1 auto;
+}
+
+/* Topology Mode Specifics */
+.topologyCell {
+  cursor: pointer !important;
+}
+
+.topologyCell:hover {
+  transform: translateY(-2px);
+  border-color: #38bdf8 !important;
+}
+
+.topologyCellContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.topologyMinterm {
+  font-size: 1.12rem;
+  font-weight: 800;
+  color: #38bdf8;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  line-height: 1.1;
+}
+
+.topologyBinary {
+  font-size: 0.64rem;
+  color: var(--diagram-text-muted, #94a3b8);
+  font-family: var(--ifm-font-family-monospace, monospace);
+}
+
+.topologyHintBar {
+  font-size: 0.76rem;
+  color: var(--diagram-text-muted, #94a3b8);
+  line-height: 1.4;
+  padding: 0.1rem 0;
+}
+
+/* Expression Box */
+.expressionBox {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.expressionLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--diagram-text, #cbd5e1);
+}
+
+.expressionCode {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #10b981;
+  background: transparent;
+  padding: 0;
+  border: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .cell {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    min-height: 52px;
+  }
+  .cellValue {
+    font-size: 1.15rem;
+  }
+  .cornerHeader {
+    width: 56px;
+    height: 44px;
+  }
+  .subIndex {
+    font-size: 0.55rem;
+  }
+}

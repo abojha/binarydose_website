@@ -30,6 +30,12 @@ import {
   ContentionTimeline,
   FrameFormat,
   PacketHeaderGrid,
+  LogicGateSimulator,
+  MathBox,
+  KMapDiagram,
+  CircuitSimulator,
+  SequentialSimulator,
+  NumberSystemSimulator,
 } from '@site/src/components/Diagrams';
 
 
@@ -75,5 +81,11 @@ export default {
   ContentionTimeline,
   FrameFormat,
   PacketHeaderGrid,
+  LogicGateSimulator,
+  MathBox,
+  KMapDiagram,
+  CircuitSimulator,
+  SequentialSimulator,
+  NumberSystemSimulator,
 };
 
