@@ -23,9 +23,9 @@ const katexPlugin = [
   },
 ];
 
-// Force single-threaded Terser minification in CI/Vercel to prevent multi-worker memory explosion (SIGKILL)
+// Limit Terser parallel workers in CI/Vercel to 2 to prevent multi-worker memory explosion (SIGKILL) while avoiding single-threaded heap exhaustion (SIGABRT)
 if (!process.env.TERSER_PARALLEL) {
-  process.env.TERSER_PARALLEL = "false";
+  process.env.TERSER_PARALLEL = "2";
 }
 
 // Load local .env file if present
