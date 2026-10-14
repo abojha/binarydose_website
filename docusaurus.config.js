@@ -23,6 +23,11 @@ const katexPlugin = [
   },
 ];
 
+// Force single-threaded Terser minification in CI/Vercel to prevent multi-worker memory explosion (SIGKILL)
+if (!process.env.TERSER_PARALLEL) {
+  process.env.TERSER_PARALLEL = "false";
+}
+
 // Load local .env file if present
 if (fs.existsSync(".env")) {
   try {
