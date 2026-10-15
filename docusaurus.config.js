@@ -86,6 +86,7 @@ const config = {
   future: {
     v4: true, // Improve compatibility with the upcoming Docusaurus v4
     experimental_faster: {
+      rspackBundler: true,
       swcJsLoader: true,
       swcJsMinimizer: true,
       swcHtmlMinimizer: true,
