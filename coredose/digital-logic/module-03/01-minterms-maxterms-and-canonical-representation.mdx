@@ -1,0 +1,582 @@
+---
+title: "3.1 Minterms, Maxterms & Canonical Representation"
+description: "First-principles exploration of Boolean expressions, minterms, maxterms, canonical SOP and POS representations, indexing rules, complementary relationships, and the total count of Boolean functions."
+hide_table_of_contents: true
+---
+
+# 3.1 Minterms, Maxterms & Canonical Representation
+
+<CoreDoseLessonHeader
+  module="Module 03: Boolean Expressions & Canonical Forms"
+  topic="Topic 3.1"
+  courseUrl="/coredose/digital-logic"
+  readTime="14 min read"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Foundational Computing"
+/>
+
+## 💡 Core Intuition: The Guest List vs. The Banned List
+
+To manage building security for an exclusive facility, a security team can track authorized access in one of two ways:
+
+### 🍳 The Everyday Analogy: Invites vs. Bans
+
+* **The VIP Guest List (Sum of Products / Minterms)**: The security team keeps a roster of everyone cleared for entry. Whenever a person arrives, the guard checks the list. If their name appears, the door unlocks (**Output = 1**). If their name is missing, the door stays locked (**Output = 0**).
+* **The Banned List (Product of Sums / Maxterms)**: The security team keeps a roster of forbidden individuals. Anyone arriving is permitted entry by default, *unless* their name appears on the blacklist, which triggers an immediate lockout (**Output = 0**).
+
+If only 3 dignitaries are allowed into the facility out of 100 applicants, keeping a **VIP Guest List** of 3 names is concise. If 97 people are allowed and only 3 are barred, publishing a **Banned List** of 3 names is far more efficient. Both strategies encode the exact same reality, but one is dramatically more compact depending on which outcome is less frequent.
+
+### 💻 Bridging to Computer Science
+
+In digital hardware, a combinational circuit produces a binary output ($0$ or $1$) for each of the $2^n$ possible input combinations. Rather than memorizing all $2^n$ rows of a truth table, hardware engineers store Boolean functions algebraically using:
+
+1. **Sum of Products (SOP)**: Focuses exclusively on input conditions where the output is **HIGH (1)**, representing each active row as an ANDed **minterm**.
+2. **Product of Sums (POS)**: Focuses exclusively on input conditions where the output is **LOW (0)**, representing each inactive row as an ORed **maxterm**.
+
+Because binary outputs are complementary, SOP and POS carry identical expressive power. An engineer selects whichever form requires fewer terms, minimizing gate count, silicon area, and propagation delay.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 📜 Boolean Expressions & Functional Representation
+
+A **Boolean expression** is an algebraic formula composed of binary variables, constants ($0$ and $1$), and logical operators (AND, OR, NOT). It serves as a mathematical blueprint describing when a digital circuit asserts an active voltage.
+
+<SubsystemGrid
+  items={[
+    {
+      icon: "🔤",
+      title: "Literal",
+      tag: "Atomic Variable",
+      color: "blue",
+      points: [
+        "A single binary variable in either its uncomplemented form (A) or complemented form (A').",
+        "An n-variable system contains 2n distinct possible literals."
+      ],
+      syscalls: ["A", "A'", "B", "B'"]
+    },
+    {
+      icon: "⚡",
+      title: "Product Term",
+      tag: "AND Expression",
+      color: "purple",
+      points: [
+        "A logical AND of one or more literals.",
+        "Evaluates to 1 if and only if every single constituent literal in the term evaluates to 1.",
+        "Examples include AB, A'BC, and AB'C'D."
+      ],
+      syscalls: ["A · B", "A' · B · C"]
+    },
+    {
+      icon: "➕",
+      title: "Sum Term",
+      tag: "OR Expression",
+      color: "emerald",
+      points: [
+        "A logical OR of one or more literals.",
+        "Evaluates to 0 if and only if every single constituent literal in the term evaluates to 0.",
+        "Examples include (A + B), (A' + B + C)."
+      ],
+      syscalls: ["A + B", "A' + B + C'"]
+    },
+    {
+      icon: "📐",
+      title: "Canonical Form",
+      tag: "Complete Specification",
+      color: "amber",
+      points: [
+        "An expression where every single product or sum term contains all n variables of the system.",
+        "Provides a unique, standardized algebraic fingerprint directly isomorphic to the truth table."
+      ],
+      syscalls: ["m_i (Minterm)", "M_i (Maxterm)"]
+    }
+  ]}
+/>
+
+---
+
+## 🧩 Minterms: Definition, Indexing & Truth Table Mapping
+
+<MathBox title="Definition 3.1: Boolean Minterm" type="definition">
+
+For a Boolean function of $n$ variables, a **minterm** is a product (AND) term containing all $n$ variables, with each variable appearing exactly once in either its uncomplemented or complemented form.
+
+For $n$ variables, exactly $2^n$ distinct minterms exist, designated as $m_0, m_1, m_2, \dots, m_{2^n - 1}$.
+
+</MathBox>
+
+### Governing Rules of Minterms
+
+1. **Uniqueness of Output 1**: A minterm evaluates to **1 for exactly one** of the $2^n$ input combinations, and evaluates to **0 for all other $2^n - 1$ combinations**.
+2. **Literal Assignment Rule**: To force a product term to evaluate to 1 for a specific binary row:
+   * A variable assigned binary **1** is written in **uncomplemented form** ($X$).
+   * A variable assigned binary **0** is written in **complemented form** ($\bar{X}$ or $X'$).
+3. **Minterm Designation Index ($m_i$)**: The subscript index $i$ corresponds directly to the decimal equivalent of the binary input combination.
+
+### 3-Variable Minterm Truth Table ($n = 3$)
+
+| Binary Combination ($A B C$) | Decimal Index | Minterm Formula | Designation | Evaluates to 1 when |
+| :---: | :---: | :---: | :---: | :---: |
+| `0 0 0` | 0 | $\bar{A}\bar{B}\bar{C}$ | $m_0$ | $A=0, B=0, C=0$ |
+| `0 0 1` | 1 | $\bar{A}\bar{B}C$ | $m_1$ | $A=0, B=0, C=1$ |
+| `0 1 0` | 2 | $\bar{A}B\bar{C}$ | $m_2$ | $A=0, B=1, C=0$ |
+| `0 1 1` | 3 | $\bar{A}BC$ | $m_3$ | $A=0, B=1, C=1$ |
+| `1 0 0` | 4 | $A\bar{B}\bar{C}$ | $m_4$ | $A=1, B=0, C=0$ |
+| `1 0 1` | 5 | $A\bar{B}C$ | $m_5$ | $A=1, B=0, C=1$ |
+| `1 1 0` | 6 | $AB\bar{C}$ | $m_6$ | $A=1, B=1, C=0$ |
+| `1 1 1` | 7 | $ABC$ | $m_7$ | $A=1, B=1, C=1$ |
+
+<MathBox title="Theorem 3.1: Canonical Sum of Products (SOP)" type="theorem">
+
+Any Boolean function $F(x_1, x_2, \dots, x_n)$ can be uniquely expressed as the logical sum (OR) of those minterms for which the function evaluates to 1:
+
+$$
+F(x_1, x_2, \dots, x_n) = \sum m(d_1, d_2, \dots, d_k)
+$$
+
+where $d_1, d_2, \dots, d_k$ represent the decimal indices of the truth table rows where $F = 1$.
+
+</MathBox>
+
+---
+
+## 🛡️ Maxterms: Definition, Indexing & Dual Truth Table Mapping
+
+<MathBox title="Definition 3.2: Boolean Maxterm" type="definition">
+
+For a Boolean function of $n$ variables, a **maxterm** is a sum (OR) term containing all $n$ variables, with each variable appearing exactly once in either its uncomplemented or complemented form.
+
+For $n$ variables, exactly $2^n$ distinct maxterms exist, designated as $M_0, M_1, M_2, \dots, M_{2^n - 1}$.
+
+</MathBox>
+
+### Governing Rules of Maxterms
+
+1. **Uniqueness of Output 0**: A maxterm evaluates to **0 for exactly one** of the $2^n$ input combinations, and evaluates to **1 for all other $2^n - 1$ combinations**.
+2. **Literal Assignment Rule**: To force a sum term to evaluate to 0 for a specific binary row:
+   * A variable assigned binary **0** is written in **uncomplemented form** ($X$).
+   * A variable assigned binary **1** is written in **complemented form** ($\bar{X}$ or $X'$).
+3. **Maxterm Designation Index ($M_i$)**: The subscript index $i$ corresponds directly to the decimal equivalent of the binary combination where the maxterm produces 0.
+
+### 3-Variable Maxterm Truth Table ($n = 3$)
+
+| Binary Combination ($A B C$) | Decimal Index | Maxterm Formula | Designation | Evaluates to 0 when |
+| :---: | :---: | :---: | :---: | :---: |
+| `0 0 0` | 0 | $A + B + C$ | $M_0$ | $A=0, B=0, C=0$ |
+| `0 0 1` | 1 | $A + B + \bar{C}$ | $M_1$ | $A=0, B=0, C=1$ |
+| `0 1 0` | 2 | $A + \bar{B} + C$ | $M_2$ | $A=0, B=1, C=0$ |
+| `0 1 1` | 3 | $A + \bar{B} + \bar{C}$ | $M_3$ | $A=0, B=1, C=1$ |
+| `1 0 0` | 4 | $\bar{A} + B + C$ | $M_4$ | $A=1, B=0, C=0$ |
+| `1 0 1` | 5 | $\bar{A} + B + \bar{C}$ | $M_5$ | $A=1, B=0, C=1$ |
+| `1 1 0` | 6 | $\bar{A} + \bar{B} + C$ | $M_6$ | $A=1, B=1, C=0$ |
+| `1 1 1` | 7 | $\bar{A} + \bar{B} + \bar{C}$ | $M_7$ | $A=1, B=1, C=1$ |
+
+<MathBox title="Theorem 3.2: Canonical Product of Sums (POS)" type="theorem">
+
+Any Boolean function $F(x_1, x_2, \dots, x_n)$ can be uniquely expressed as the logical product (AND) of those maxterms for which the function evaluates to 0:
+
+$$
+F(x_1, x_2, \dots, x_n) = \prod M(D_1, D_2, \dots, D_m)
+$$
+
+where $D_1, D_2, \dots, D_m$ represent the decimal indices of the truth table rows where $F = 0$.
+
+</MathBox>
+
+---
+
+## 🔄 The Fundamental Complementary Relationship: Minterms vs. Maxterms
+
+The algebraic connection between minterms and maxterms is grounded directly in De Morgan's Laws.
+
+<MathBox title="Theorem 3.3: Minterm-Maxterm Inversion Duality" type="theorem">
+
+The complement of the $i$-th minterm is identically equal to the $i$-th maxterm:
+
+$$
+m_i' = M_i \quad \text{and} \quad M_i' = m_i
+$$
+
+</MathBox>
+
+<MathBox title="First-Principles Proof of Minterm-Maxterm Inversion" type="proof">
+
+Let binary row $i = 4$ for a 3-variable system $(A, B, C)$, which corresponds to the bit pattern `1 0 0`.
+
+The corresponding minterm is:
+
+$$
+m_4 = A \bar{B} \bar{C}
+$$
+
+Applying De Morgan's Law to find the complement $(m_4)'$:
+
+$$
+\begin{aligned}
+(m_4)' &= (A \bar{B} \bar{C})' \\
+&= \bar{A} + (\bar{B})' + (\bar{C})' \\
+&= \bar{A} + B + C
+\end{aligned}
+$$
+
+By definition, $\bar{A} + B + C = M_4$. Therefore:
+
+$$
+(m_i)' = M_i \quad \blacksquare
+$$
+
+</MathBox>
+
+### Set-Theoretic Partition of the Truth Table
+
+Because a Boolean function at any input row must evaluate to either 0 or 1 (Law of the Excluded Middle), the set of minterm indices and the set of maxterm indices form a complete, non-overlapping partition of the input domain $\{0, 1, \dots, 2^n - 1\}$:
+
+<MathBox title="Law 3.1: Canonical Partition Identity" type="law">
+
+For any $n$-variable Boolean function $F$:
+
+$$
+\{ \text{Minterm Indices of } F \} \cup \{ \text{Maxterm Indices of } F \} = \{ 0, 1, 2, \dots, 2^n - 1 \}
+$$
+
+$$
+\{ \text{Minterm Indices of } F \} \cap \{ \text{Maxterm Indices of } F \} = \emptyset
+$$
+
+Consequently, if $F = \sum m(1, 4, 6, 7)$ for $n = 3$, then:
+
+$$
+F = \prod M(0, 2, 3, 5)
+$$
+
+</MathBox>
+
+---
+
+## ⚖️ Architectural Comparison: Canonical SOP vs. Canonical POS
+
+<ConceptComparison
+  title="Canonical SOP vs. Canonical POS Representation"
+  subtitle="Comparing the two canonical pillars of Boolean functional representation"
+  concepts={[
+    {
+      badge: "SOP (Sum of Products)",
+      title: "Canonical SOP (∑ m)",
+      icon: "➕",
+      color: "purple",
+      domain: "Active-HIGH Logic • Assertion Focus",
+      points: [
+        "Constructed by ORing product terms (minterms).",
+        "Tracks the input combinations where F = 1.",
+        "Uncomplemented variable = 1; Complemented variable = 0.",
+        "Ideal when the number of 1s in the truth table is strictly less than 2^(n-1)."
+      ],
+      quote: "Remember when the output lights up: F = ∑ m(indices)."
+    },
+    {
+      badge: "POS (Product of Sums)",
+      title: "Canonical POS (∏ M)",
+      icon: "✖️",
+      color: "emerald",
+      domain: "Active-LOW Logic • Invalidation Focus",
+      points: [
+        "Constructed by ANDing sum terms (maxterms).",
+        "Tracks the input combinations where F = 0.",
+        "Uncomplemented variable = 0; Complemented variable = 1.",
+        "Ideal when the number of 0s in the truth table is strictly less than 2^(n-1)."
+      ],
+      quote: "Remember when the output shuts down: F = ∏ M(indices)."
+    }
+  ]}
+/>
+
+---
+
+## 🧮 Degrees of Freedom: Total Possible Boolean Functions
+
+A fundamental question in hardware synthesis and switching theory is: **How many distinct Boolean functions can be constructed using $n$ binary variables?**
+
+<MathBox title="Theorem 3.4: Total Number of Boolean Functions" type="theorem">
+
+With $n$ binary variables, the total number of distinct Boolean functions $N$ that can be defined is:
+
+$$
+N = 2^{2^n}
+$$
+
+</MathBox>
+
+<MathBox title="Derivation of the Double-Exponential Function Count" type="proof">
+
+1. **Input Combinations**: An $n$-variable truth table possesses exactly $2^n$ distinct input rows:
+
+$$
+\text{Total Rows} = 2^n
+$$
+
+2. **Output Choices per Row**: For each distinct row, the function output $F$ can be independently assigned either `0` or `1`. There are exactly $2$ independent choices for each row.
+
+3. **Multiplication Principle of Combinatorics**: Because each row assignment is completely independent of all other rows, the total number of unique truth tables is:
+
+$$
+\begin{aligned}
+N &= \underbrace{2 \times 2 \times 2 \times \dots \times 2}_{2^n \text{ times}} \\
+&= 2^{2^n} \quad \blacksquare
+\end{aligned}
+$$
+
+</MathBox>
+
+### Generalized Formula for Multi-Valued Systems
+
+If inputs and outputs have varying discrete states, the formula generalizes as:
+
+<MathBox title="Formula 3.1: Generalized Function Capacity" type="formula">
+
+$$
+N = x^{(y^z)}
+$$
+
+where:
+* $x = \text{number of possible output states}$ (for binary logic, $x = 2$).
+* $y = \text{number of possible input states per variable}$ (for binary logic, $y = 2$).
+* $z = \text{number of input variables } n$.
+
+</MathBox>
+
+### Growth Rate Across Variable Counts
+
+| Variables ($n$) | Truth Table Rows ($2^n$) | Total Distinct Functions ($2^{2^n}$) | Order of Magnitude |
+| :---: | :---: | :---: | :---: |
+| $n = 1$ | 2 | $2^2 = 4$ | 4 functions ($0, X, \bar{X}, 1$) |
+| $n = 2$ | 4 | $2^4 = 16$ | 16 functions (AND, OR, XOR, NAND, etc.) |
+| $n = 3$ | 8 | $2^8 = 256$ | 256 functions |
+| $n = 4$ | 16 | $2^{16} = 65,536$ | ~65.5 Thousand functions |
+| $n = 5$ | 32 | $2^{32} = 4,294,967,296$ | ~4.29 Billion functions |
+| $n = 6$ | 64 | $2^{64} \approx 1.84 \times 10^{19}$ | $18.4$ Quintillion functions |
+
+The double-exponential growth highlights why manual algebraic minimization becomes impossible beyond 4 to 5 variables, necessitating algorithmic minimization techniques like Karnaugh Maps and the Quine-McCluskey method.
+
+---
+
+## 🏭 Real-World Production Context: Programmable Logic Arrays (PLA) & Memory Decoders
+
+Canonical representation is not merely an academic formalism; it serves as the physical hardware blueprint inside high-density programmable devices and memory arrays:
+
+<FlowPipeline
+  title="Hardware Realization of Canonical SOP in PLAs and ROMs"
+  subtitle="Translating address lines into hardware minterms through decoders and summing planes"
+  nodes={[
+    {
+      badge: "Input Lines",
+      title: "Address Bus (A, B, C)",
+      icon: "🔢",
+      color: "blue",
+      description: "n physical address signals carrying binary bit combinations.",
+      connectorLabel: "Binary Select",
+    },
+    {
+      badge: "AND Plane",
+      title: "Binary Decoder (2ⁿ Terms)",
+      icon: "⚡",
+      color: "purple",
+      description: "Array of AND gates physically generating all 2ⁿ canonical minterms (m0 to m7).",
+      connectorLabel: "Active Minterms",
+    },
+    {
+      badge: "OR Plane",
+      title: "Programmable OR Matrix",
+      icon: "🔀",
+      color: "emerald",
+      description: "Configurable diode or transistor matrix summing selected minterms (∑ m).",
+      connectorLabel: "Logic Sum",
+    },
+    {
+      badge: "Output Pin",
+      title: "Target Output F",
+      icon: "🎯",
+      color: "cyan",
+      description: "Asserts HIGH whenever any selected minterm evaluates to 1.",
+    },
+  ]}
+/>
+
+1. **Hardware Memory Decoders**: An $n$-to-$2^n$ binary memory address decoder (such as a 3-to-8 decoder) is physically an array of $2^n$ AND gates. Each output pin of the decoder produces exactly one minterm $m_i$. Asserting an address selects exactly one memory row.
+2. **Programmable Logic Arrays (PLA) & PROMs**: A Read-Only Memory (ROM) is physically constructed as a fixed AND-plane generating all $2^n$ minterms, connected to a programmable OR-plane that fuses specific minterms together. The stored program in a ROM is literally the canonical SOP expansion of the desired data words!
+3. **Control Unit Microcode**: In microprocessor design, instruction decoders expand opcode bits into canonical minterms to activate specific execution control lines (ALU add, register write-enable, bus-gate).
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Deriving Canonical SOP and POS from an Engineering Specification
+**Problem Statement:**  
+An automated industrial cooling unit monitors three sensors: Temperature ($T$), Pressure ($P$), and Vibration ($V$). The system triggers an emergency warning alarm ($W$) under the following conditions:
+* High Temperature and High Pressure are detected simultaneously, regardless of Vibration.
+* High Vibration is detected while Temperature is Normal and Pressure is High.
+* All three sensors detect High values simultaneously.
+
+Define the variables ($1 = \text{High}, 0 = \text{Normal}$), construct the complete truth table, and express $W(T, P, V)$ in both **Canonical SOP ($\sum m$)** and **Canonical POS ($\prod M$)** shorthand formats.
+
+**Step-by-Step Solution:**
+
+1. **Construct the Truth Table:**
+   Evaluating each row against the specification:
+   * Condition 1 ($T=1, P=1$): Rows with $T=1, P=1, V=0$ (row 6) and $T=1, P=1, V=1$ (row 7) trigger $W = 1$.
+   * Condition 2 ($T=0, P=1, V=1$): Row 3 triggers $W = 1$.
+   * Condition 3 ($T=1, P=1, V=1$): Row 7 (already included).
+   * All other sensor combinations produce $W = 0$.
+
+| Row ($i$) | $T$ | $P$ | $V$ | Warning ($W$) | Minterm ($m_i$) | Maxterm ($M_i$) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| 0 | 0 | 0 | 0 | **0** | - | $M_0 = T + P + V$ |
+| 1 | 0 | 0 | 1 | **0** | - | $M_1 = T + P + \bar{V}$ |
+| 2 | 0 | 1 | 0 | **0** | - | $M_2 = T + \bar{P} + V$ |
+| 3 | 0 | 1 | 1 | **1** | $m_3 = \bar{T}PV$ | - |
+| 4 | 1 | 0 | 0 | **0** | - | $M_4 = \bar{T} + P + V$ |
+| 5 | 1 | 0 | 1 | **0** | - | $M_5 = \bar{T} + P + \bar{V}$ |
+| 6 | 1 | 1 | 0 | **1** | $m_6 = TP\bar{V}$ | - |
+| 7 | 1 | 1 | 1 | **1** | $m_7 = TPV$ | - |
+
+2. **Formulate Canonical SOP:**
+   Identify rows where $W = 1$ (rows 3, 6, 7):
+
+$$
+W(T, P, V) = m_3 + m_6 + m_7 = \bar{T}PV + TP\bar{V} + TPV
+$$
+
+In compact shorthand:
+
+$$
+W(T, P, V) = \sum m(3, 6, 7)
+$$
+
+3. **Formulate Canonical POS:**
+   Identify remaining rows where $W = 0$ (rows 0, 1, 2, 4, 5):
+
+$$
+W(T, P, V) = M_0 \cdot M_1 \cdot M_2 \cdot M_4 \cdot M_5
+$$
+
+In compact shorthand:
+
+$$
+W(T, P, V) = \prod M(0, 1, 2, 4, 5)
+$$
+
+Notice that $\{3, 6, 7\} \cup \{0, 1, 2, 4, 5\} = \{0, 1, 2, 3, 4, 5, 6, 7\}$, confirming a complete partition of the $2^3 = 8$ states.
+
+---
+
+### Example 2: Complementing a Canonical Function and Mutual Conversion
+**Problem Statement:**  
+A 3-variable logic circuit implements the switching function:
+
+$$
+F(A, B, C) = \sum m(0, 2, 4, 5, 6)
+$$
+
+1. Express the logical complement $F'$ in canonical SOP form.
+2. Express the logical complement $F'$ in canonical POS form.
+3. Express the original function $F$ in canonical POS form.
+
+**Step-by-Step Solution:**
+
+1. **Find Canonical SOP of $F'$:**
+   By definition, $F' = 1$ at all rows where $F = 0$. The universal set of indices for $n = 3$ is $U = \{0, 1, 2, 3, 4, 5, 6, 7\}$.
+   Subtracting the minterms of $F$:
+
+$$
+\text{Minterms of } F' = U \setminus \{0, 2, 4, 5, 6\} = \{1, 3, 7\}
+$$
+
+$$
+F'(A, B, C) = \sum m(1, 3, 7)
+$$
+
+2. **Find Canonical POS of $F'$:**
+   The maxterms of $F'$ are the rows where $F' = 0$, which are precisely the rows where $F = 1$:
+
+$$
+F'(A, B, C) = \prod M(0, 2, 4, 5, 6)
+$$
+
+3. **Find Canonical POS of $F$:**
+   The maxterms of $F$ are the rows where $F = 0$, which are the rows where $F' = 1$:
+
+$$
+F(A, B, C) = \prod M(1, 3, 7)
+$$
+
+**Core Observation:**
+* $F = \sum m(0, 2, 4, 5, 6) \equiv \prod M(1, 3, 7)$
+* $F' = \sum m(1, 3, 7) \equiv \prod M(0, 2, 4, 5, 6)$
+
+---
+
+### Example 3: Function Capacity & Degrees of Freedom
+**Problem Statement:**  
+1. Calculate the total number of distinct Boolean functions that can be formed using 4 binary variables.
+2. If a 4-variable function is constrained such that $F = 1$ for all inputs where the decimal index is an odd number, how many distinct functions can still be constructed?
+
+**Step-by-Step Solution:**
+
+1. **Total Functions for $n = 4$:**
+   Number of input combinations $= 2^4 = 16$.
+   Total possible functions:
+
+$$
+N = 2^{2^4} = 2^{16} = 65,536
+$$
+
+2. **Constrained Function Count:**
+   * The 16 input rows are indexed $0$ through $15$.
+   * There are exactly 8 odd indices: $\{1, 3, 5, 7, 9, 11, 13, 15\}$.
+   * The problem constrains the output for these 8 odd rows to be fixed at $1$. Thus, there is only $1$ choice for each odd row.
+   * The remaining 8 even indices: $\{0, 2, 4, 6, 8, 10, 12, 14\}$ are unconstrained. For each even row, the output can be freely chosen as either $0$ or $1$ ($2$ choices per row).
+   * Total degrees of freedom:
+
+$$
+N_{\text{constrained}} = 2^8 = 256
+$$
+
+Exactly $256$ distinct functions satisfy this design constraint.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does a minterm represent binary 0 as a complemented literal, while a maxterm represents binary 0 as an uncomplemented literal?**  
+  A minterm is an AND product term designed to output $1$ only for its specific row. If an input variable is $0$, it must be inverted ($\bar{X}$) so that $\bar{0} = 1$, allowing the entire AND product to evaluate to $1$.  
+  Conversely, a maxterm is an OR sum term designed to output $0$ only for its specific row. If an input variable is $0$, it must remain uncomplemented ($X$) so that $0 + 0 + \dots = 0$. If an input is $1$, it must be inverted ($\bar{X}$) to turn into $0$ so the OR sum does not become $1$.
+
+* **Why are canonical SOP and canonical POS expressions considered "isomorphic" to truth tables?**  
+  Unlike minimized expressions (which can take multiple equivalent forms, such as $AB + A'C$ vs. other covers), a canonical expression contains every variable in every term. There is an exact, unique 1-to-1 bijection between the rows of a truth table and the terms of a canonical expression. No two distinct truth tables can ever share the same canonical expansion.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Confusing the complement of a minterm with another minterm.**  
+  Never write $(m_i)' = m_{2^n - 1 - i}$. Inversion of a minterm does NOT produce another minterm; by De Morgan's Law, inverting an AND term produces an OR term! The true mathematical relationship is $(m_i)' = M_i$ (the $i$-th **maxterm**).
+
+* **Trap: Forgetting the difference between $2^n$ and $2^{2^n}$.**  
+  Candidates frequently confuse the number of *minterms* ($2^n$) with the number of *functions* ($2^{2^n}$). In a 3-variable system:
+  * Number of minterms $= 2^3 = 8$.
+  * Number of distinct Boolean functions $= 2^{2^3} = 2^8 = 256$.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "2.3 Special Logic Gates: XOR and XNOR Parity Generators",
+    url: "/coredose/digital-logic/module-02/special-logic-gates-xor-and-xnor-parity-generators",
+  }}
+  next={{
+    title: "3.2 Standard vs Canonical SOP & POS Conversion",
+    url: "/coredose/digital-logic/module-03/standard-vs-canonical-sop-pos-conversion",
+  }}
+  courseUrl="/coredose/digital-logic"
+/>

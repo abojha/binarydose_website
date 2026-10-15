@@ -1,0 +1,655 @@
+---
+title: "7.3 Binary Arithmetic, Overflow Detection & Floating Point"
+description: "Master signed binary representations, unified adder-subtractor circuits, the silicon distinction between Carry and Overflow flags, the V = C_in ^ C_out hardware detector, sign extension, and the IEEE 754 floating-point standard."
+hide_table_of_contents: true
+---
+
+# 7.3 Binary Arithmetic, Overflow Detection & Floating Point
+
+<CoreDoseLessonHeader
+  module="Module 07: Number Systems, Complements & Arithmetic"
+  topic="Topic 7.3"
+  courseUrl="/coredose/digital-logic"
+  readTime="24 min read"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Foundational Computing"
+/>
+
+## 💡 Core Intuition: The Odometer Rolling Backward & The Floating Decimal Point
+
+Every microprocessor Arithmetic Logic Unit (ALU) operates under a severe physical constraint: **fixed register bit width**. Whether an Intel Core i9, an AMD Ryzen, or an Apple M4, hardware registers have hard boundaries ($8, 16, 32,$ or $64$ bits).
+
+When a program performs integer arithmetic, the result can exceed the maximum representable value of the register. This phenomenon is **Arithmetic Overflow**—the silent killer of embedded software and spacecraft control systems (most famously causing the catastrophic destruction of the Ariane 5 rocket in 1996 when a 64-bit floating-point number overflowed a 16-bit signed integer register).
+
+### 🍳 The Everyday Analogy: Scientific Notation on a Pocket Calculator
+
+How can a digital device represent both the mass of the Sun ($1.989 \times 10^{30}\,\text{kg}$) and the mass of an electron ($9.109 \times 10^{-31}\,\text{kg}$) using the same number of display digits?
+
+If a calculator used a **fixed decimal point** (like a dollar balance displaying two decimal places: `$XXXXXX.YY`), representing an electron would require over thirty leading zeros:
+$$
+0.0000000000000000000000000000009109
+$$
+
+This wastes nearly all available memory on non-informative zeros!
+Instead, scientific notation "floats" the decimal point so that it always sits directly after the first significant digit, storing only the **significant digits (mantissa)** and the **power of ten (exponent)**. 
+
+The **IEEE 754 Standard** adapts this exact principle to base-2 binary hardware, granting modern computers an astonishing dynamic range while using just 32 or 64 bits of physical silicon.
+
+### 💻 Bridging to Computer Science
+
+Binary arithmetic and floating-point representations form the bedrock of computing systems and compilers:
+1. **The ALU Status Register**: Microprocessors expose arithmetic flags (`EFLAGS` in x86, `CPSR` in ARM) where the **Carry Flag ($C$)** indicates unsigned overflow and the **Overflow Flag ($V$)** flags signed 2's complement overflow. Compilers use these flags to generate branch conditions (`jge`, `jl`, `ja`, `jb`).
+2. **IEEE 754 Floating-Point Units**: Modern CPUs, GPUs, and TPUs include dedicated vector FPUs (e.g., AVX-512, ARM NEON) capable of billions of floating-point operations per second (FLOPS). The implicit leading 1 trick gives a free extra bit of precision across all computations.
+3. **Spacecraft & Critical Systems Hazards**: Software defects caused by numeric overflow or precision loss have led to severe catastrophic failures—most famously the Ariane 5 rocket explosion in 1996 ($370M loss caused by 64-bit float to 16-bit signed integer conversion overflow) and the Patriot missile radar drift in 1991 (caused by floating-point binary conversion truncation in 24-bit registers).
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🔢 Signed Binary Representations & Dynamic Ranges
+
+To represent negative numbers in hardware, the Most Significant Bit (MSB, bit $n-1$) is designated as the **Sign Bit**:
+* $\text{MSB} = \mathbf{0} \implies \text{Positive Number}$
+* $\text{MSB} = \mathbf{1} \implies \text{Negative Number}$
+
+Four competing representations have existed across computing history:
+
+<ConceptComparison
+  title="Comparison of n-Bit Signed Binary Formats"
+  leftTitle="Representation & Value Interpretation"
+  rightTitle="Range & Zero Properties (for n Bits)"
+  rows={[
+    {
+      feature: "Signed-Magnitude",
+      left: "MSB is sign (0=+, 1=-); remaining n-1 bits represent absolute magnitude.",
+      right: "Range: -(2^(n-1) - 1) to +(2^(n-1) - 1). Suffers from Dual Zeros (+0 and -0). Hardware requires complex conditional add/subtract logic."
+    },
+    {
+      feature: "1's Complement",
+      left: "Negative numbers formed by bitwise NOT of positive number.",
+      right: "Range: -(2^(n-1) - 1) to +(2^(n-1) - 1). Dual Zeros (+0 = 00..0, -0 = 11..1). Subtraction requires End-Around Carry."
+    },
+    {
+      feature: "2's Complement",
+      left: "MSB carries negative weight: -2^(n-1). Remaining bits carry positive weights 2^i.",
+      right: "Range: -2^(n-1) to +(2^(n-1) - 1). Unique Zero (00..0). Asymmetric: one extra negative value. Universal CPU standard."
+    },
+    {
+      feature: "Excess-K (Biased)",
+      left: "Number represented as N + K (where K = 2^(n-1) - 1). Preserves lexicographical ordering.",
+      right: "Used exclusively for Exponents in IEEE 754 floating point. Allows hardware to compare exponent magnitudes using simple unsigned integer comparators."
+    }
+  ]}
+/>
+
+<MathBox title="Dynamic Range Formulas for n-Bit Systems" type="formula">
+
+* **Unsigned**: $[0, \; 2^n - 1]$ (e.g. 8-bit: $[0, 255]$)
+* **Signed-Magnitude**: $[-(2^{n-1} - 1), \; +(2^{n-1} - 1)]$ (e.g. 8-bit: $[-127, +127]$)
+* **1's Complement**: $[-(2^{n-1} - 1), \; +(2^{n-1} - 1)]$ (e.g. 8-bit: $[-127, +127]$)
+* **2's Complement**: $[-2^{n-1}, \; +(2^{n-1} - 1)]$ (e.g. 8-bit: $[-128, +127]$)
+
+</MathBox>
+
+---
+
+## ⚙️ The Unified Adder-Subtractor Circuit Architecture
+
+Because 2's complement subtraction is mathematically equivalent to adding the 2's complement:
+
+$$
+A - B = A + (-B) = A + (\bar{B} + 1)
+$$
+
+An ALU does not require separate adder and subtractor hardware. Instead, it utilizes an $n$-bit parallel adder augmented with a bank of **XOR gates** and a single **Mode Control Line ($M$)**:
+
+<FlowPipeline
+  title="Unified 4-Bit Adder-Subtractor Datapath Pipeline"
+  subtitle="Controlling dual arithmetic modes (A + B vs A - B) via XOR controlled inverters and Mode bit M"
+  steps={[
+    {
+      title: "Mode Control (M)",
+      sublabel: "M = 0 (Add) | M = 1 (Sub)",
+      description: "Steers XOR inversion and supplies initial carry Cin = M into LSB Full Adder.",
+      color: "cyan",
+      badge: "Control Line",
+      actionText: "Drives XORs & C0"
+    },
+    {
+      title: "XOR Controlled Inverters",
+      sublabel: "Bi ⊕ M",
+      description: "When M=0: Bi ⊕ 0 = Bi (buffer). When M=1: Bi ⊕ 1 = Bi' (bitwise 1's complement invert).",
+      color: "amber",
+      badge: "Conditioning",
+      actionText: "Feeds Full Adders"
+    },
+    {
+      title: "Parallel Full Adder Array",
+      sublabel: "4 × 1-Bit Full Adders",
+      description: "Computes Ai + (Bi ⊕ M) + Ci. Internal ripple carry propagates C0 → C1 → C2 → C3 → C4.",
+      color: "blue",
+      badge: "Arithmetic Core",
+      actionText: "Generates Sum & Cout"
+    },
+    {
+      title: "Result Outputs",
+      sublabel: "Sum [S3..S0] & Cout",
+      description: "When M=0: Sum = A + B. When M=1: Sum = A + B' + 1 = A - B (2's complement subtraction).",
+      color: "emerald",
+      badge: "Outputs",
+      actionText: "Datapath Complete"
+    }
+  ]}
+/>
+
+<ConceptComparison
+  title="Adder-Subtractor Dual Operational Modes"
+  subtitle="How the single Mode line M toggles hardware between addition and subtraction"
+  concepts={[
+    {
+      title: "Addition Mode (M = 0)",
+      badge: "A + B",
+      domain: "Direct Addition",
+      color: "blue",
+      points: [
+        "Mode control M = 0 drives XOR gates: Bi ⊕ 0 = Bi (unmodified pass-through).",
+        "Initial Carry-In C0 = M = 0.",
+        "Full Adder computes: Sum = A + B + 0 = A + B.",
+        "Carry flag Cout indicates unsigned arithmetic overflow beyond 4 bits."
+      ]
+    },
+    {
+      title: "Subtraction Mode (M = 1)",
+      badge: "A - B",
+      domain: "2's Complement Addition",
+      color: "rose",
+      points: [
+        "Mode control M = 1 drives XOR gates: Bi ⊕ 1 = Bi' (controlled bitwise inversion).",
+        "Initial Carry-In C0 = M = 1 (supplies the +1 for 2's complement).",
+        "Full Adder computes: Sum = A + B' + 1 = A - B.",
+        "End carry Cout = 1 indicates positive result (M ≥ B); Cout = 0 indicates negative result."
+      ]
+    }
+  ]}
+/>
+
+### Operational Modes
+1. **Addition Mode ($M = 0$)**:
+   * For every bit: $B_i \oplus 0 = B_i$ (the $B$ inputs pass through unmodified).
+   * Carry-in to LSB: $C_0 = M = 0$.
+   * Circuit computes: $\text{Sum} = A + B + 0 = \mathbf{A + B}$.
+2. **Subtraction Mode ($M = 1$)**:
+   * For every bit: $B_i \oplus 1 = \bar{B}_i$ (the XOR gates act as controlled inverters, computing the 1's complement).
+   * Carry-in to LSB: $C_0 = M = 1$.
+   * Circuit computes: $\text{Sum} = A + \bar{B} + 1 = \mathbf{A - B}$!
+
+This elegant design executes both operations with zero added delay beyond a single XOR propagation gate ($t_{pd} \approx 0.1\,\text{ns}$).
+
+---
+
+## 🚩 Carry Flag ($C$) vs. Overflow Flag ($V$): The Silicon Distinction
+
+One of the most frequent points of confusion in computer systems is the difference between the **Carry Flag ($C_{out}$)** and the **Overflow Flag ($V$)** in the CPU Status Register (EFLAGS in x86, CPSR in ARM):
+
+<ConceptComparison
+  title="Carry Flag vs. Overflow Flag in CPU ALUs"
+  leftTitle="Carry Flag (C / Unsigned Overflow)"
+  rightTitle="Overflow Flag (V / Signed Overflow)"
+  rows={[
+    {
+      feature: "Target Number Domain",
+      left: "Monitors Unsigned Arithmetic (0 to 2^n - 1).",
+      right: "Monitors Signed 2's Complement Arithmetic (-2^(n-1) to 2^(n-1) - 1)."
+    },
+    {
+      feature: "Silicon Condition",
+      left: "Set (C=1) if the final adder stage generates a carry-out from the MSB (C_out = 1).",
+      right: "Set (V=1) if the arithmetic result exceeds the valid signed range, causing the sign bit to flip incorrectly."
+    },
+    {
+      feature: "Assembly Branch Instructions",
+      left: "Inspected by unsigned conditional jumps: JC, JNC, JA (Jump if Above), JB (Jump if Below).",
+      right: "Inspected by signed conditional jumps: JO, JNO, JG (Jump if Greater), JL (Jump if Less)."
+    }
+  ]}
+/>
+
+### Illustrative 8-Bit Example
+Consider adding $130 + 130$ vs. $(+70) + (+80)$:
+* **In 8-bit unsigned**: $130 + 130 = 260$. Since $260 > 255$, it rolls over to $4$ and sets **$C = 1$ (Carry generated)**.
+* **In 8-bit signed**: $+70 + (+80) = +150$. Since $+150 > +127$, the MSB flips to $1$ (yielding $-106$ in 2's complement). This sets **$V = 1$ (Signed Overflow)**, even though no unsigned carry was generated ($C = 0$)!
+
+---
+
+## 🛡️ The Hardware Overflow Rule & Sign Extension
+
+When can an arithmetic overflow physically occur?
+
+<MathBox title="The Fundamental Law of Signed Overflow" type="formula">
+
+Signed overflow can occur **if and only if** two numbers with the **same sign** are added, and the result produces the **opposite sign**:
+1. $(+) + (+) = (-)$ $\implies$ **Positive Overflow ($V = 1$)**
+2. $(-) + (-) = (+)$ $\implies$ **Negative Overflow ($V = 1$)**
+
+Adding numbers of **opposite signs** ($(+) + (-)$ or $(-) + (+)$) **CAN NEVER OVERFLOW**, because the magnitude of the sum is strictly smaller than the largest operand!
+
+</MathBox>
+
+### Silicon Hardware Implementation of $V$
+In hardware, testing operand signs using comparators is unnecessary. The CPU calculates overflow using a single 2-input XOR gate:
+
+<MathBox title="Hardware Overflow Equation" type="formula">
+
+$$
+V = C_{\text{in(MSB)}} \oplus C_{\text{out(MSB)}}
+$$
+
+Where:
+* $C_{\text{in(MSB)}}$ is the carry entering the most significant full adder stage ($C_{n-1}$).
+* $C_{\text{out(MSB)}}$ is the carry leaving the most significant full adder stage ($C_n$).
+
+</MathBox>
+
+If a carry enters the MSB stage but does not leave it ($C_{in}=1, C_{out}=0$), or leaves without entering ($C_{in}=0, C_{out}=1$), the sign bit was corrupted, and $V = 1$!
+
+### Sign Extension in Microprocessors
+When a processor loads an 8-bit signed integer into a 32-bit register (e.g. `int8_t` to `int32_t`), how does it preserve negative values?
+* **Zero Extension (Unsigned)**: Pad high bits with $0$s (`movzx`).
+* **Sign Extension (Signed)**: **Replicate the MSB (sign bit)** across all higher-order bit positions (`movsx`).
+
+#### Proof: Why Sign Extension Preserves Value
+Consider 4-bit $-5 = 1011_2$. Extending to 8 bits by replicating the MSB ($1$):
+$$
+11111011_2 = -2^7 + 2^6 + 2^5 + 2^4 + 2^3 + 0 + 2^1 + 2^0 = -128 + 64 + 32 + 16 + 8 + 2 + 1 = \mathbf{-5}_{10}
+$$
+Because $-2^k + 2^{k-1} + 2^{k-2} + \dots + 2^0 = -1$, copying ones to the left mathematically preserves the negative value identically!
+
+---
+
+## 🌊 Real Numbers: Fixed-Point vs. Floating-Point
+
+In **Fixed-Point representation**, a fixed number of bits is allocated to the integer part and a fixed number to the fractional part (e.g., $Q4.4$ format allocates 4 bits integer, 4 bits fraction). Fixed-point is fast on DSP chips without hardware FPUs, but its dynamic range is cripplingly narrow.
+
+In **Floating-Point representation**, the number is expressed in binary scientific format:
+
+$$
+N = (-1)^S \times M \times 2^E
+$$
+
+Where:
+* $S$ is the **Sign bit** ($0 = \text{positive}, 1 = \text{negative}$).
+* $M$ is the **Significand / Mantissa** (the normalized precision bits).
+* $E$ is the **Exponent** (the power-of-two scaling factor).
+
+---
+
+## 🏛️ IEEE 754 Floating-Point Standard
+
+Established in 1985 (and updated in 2008/2019), the **IEEE 754 Standard** governs all modern floating-point silicon units (FPUs).
+
+<FrameFormat
+  title="IEEE 754 Single-Precision (32-Bit Float) Bit Allocation"
+  fields={[
+    { name: "Sign (S)", bits: "1 bit [31]", color: "rose", desc: "0 = Positive (+), 1 = Negative (-)" },
+    { name: "Biased Exponent (E)", bits: "8 bits [30..23]", color: "amber", desc: "Excess-127 representation: E = e + 127 (Valid: 1 to 254)" },
+    { name: "Fraction / Mantissa (M)", bits: "23 bits [22..0]", color: "blue", desc: "Fractional precision bits with implicit leading 1. (Effective 24 bits)" }
+  ]}
+/>
+
+<ConceptComparison
+  title="IEEE 754 Standard Formats"
+  leftTitle="Single Precision (binary32 / float)"
+  rightTitle="Double Precision (binary64 / double)"
+  rows={[
+    {
+      feature: "Total Bit Width",
+      left: "32 bits",
+      right: "64 bits"
+    },
+    {
+      feature: "Sign Bit (S)",
+      left: "1 bit (bit 31)",
+      right: "1 bit (bit 63)"
+    },
+    {
+      feature: "Biased Exponent (E)",
+      left: "8 bits (bits 30..23). Bias = 127.",
+      right: "11 bits (bits 62..52). Bias = 1023."
+    },
+    {
+      feature: "Mantissa Fraction (M)",
+      left: "23 bits (bits 22..0). Effective precision = 24 bits.",
+      right: "52 bits (bits 51..0). Effective precision = 53 bits."
+    },
+    {
+      feature: "Dynamic Range",
+      left: "≈ ±1.18 × 10^(-38) to ±3.40 × 10^(+38)",
+      right: "≈ ±2.23 × 10^(-308) to ±1.79 × 10^(+308)"
+    }
+  ]}
+/>
+
+### The Hidden Bit (Implicit 1) Trick
+In base-2, any non-zero number in scientific notation **always begins with a leading 1** (e.g. $1.011_2 \times 2^3$). 
+Because the leading digit is guaranteed to be 1, **IEEE 754 does not waste a bit storing it**!
+The stored 23-bit mantissa represents only the fractional part after the radix point. The hardware FPU automatically prepends the implicit $1.$ during calculation, gaining **24 bits of precision from a 23-bit field**!
+
+<MathBox title="Reconstructed IEEE 754 Single Precision Value" type="formula">
+
+$$
+\text{Value} = (-1)^S \times \left( 1 + \sum_{i=1}^{23} b_{23-i} \cdot 2^{-i} \right) \times 2^{E - 127}
+$$
+
+</MathBox>
+
+### Step-by-Step Walkthrough: Converting $-13.625_{10}$ to IEEE 754 32-Bit Float
+
+1. **Determine Sign**: The number is negative $\implies \mathbf{S = 1}$.
+2. **Convert Absolute Value to Binary**:
+   * Integer: $13_{10} = 1101_2$
+   * Fraction: $0.625_{10} = (0.5 + 0.125) = 0.101_2$
+   * Combined: $13.625_{10} = 1101.101_2$
+3. **Normalize**:
+   $$
+   1101.101_2 = \mathbf{1.101101}_2 \times 2^3
+   $$
+4. **Calculate Biased Exponent**:
+   * True exponent $e = 3$.
+   * Biased Exponent $E = e + \text{Bias} = 3 + 127 = 130$.
+   * $130_{10} = \mathbf{10000010}_2$ (8 bits).
+5. **Extract 23-Bit Mantissa**:
+   * Drop the implicit leading $1.$: remaining fraction is $101101$.
+   * Pad with trailing zeros to 23 bits:
+     $$
+     \mathbf{10110100000000000000000}
+     $$
+6. **Assemble the 32 Bits**:
+   ```
+   Sign (1b):     1
+   Exponent (8b): 10000010
+   Mantissa (23b): 10110100000000000000000
+   
+   Full 32-bit:   1 10000010 10110100000000000000000
+   Group Hex:     1100 0001 0101 1010 0000 0000 0000 0000
+   Hex Code:      0xC15A0000
+   ```
+
+---
+
+## 🕳️ Special Values: $\pm 0$, Subnormals, $\pm \infty$, and $\text{NaN}$
+
+IEEE 754 reserves special exponent patterns ($E = 0$ and $E = 255$) to represent mathematical boundary conditions without crashing the CPU:
+
+| Exponent Field ($E$) | Fraction Field ($M$) | Mathematical Interpretation | Formula / Real Value |
+| :--- | :--- | :--- | :--- |
+| `0000 0000` ($0$) | `0000...00` (All 0s) | **Zero** | $(-1)^S \times 0.0$ ($\pm 0$ depending on Sign bit) |
+| `0000 0000` ($0$) | Non-zero ($M \ne 0$) | **Subnormal / Denormalized** | $(-1)^S \times 0.M \times 2^{-126}$ (Gradual underflow) |
+| `0000 0001` .. `1111 1110` ($1..254$) | Any bit pattern | **Normalized Number** | $(-1)^S \times 1.M \times 2^{E-127}$ (Standard float) |
+| `1111 1111` ($255$) | `0000...00` (All 0s) | **Infinity** | $\pm \infty$ (e.g. division by zero: $1.0 / 0.0$) |
+| `1111 1111` ($255$) | Non-zero ($M \ne 0$) | **Not a Number (NaN)** | Invalid operation (e.g. $0.0 / 0.0$, $\sqrt{-1}$) |
+
+* **Gradual Underflow (Subnormal Numbers)**: When $E = 0$ and $M \ne 0$, the implicit bit becomes **$0.$** instead of $1.$, and the true exponent is fixed at $-126$. This allows floating-point numbers to approach zero gradually without a sudden underflow step cliff!
+
+---
+
+## 🎛️ Interactive IEEE 754 32-Bit Floating-Point Inspector
+
+Type any real number or click any individual bit inside the 32-bit register to toggle it live. Observe how the sign, biased exponent, implicit bit, and reconstructed mathematical values respond instantaneously:
+
+<NumberSystemSimulator
+  mode="floating-point"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+---
+
+<div id="real-world-production-context" />
+
+## 🏭 Real-World Production Context: Hardware FPUs & ALU Status Register Flags
+
+In modern microprocessors, arithmetic units and floating-point co-processors bridge compiler data types with high-speed transistor datapaths.
+
+<ArchitectureStack
+  title="Hardware Arithmetic & Floating-Point Pipeline Hierarchy"
+  description="From high-level programming types to hardware ALU status flags, vector FPUs, and silicon CMOS datapath."
+  layers={[
+    {
+      badge: "Software Level",
+      title: "Primitive Data Types & Compilers",
+      icon: "💻",
+      color: "blue",
+      description: "Compilers (GCC, Clang, Rustc) emit integer add/sub and floating-point SIMD instructions based on signed types and IEEE 754 standards.",
+      items: ["int32_t / int64_t", "float (binary32) / double (binary64)", "Branch Conditions (jge, jl)"],
+      connectorText: "Compiled to Machine Code"
+    },
+    {
+      badge: "Processor Register File",
+      title: "CPU Status Registers (EFLAGS / CPSR)",
+      icon: "🚩",
+      color: "purple",
+      description: "Execution updates hardware condition flags: Carry (C), Overflow (V), Sign (S), and Zero (Z) to guide conditional execution.",
+      items: ["C: Unsigned Carry / Borrow", "V: Signed 2's Comp Overflow", "Z: Zero Result Flag"],
+      connectorText: "Pipelined to Execution Units"
+    },
+    {
+      badge: "Execution Datapath",
+      title: "Vector Floating-Point Units (FPUs)",
+      icon: "⚡",
+      color: "amber",
+      description: "High-throughput execution units (AVX-512, ARM NEON) perform IEEE 754 arithmetic with barrel shifters and exponent aligners.",
+      items: ["Implicit Leading 1 Alignment", "Fused Multiply-Add (FMA)", "Subnormal Gradual Underflow"],
+      connectorText: "Transistor Gate Array Switching"
+    },
+    {
+      badge: "Silicon Hardware",
+      title: "Arithmetic Logic Units & Carry Trees",
+      icon: "🔬",
+      color: "emerald",
+      description: "Ultra-fast Kogge-Stone/Brent-Kung carry trees and single-gate XOR overflow detectors (V = Cin ^ Cout) evaluate in picoseconds.",
+      items: ["V = Cin ^ Cout Detector", "XOR Inversion Bank", "Kogge-Stone Carry Lookahead"]
+    }
+  ]}
+/>
+
+* **ALU Status Register Architecture**: Modern microprocessors execute billions of arithmetic operations per second while maintaining hardware condition flags (`EFLAGS` on x86, `CPSR` on ARM). The Carry Flag ($C$) detects unsigned integer wrapping, while the Overflow Flag ($V$) is evaluated via a single hardware XOR gate ($V = C_{in} \oplus C_{out}$) to catch 2's complement numeric range violations.
+* **IEEE 754 Silicon Implementations**: Floating-point units (FPUs) inside modern CPUs and GPUs contain dedicated barrel shifters to align mantissas during addition/subtraction. By adopting an Excess-127 biased exponent, hardware can compare floating-point magnitudes using standard unsigned integer comparators without two's complement conversion overhead.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Signed 2's Complement Addition, Overflow Detection & Flag Evaluation
+**Problem Statement:**  
+Given two 8-bit signed 2's complement numbers $A = (+75)_{10}$ and $B = (+85)_{10}$:
+1. Convert both to 8-bit binary representations.
+2. Perform binary addition $A + B$.
+3. Identify the carries entering and leaving the MSB stage ($C_{in(MSB)}$ and $C_{out(MSB)}$).
+4. Determine the values of the Overflow Flag ($V$) and Carry Flag ($C$).
+5. Interpret the resulting 8-bit pattern if read as a signed 2's complement number versus an unsigned number.
+
+**Step-by-Step Solution:**
+
+1. **Convert to 8-Bit Signed Binary:**
+   * $A = (+75)_{10} = 64 + 8 + 2 + 1 = 01001011_2$
+   * $B = (+85)_{10} = 64 + 16 + 4 + 1 = 01010101_2$
+
+2. **Column-by-Column Addition:**
+
+$$
+\begin{array}{rl}
+  01001011 & (+75) \\
++ 01010101 & (+85) \\
+\hline
+  10100000 & (\text{Raw 8-bit sum})
+
+\end{array}
+$$
+
+3. **Trace Internal Carries:**
+   * Bit 0: $1 + 1 = 0$, carry to bit 1 $= 1$
+   * Bit 1: $1 + 0 + 1 = 0$, carry to bit 2 $= 1$
+   * Bit 2: $0 + 1 + 1 = 0$, carry to bit 3 $= 1$
+   * Bit 3: $1 + 0 + 1 = 0$, carry to bit 4 $= 1$
+   * Bit 4: $0 + 1 + 1 = 0$, carry to bit 5 $= 1$
+   * Bit 5: $0 + 0 + 1 = 1$, carry to bit 6 $= 0$
+   * Bit 6: $1 + 1 + 0 = 0$, carry to bit 7 $= 1 \implies C_{in(MSB)} = 1$
+   * Bit 7 (MSB): $0 + 0 + 1 = 1$, carry out of bit 7 $= 0 \implies C_{out(MSB)} = 0$
+
+4. **Evaluate Hardware Flags:**
+   * **Overflow Flag ($V$)**:
+     $$V = C_{in(MSB)} \oplus C_{out(MSB)} = 1 \oplus 0 = \mathbf{1} \quad (\text{Overflow Occurred!})$$
+   * **Carry Flag ($C$)**:
+     $$C = C_{out(MSB)} = \mathbf{0}$$
+
+5. **Interpret Results:**
+   * **Signed Interpretation**: The sum of two positive numbers ($+75$ and $+85$) yielded an MSB of $1$ (negative sign bit).
+     The raw pattern $10100000_2$ in 2's complement equals:
+     $$-(2\text{'s complement of } 10100000_2) = -(01100000_2) = -(64 + 32) = \mathbf{-96}_{10}$$
+     Because the true mathematical sum $+160$ exceeds the maximum 8-bit signed bound of $+127$ ($[-128, +127]$), the result wrapped around, corrupting the sign bit. The hardware asserted $V=1$ to alert the operating system.
+   * **Unsigned Interpretation**: As an unsigned integer, $10100000_2 = 128 + 32 = \mathbf{160}_{10}$. Since $160 \le 255$, the unsigned calculation is fully correct, and $C=0$ confirms no unsigned carry overflow occurred.
+
+---
+
+### Example 2: Decimal Real Number to IEEE 754 Single-Precision 32-Bit Hexadecimal
+**Problem Statement:**  
+Encode the real decimal number $N = -118.625_{10}$ into the IEEE 754 Single-Precision (32-bit float) format. Present the exact bit partition (Sign, Biased Exponent, Mantissa) and convert the final 32-bit sequence into hexadecimal format.
+
+**Step-by-Step Solution:**
+
+1. **Determine the Sign Bit ($S$):**  
+   Since $N = -118.625$ is negative, the Sign Bit is:
+   $$\mathbf{S = 1}$$
+
+2. **Convert Absolute Magnitude $|N| = 118.625_{10}$ to Binary:**
+   * **Integer Part ($118_{10}$)**:
+     $$118 = 64 + 32 + 16 + 4 + 2 = (1110110)_2$$
+   * **Fractional Part ($0.625_{10}$)**:
+     $$0.625 = 0.5 + 0.125 = 2^{-1} + 2^{-3} = (0.101)_2$$
+   * **Combined Binary Representation**:
+     $$(118.625)_{10} = (1110110.101)_2$$
+
+3. **Normalize into Binary Scientific Notation:**  
+   Shift the radix point 6 positions to the left so that exactly one non-zero digit precedes it:
+   $$1110110.101_2 = \mathbf{1.110110101}_2 \times 2^6$$
+   * True Exponent: $e = 6$.
+
+4. **Compute the Biased Exponent ($E$):**  
+   For IEEE 754 Single-Precision, the exponent bias is $127$:
+   $$E = e + \text{Bias} = 6 + 127 = 133_{10}$$
+   Converting $133_{10}$ to an 8-bit unsigned binary integer:
+   $$133 = 128 + 4 + 1 \implies \mathbf{E = 10000101}_2$$
+
+5. **Extract the 23-Bit Fractional Significand ($M$):**  
+   Drop the implicit leading $1.$ from the normalized mantissa $1.110110101_2$:
+   * Fractional bits: $110110101$ (9 bits).
+   * Pad with 14 trailing zeros to fill the required 23-bit width:
+     $$\mathbf{M = 11011010100000000000000}_2$$
+
+6. **Assemble the 32-Bit Frame and Group into Hexadecimal:**  
+   Concatenate the fields $[S \; (1\text{b})] \; [E \; (8\text{b})] \; [M \; (23\text{b})]$:
+
+| Field | Bit Length | Binary Pattern |
+| :--- | :---: | :--- |
+| **Sign ($S$)** | 1 | `1` |
+| **Exponent ($E$)** | 8 | `1000 0101` |
+| **Mantissa ($M$)** | 23 | `110 1101 0100 0000 0000 0000` |
+
+   Grouping into 4-bit nibbles from MSB to LSB:
+   * `1100` $\to$ **`C`**
+   * `0010` $\to$ **`2`**
+   * `1110` $\to$ **`E`**
+   * `1101` $\to$ **`D`**
+   * `0100` $\to$ **`4`**
+   * `0000` $\to$ **`0`**
+   * `0000` $\to$ **`0`**
+   * `0000` $\to$ **`0`**
+
+   **Final Hexadecimal Representation:**  
+   $$\mathbf{\text{0xC2ED4000}}$$
+
+---
+
+### Example 3: Reconstructing Decimal Value from IEEE 754 32-Bit Hex Pattern
+**Problem Statement:**  
+An embedded telemetry register reads a 32-bit floating-point word stored in memory as `0x42E48000`. Deconstruct the bit fields, determine the numeric classification (Normalized, Subnormal, Special), and calculate the exact real decimal value.
+
+**Step-by-Step Solution:**
+
+1. **Expand Hexadecimal to 32 Binary Bits:**
+   * `4` $\to$ `0100`
+   * `2` $\to$ `0010`
+   * `E` $\to$ `1110`
+   * `4` $\to$ `0100`
+   * `8` $\to$ `1000`
+   * `0` $\to$ `0000`
+   * `0` $\to$ `0000`
+   * `0` $\to$ `0000`
+
+   Complete 32-bit string:
+   $$\mathbf{0100 \; 0010 \; 1110 \; 0100 \; 1000 \; 0000 \; 0000 \; 0000}$$
+
+2. **Partition Bit Fields:**
+   * **Bit 31 (Sign $S$)**: `0` $\implies$ The number is **positive** ($+1$).
+   * **Bits [30..23] (Biased Exponent $E$)**: `1000 0101`
+     $$E = 128 + 4 + 1 = 133_{10}$$
+   * **Bits [22..0] (Mantissa Fraction $M$)**: `110 0100 1000 0000 0000 0000`
+     Fraction bits: $.11001001_2$
+
+3. **Classification & True Exponent Calculation:**
+   * Since $1 \le E \le 254$, the number is a standard **Normalized Number**.
+   * True exponent:
+     $$e = E - \text{Bias} = 133 - 127 = \mathbf{6}$$
+
+4. **Reconstruct Normalized Significand:**
+   Prepend the implicit leading $1.$ before the fractional mantissa:
+   $$\text{Significand} = 1.M = 1.11001001_2$$
+
+5. **Evaluate True Binary Value:**
+   Multiply the significand by $2^e = 2^6$ (shift radix point 6 places right):
+   $$1.11001001_2 \times 2^6 = 1110010.01_2$$
+
+6. **Convert to Decimal:**
+   * **Integer part ($1110010_2$)**:
+     $$64 + 32 + 16 + 2 = 114_{10}$$
+   * **Fractional part ($0.01_2$)**:
+     $$0 \times 2^{-1} + 1 \times 2^{-2} = \frac{1}{4} = 0.25_{10}$$
+
+   **Final Reconstructed Decimal Value:**  
+   $$\mathbf{+114.25_{10}}$$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why is an Exponent Bias of 127 used in IEEE 754 instead of 2's complement?**  
+  If exponents were stored in 2's complement, comparing two floating-point numbers would require complex signed arithmetic. By adding a bias of 127, all negative exponents ($2^{-126}$ to $2^{+127}$) become positive unsigned integers ($1$ to $254$). A CPU can therefore sort and compare floating-point magnitudes using fast, low-power unsigned integer hardware comparators!
+* **How does the ALU determine if an addition has overflowed in hardware?**  
+  By computing $V = C_{\text{in(MSB)}} \oplus C_{\text{out(MSB)}}$. If the carry arriving at the MSB stage differs from the carry leaving it, the sign bit was corrupted, immediately asserting the Overflow flag.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Confusing the Carry flag with the Overflow flag.**  
+  * Adding unsigned numbers? Check the **Carry flag ($C$)**.  
+  * Adding signed numbers? Check the **Overflow flag ($V$)**.  
+  A calculation can have $C=1$ and $V=0$ (e.g. $-1 + -1 = -2$), or $C=0$ and $V=1$ (e.g. $+70 + +70 = -116$), or both, or neither!
+* **Trap: Forgetting the Implicit Leading 1 in IEEE 754.**  
+  When decoding IEEE 754 mantissa bits, always remember to add the implicit $1.$ before multiplying by $2^e$. The only exception is when the exponent field is all zeros ($E = 0$), which indicates a subnormal number with an implicit $0.$.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "7.2 r's and (r-1)'s Complements (1's & 2's Complement)",
+    url: "/coredose/digital-logic/module-07/rs-and-r-minus-1s-complements-and-subtraction",
+  }}
+  next={{
+    title: "Digital Logic Curriculum Overview",
+    url: "/coredose/digital-logic",
+  }}
+  courseUrl="/coredose/digital-logic"
+/>
+

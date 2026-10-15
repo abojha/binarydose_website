@@ -65,7 +65,7 @@ All educational diagram components are **globally registered in `src/theme/MDXCo
 
 ---
 
-### The 7 Standard Diagram Components
+### Universal Platform Diagram Components (19 Components)
 
 #### 1. `<ArchitectureStack />` (Layered Hierarchy Component)
 Used for all layered architectures (e.g. 4-Layer Computer System, Dijkstra's Layered OS, OSI 7-Layer Model, TCP/IP Stack, Database Engine Architecture).
@@ -476,7 +476,7 @@ Used for shared medium access protocols (e.g. Pure ALOHA, Slotted ALOHA, CSMA co
   ```
 
 #### 18. `<FrameFormat />` (Hardware Packet & Frame Header Inspector)
-Used for data-link and network layer frame/packet headers (e.g. Ethernet IEEE 802.3, Ethernet II, Token Ring, IPv4, TCP).
+Used for data-link layer frame headers, hardware packets, and sequential byte streams (e.g. Ethernet IEEE 802.3, Ethernet II, Token Ring, Wi-Fi 802.11 MAC frames, ARP packets).
 * **Features**:
   - Horizontal hardware byte sequence strip with clean color coding.
   - Byte sizes, bit patterns (`10101011`), and layer badges.
@@ -495,6 +495,102 @@ Used for data-link and network layer frame/packet headers (e.g. Ethernet IEEE 80
       { name: "CRC-32", size: "4", unit: "Bytes", color: "purple", description: "Frame check sequence." },
     ]}
   />
+  ```
+
+#### 19. `<PacketHeaderGrid />` (High-Fidelity 32-Bit Word Grid for Packet & Datagram Headers)
+Used for 32-bit aligned network, transport, and application layer packet/datagram headers (e.g. IPv4 Datagram Header, IPv6 Fixed Header, TCP Segment Header, UDP Datagram Header).
+* **Features**:
+  - **Textbook 32-Bit Word Alignment Grid**: Accurately models networking RFC standards with 32-bit rows (Word 0, Word 1...) and byte range offsets (`Bytes 0–3`, `Bytes 4–7`...).
+  - **Proportional Bit Fields**: Fields scale dynamically using `flex: bits` and `flexBasis: (bits / bitsPerRow) * 100%`, preserving true relative bit proportions.
+  - **32-Bit Dual-Tier Bit Ruler**: Header bit ruler displaying Byte boundaries (`Byte 0 (Bits 0–7)` to `Byte 3 (Bits 24–31)`) and bit ticks (`0`, `4`, `8`...`31`).
+  - **Bit Ranges & Bit Patterns**: Displays bit index brackets (`[0:3]`, `[4:7]`) and hexadecimal/binary bit patterns inside cells.
+  - **Whole Packet Encapsulation**: Optional connected `payload` block (`📦 Data Payload`) showing encapsulated payload segment.
+  - **Live Hardware Inspector Console**: Unconstrained, zero-jitter inspector drawer displaying field definitions, RFC constraints, default values, and mechanics upon hover or tap.
+* **Usage**:
+  ```jsx
+  <PacketHeaderGrid
+    title="IPv4 Datagram Header Format"
+    subtitle="Standard 20-byte base header organized into 32-bit words with bit ranges and live field inspector"
+    standardBadge="RFC 791 • Network Layer"
+    totalSizeBytes="20 to 60 Bytes"
+    bitsPerRow={32}
+    showBitRuler={true}
+    rows={[
+      {
+        label: "Word 0",
+        offset: "Bytes 0–3",
+        fields: [
+          { id: "ver", name: "Version", bits: 4, bitRange: "0–3", color: "blue", bitPattern: "0100 (IPv4)", description: "IP version identifier (always 4 for IPv4)." },
+          { id: "ihl", name: "IHL", bits: 4, bitRange: "4–7", color: "purple", bitPattern: "0101 (20B min)", description: "Internet Header Length in 32-bit words (5 = 20 bytes)." },
+          { id: "tos", name: "Type of Service / DSCP", bits: 8, bitRange: "8–15", color: "cyan", description: "Differentiated Services Code Point (DSCP) and ECN for QoS classification." },
+          { id: "len", name: "Total Length", bits: 16, bitRange: "16–31", color: "emerald", description: "Entire datagram size (header + data) in bytes. Maximum 65,535 bytes." },
+        ],
+      },
+      {
+        label: "Word 1",
+        offset: "Bytes 4–7",
+        fields: [
+          { id: "id", name: "Identification", bits: 16, bitRange: "0–15", color: "amber", description: "Unique datagram ID for reassembling fragments." },
+          { id: "flags", name: "Flags (DF, MF)", bits: 3, bitRange: "16–18", color: "rose", description: "3 control flags: Reserved (0), Don't Fragment (DF), More Fragments (MF)." },
+          { id: "offset", name: "Fragment Offset", bits: 13, bitRange: "19–31", color: "purple", description: "Offset of the fragment data measured in 8-byte (64-bit) blocks." },
+        ],
+      },
+    ]}
+    payload={{
+      title: "Data Payload (Transport Layer Segment)",
+      subtitle: "Encapsulates TCP, UDP, or ICMP payload (Total Length - Header Length bytes)",
+      color: "indigo",
+    }}
+  />
+  ```
+
+#### 20. `<LogicGateSimulator />` (Interactive Vector Logic Gate & Truth Table Simulator)
+Used across Digital Logic & Design, Computer Organization & Architecture, and Boolean Electronics for interactive, zero-latency logic gate simulation and truth table verification (AND, OR, NOT, NAND, NOR, XOR, XNOR).
+* **Features**:
+  - **Dynamic Vector IEEE/ANSI Gate Rendering**: Crisp SVG vector symbols that automatically resize and render without pixelation across all display densities.
+  - **Live Input Voltage Toggling**: Interactive input toggles (Input A, Input B) with real-time emerald voltage glow (`5V / High / 1`) versus slate grounded (`0V / Low / 0`) states.
+  - **Synchronized Truth Table Highlighting**: Active input combination automatically highlights the corresponding row in the synchronized truth table in real time.
+  - **Physical Switch Analogy**: Displays circuit switch equivalents (e.g. switches in series for AND, switches in parallel for OR, shunt switches for NOT) bridging physical electrical circuits to abstract logic.
+  - **Single Gate Lock or Multi-Gate Playground**: Supports locking to a specific gate (via `initialGate="NAND"` and `allowGateSelect={false}`) or functioning as a multi-gate exploratory tabbed sandbox.
+* **Usage**:
+  ```jsx
+  <LogicGateSimulator
+    title="Universal NAND Gate Interactive Simulator"
+    subtitle="Toggle binary inputs to observe complementary output voltage and live truth table tracking"
+    initialGate="NAND"
+    allowGateSelect={true}
+  />
+  ```
+
+#### 21. `<MathBox />` (Code-Block Style Highlight Box for Equations & Proofs)
+Used across Digital Logic, Computer Networks, Operating Systems, DBMS, and COA for prominent, code-block-style highlighted containers holding mathematical theorems, formulas, identities, and multi-line first-principles proofs directly in Markdown (`.md` / `.mdx`).
+* **Features**:
+  - **Code-Block Aesthetic**: Features a clean container with rounded corners, subtle code-surface background, 1px perimeter border, and a distinguished type-colored left accent line.
+  - **Header Bar with Type Badging**: Top header strip displaying title, contextual icon (`📐`, `⚡`, `🔍`, `📖`), and clean category pill (`theorem`, `proof`, `law`, `formula`, `definition`).
+  - **Zero Delimiter Confusion**: Takes `{children}` directly as standard Markdown/KaTeX, guaranteeing that display math blocks (`$$ ... $$`) and aligned derivation blocks (`\begin{aligned} ... \end{aligned}`) compile cleanly with native KaTeX rendering.
+  - **Viewport Overflow Protection**: Built-in horizontal scroll container prevents wide algebraic equations or long derivation lines from breaking the reading viewport.
+* **Usage**:
+  ```markdown
+  <MathBox title="Theorem 1.3: The Consensus Theorem (SOP Form)" type="theorem">
+
+  $$
+  AB + \bar{A}C + BC = AB + \bar{A}C
+  $$
+
+  </MathBox>
+
+  <MathBox title="Formal First-Principles Proof of SOP Consensus" type="proof">
+
+  $$
+  \begin{aligned}
+  \text{LHS} &= AB + \bar{A}C + BC \\
+  &= AB + \bar{A}C + BC(1) \quad &&\text{[Identity Law: } X \cdot 1 = X\text{]} \\
+  &= AB + \bar{A}C + BC(A + \bar{A}) \quad &&\text{[Complementation: } A + \bar{A} = 1\text{]} \\
+  &= AB + \bar{A}C = \text{RHS} \quad \blacksquare
+  \end{aligned}
+  $$
+
+  </MathBox>
   ```
 
 ---
@@ -527,8 +623,10 @@ Every diagram component (existing or newly created) MUST adhere strictly to thes
      * Use `<FlowDiagram />` for all network topologies (Mesh, Star, Bus, Ring, Tree, Hybrid), process lifecycle states (5-state/7-state models), CPU dispatcher loops, and supervisory control topologies (e.g. 5 Data Communication Components with Protocol overseeing Sender/Medium/Receiver). Features dynamic ResizeObserver sandboxing, 86px top headroom allocation preventing loop clipping, constant-height zero-jitter inspector consoles, fractional multi-port offsets (`fromPortOffset`, `toPortOffset`), and mobile HD pan.
    - **Time-Sequence Packet Flights, Handshakes & Sliding Window Protocols**: Use `<ProtocolLadder />` (**MANDATORY**).
      * Use for Stop-and-Wait ARQ, Go-Back-N ARQ, Selective Repeat ARQ, TCP 3-Way Handshake, TCP 4-Way Teardown, and Client-Server web handshakes. Displays vertical lifelines with downward-slanted packet vectors ($T_t + T_p$), timeout brackets, packet drop/corruption markers, and synchronized sliding window buffers.
-   - **Hardware Packet, Frame & Segment Headers**: Use `<FrameFormat />` (**MANDATORY**).
-     * Use for Ethernet (IEEE 802.3 / Ethernet II), Token Ring, IPv4/IPv6 datagrams, TCP/UDP headers, and ARP packets with byte-by-byte visual layouts, bit sequences, and interactive field inspectors.
+   - **32-Bit Word-Aligned Packet, Datagram & Segment Headers**: Use `<PacketHeaderGrid />` (**MANDATORY**).
+     * Use for IPv4 Datagram Header, IPv6 Fixed Header, TCP Segment Header, UDP Datagram Header, and RTP headers. Accurately renders 32-bit rows (Word 0, Word 1...) with byte offsets, 0–31 bit ruler, bit ranges, and connected whole-packet data payload encapsulation.
+   - **1D Hardware Packet, Frame & Bitstream Formats**: Use `<FrameFormat />` (**MANDATORY**).
+     * Use for Ethernet (IEEE 802.3 / Ethernet II), Token Ring, Wi-Fi 802.11 frames, and ARP packets with sequential byte-by-byte visual layouts, bit sequences, and interactive field inspectors.
    - **Shared-Medium Access & Contention Windows**: Use `<ContentionTimeline />` (**MANDATORY**).
      * Use for Pure ALOHA, Slotted ALOHA, CSMA/CD, CSMA/CA, and backoff contention windows with vulnerable time spans ($2 T_t$ vs $1 T_t$) and collision overlap diagnostics.
    - **CPU Scheduling & Real-Time Timelines**: Use `<GanttChart />` (**MANDATORY**).
@@ -570,6 +668,14 @@ Every diagram component (existing or newly created) MUST adhere strictly to thes
     - Never duplicate the markdown section heading inside the diagram's `title` prop. If the markdown section heading is `## 🔬 Field-by-Field Frame Anatomy`, do NOT repeat that title verbatim inside the diagram. Omit the `title` prop on the component or use it to provide a distinct, complementary subtitle.
 11. **Lifeline Boundary & Clipping Protection**:
     - In multi-lifeline diagrams (`<ProtocolLadder />`), event badges, retransmission clock pills, and collision markers on the rightmost lifeline must dynamically adjust their alignment (e.g., using `transform: translateX(-100%)` and anchoring leftward) whenever rendered on the right half of the canvas. They must NEVER bleed or clip past the right container margin.
+12. **Byte-Scale Proportional Sizing & Alignment**:
+    - In packet and frame diagrams (`<PacketHeaderGrid />`, `<FrameFormat />`), field widths MUST scale proportionally to their bit or byte counts (e.g. `flex: bits`, `flexBasis: (bits / bitsPerRow) * 100%`). A 16-bit field must visibly occupy 4 times the width of a 4-bit field. Never assign arbitrary or uniform widths to fields with unequal bit sizes.
+13. **Container Headroom & Collision Prevention**:
+    - In complex 2D diagrams (`<FlowDiagram />`), bottom domain headers require at least `54px` to `86px` clearance below node cards to prevent edge crossings and label collisions.
+    - Top looping edges require at least `86px` container headroom padding to prevent clipping at the top container border.
+    - Card elements must never use rigid fixed pixel widths with hidden overflow. Use dynamic flex layouts and proportional sizing (`min-width: 0`, `flex: 1`) so text wraps naturally with zero word collisions.
+14. **Lifeline Boundary & Dynamic Anchor Protection**:
+    - In multi-actor diagrams (`<ProtocolLadder />`), event badges, timers, and loss markers rendered on the right half of the canvas must anchor leftward (`transform: translateX(-100%)`) to prevent clipping past the right container margin.
 
 ## 6. CoreDose Course & Lesson Architectural Standards
 All course lessons in `binary_dose/coredose/` (for OS, DBMS, CN, System Design, OOPs, COA, Compiler) MUST follow this locked standard:
@@ -632,6 +738,31 @@ All course lessons in `binary_dose/coredose/` (for OS, DBMS, CN, System Design, 
   - Module 08: Application Layer Protocols (Topics 8.1 - 8.5) — `COMPLETED`
   - Module 09: Network Security & Cryptography (Topics 9.1 - 9.6) — `COMPLETED`
   - Module 10: Physical Layer Devices & Wireless Networks (Topics 10.1 - 10.4) — `COMPLETED`
+- **Database Management Systems (DBMS) Curriculum (Modules 01 - 10)**: `UPCOMING / READY FOR UPCOMING SESSION` 🎯
+  - Module 01: Basics of DBMS & Architecture (Topics 1.1 - 1.3) — ANSI/SPARC 3-Schema Architecture, Data Independence, DBMS vs File Systems.
+  - Module 02: Entity-Relationship (ER) Model (Topics 2.1 - 2.5) — Entity Sets, Cardinalities, Weak Entities, ER-to-Relational Table Mapping, EER Specialization/Generalization.
+  - Module 03: Relational Model & Relational Algebra (Topics 3.1 - 3.5) — Relational Terminology, Keys (Super, Candidate, Primary, Foreign), Integrity Constraints, Selection/Projection, Joins (Natural, Theta, Outer).
+  - Module 04: Structured Query Language (SQL) (Topics 4.1 - 4.5) — DDL/DML/DCL/TCL, GROUP BY/HAVING, Nested & Correlated Subqueries, SQL Joins, Window Functions & CTEs.
+  - Module 05: Functional Dependencies (FDs) (Topics 5.1 - 5.6) — Trivial/Non-Trivial FDs, Armstrong's Axioms, Attribute Closure ($X^+$), Candidate Key Finding, Minimal/Canonical Cover, FD Equivalence.
+  - Module 06: Database Normalization (1NF-5NF) (Topics 6.1 - 6.6) — Database Anomalies, 1NF/2NF/3NF/BCNF, Lossless Join Testing, Dependency Preservation, 4NF (MVD) & 5NF (Join Dependency).
+  - Module 07: Transaction Management & ACID (Topics 7.1 - 7.4) — Transaction States, ACID Guarantees, Serial vs Non-Serial Schedules, Read-Write Conflicts & Conflict Equivalence.
+  - Module 08: Concurrency Control & Serializability (Topics 8.1 - 8.6) — Precedence Graphs, View Serializability, Recoverable/Cascadeless/Strict Schedules, Two-Phase Locking (2PL), Deadlock Handling (Wait-Die, Wound-Wait), Timestamp Ordering & Thomas Write Rule.
+  - Module 09: Indexing & File Organization (Topics 9.1 - 9.5) — Heap/Sorted/Hash Files, Dense vs Sparse Indices, Primary/Clustering/Secondary Indices, B-Tree Node Capacity, B+ Tree Structure & Disk Block Calculations.
+  - Module 10: Advanced Topics & Storage Internals (Topics 10.1 - 10.3) — Static vs Dynamic Hashing (Extendible & Linear Hashing), Relational Calculus (TRC & DRC), Query Optimization & Cost Plans.
+  - **Upcoming Session Action Directives**:
+    1. Purge legacy raw Mermaid diagrams (`flowchart LR`, `graph TD`) and replace with universal React diagram components (`<FlowDiagram />`, `<SubsystemGrid />`, `<ArchitectureStack />`, `<ConceptComparison />`, `<FlowPipeline />`, `<ProcessFlow />`).
+    2. Enforce the locked 11-part template across all 48 DBMS lessons.
+    3. Eliminate all legacy exam tokens ("GATE CSE", marks badges).
+    4. Guarantee Real-World Production Context (PostgreSQL MVCC, MySQL InnoDB buffer pools, RocksDB LSM-trees, Google Spanner TrueTime & 2PC, Redis cache-aside) and $\ge 3$ formal numerical/relational worked examples per lesson.
+- **Digital Logic & Design (DLD) Curriculum (Modules 01 - 07)**: `ACTIVE FLAGSHIP COURSE (IN PROGRESS)` ⚡
+  - **Source Material**: Strict parity with notes in `E:\GATE-NOTES\Digital Electronics\Hand Written Notes - DE` and `Knowledge Gate Notes - DE`.
+  - Module 01: Introduction & Boolean Algebra Foundations (Topics 1.1 - 1.3) — `COMPLETED` 🎉
+  - Module 02: Logic Gates & Universal Implementation (Topics 2.1 - 2.3) — `COMPLETED` 🎉
+  - Module 03: Boolean Expressions & Canonical Forms (SOP & POS) (Topics 3.1 - 3.3) — `COMPLETED` 🎉
+  - Module 04: Minimization & Karnaugh Maps (K-Maps) (Topics 4.1 - 4.3) — `COMPLETED` 🎉
+  - Module 05: Combinational Logic Circuits (Adders, Subtractors, MUX, Decoders) (Topics 5.1 - 5.4) — `UPCOMING` 🚀
+  - Module 06: Sequential Logic Circuits: Latches & Flip-Flops (Topics 6.1 - 6.4) — `PLANNED`
+  - Module 07: Number Systems, Complements & Arithmetic (Topics 7.1 - 7.3) — `PLANNED`
 
 ---
 
@@ -857,5 +988,73 @@ For courses with extensive syllabi (e.g. Operating Systems with 51 topics across
   - **Reach-out Requirement**: Contributors must discuss scope, components, and conventions with the maintainer first before starting work.
 * **Git Protocol**:
   - **NEVER** push directly to `main`. All contributions must be submitted via dedicated feature branches from forks.
+
+---
+
+## 14. Mandatory Automated Pre-Flight Quality Audit Protocol
+
+Before any course module or curriculum milestone is committed, submitted for review, or merged into production, the agent MUST run the full automated verification suite from `scratch/`. This guarantees zero regressions and enforces 100% adherence to platform standards without human guesswork or repeated user interventions.
+
+### The 4 Mandatory Audit Scripts:
+
+#### 1. Template & Structural Integrity Audit (`scratch/verify_structure.py`)
+Verifies that 100% of `.mdx` files adhere to the locked 11-part template:
+* Valid frontmatter (`title`, `description`, `hide_table_of_contents: true`).
+* Explicit `# X.Y` semantic H1 heading matching lesson slug.
+* `<CoreDoseLessonHeader />` with correct module, topic, readTime, and timeless relevance props.
+* `## 💡 Core Intuition:` with both Everyday Analogy (`### 🍳 The Everyday Analogy:`) and Bridging (`### 💻 Bridging to Computer Science`).
+* `<CoreDoseTOC toc={toc} />` with zero outer markdown heading.
+* Thematic icon-accented H2s (zero rigid textbook numbers `## 1.`, `## 2.`).
+* Flagship educational React diagram component (zero raw Mermaid or ASCII box art).
+* `## 🏭 Real-World Production Context:` with concrete hyper-scale engineering case studies.
+* `## 📐 Numerical Applications & Worked Examples` with $\ge 3$ formal step-by-step problems (`### Example X`, `**Problem Statement:**`, `**Step-by-Step Solution:**`).
+* `## 🎯 Exam & Interview Pitfall Check` with both `:::tip Core Conceptual Questions` and `:::warning Common Interview Traps`.
+* Zero MCQ option letters `(A)`, `(B)`, `(C)`, `(D)` in questions or headings.
+* `<CoreDoseNav />` with doubly-linked navigation props.
+
+#### 2. Navigation Doubly-Linked Chain Audit (`scratch/check_nav_chain.py`)
+Verifies that all lessons form an unbroken, bidirectional sequence across all modules:
+* Every lesson's `prev` prop links to the exact chronological preceding lesson slug.
+* Every lesson's `next` prop links to the exact chronological succeeding lesson slug.
+* Cross-module boundaries (e.g. Topic 1.4 $\to$ Topic 2.1) cleanly transition without breaking.
+* No lesson prematurely falls back to the Master Index when a valid prior lesson exists.
+* Topic 1.1 links `prev={null}` and the final topic of Module 10 links `next={null}`.
+
+#### 3. Banned Tokens, ASCII Art & Metadata Leak Audit (`scratch/audit_full_cn.py` / `scratch/audit_course.py`)
+Scans all course files with zero tolerance:
+* **Zero ASCII Box Art**: Rejects `+---+`, `|   |`, `+-+-+`, `┌`, `┐`, `└`, `┘`, `├──`, `└──`.
+* **Zero Raw Mermaid**: Rejects ````mermaid` code blocks.
+* **Zero Banned Exam Tokens**: Rejects `\bgate\b`, `\bpyq\b`, `\bisro\b`, `\bbarc\b`, marks badges (`[5 Marks]`).
+* **Zero Internal Meta-Phrases**: Rejects "handwritten notes", "from my notes", "as seen in the notes".
+
+#### 4. KaTeX Math Syntax & Rendering Audit (`scratch/validate_all_katex.js` & `scratch/verify_katex.py`)
+Scans all inline `$ ... $` and display `$$ ... $$` math blocks across all `.mdx` files:
+* Rejects unescaped `&` inside `\text{}` (must be `\&` or `and`).
+* **KaTeX Array Column Specifiers**: **NEVER** use `@{\dots}` inside `\begin{array}` (e.g. `\begin{array}{r@{\quad}l}`). KaTeX does not support column formatting specifiers and throws `Unknown column alignment: @`. Use standard `{rl}` or `{rcl}` instead.
+* **No Indented Math in Lists**: Never indent multi-line `$$ ... $$` display math blocks by 4+ spaces inside bulleted or numbered lists. CommonMark parses 4+ spaces as an indented `<pre><code>` block, leaking raw LaTeX strings onto the browser. Keep `$$` blocks unindented on their own lines or use inline `$ ... $`.
+* **No Trailing `%` in Math**: Avoid `%$` at the end of math mode (e.g. `$10\%$`). KaTeX treats `%` as a LaTeX comment that comments out the closing `$`. Write percentages in prose outside math mode (e.g. `10%`) or use `\text{10\%}`.
+* **Currency Formatting**: Always wrap dollar signs for prices/currency in backticks (`` `$100` ``) to prevent remark-math from interpreting them as math mode delimiters.
+
+---
+
+## 15. Locked Section Order & Heading Standards
+
+All course lessons across `coredose/` MUST adhere strictly to the locked 11-part order:
+1. **Frontmatter** (`title`, `description`, `hide_table_of_contents: true`)
+2. **`# X.Y {Title}`** Semantic H1
+3. **`<CoreDoseLessonHeader />`**
+4. **`## 💡 Core Intuition:`** (with `### 🍳 The Everyday Analogy:` and `### 💻 Bridging to Computer Science`)
+5. **`<CoreDoseTOC toc={toc} />`** (zero outer markdown heading)
+6. **Technical Core Deep-Dives**: Thematic icon-accented H2 headings (`## ⚡`, `## ⏱️`, `## 🎛️`). **STRICTLY ZERO** rigid textbook numbering (`## 1.`, `## 2.`).
+7. **Educational React Diagrams / Interactive Simulators**
+8. **`## 🏭 Real-World Production Context:`** (**MUST BE HERE**: directly preceding Numerical Applications! Never at the top under TOC).
+9. **`## 📐 Numerical Applications & Worked Examples`** ($\ge 3$ problems with `**Problem Statement:**` and `**Step-by-Step Solution:**`).
+10. **`## 🎯 Exam & Interview Pitfall Check`** (with `:::tip Core Conceptual Questions` and `:::warning Common Interview Traps`).
+11. **`<CoreDoseNav />`** (Doubly-linked navigation).
+
+### Heading Content Integrity
+* **No Empty Headings**: Never follow a parent heading or subheading immediately with a child heading (e.g. `### Case 1: ...` followed immediately by `#### A. ...`). Always provide substantive introductory explanation setting up the concepts.
+* **Handwritten Notes Priority**: All state transition tables, truth tables, circuit derivations, and worked examples must be verified against and adapted directly from the user's handwritten GATE notes (`E:\GATE-NOTES\`).
+
 
 

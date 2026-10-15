@@ -1,0 +1,368 @@
+.container {
+  margin: 2rem 0;
+  border-radius: 12px;
+  border: 1px solid var(--diagram-border, #334155);
+  background: var(--diagram-bg, #0f172a);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: var(--diagram-surface, #1e293b);
+  border-bottom: 1px solid var(--diagram-border, #334155);
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.categoryBadge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tabBar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid var(--diagram-border, #334155);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tabBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.tabBtn:hover {
+  background: rgba(51, 65, 85, 0.5);
+  color: #f1f5f9;
+}
+
+.tabBtnActive {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: rgba(244, 63, 94, 0.5);
+  color: #fb7185;
+}
+
+.contentBody {
+  padding: 1.25rem;
+}
+
+.splitGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .splitGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wideCard, .schematicCard, .tableCard {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid var(--diagram-border, #334155);
+  border-radius: 10px;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sectionTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hintTag {
+  font-size: 0.7rem;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.stateMemoryTag {
+  font-size: 0.7rem;
+  color: #a855f7;
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.svgWrapper {
+  width: 100%;
+  background: rgba(10, 15, 30, 0.6);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.circuitSvg {
+  width: 100%;
+  max-width: 620px;
+  height: auto;
+  display: block;
+}
+
+@keyframes wireFlowAnim {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.wireFlowPulse {
+  animation: wireFlowAnim 0.75s linear infinite;
+  pointer-events: none;
+  filter: drop-shadow(0 0 2px #ffffff);
+}
+
+.inputPinsRow {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.pinToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  border: 1px solid #475569;
+}
+
+.pinLow {
+  background: #1e293b;
+  color: #94a3b8;
+  border-color: #334155;
+}
+
+.pinLow:hover {
+  background: #334155;
+  color: #f8fafc;
+}
+
+.pinHigh {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+}
+
+.pinLabel {
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.pinValue {
+  font-family: monospace;
+  font-weight: 900;
+}
+
+.clockPulseBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.clockPulseBtn:hover {
+  background: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+  transform: translateY(-1px);
+}
+
+.clockPulseBtn:active {
+  transform: translateY(1px);
+}
+
+.forbiddenBanner {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  color: #fda4af;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  animation: pulseForbidden 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulseForbidden {
+  from {
+    border-color: rgba(244, 63, 94, 0.4);
+    box-shadow: 0 0 5px rgba(244, 63, 94, 0.15);
+  }
+  to {
+    border-color: rgba(244, 63, 94, 0.8);
+    box-shadow: 0 0 15px rgba(244, 63, 94, 0.35);
+  }
+}
+
+.safeBanner {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #a7f3d0;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.statePillGrid {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.statePill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid #334155;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+}
+
+.statePillStrong {
+  font-weight: 800;
+  color: #38bdf8;
+  font-family: monospace;
+}
+
+.truthTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.truthTable th {
+  background: rgba(15, 23, 42, 0.8);
+  color: #94a3b8;
+  font-weight: 700;
+  padding: 0.5rem;
+  border: 1px solid var(--diagram-border, #334155);
+  text-align: center;
+}
+
+.truthTable td {
+  padding: 0.45rem;
+  border: 1px solid var(--diagram-border, #334155);
+  text-align: center;
+  color: #e2e8f0;
+}
+
+.activeRow {
+  background: rgba(244, 63, 94, 0.22) !important;
+  font-weight: 700;
+  color: #fecdd3 !important;
+}
+
+.activeRow td {
+  border-color: rgba(244, 63, 94, 0.5);
+}
+
+.waveformCard {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid #334155;
+  border-radius: 8px;
+}

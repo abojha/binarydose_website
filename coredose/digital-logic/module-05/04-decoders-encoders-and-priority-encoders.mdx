@@ -1,0 +1,604 @@
+---
+title: "5.4 Decoders, Encoders & Priority Encoders"
+description: "Comprehensive engineering breakdown of Decoders (n-to-2ⁿ), active-low 74138 IC logic, function synthesis via minterm generators, Demultiplexers (DEMUX), standard Encoders, Priority Encoders, and memory address decoding."
+hide_table_of_contents: true
+---
+
+# 5.4 Decoders, Encoders & Priority Encoders
+
+<CoreDoseLessonHeader
+  module="Module 05: Combinational Logic Circuits"
+  topic="Topic 5.4"
+  courseUrl="/coredose/digital-logic"
+  readTime="21 min read"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Foundational Computing"
+/>
+
+## 💡 Core Intuition: The Postal Routing Hub & The Emergency Dispatcher
+
+Imagine an automated postal logistics hub receiving packages marked with a 3-bit binary postal code ($A_2 A_1 A_0$). An automated robotic arm reads the code and routes the package into exactly one of eight designated sorting chutes ($Y_0$ through $Y_7$). This is a **Decoder**: it expands an $n$-bit compressed coded address into $2^n$ unique activation lines.
+
+### 🍳 The Everyday Analogy: The 911 Emergency Dispatcher
+
+Now consider the inverse scenario. An emergency call center receives incoming alerts from multiple city alarm sensors:
+* Sensor 0: Minor water leak.
+* Sensor 1: Power grid fluctuation.
+* Sensor 2: Commercial robbery.
+* Sensor 3: High-rise hospital fire.
+
+If multiple emergencies trigger simultaneously, the dispatcher cannot scramble responders randomly or combine codes into nonsense. A strict **Priority Protocol** enforces that the hospital fire (highest priority) completely overrides all lesser alarms. The dispatcher transmits the binary code of the highest-severity event while asserting an "Active Emergency" beacon. This is a **Priority Encoder**.
+
+### 💻 Bridging to Computer Science
+
+Decoders and Priority Encoders are foundational building blocks in computing systems:
+1. **Memory Address Decoders**: When a CPU writes to memory address `0x3F80`, high-order address bits route through a decoder to assert the Chip Select ($\bar{CS}$) pin of one specific 8GB RAM chip while keeping all other chips in low-power sleep.
+2. **Instruction Decoders**: Inside a CPU core, the instruction decoder decodes 32-bit machine code opcodes (like `0110011` for RISC-V `ADD`) to activate the appropriate ALU datapath multiplexers and write-enable lines.
+3. **Hardware Interrupt Controllers**: When a network packet arrives, a keyboard key is pressed, and a timer ticks simultaneously, the CPU's Programmable Interrupt Controller (PIC / APIC / ARM GIC) uses a priority encoder to present the highest-priority Interrupt Request (IRQ) to the CPU execution core.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+<div id="decoder-fundamentals-and-74138-architecture" />
+
+## 🗂️ Decoder Fundamentals & The 74138 IC
+
+A **Decoder** is a combinational logic circuit that converts an $n$-bit binary input code into a maximum of $2^n$ unique physical output lines.
+
+<SubsystemGrid
+  items={[
+    {
+      icon: "🎯",
+      title: "1-of-2ⁿ Activation",
+      tag: "One-Hot / Zero-Hot",
+      color: "blue",
+      points: [
+        "For any valid n-bit input code, exactly ONE output line is active at any given moment.",
+        "Active-high decoders assert 1 on the selected line; active-low decoders assert 0."
+      ],
+      syscalls: ["n Inputs ➔ 2ⁿ Outputs"]
+    },
+    {
+      icon: "🔑",
+      title: "Minterm Generation",
+      tag: "Canonical Terms",
+      color: "amber",
+      points: [
+        "Each output line corresponds to an individual minterm of the n input variables.",
+        "Output k is asserted if and only if input code equals binary k."
+      ],
+      syscalls: ["Y_k = m_k"]
+    },
+    {
+      icon: "🛑",
+      title: "Enable (Chip Select)",
+      tag: "Strobe Gate",
+      color: "emerald",
+      points: [
+        "Enables expansion and bus interfacing.",
+        "When disabled, ALL output lines are deactivated simultaneously."
+      ],
+      syscalls: ["E = 0 ➔ All Inactive"]
+    }
+  ]}
+/>
+
+---
+
+### The 2:4 Active-High Decoder with Enable
+
+* Inputs: $2$ data inputs ($A, B$), $1$ enable line ($E$).
+* Outputs: $4$ outputs ($Y_0, Y_1, Y_2, Y_3$).
+
+| Enable ($E$) | $A$ (MSB) | $B$ (LSB) | $Y_3$ | $Y_2$ | $Y_1$ | $Y_0$ | Active Minterm |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| $0$ | $\times$ | $\times$ | $0$ | $0$ | $0$ | $0$ | None (Disabled) |
+| $1$ | $0$ | $0$ | $0$ | $0$ | $0$ | **$1$** | $m_0 = \bar{A}\bar{B}$ |
+| $1$ | $0$ | $1$ | $0$ | $0$ | **$1$** | $0$ | $m_1 = \bar{A}B$ |
+| $1$ | $1$ | $0$ | $0$ | **$1$** | $0$ | $0$ | $m_2$ |
+| $1$ | $1$ | $1$ | **$1$** | $0$ | $0$ | $0$ | $m_3 = AB$ |
+
+<MathBox title="2:4 Active-High Decoder Equations" type="formula">
+
+$$
+Y_0 = E \cdot \bar{A}\bar{B}, \quad Y_1 = E \cdot \bar{A}B, \quad Y_2 = E \cdot A\bar{B}, \quad Y_3 = E \cdot AB
+$$
+
+</MathBox>
+
+<CircuitSimulator
+  circuit="decoder-2-to-4"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+---
+
+### The 3:8 Active-Low Decoder (Industry Standard: 74138 IC)
+
+In industrial digital logic, active-low outputs are overwhelmingly preferred because bipolar TTL and CMOS NAND gates are physically faster and consume lower static power when pulling down to ground.
+
+The classic **74138 (74HC138)** features:
+* $3$ Select Inputs: $A$ (LSB), $B$, $C$ (MSB).
+* $3$ Enable Inputs: $G_1$ (Active-High), $\bar{G}_{2A}$ (Active-Low), $\bar{G}_{2B}$ (Active-Low).
+  * Chip is enabled **iff** $G_1 = 1$ AND $\bar{G}_{2A} = 0$ AND $\bar{G}_{2B} = 0$.
+* $8$ Active-Low Outputs: $\bar{Y}_0, \bar{Y}_1, \dots, \bar{Y}_7$.
+
+<MathBox title="74138 Active-Low Output Equations" type="formula">
+
+When enabled ($E = G_1 \cdot \overline{G_{2A}} \cdot \overline{G_{2B}} = 1$):
+
+$$
+\bar{Y}_k = \overline{m_k}
+$$
+
+For example:
+$$\bar{Y}_0 = \overline{\bar{C}\bar{B}\bar{A}} = C + B + A$$
+$$\bar{Y}_7 = \overline{CBA} = \bar{C} + \bar{B} + \bar{A}$$
+
+Only the selected output goes to **Logic 0**; all other seven outputs remain held high at **Logic 1**.
+
+</MathBox>
+
+---
+
+<div id="decoder-expansion-cascading-hierarchy" />
+
+## 🌳 Decoder Expansion & Tree Synthesis
+
+To construct a wider decoder than available in standard IC packages, we cascade smaller decoders by using their **Enable inputs** to steer the most significant address bits.
+
+### Building a 3:8 Decoder Using Two 2:4 Decoders
+
+* Inputs: 3 variables $(A, B, C)$ where $A$ is MSB, and $B, C$ are lower bits.
+* Connect lower bits $(B, C)$ to the select lines of **both** 2:4 decoders.
+* Use the MSB ($A$) to enable one decoder at a time:
+  * When $A = 0$: Enable the first decoder (covers outputs $Y_0 \dots Y_3$ representing minterms $m_0 \dots m_3$).
+  * When $A = 1$: Enable the second decoder (covers outputs $Y_4 \dots Y_7$ representing minterms $m_4 \dots m_7$).
+
+<FlowPipeline
+  title="3:8 Decoder Expansion Architecture Using Two 2:4 Decoders"
+  subtitle="Hierarchical steering: MSB address input A gates the enable pins while inputs B and C drive all lower decoders"
+  steps={[
+    {
+      title: "MSB Address Steering (A)",
+      badge: "Inverter + Wire",
+      color: "blue",
+      description: "Steers which of the two 2:4 sub-decoders is enabled.",
+      detail: "A = 0: Inverter produces E₁ = 1 (enables Decoder #1, covers m₀..m₃).\nA = 1: Direct rail produces E₂ = 1 (enables Decoder #2, covers m₄..m₇).",
+      actionText: "Enables Sub-Decoders"
+    },
+    {
+      title: "Decoder #1 (Outputs Y₀..Y₃)",
+      badge: "Lower 4 Minterms",
+      color: "purple",
+      description: "Evaluates (B, C) inputs when A = 0.",
+      detail: "Decodes minterms m₀, m₁, m₂, m₃.\nOutputs Y₀ = A'B'C', Y₁ = A'B'C, Y₂ = A'BC', Y₃ = A'BC.",
+      actionText: "Active When A=0"
+    },
+    {
+      title: "Decoder #2 (Outputs Y₄..Y₇)",
+      badge: "Upper 4 Minterms",
+      color: "emerald",
+      description: "Evaluates (B, C) inputs when A = 1.",
+      detail: "Decodes minterms m₄, m₅, m₆, m₇.\nOutputs Y₄ = AB'C', Y₅ = AB'C, Y₆ = ABC', Y₇ = ABC."
+    }
+  ]}
+/>
+
+### General Sizing Formula for Decoder Trees
+
+To construct an $M$-to-$2^M$ decoder using $N$-to-$2^N$ decoders (where $M > N$):
+* The output stage requires $2^{M-N}$ decoders of size $N$-to-$2^N$.
+* The enable inputs of these output decoders are driven by a preliminary decoding stage of size $(M-N)$-to-$2^{M-N}$.
+
+For example, to build a **4:16 Decoder using 2:4 Decoders**:
+* Output stage: $2^{4-2} = 2^2 = 4$ decoders (each handles 4 outputs).
+* Control stage: $1$ decoder of size 2:4 (drives the enable inputs of the 4 output decoders).
+* **Total 2:4 Decoders required = $4 + 1 = 5$**.
+
+---
+
+<div id="boolean-function-implementation-via-decoders" />
+
+## ⚡ Function Realization via Minterm Generators
+
+Because an $n$-to-$2^n$ decoder intrinsically evaluates **all $2^n$ minterms**, any arbitrary Boolean function in canonical Sum of Products (SOP) form can be synthesized simply by ORing the required minterm outputs!
+
+<FlowPipeline
+  title="Function Synthesis: Active-High vs. Active-Low Decoders"
+  subtitle="Comparing external combining gate requirements for canonical SOP logic synthesis"
+  steps={[
+    {
+      title: "Active-High Decoder",
+      badge: "Standard SOP",
+      color: "blue",
+      description: "Output pins assert Logic 1 for selected minterm: Y_k = m_k.",
+      detail: "Requires an external OR gate to combine desired minterms:\nF = Σ m_k = Y_a + Y_b + Y_c.",
+      actionText: "Requires OR Gate"
+    },
+    {
+      title: "Active-Low Decoder (74138)",
+      badge: "Industrial Standard",
+      color: "purple",
+      description: "Output pins assert Logic 0 for selected minterm: Ȳ_k = m̄_k.",
+      detail: "By De Morgan's Law, feed active-low outputs directly into a NAND gate:\nF = (Ȳ_a · Ȳ_b · Ȳ_c)' = (m̄_a · m̄_b · m̄_c)' = m_a + m_b + m_c."
+    }
+  ]}
+/>
+
+<MathBox title="Proof: Synthesizing SOP Logic with Active-Low Decoders + NAND" type="proof">
+
+Let a function be defined as $F = \sum m(1, 4, 7) = m_1 + m_4 + m_7$.
+
+An active-low decoder (like the 74138) provides inverted minterms on its output pins:
+$$\bar{Y}_1 = \bar{m}_1, \quad \bar{Y}_4 = \bar{m}_4, \quad \bar{Y}_7 = \bar{m}_7$$
+
+Connect these active-low outputs to the inputs of an external NAND gate:
+
+$$
+\begin{aligned}
+\text{Output} &= \overline{\bar{Y}_1 \cdot \bar{Y}_4 \cdot \bar{Y}_7} \\
+&= \overline{\bar{m}_1 \cdot \bar{m}_4 \cdot \bar{m}_7} \\
+&= \overline{\bar{m}_1} + \overline{\bar{m}_4} + \overline{\bar{m}_7} \quad (\text{By De Morgan's Law}) \\
+&= m_1 + m_4 + m_7 = F
+\end{aligned}
+$$
+
+**Conclusion**: Any arbitrary Boolean function can be implemented using an active-low decoder combined with a single **NAND gate**, requiring zero external inverters!
+
+</MathBox>
+
+---
+
+<div id="demultiplexers-demux-identity" />
+
+## 🔄 Demultiplexers (DEMUX) & Structural Duality
+
+A **Demultiplexer (DEMUX)** is the functional inverse of a Multiplexer:
+* It takes **$1$ data input line ($D_{in}$)** and steers it to **one of $2^n$ output lines** ($Y_0 \dots Y_{2^n-1}$) selected by **$n$ control select lines** ($S_{n-1} \dots S_0$).
+
+<ConceptComparison
+  title="Multiplexer vs. Demultiplexer Structural Duality"
+  left={{
+    title: "Multiplexer (MUX: Many-to-One)",
+    subtitle: "Data Funnel",
+    points: [
+      "2ⁿ Data Inputs, 1 Single Output, n Select Lines.",
+      "Routes ONE selected source to a common destination.",
+      "Acts as an algebraic truth-table lookup engine.",
+      "Y = Σ m_k · I_k"
+    ]
+  }}
+  right={{
+    title: "Demultiplexer (DEMUX: One-to-Many)",
+    subtitle: "Data Distributor",
+    points: [
+      "1 Data Input, 2ⁿ Outputs, n Select Lines.",
+      "Distributes ONE source to a selected destination.",
+      "Acts as a hardware serial-to-parallel distributor.",
+      "Y_k = D_in · m_k"
+    ]
+  }}
+/>
+
+### The Formal Identity Between Decoders and DEMUXes
+
+There is zero structural difference between a Decoder with an Enable line and a Demultiplexer:
+* In a Decoder, the Enable input is treated as a control strobe, and the select lines are inputs.
+* In a Demultiplexer, the **Enable pin is used as the Data Input ($D_{in}$)**!
+* When $D_{in} = 1$, the selected output line asserts $1$ (while all others remain $0$).
+* When $D_{in} = 0$, all output lines remain $0$.
+
+$$\text{1-to-}2^n\text{ DEMUX} \equiv n\text{-to-}2^n\text{ Decoder with Enable}$$
+
+<CircuitSimulator
+  circuit="demux-1-to-4"
+  title="Interactive 1:4 Demultiplexer (DEMUX) Hardware Lab"
+  subtitle="Toggle select lines (S₁, S₀) and input data stream (Din) to observe live data steering across the 4 output lines."
+  hideTabs={true}
+/>
+
+---
+
+<div id="encoders-and-the-priority-resolution-problem" />
+
+## 🎯 Encoders & The Priority Resolution Problem
+
+An **Encoder** performs the inverse operation of a decoder: it takes $2^n$ (or fewer) input lines and compresses them into an $n$-bit binary output code.
+
+### The Standard Binary Encoder (Octal-to-Binary: 8-to-3)
+
+Assumes that exactly one input line $D_k$ is asserted at any time:
+
+| Active Input | $Y_2$ (MSB) | $Y_1$ | $Y_0$ (LSB) |
+| :---: | :---: | :---: | :---: |
+| $D_0 = 1$ | $0$ | $0$ | $0$ |
+| $D_1 = 1$ | $0$ | $0$ | $1$ |
+| $D_2 = 1$ | $0$ | $1$ | $0$ |
+| $D_3 = 1$ | $0$ | $1$ | $1$ |
+| $D_4 = 1$ | $1$ | $0$ | $0$ |
+| $D_5 = 1$ | $1$ | $0$ | $1$ |
+| $D_6 = 1$ | $1$ | $1$ | $0$ |
+| $D_7 = 1$ | $1$ | $1$ | $1$ |
+
+Equations:
+* $Y_2 = D_4 + D_5 + D_6 + D_7$
+* $Y_1 = D_2 + D_3 + D_6 + D_7$
+* $Y_0 = D_1 + D_3 + D_5 + D_7$
+
+<CircuitSimulator
+  circuit="encoder-4-to-2"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+### The Two Fatal Flaws of Standard Encoders
+
+A naive binary encoder fails catastrophically in real-world computer systems due to two fundamental ambiguities:
+
+1. **The "All-Zero" Ambiguity**:  
+   If all input lines are $0$ ($D_0 = D_1 = \dots = D_7 = 0$), the circuit outputs $Y_2 Y_1 Y_0 = 000$.  
+   Notice that this output is **identical** to the code produced when input $D_0 = 1$! The processor cannot distinguish between "Device 0 requested service" and "No device requested service."
+2. **Multiple Simultaneous Assertions**:  
+   If both $D_2 = 1$ and $D_4 = 1$ are asserted simultaneously:
+   $$Y_2 = 1, \quad Y_1 = 1, \quad Y_0 = 0 \implies \text{Output } = 110_2 = 6_{10}$$  
+   The circuit outputs the code for device $6$, even though device 6 never requested anything!
+
+To resolve these fatal flaws, engineers invented the **Priority Encoder**.
+
+---
+
+<div id="priority-encoder-hardware-and-kmap-derivation" />
+
+## 🚨 Priority Encoder Architecture & K-Map Derivation
+
+A **Priority Encoder** establishes a strict hierarchy among inputs (by convention, higher-indexed inputs have higher priority). If multiple inputs are asserted at once, the circuit outputs the binary code of the **highest-priority** active line.
+
+It also introduces an essential output flag:
+* **Valid Bit ($V$) / Group Select ($GS$)**: Asserts logic $1$ if at least one input line is active, and logic $0$ if all inputs are inactive.
+
+---
+
+### Truth Table of a 4-to-2 Priority Encoder
+
+Let inputs be $D_3, D_2, D_1, D_0$, where $D_3$ has the highest priority and $D_0$ has the lowest priority:
+
+| $D_3$ (Highest) | $D_2$ | $D_1$ | $D_0$ (Lowest) | $Y_1$ (MSB) | $Y_0$ (LSB) | Valid Flag ($V$) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| $0$ | $0$ | $0$ | $0$ | $\times$ | $\times$ | **$0$** |
+| $0$ | $0$ | $0$ | $1$ | $0$ | $0$ | **$1$** |
+| $0$ | $0$ | $1$ | $\times$ | $0$ | $1$ | **$1$** |
+| $0$ | $1$ | $\times$ | $\times$ | $1$ | $0$ | **$1$** |
+| $1$ | $\times$ | $\times$ | $\times$ | $1$ | $1$ | **$1$** |
+
+* $\times$ denotes "Don't Care" (the input state is irrelevant because a higher-priority line dominates).
+
+---
+
+### K-Map Minimization for 4:2 Priority Encoder
+
+<MathBox title="Derivation of Priority Encoder Equations" type="proof">
+
+**Derivation of Valid Bit ($V$):**  
+$V$ is $1$ whenever any input line is active:
+
+$$
+V = D_0 + D_1 + D_2 + D_3
+$$
+
+**Derivation of Output $Y_1$:**  
+$Y_1$ must be $1$ when $D_3 = 1$ (regardless of all others) OR when $D_2 = 1$ (provided $D_3 = 0$):
+
+$$
+Y_1 = D_3 + \bar{D}_3 D_2 = D_3 + D_2
+$$
+
+**Derivation of Output $Y_0$:**  
+$Y_0$ must be $1$ when $D_3 = 1$ OR when ($D_1 = 1$ AND $D_2 = 0$ AND $D_3 = 0$):
+
+$$
+Y_0 = D_3 + \bar{D}_3 \bar{D}_2 D_1 = D_3 + \bar{D}_2 D_1
+$$
+
+</MathBox>
+
+* **Output $Y_1$ Logic**: 2-input OR gate taking $D_3$ and $D_2 \to Y_1 = D_3 + D_2$.
+* **Output $Y_0$ Logic**: 2-input AND gate computing $\bar{D}_2 D_1$, feeding into a 2-input OR gate with $D_3 \to Y_0 = D_3 + \bar{D}_2 D_1$.
+* **Valid Flag $V$ Logic**: 4-input OR gate taking all lines $\to V = D_3 + D_2 + D_1 + D_0$.
+
+<CircuitSimulator
+  circuit="priority-encoder-4-to-2"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+---
+
+<div id="real-world-production-context" />
+
+## 🏭 Real-World Production Context: Memory Address Decoding & Hardware Interrupt Controllers
+
+In modern computer architecture, decoders and priority encoders form the foundational hardware layer connecting processors with volatile memory and asynchronous peripherals.
+
+<ArchitectureStack
+  title="Microprocessor Memory Mapping & Interrupt Handling Subsystem"
+  description="How hardware decoders and priority encoders arbitrate address bus selection and asynchronous device requests in computer architecture."
+  layers={[
+    {
+      badge: "Layer 1: Address Bus",
+      title: "High-Order Address Lines (A15-A13)",
+      icon: "🎯",
+      color: "blue",
+      description: "CPU asserts 16-bit address during memory fetch. Top 3 bits feed a 3:8 decoder (74138) to select a specific 8 KB page.",
+      items: ["A15, A14, A13 Address Lines", "Deterministic Address Demux", "Zero Overlap Guarantee"],
+      connectorText: "Decoded Chip Select (/CS)"
+    },
+    {
+      badge: "Layer 2: Memory Banks",
+      title: "Bank Selection via Active-Low Decoders",
+      icon: "💾",
+      color: "purple",
+      description: "Active-low outputs (/Y0 to /Y7) connect to the /CS lines of SRAM, ROM, and Memory-Mapped I/O, activating exactly one target.",
+      items: ["ROM (000x)", "SRAM Bank 0 (001x)", "I/O Ports (111x)"],
+      connectorText: "Device Interrupt Request Lines"
+    },
+    {
+      badge: "Layer 3: Interrupt Subsystem",
+      title: "Priority Interrupt Controller (8:3 Priority Encoder)",
+      icon: "⚡",
+      color: "amber",
+      description: "Peripherals assert asynchronous IRQ lines. Priority encoder instantly outputs highest-priority vector to CPU.",
+      items: ["Timer Tick (IRQ0 - Highest)", "Keyboard (IRQ1)", "Network NIC (IRQ5)"],
+      connectorText: "Vector Address & INT Signal"
+    },
+    {
+      badge: "Layer 4: Execution Core",
+      title: "CPU Interrupt Service Routine (ISR)",
+      icon: "🚀",
+      color: "emerald",
+      description: "The core pushes program state, loads the vector table address from the encoder output, and services the critical event.",
+      items: ["Vector Offset Dispatch", "Low Latency Context Switch", "Re-entrant IRQ Stack"]
+    }
+  ]}
+/>
+
+* **Memory Address Decoding**: When a CPU addresses physical memory, the higher-order address lines determine which memory device or peripheral is enabled, while the lower-order address lines specify the specific memory cell inside that chip. The 3:8 active-low decoder ensures mutually exclusive chip-select assertion, preventing electrical bus contention.
+* **Interrupt Resolution**: When multiple real-time external events arrive simultaneously (such as a power failure alert, timer tick, and network packet), an internal priority encoder immediately forwards the critical interrupt vector to the CPU with $O(1)$ hardware latency.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+
+### Example 1: Full Adder Realization Using 74138 (Active-Low Decoder) & NAND Gates
+**Problem Statement:**  
+Synthesize a 1-bit Full Adder ($A, B, C_{in} \to S, C_{out}$) using a single 3:8 active-low Decoder (74138) and the minimum number of external logic gates. Show the connection schematic and write the algebraic validation.
+
+#### Step 1: Identify Canonical Minterms
+For a Full Adder with inputs $(A, B, C_{in})$:
+* Sum: $S(A, B, C_{in}) = \sum m(1, 2, 4, 7)$
+* Carry Out: $C_{out}(A, B, C_{in}) = \sum m(3, 5, 6, 7)$
+
+#### Step 2: Interface to 74138 Decoder
+* Connect address inputs: $C = A$ (MSB), $B = B$, $A = C_{in}$ (LSB).
+* Enable inputs: Tie $G_1 = V_{DD}$, $\bar{G}_{2A} = GND$, $\bar{G}_{2B} = GND$ to permanently enable the IC.
+* The 74138 outputs produce inverted minterms: $\bar{Y}_k = \bar{m}_k$.
+
+#### Step 3: Select External Combining Gates
+Using the property $\overline{\prod \bar{m}_k} = \sum m_k$:
+1. **Sum Output ($S$)**:  
+   Route outputs $\bar{Y}_1, \bar{Y}_2, \bar{Y}_4, \bar{Y}_7$ into a **4-input NAND gate**:
+   $$S = \overline{\bar{Y}_1 \cdot \bar{Y}_2 \cdot \bar{Y}_4 \cdot \bar{Y}_7} = \overline{\bar{m}_1 \cdot \bar{m}_2 \cdot \bar{m}_4 \cdot \bar{m}_7} = m_1 + m_2 + m_4 + m_7$$
+2. **Carry Output ($C_{out}$)**:  
+   Route outputs $\bar{Y}_3, \bar{Y}_5, \bar{Y}_6, \bar{Y}_7$ into a second **4-input NAND gate**:
+   $$C_{out} = \overline{\bar{Y}_3 \cdot \bar{Y}_5 \cdot \bar{Y}_6 \cdot \bar{Y}_7} = \overline{\bar{m}_3 \cdot \bar{m}_5 \cdot \bar{m}_6 \cdot \bar{m}_7} = m_3 + m_5 + m_6 + m_7$$
+
+**Total Components**: Exactly **$1$ 74138 Decoder** and **$2$ 4-input NAND gates**.
+
+---
+
+### Example 2: Synthesizing a 4:16 Decoder Using 2:4 Decoders
+**Problem Statement:**  
+1. Determine the exact number of 2:4 Decoders with active-high Enable inputs required to construct a 4:16 Decoder.
+2. Specify the wiring diagram showing how primary input address lines $A_3, A_2, A_1, A_0$ are partitioned.
+3. If each 2:4 Decoder has a propagation delay of $2.2\text{ ns}$, calculate the total latency of the 4:16 Decoder system.
+
+#### Step 1: Determine Module Count
+* A 4:16 Decoder has $4$ input lines and $16$ output lines.
+* Each 2:4 Decoder produces $4$ outputs.
+* To produce $16$ outputs, we need $16 / 4 = \mathbf{4\text{ Decoders}}$ in the output stage.
+* To steer the enables of these 4 decoders, we need an additional **$1$ Decoder** of size 2:4 in the input stage.
+* **Total 2:4 Decoders required = $4 + 1 = \mathbf{5\text{ Decoders}}$**.
+
+#### Step 2: Wiring Architecture
+* **Input Stage Decoder ($DEC_0$)**:
+  * Inputs: Connected to the most significant address bits $A_3, A_2$.
+  * Enable: Tied to $V_{DD}$ (or master chip enable).
+  * Outputs: $E_0, E_1, E_2, E_3$.
+* **Output Stage Decoders ($DEC_1, DEC_2, DEC_3, DEC_4$)**:
+  * Inputs of all four decoders: Connected in parallel to the least significant address bits $A_1, A_0$.
+  * Enable lines:
+    * $DEC_1$ Enable driven by $E_0$ $\implies$ decodes $A_3 A_2 = 00$ (outputs $Y_0 \dots Y_3$).
+    * $DEC_2$ Enable driven by $E_1$ $\implies$ decodes $A_3 A_2 = 01$ (outputs $Y_4 \dots Y_7$).
+    * $DEC_3$ Enable driven by $E_2$ $\implies$ decodes $A_3 A_2 = 10$ (outputs $Y_8 \dots Y_{11}$).
+    * $DEC_4$ Enable driven by $E_3$ $\implies$ decodes $A_3 A_2 = 11$ (outputs $Y_{12} \dots Y_{15}$).
+
+#### Step 3: Latency Calculation
+* Signal propagation flows through $DEC_0$ (Stage 1) and then through the selected output decoder (Stage 2).
+* Total propagation delay:
+  $$T_{total} = t_{DEC_0} + t_{DEC\_out} = 2.2\text{ ns} + 2.2\text{ ns} = \mathbf{4.4\text{ ns}}$$
+
+---
+
+### Example 3: 8-to-3 Priority Encoder Analysis & Expansion
+**Problem Statement:**  
+An 8-to-3 Priority Encoder has inputs $D_7 \dots D_0$ ($D_7$ highest priority) and outputs $Y_2, Y_1, Y_0$ plus Valid flag $V$.
+1. Derive the simplified Boolean equations for $Y_2, Y_1, Y_0$, and $V$.
+2. Determine the exact output code and flag status if the input vector applied is:
+   $$D = [D_7, D_6, D_5, D_4, D_3, D_2, D_1, D_0] = [0, 0, 1, 0, 1, 1, 0, 1]$$
+
+#### Step 1: Derive Output Equations
+Following priority resolution rules where $D_k$ masks all lower-order bits ($D_i$ for $i < k$):
+* **Valid Bit ($V$)**:
+  $$V = D_7 + D_6 + D_5 + D_4 + D_3 + D_2 + D_1 + D_0$$
+* **Output $Y_2$ (Asserted for inputs 4, 5, 6, 7)**:
+  $$Y_2 = D_7 + D_6 + D_5 + D_4$$
+* **Output $Y_1$ (Asserted for inputs 2, 3, 6, 7)**:
+  $$Y_1 = D_7 + D_6 + \bar{D}_5\bar{D}_4(D_3 + D_2)$$
+* **Output $Y_0$ (Asserted for inputs 1, 3, 5, 7)**:
+  $$Y_0 = D_7 + \bar{D}_6 D_5 + \bar{D}_6\bar{D}_4 D_3 + \bar{D}_6\bar{D}_4\bar{D}_2 D_1$$
+
+#### Step 2: Evaluate Input Vector $D = 00101101_2$
+Inspect the active input lines from highest to lowest index:
+* $D_7 = 0$
+* $D_6 = 0$
+* **$D_5 = 1$** $\leftarrow$ **HIGHEST ACTIVE LINE!**
+* $D_4 = 0$
+* $D_3 = 1$ (Masked by $D_5$)
+* $D_2 = 1$ (Masked by $D_5$)
+* $D_1 = 0$
+* $D_0 = 1$ (Masked by $D_5$)
+
+Because $D_5$ is the highest active bit:
+* The circuit ignores lines $D_3, D_2, D_0$.
+* Binary output code corresponding to index $5$:
+  $$Y_2 Y_1 Y_0 = 101_2$$
+* Valid flag: At least one bit is active $\implies \mathbf{V = 1}$.
+
+**Final Output**: $Y_2 Y_1 Y_0 = 101_2$ with $V = 1$.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why can an active-low Decoder implement multi-output functions with fewer total transistors than an active-high Decoder?**  
+  An active-high decoder requires OR gates to sum minterms ($F = \sum m_k$). An active-low decoder uses NAND gates ($F = \overline{\prod \bar{m}_k}$). In CMOS silicon fabrication, a NAND gate requires series NMOS and parallel PMOS transistors, which have higher electron mobility and lower parasitic capacitance than the series PMOS transistors required by NOR/OR gates. Thus, active-low NAND logic is physically faster and more compact.
+
+* **What is the purpose of the Cascade Input / Output pins (EI, EO, GS) on the 74148 8-to-3 Priority Encoder IC?**  
+  They allow seamless expansion to 16-to-4 or 64-to-6 priority encoders without external logic gates! The Enable Input ($\bar{EI}$) enables the chip. If no inputs on the high-order chip are active, its Enable Output ($\bar{EO}$) goes low, which automatically activates the lower-order priority encoder chip. The Group Select ($\bar{GS}$) pin serves as the Valid bit.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Forgetting that a Demultiplexer cannot generate multiple outputs simultaneously.**  
+  Beginners sometimes confuse a DEMUX with a broadcast splitter. A 1-to-$2^n$ DEMUX connects its input line to **only ONE** selected output line at any time; all unselected outputs remain held at their inactive state.
+* **Trap: Neglecting the Valid flag when interpreting Priority Encoder outputs.**  
+  If $Y_1 Y_0 = 00$, you CANNOT declare that input $D_0$ is active without checking $V$! If $V = 0$, all inputs are completely inactive, and $00$ is simply a floating don't-care artifact.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "5.3 Multiplexers (MUX) & Function Implementation",
+    url: "/coredose/digital-logic/module-05/multiplexers-mux-and-function-implementation",
+  }}
+  next={{
+    title: "6.1 Latches vs Flip-Flops & The SR Latch Architecture",
+    url: "/coredose/digital-logic/module-06/latches-vs-flip-flops-and-the-sr-latch-architecture",
+  }}
+  courseUrl="/coredose/digital-logic"
+/>

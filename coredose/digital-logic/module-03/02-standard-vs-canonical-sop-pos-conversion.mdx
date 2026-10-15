@@ -1,0 +1,524 @@
+---
+title: "3.2 Standard vs Canonical SOP & POS Conversion"
+description: "Algorithmic expansion of standard (minimal) Boolean expressions into canonical forms, algebraic techniques using identity and distributive laws, fast binary shortcut mapping, and mutual SOP-to-POS transformations."
+hide_table_of_contents: true
+---
+
+# 3.2 Standard vs Canonical SOP & POS Conversion
+
+<CoreDoseLessonHeader
+  module="Module 03: Boolean Expressions & Canonical Forms"
+  topic="Topic 3.2"
+  courseUrl="/coredose/digital-logic"
+  readTime="15 min read"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Foundational Computing"
+/>
+
+## 💡 Core Intuition: The Census Summary vs. The Detailed Registry
+
+When a city administration compiles population data, it manages information at two different resolutions:
+
+### 🍳 The Everyday Analogy: Compressed Summary vs. Itemized Census
+
+* **The Household Summary (Standard / Minimal Form)**: A census inspector notes down: *"The Sharma residence contains 4 occupants."* This summary is compact, easy to read, and consumes minimal storage space. However, it omits individual citizen details: age, voting eligibility, and legal names are implicit rather than explicitly listed.
+* **The Itemized Census Registry (Canonical Form)**: To verify voters on election day, the electoral commission cannot work with vague household totals. They expand the record into an exhaustive, standardized line-item list: every individual is registered with full legal credentials ($Name, Age, Address, ID$).
+
+If an engineer wants to build the cheapest physical circuit with the fewest silicon transistors, they use the **Standard / Minimal form**. But if an automated CAD compiler or logic synthesizer needs to verify correctness, generate test vectors, or populate a Look-Up Table (LUT), it must expand those compressed terms into the complete **Canonical form**, where every single variable is explicitly accounted for.
+
+### 💻 Bridging to Computer Science
+
+In digital design:
+* A **Standard (or Non-Canonical) Expression** contains terms where some variables may be missing (e.g., $F = AB + C'$ in a 3-variable system). It represents an optimized physical hardware implementation requiring fewer gate inputs.
+* A **Canonical Expression** contains every system variable in every single term (e.g., $F = AB\bar{C} + ABC + \bar{A}\bar{B}\bar{C} + \bar{A}B\bar{C} + A\bar{B}\bar{C}$). It represents an unambiguous mathematical fingerprint directly tied to the truth table.
+
+Transforming standard expressions into canonical forms is the foundational first step of formal digital equivalence checking, Karnaugh map plotting, and automated logic synthesis.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🔍 Standard vs. Canonical Boolean Expressions: Structural Differences
+
+<ConceptComparison
+  title="Standard (Minimal) vs. Canonical (Exhaustive) Forms"
+  subtitle="The engineering trade-off between silicon area efficiency and mathematical uniqueness"
+  concepts={[
+    {
+      badge: "Standard Form",
+      title: "Standard SOP / POS",
+      icon: "⚡",
+      color: "blue",
+      domain: "Physical Circuit Fabrication",
+      points: [
+        "Product terms or sum terms do NOT necessarily contain all system variables.",
+        "Example in (A, B, C): F = AB + C'.",
+        "Directly minimizes physical gate count, fan-in, and silicon area.",
+        "Not mathematically unique: multiple distinct standard expressions can implement the same truth table."
+      ],
+      quote: "Optimized for minimal silicon: fewer inputs, less wiring, faster propagation."
+    },
+    {
+      badge: "Canonical Form",
+      title: "Canonical SOP / POS",
+      icon: "📐",
+      color: "purple",
+      domain: "Formal Verification & Synthesis",
+      points: [
+        "Every single product (minterm) or sum (maxterm) contains ALL system variables.",
+        "Example in (A, B, C): F = ABC + AB C' + A' B' C' + ...",
+        "Provides an exact 1-to-1 bijection with truth table rows.",
+        "Mathematically unique: exactly one canonical SOP and one canonical POS exist for any valid Boolean function."
+      ],
+      quote: "Optimized for formal correctness: every variable is explicitly bound."
+    }
+  ]}
+/>
+
+---
+
+## 🧮 Method 1: The Algebraic Expansion Algorithm
+
+The algebraic expansion method converts a standard expression into canonical form by systematically inserting missing variables using fundamental Boolean postulates.
+
+<FlowPipeline
+  title="The 4-Stage Algebraic Canonical Expansion Pipeline"
+  subtitle="Systematic workflow for restoring missing literals in standard Boolean expressions"
+  nodes={[
+    {
+      badge: "Stage 1",
+      title: "Identify Missing Literals",
+      icon: "🔍",
+      color: "blue",
+      description: "Inspect each term against the complete set of system variables {x₁, x₂, ..., xₙ}.",
+      connectorLabel: "Missing Set",
+    },
+    {
+      badge: "Stage 2",
+      title: "Insert Neutral Element",
+      icon: "➕",
+      color: "purple",
+      description: "AND missing terms with (X + X') for SOP; OR missing terms with (X · X') for POS.",
+      connectorLabel: "Boolean Identity",
+    },
+    {
+      badge: "Stage 3",
+      title: "Distribute & Expand",
+      icon: "🔀",
+      color: "emerald",
+      description: "Apply Distributive Law to branch each term into 2ᵏ distinct complete terms.",
+      connectorLabel: "Raw Terms",
+    },
+    {
+      badge: "Stage 4",
+      title: "Idempotent Pruning",
+      icon: "✂️",
+      color: "cyan",
+      description: "Eliminate duplicate terms using X + X = X (SOP) or X · X = X (POS).",
+    },
+  ]}
+/>
+
+### 1. Algebraic Expansion to Canonical SOP
+
+<MathBox title="Law 3.2: SOP Literal Expansion Identity" type="law">
+
+To introduce a missing variable $X$ into a product term $P$ without altering its logical truth value, multiply $P$ by the Boolean identity $(X + \bar{X}) = 1$:
+
+$$
+P = P \cdot 1 = P \cdot (X + \bar{X}) = PX + P\bar{X}
+$$
+
+</MathBox>
+
+<MathBox title="Derivation: Expanding a 3-Variable Product Term" type="proof">
+
+Consider the function $F(A, B, C)$ with the standard product term $P = AB$. The variable $C$ is missing.
+
+$$
+\begin{aligned}
+F &= AB \\
+&= AB \cdot 1 \quad &&\text{[Identity Law: } X \cdot 1 = X\text{]} \\
+&= AB \cdot (C + \bar{C}) \quad &&\text{[Complementation Law: } C + \bar{C} = 1\text{]} \\
+&= ABC + AB\bar{C} \quad &&\text{[Distributive Law]} \\
+&= m_7 + m_6 \quad \blacksquare
+\end{aligned}
+$$
+
+</MathBox>
+
+### 2. Algebraic Expansion to Canonical POS
+
+<MathBox title="Law 3.3: POS Literal Expansion Identity" type="law">
+
+To introduce a missing variable $X$ into a sum term $S$ without altering its logical truth value, add the Boolean zero-identity $(X \cdot \bar{X}) = 0$, then apply the **Second Distributive Law**:
+
+$$
+S = S + 0 = S + (X \cdot \bar{X}) = (S + X)(S + \bar{X})
+$$
+
+</MathBox>
+
+<MathBox title="Derivation: Expanding a 3-Variable Sum Term" type="proof">
+
+Consider the function $F(A, B, C)$ with the standard sum term $S = (A + \bar{B})$. The variable $C$ is missing.
+
+$$
+\begin{aligned}
+S &= (A + \bar{B}) \\
+&= (A + \bar{B}) + 0 \quad &&\text{[Identity Law: } X + 0 = X\text{]} \\
+&= (A + \bar{B}) + (C \cdot \bar{C}) \quad &&\text{[Complementation Law: } C \cdot \bar{C} = 0\text{]} \\
+&= (A + \bar{B} + C)(A + \bar{B} + \bar{C}) \quad &&\text{[Second Distributive Law: } X + YZ = (X+Y)(X+Z)\text{]} \\
+&= M_2 \cdot M_3 \quad \blacksquare
+\end{aligned}
+$$
+
+</MathBox>
+
+---
+
+## ⚡ Method 2: The Fast Binary Shortcut (Placeholder Mapping)
+
+While algebraic expansion is mathematically rigorous, it becomes tedious when terms lack multiple variables. The **Fast Binary Shortcut** generates minterm and maxterm decimal indices directly using binary position codes.
+
+### The Missing Literal Expansion Theorem
+
+<MathBox title="Theorem 3.5: Exponential Minterm Generation" type="theorem">
+
+In an $n$-variable Boolean system, a product term containing $m$ literals has $k = (n - m)$ missing variables. This product term expands into exactly $2^k$ distinct canonical minterms.
+
+Similarly, a sum term containing $m$ literals expands into exactly $2^k$ distinct canonical maxterms.
+
+$$
+\text{Number of Generated Terms} = 2^{n - m}
+$$
+
+</MathBox>
+
+### Step-by-Step Binary SOP Mapping
+
+1. **Write the Bit Pattern**: Replace each uncomplemented literal with `1`, and each complemented literal with `0`.
+2. **Assign Placeholders**: Insert a dash (`-`) for every missing variable.
+3. **Enumerate Combinations**: Expand each dash (`-`) into all possible binary permutations (`0` and `1`).
+4. **Convert to Decimal**: Read the resulting binary words as decimal minterm indices $m_i$.
+
+#### Practical Demonstration ($n = 4$ Variables: $A, B, C, D$)
+
+Consider the product term $P = A\bar{B}D$:
+* Present variables: $A = 1, B = 0, D = 1$.
+* Missing variable: $C$ (at bit position 2).
+* Binary pattern with placeholder: `1 0 - 1`.
+* Expanding the dash:
+  * Substitute $C = 0$: `1 0 0 1` $\to 9_{10} \implies m_9$
+  * Substitute $C = 1$: `1 0 1 1` $\to 11_{10} \implies m_{11}$
+* **Result**: $A\bar{B}D = m_9 + m_{11} = \sum m(9, 11)$.
+
+#### Multi-Variable Dash Expansion ($k = 2$ Missing Variables)
+
+Consider the term $P = \bar{B}C$ in $F(A, B, C, D)$:
+* Present variables: $B = 0, C = 1$.
+* Missing variables: $A$ and $D$.
+* Binary pattern: `- 0 1 -`.
+* Expanding the 2 dashes ($2^2 = 4$ combinations):
+  * `0 0 1 0` $\to 2_{10} \implies m_2$
+  * `0 0 1 1` $\to 3_{10} \implies m_3$
+  * `1 0 1 0` $\to 10_{10} \implies m_{10}$
+  * `1 0 1 1` $\to 11_{10} \implies m_{11}$
+* **Result**: $\bar{B}C = m_2 + m_3 + m_{10} + m_{11} = \sum m(2, 3, 10, 11)$.
+
+---
+
+## 🔄 Method 3: Mutual Conversion Between Canonical SOP and Canonical POS
+
+Converting between Canonical SOP and Canonical POS is straightforward because minterm and maxterm index sets are **exact set complements** within the universal set $U = \{0, 1, 2, \dots, 2^n - 1\}$.
+
+<SubsystemGrid
+  items={[
+    {
+      icon: "🔢",
+      title: "Index Complement Rule",
+      tag: "Direct Partitioning",
+      color: "emerald",
+      points: [
+        "If F = ∑ m(s₁, s₂, ...), then F = ∏ M(remaining indices in U).",
+        "No algebraic expansion is required if the canonical index list is already known.",
+        "Time complexity: O(2ⁿ) array scan."
+      ],
+      syscalls: ["∑ m(1, 3) ↔ ∏ M(0, 2)"]
+    },
+    {
+      icon: "⚡",
+      title: "Function Inversion Rule",
+      tag: "De Morgan's Duality",
+      color: "purple",
+      points: [
+        "The complement function F' has minterms identical to the maxterms of F.",
+        "F' = ∑ m(unassigned indices) = ∏ M(assigned indices).",
+        "Fundamental to active-LOW bus design and NOR gate realization."
+      ],
+      syscalls: ["(∑ m)' = ∑ m(remaining)"]
+    },
+    {
+      icon: "🛡️",
+      title: "Double Inversion Identity",
+      tag: "Algebraic Bridge",
+      color: "blue",
+      points: [
+        "Take the complement of F to get F' in SOP form.",
+        "Apply De Morgan's theorem to (F')' to transform OR-of-ANDs into AND-of-ORs.",
+        "Converts non-canonical SOP directly into POS without truth tables."
+      ],
+      syscalls: ["F = (F')'"]
+    },
+    {
+      icon: "🧮",
+      title: "Total Minterm Count",
+      tag: "Inclusion-Exclusion",
+      color: "amber",
+      points: [
+        "The total minterm count of an expression is |P₁ ∪ P₂ ∪ ... ∪ Pₖ|.",
+        "Calculated using the Principle of Inclusion-Exclusion.",
+        "Avoids overcounting overlapping minterms generated by multiple terms."
+      ],
+      syscalls: ["|A ∪ B| = |A| + |B| - |A ∩ B|"]
+    }
+  ]}
+/>
+
+---
+
+## 🏭 Real-World Production Context: Logic Synthesis Compilers & FPGA LUT Mapping
+
+In modern digital chip design, engineers rarely manipulate canonical expressions by hand. However, electronic design automation (EDA) software relies heavily on these transformations:
+
+1. **RTL to Intermediate Representation (IR)**: When an engineer writes behavioral Verilog (e.g., `assign out = (sel & a) | (~sel & b);`), synthesis compilers (such as **Synopsys Design Compiler** or the open-source **Yosys**) convert the abstract expression into an internal canonical form or **Binary Decision Diagram (BDD)**.
+2. **Boolean Equivalence Checking (Formal Verification)**: To guarantee that a synthesized netlist matches the original golden RTL specification without running billions of simulation cycles, formal verification engines convert both designs into canonical BDD forms. If the canonical representations are structurally identical, equivalence is mathematically proven.
+3. **FPGA Look-Up Table (LUT) Programming**: A modern AMD/Xilinx or Intel FPGA implements logic using 6-input SRAM Look-Up Tables (LUT-6). A LUT-6 is essentially a 64-bit physical SRAM configured as a truth table. Compiling an expression into FPGA bitstream involves expanding the logic into minterms to directly program the 64 SRAM memory cells.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Expanding a 3-Variable Expression to Canonical SOP ($\sum m$)
+**Problem Statement:**  
+Expand the standard Boolean switching function into its canonical Sum of Products (SOP) form:
+
+$$
+F(P, Q, R) = PQ + QR' + PR'
+$$
+
+Identify all constituent minterm designations and write the final shorthand $\sum m$ expression.
+
+**Step-by-Step Solution:**
+
+1. **Analyze Each Term Using the Fast Binary Shortcut:**
+   The function has $n = 3$ variables $(P, Q, R)$.
+
+   * **Term 1 ($PQ$):**
+     * Variables present: $P = 1, Q = 1$.
+     * Missing variable: $R$ (at position 3).
+     * Pattern: `1 1 -`
+     * Expansions:
+       * $R = 0 \to `1 1 0` \implies m_6$
+       * $R = 1 \to `1 1 1` \implies m_7$
+     * $PQ = m_6 + m_7$
+
+   * **Term 2 ($QR'$):**
+     * Variables present: $Q = 1, R = 0$.
+     * Missing variable: $P$ (at position 1).
+     * Pattern: `- 1 0`
+     * Expansions:
+       * $P = 0 \to `0 1 0` \implies m_2$
+       * $P = 1 \to `1 1 0` \implies m_6$
+     * $QR' = m_2 + m_6$
+
+   * **Term 3 ($PR'$):**
+     * Variables present: $P = 1, R = 0$.
+     * Missing variable: $Q$ (at position 2).
+     * Pattern: `1 - 0`
+     * Expansions:
+       * $Q = 0 \to `1 0 0` \implies m_4$
+       * $Q = 1 \to `1 1 0` \implies m_6$
+     * $PR' = m_4 + m_6$
+
+2. **Combine and Apply the Idempotent Law ($X + X = X$):**
+
+$$
+\begin{aligned}
+F(P, Q, R) &= (m_6 + m_7) + (m_2 + m_6) + (m_4 + m_6) \\
+&= m_2 + m_4 + m_6 + m_7
+\end{aligned}
+$$
+
+Notice that minterm $m_6$ appeared in all three expanded terms; the idempotent law consolidates these duplicate terms into a single instance.
+
+3. **Final Canonical SOP Shorthand:**
+
+$$
+F(P, Q, R) = \sum m(2, 4, 6, 7)
+$$
+
+Expanded algebraic form:
+
+$$
+F(P, Q, R) = \bar{P}Q\bar{R} + P\bar{Q}\bar{R} + PQ\bar{R} + PQR
+$$
+
+---
+
+### Example 2: Expanding a Standard POS Expression into Canonical POS ($\prod M$)
+**Problem Statement:**  
+Given the 3-variable Boolean function:
+
+$$
+F(A, B, C) = (A + \bar{B})(B + \bar{C})
+$$
+
+1. Expand $F$ into canonical Product of Sums (POS) form using algebraic identities.
+2. Determine the canonical SOP representation ($\sum m$) directly from the maxterm indices.
+
+**Step-by-Step Solution:**
+
+1. **Algebraic Expansion of Each Sum Term:**
+   * **Term 1: $(A + \bar{B})$** (Missing variable: $C$):
+     Add $(C \cdot \bar{C}) = 0$:
+
+$$
+\begin{aligned}
+A + \bar{B} &= (A + \bar{B}) + (C \cdot \bar{C}) \\
+&= (A + \bar{B} + C)(A + \bar{B} + \bar{C}) \quad &&\text{[Distributive Law]}
+\end{aligned}
+$$
+
+Evaluating maxterm indices:
+* $(A + \bar{B} + C)$: Variables are $A=0, B=1, C=0 \to `0 1 0` \implies M_2$
+* $(A + \bar{B} + \bar{C})$: Variables are $A=0, B=1, C=1 \to `0 1 1` \implies M_3$
+Thus, $(A + \bar{B}) = M_2 \cdot M_3$.
+
+   * **Term 2: $(B + \bar{C})$** (Missing variable: $A$):
+     Add $(A \cdot \bar{A}) = 0$:
+
+$$
+\begin{aligned}
+B + \bar{C} &= (B + \bar{C}) + (A \cdot \bar{A}) \\
+&= (A + B + \bar{C})(\bar{A} + B + \bar{C}) \quad &&\text{[Distributive Law]}
+\end{aligned}
+$$
+
+Evaluating maxterm indices:
+* $(A + B + \bar{C})$: Variables are $A=0, B=0, C=1 \to `0 0 1` \implies M_1$
+* $(\bar{A} + B + \bar{C})$: Variables are $A=1, B=0, C=1 \to `1 0 1` \implies M_5$
+Thus, $(B + \bar{C}) = M_1 \cdot M_5$.
+
+2. **Combine Terms and Eliminate Duplicates ($X \cdot X = X$):**
+
+$$
+\begin{aligned}
+F(A, B, C) &= (M_2 \cdot M_3) \cdot (M_1 \cdot M_5) \\
+&= M_1 \cdot M_2 \cdot M_3 \cdot M_5
+\end{aligned}
+$$
+
+In canonical POS shorthand:
+
+$$
+F(A, B, C) = \prod M(1, 2, 3, 5)
+$$
+
+3. **Derive Canonical SOP ($\sum m$):**
+   The universal set for $n = 3$ is $U = \{0, 1, 2, 3, 4, 5, 6, 7\}$.
+   The minterm indices are the remaining indices in $U \setminus \{1, 2, 3, 5\}$:
+
+$$
+F(A, B, C) = \sum m(0, 4, 6, 7)
+$$
+
+---
+
+### Example 3: Determining Total Minterms Using the Inclusion-Exclusion Principle
+**Problem Statement:**  
+Without writing out every individual minterm algebraically, calculate the total number of distinct minterms contained in the 4-variable Boolean function:
+
+$$
+F(A, B, C, D) = AB + \bar{B}C + \bar{D}
+$$
+
+**Step-by-Step Solution:**
+
+1. **Calculate Minterm Count per Individual Product Term:**
+   For $n = 4$ variables, a term with $m$ literals generates $2^{4 - m}$ minterms.
+
+   * Term $T_1 = AB$: 2 literals present ($A, B$). Missing literals: $4 - 2 = 2$.
+     $$|T_1| = 2^2 = 4 \text{ minterms}$$
+   * Term $T_2 = \bar{B}C$: 2 literals present ($B, C$). Missing literals: $4 - 2 = 2$.
+     $$|T_2| = 2^2 = 4 \text{ minterms}$$
+   * Term $T_3 = \bar{D}$: 1 literal present ($D$). Missing literals: $4 - 1 = 3$.
+     $$|T_3| = 2^3 = 8 \text{ minterms}$$
+
+2. **Calculate Pairwise Intersections (Overlapping Terms):**
+   * **Intersection $T_1 \cap T_2$:**
+     $$(AB) \cdot (\bar{B}C) = A \cdot (B\bar{B}) \cdot C = A \cdot 0 \cdot C = 0$$
+     Because $B$ and $\bar{B}$ are mutually contradictory, the intersection is empty!
+     $$|T_1 \cap T_2| = 0$$
+   * **Intersection $T_1 \cap T_3$:**
+     $$(AB) \cdot (\bar{D}) = AB\bar{D}$$
+     Literals present: 3 ($A, B, D$). Missing literal: 1 ($C$).
+     $$|T_1 \cap T_3| = 2^{4 - 3} = 2^1 = 2 \text{ minterms}$$
+   * **Intersection $T_2 \cap T_3$:**
+     $$(\bar{B}C) \cdot (\bar{D}) = \bar{B}C\bar{D}$$
+     Literals present: 3 ($B, C, D$). Missing literal: 1 ($A$).
+     $$|T_2 \cap T_3| = 2^{4 - 3} = 2^1 = 2 \text{ minterms}$$
+
+3. **Calculate Three-Way Intersection:**
+   * **Intersection $T_1 \cap T_2 \cap T_3$:**
+     Since $T_1 \cap T_2 = 0$, the 3-way intersection is automatically:
+     $$|T_1 \cap T_2 \cap T_3| = 0$$
+
+4. **Apply the Principle of Inclusion-Exclusion:**
+
+$$
+\begin{aligned}
+|F| &= |T_1| + |T_2| + |T_3| - (|T_1 \cap T_2| + |T_1 \cap T_3| + |T_2 \cap T_3|) + |T_1 \cap T_2 \cap T_3| \\
+&= 4 + 4 + 8 - (0 + 2 + 2) + 0 \\
+&= 16 - 4 \\
+&= 12 \text{ distinct minterms}
+\end{aligned}
+$$
+
+The function $F(A, B, C, D)$ contains exactly **12 minterms**.  
+Because total possible rows $= 16$, the function contains $16 - 12 = \mathbf{4\text{ maxterms}}$.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does expanding a product term with $k$ missing variables always produce exactly $2^k$ minterms?**  
+  Each missing variable represents an independent degree of freedom in the truth table. Since a binary variable can independently take on either of $2$ states ($0$ or $1$), $k$ independent missing variables produce $2 \times 2 \times \dots \times 2 = 2^k$ mutually exclusive binary combinations. Each combination corresponds to a distinct truth table row.
+
+* **Why must we explicitly apply the Idempotent Law ($X + X = X$) when collecting expanded minterms?**  
+  In a sum of products expression, multiple non-canonical product terms can cover the same truth table row. For example, both $AB$ and $AC$ cover the row where $A=1, B=1, C=1$ ($m_7$). Without applying the idempotent law, $m_7$ would be written multiple times ($m_7 + m_7$). In Boolean algebra, ORing a term with itself is identical to the term itself; duplicate minterms must be pruned to yield the canonical representation.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Forgetting that a contradiction in a product term yields zero minterms.**  
+  When finding pairwise intersections for Inclusion-Exclusion, candidates often overlook contradictory literals like $B$ and $\bar{B}$. The product $(AB)(\bar{B}C)$ is NOT $AB\bar{B}C$ with 3 literals; it is identically **0** because $B \cdot \bar{B} = 0$. That intersection contributes $0$ minterms.
+
+* **Trap: Incorrectly applying the Second Distributive Law during POS expansion.**  
+  Unlike standard numerical algebra where addition does not distribute over multiplication, Boolean algebra features dual distributivity: $X + YZ = (X+Y)(X+Z)$. When expanding $(A + B) + (C\bar{C})$, candidates mistakenly treat $C\bar{C}$ as a single entity and forget to split the sum term into two factors: $(A + B + C)(A + B + \bar{C})$.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "3.1 Minterms, Maxterms & Canonical Representation",
+    url: "/coredose/digital-logic/module-03/minterms-maxterms-and-canonical-representation",
+  }}
+  next={{
+    title: "3.3 Duality, Neutral Functions & Self-Dual Logic",
+    url: "/coredose/digital-logic/module-03/duality-neutral-functions-and-self-dual-logic",
+  }}
+  courseUrl="/coredose/digital-logic"
+/>

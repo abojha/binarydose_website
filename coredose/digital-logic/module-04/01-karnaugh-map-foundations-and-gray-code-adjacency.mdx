@@ -1,0 +1,522 @@
+---
+title: "4.1 Karnaugh Map Foundations & Gray Code Adjacency"
+description: "First-principles introduction to Karnaugh Maps (K-Maps), limitations of algebraic Boolean reduction, Gray code reflected binary sequences, Hamming distance-1 adjacency, 2D toroidal wrap-around geometry, and SOP/POS map structures."
+hide_table_of_contents: true
+---
+
+# 4.1 Karnaugh Map Foundations & Gray Code Adjacency
+
+<CoreDoseLessonHeader
+  module="Module 04: Simplification of Boolean Expressions & K-Maps"
+  topic="Topic 4.1"
+  courseUrl="/coredose/digital-logic"
+  readTime="15 min read"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Foundational Computing"
+/>
+
+## 💡 Core Intuition: The World Globe on a Flat Map
+
+When looking at a standard flat map of the Earth, the Pacific Ocean appears severed into two halves: one edge touches East Asia, while the opposite edge touches North America.
+
+### 🍳 The Everyday Analogy: Flat Grid vs. Continuous Sphere
+
+* **The Flat Map Illusion**: A traveler unfamiliar with spherical geometry might assume that traveling off the rightmost border of the map drops them into a bottomless void.
+* **The Continuous Sphere (Toroidal Surface)**: In reality, the Earth has no boundaries. Sailing east off the right edge of Asia immediately brings you to the west coast of the Americas. The left and right edges are physically fused together, just as the North and South poles wrap across the vertical axis.
+
+A **Karnaugh Map (K-Map)** is drawn as a flat two-dimensional rectangular grid on paper or a computer screen, but mathematically and logically it is a **continuous torus (a donut shape)**. The leftmost column is directly adjacent to the rightmost column, and the topmost row is directly adjacent to the bottommost row.
+
+### 💻 Bridging to Computer Science
+
+In Boolean algebra, minimizing an expression relies on finding two product terms that share all identical literals except for one variable that appears in complementary forms:
+
+$$
+AX + A\bar{X} = A(X + \bar{X}) = A(1) = A
+$$
+
+Whenever two terms differ by exactly one complemented literal, they can be combined into a single simpler term containing one fewer variable.
+
+Maurice Karnaugh (1953) recognized that human engineers struggle to spot these single-variable differences when scanning long algebraic strings. By arranging the cells of a truth table in a visual matrix ordered by **Gray Code** ($00, 01, 11, 10$), any two geometrically adjacent cells on the map are mathematically guaranteed to differ by **strictly one binary bit** (Hamming distance = 1). The human eye can instantly spot clusters of 1s and circle them, replacing complex algebraic manipulation with visual pattern recognition.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🔍 Why Karnaugh Maps? The Saturation Limit of Algebraic Reduction
+
+Before the invention of the Karnaugh map, digital circuits were minimized exclusively using algebraic theorems (De Morgan's, Consensus, Transposition). However, manual algebraic reduction suffers from severe practical drawbacks:
+
+<ConceptComparison
+  title="Algebraic Reduction vs. Karnaugh Map Minimization"
+  subtitle="Contrasting manual symbolic manipulation with visual geometric reduction"
+  concepts={[
+    {
+      badge: "Algebraic Method",
+      title: "Symbolic Boolean Laws",
+      icon: "📜",
+      color: "rose",
+      domain: "Manual Symbol Manipulation",
+      points: [
+        "Relies on trial-and-error application of Boolean axioms and consensus theorems.",
+        "Blind to global saturation: it is difficult to determine whether an expression is fully minimal.",
+        "High risk of human error when expressions exceed 3 variables.",
+        "Requires adding redundant terms (e.g., adding X + X') just to enable factoring."
+      ],
+      quote: "You never know if you reached the absolute minimum or merely got tired of factoring."
+    },
+    {
+      badge: "Karnaugh Map",
+      title: "Gray Code Geometric Mapping",
+      icon: "🗺️",
+      color: "emerald",
+      domain: "Systematic Visual Minimization",
+      points: [
+        "Translates truth table rows directly into spatial cells on a 2D grid.",
+        "Guarantees that geometric adjacency equals single-variable Boolean absorption.",
+        "Provides clear stopping criteria: all 1s covered by maximal Prime Implicants.",
+        "Directly reveals all alternative minimal forms and don't-care optimization opportunities."
+      ],
+      quote: "Geometric clustering replaces tedious algebraic factoring."
+    }
+  ]}
+/>
+
+---
+
+## 🔀 Gray Code Sequencing: The Foundation of Physical Adjacency
+
+The entire mechanism of a Karnaugh map depends on **Gray Code** (also called Reflected Binary Code).
+
+### The Flaw of Standard Binary Counting
+
+Consider standard 2-bit binary counting: `00` $\to$ `01` $\to$ `10` $\to$ `11`.
+* When transitioning from `00` to `01`, only 1 bit flips ($0 \to 1$).
+* When transitioning from `01` to `10`, **both bits flip simultaneously** ($0 \to 1$ and $1 \to 0$).
+
+Because two bits change between `01` and `10`, the minterm for `01` ($\bar{A}B$) and the minterm for `10` ($A\bar{B}$) share zero common terms that can be absorbed using $X + \bar{X} = 1$:
+
+$$
+\bar{A}B + A\bar{B} \quad \text{[Cannot be simplified!]}
+$$
+
+If a K-map used standard binary ordering, adjacent columns would not share common factors, destroying the geometric visual model.
+
+### The Gray Code Solution (Hamming Distance = 1)
+
+<MathBox title="Definition 4.1: Gray Code Sequence & Hamming Distance" type="definition">
+
+A **Gray code** is a binary numeral system where two successive values differ by strictly **one binary bit**.
+
+The **Hamming distance** $d_H(u, v)$ between two equal-length binary codewords $u$ and $v$ is the number of bit positions at which the corresponding symbols differ. A Gray code sequence enforces:
+
+$$
+d_H(C_k, C_{k+1}) = 1 \quad \text{for all } k
+$$
+
+Furthermore, Gray code is cyclic: the final codeword $C_{2^n - 1}$ and the initial codeword $C_0$ also satisfy $d_H(C_{2^n - 1}, C_0) = 1$.
+
+</MathBox>
+
+<FlowPipeline
+  title="Reflected Gray Code Construction (n = 1 to n = 3 Bits)"
+  subtitle="Recursive reflection principle: mirror the sequence and prepend 0s and 1s"
+  nodes={[
+    {
+      badge: "1-Bit Base",
+      title: "Base List {0, 1}",
+      icon: "1️⃣",
+      color: "blue",
+      description: "Fundamental 1-bit binary states: 0 and 1.",
+      connectorLabel: "Reflect & Prepend",
+    },
+    {
+      badge: "2-Bit Code",
+      title: "{00, 01, 11, 10}",
+      icon: "2️⃣",
+      color: "purple",
+      description: "Reflect list: (0, 1 | 1, 0). Prepend 0 to top, 1 to bottom. Cyclic distance = 1.",
+      connectorLabel: "Reflect & Prepend",
+    },
+    {
+      badge: "3-Bit Code",
+      title: "{000, 001, 011, 010, 110, 111, 101, 100}",
+      icon: "3️⃣",
+      color: "emerald",
+      description: "Reflect 2-bit list: prepend 0 to first 4, prepend 1 to mirrored 4. Cyclic distance = 1.",
+      connectorLabel: "K-Map Grid",
+    },
+    {
+      badge: "2D K-Map",
+      title: "Spatial Torus Grid",
+      icon: "🎯",
+      color: "cyan",
+      description: "Every adjacent horizontal and vertical cell differs by exactly 1 literal.",
+    },
+  ]}
+/>
+
+<MathBox title="Theorem 4.1: Adjacency Absorption Principle" type="theorem">
+
+If two cells in a Karnaugh map are adjacent, their corresponding minterms $m_i$ and $m_j$ differ in exactly one variable $X$. Their Boolean sum simplifies to eliminate variable $X$:
+
+$$
+m_i + m_j = P \cdot X + P \cdot \bar{X} = P \cdot (X + \bar{X}) = P
+$$
+
+where $P$ is a product term containing the remaining $(n - 1)$ identical literals.
+
+</MathBox>
+
+---
+
+## 🗺️ Topologies & Cell Addressing Across Dimensions
+
+For an $n$-variable Boolean function, the Karnaugh map contains exactly **$2^n$ cells**.
+
+### 1. The 2-Variable K-Map ($n = 2$, 4 Cells)
+
+For variables $A$ and $B$:
+* Rows represent $A \in \{0, 1\}$ ($\bar{A}, A$).
+* Columns represent $B \in \{0, 1\}$ ($\bar{B}, B$).
+
+<KMapDiagram
+  title="2-Variable K-Map Addressing Grid (4 Cells)"
+  subtitle="Click or tap any cell to inspect its binary coordinate and row/column literal mapping"
+  numVariables={2}
+  variables={['A', 'B']}
+  variant="topology"
+/>
+
+---
+
+### 2. The 3-Variable K-Map ($n = 3$, 8 Cells)
+
+For variables $A, B, C$:
+* Rows represent $A \in \{0, 1\}$.
+* Columns represent $BC$ arranged in Gray code: $\{00, 01, 11, 10\}$.
+
+<KMapDiagram
+  title="3-Variable K-Map Gray Code Grid (8 Cells)"
+  subtitle="Notice column 3 (11) and column 4 (10) swap to preserve Gray code Hamming distance = 1"
+  numVariables={3}
+  variables={['A', 'B', 'C']}
+  variant="topology"
+/>
+
+> ⚠️ **CRITICAL ORDERING NOTICE**: Notice that column 3 is $11$ ($m_3, m_7$) and column 4 is $10$ ($m_2, m_6$). The decimal indices jump from $1 \to 3 \to 2$ across the row. This swap preserves Gray code Hamming distance = 1!
+
+---
+
+### 3. The 4-Variable K-Map ($n = 4$, 16 Cells)
+
+For variables $A, B, C, D$:
+* Rows represent $AB \in \{00, 01, 11, 10\}$.
+* Columns represent $CD \in \{00, 01, 11, 10\}$.
+
+<KMapDiagram
+  title="4-Variable Toroidal K-Map Topology (16 Cells)"
+  subtitle="Dual-axis swap: Column sequence {00, 01, 11, 10} and Row sequence {00, 01, 11, 10}"
+  numVariables={4}
+  variables={['A', 'B', 'C', 'D']}
+  variant="topology"
+/>
+
+> ⚠️ **DUAL AXIS JUMP**: Both the 3rd row ($11$) and 3rd column ($11$) represent swapped indices. Rows follow sequence $0, 4, 12, 8$ vertically, while columns follow $0, 1, 3, 2$ horizontally.
+
+---
+
+## 🌐 Toroidal Wrap-Around Geometry: Edge and Corner Adjacency
+
+A 4-variable K-map possesses **toroidal (donut) wrap-around symmetry**:
+
+<SubsystemGrid
+  items={[
+    {
+      icon: "↔️",
+      title: "Horizontal Wrap-Around",
+      tag: "Cylinder Roll X",
+      color: "blue",
+      points: [
+        "The leftmost column (00) and rightmost column (10) are logically adjacent.",
+        "Binary difference: CD = 00 vs 10 differs only in variable C.",
+        "m₀ is adjacent to m₂, m₄ to m₆, m₁₂ to m₁₄, m₈ to m₁₀."
+      ],
+      syscalls: ["Col 00 ↔ Col 10"]
+    },
+    {
+      icon: "↕️",
+      title: "Vertical Wrap-Around",
+      tag: "Cylinder Roll Y",
+      color: "purple",
+      points: [
+        "The topmost row (00) and bottommost row (10) are logically adjacent.",
+        "Binary difference: AB = 00 vs 10 differs only in variable A.",
+        "m₀ is adjacent to m₈, m₁ to m₉, m₃ to m₁₁, m₂ to m₁₀."
+      ],
+      syscalls: ["Row 00 ↔ Row 10"]
+    },
+    {
+      icon: "🎯",
+      title: "The Four Corners",
+      tag: "Toroidal Intersection",
+      color: "emerald",
+      points: [
+        "The 4 extreme corners (m₀, m₂, m₈, m₁₀) are all mutually adjacent.",
+        "They form a valid Quad of 4 cells.",
+        "m₀ + m₂ + m₈ + m₁₀ reduces cleanly to B'D' (eliminating A and C)."
+      ],
+      syscalls: ["{m₀, m₂, m₈, m₁₀} = B'D'"]
+    },
+    {
+      icon: "📐",
+      title: "Diagonal Invariance",
+      tag: "Non-Adjacency Rule",
+      color: "rose",
+      points: [
+        "Diagonally touching cells are NEVER adjacent (Hamming distance = 2).",
+        "m₀ (`0000`) and m₅ (`0101`) differ in 2 variables (A and C).",
+        "Grouping diagonal cells together is strictly forbidden."
+      ],
+      syscalls: ["d_H(diag) = 2 (Invalid)"]
+    }
+  ]}
+/>
+
+<MathBox title="Derivation: Algebraic Proof of Corner Quad Minimization" type="proof">
+
+Consider the four corner cells of a 4-variable K-map: $\{m_0, m_2, m_8, m_{10}\}$.
+
+$$
+\begin{aligned}
+F_{\text{corners}} &= m_0 + m_2 + m_8 + m_{10} \\
+&= \bar{A}\bar{B}\bar{C}\bar{D} + \bar{A}\bar{B}C\bar{D} + A\bar{B}\bar{C}\bar{D} + A\bar{B}C\bar{D} \\
+&= \bar{A}\bar{B}\bar{D}(\bar{C} + C) + A\bar{B}\bar{D}(\bar{C} + C) \quad &&\text{[Factoring out } \bar{A}\bar{B}\bar{D} \text{ and } A\bar{B}\bar{D}\text{]} \\
+&= \bar{A}\bar{B}\bar{D}(1) + A\bar{B}\bar{D}(1) \quad &&\text{[Complementation: } \bar{C} + C = 1\text{]} \\
+&= \bar{B}\bar{D}(\bar{A} + A) \quad &&\text{[Factoring out } \bar{B}\bar{D}\text{]} \\
+&= \bar{B}\bar{D}(1) = \bar{B}\bar{D} \quad \blacksquare
+\end{aligned}
+$$
+
+The visual group of 4 corner cells instantly yields $\bar{B}\bar{D}$ without writing a single line of algebra!
+
+</MathBox>
+
+<KMapDiagram
+  title="Toroidal Symmetry: Four-Corner Quad Adjacency"
+  subtitle="Hover or tap the corner group pill below to visualize wrap-around adjacency across cylinder edges"
+  numVariables={4}
+  variables={['A', 'B', 'C', 'D']}
+  minterms={[0, 2, 8, 10]}
+  groups={[
+    {
+      name: "B'D'",
+      type: "Quad",
+      cells: [0, 2, 8, 10],
+      color: "emerald",
+      detail: "Four extreme corners {m0, m2, m8, m10} touch via toroidal wrap-around, eliminating variables A and C.",
+    },
+  ]}
+  expression="B'D'"
+/>
+
+---
+
+## ⚖️ SOP K-Maps (Plotting 1s) vs. POS K-Maps (Plotting 0s)
+
+A Karnaugh map can minimize both Sum of Products (SOP) and Product of Sums (POS) expressions:
+
+| Characteristic | SOP Karnaugh Map | POS Karnaugh Map |
+| :--- | :--- | :--- |
+| **Target Function Value** | Minimizes $F = 1$ | Minimizes $F = 0$ |
+| **Grid Entries** | Plot **1** for each minterm $m_i$ | Plot **0** for each maxterm $M_i$ |
+| **Unplotted Cells** | Left empty or filled with 0s | Left empty or filled with 1s |
+| **Row/Column Labeling** | Product notation: $A=1, \bar{A}=0$ | Sum notation: $A=0, \bar{A}=1$ |
+| **Gray Code Coordinate `00`** | Represents $\bar{A}\bar{B}$ | Represents $(A + B)$ |
+| **Gray Code Coordinate `01`** | Represents $\bar{A}B$ | Represents $(A + \bar{B})$ |
+| **Gray Code Coordinate `11`** | Represents $AB$ | Represents $(\bar{A} + \bar{B})$ |
+| **Gray Code Coordinate `10`** | Represents $A\bar{B}$ | Represents $(\bar{A} + B)$ |
+| **Output Term Formulation** | Form groups of 1s $\to$ AND terms summed with OR | Form groups of 0s $\to$ OR terms multiplied with AND |
+
+---
+
+## 🏭 Real-World Production Context: Rotary Optical Encoders & ASIC Control Paths
+
+Gray code and spatial adjacency are physical engineering realities beyond paper diagrams:
+
+1. **Absolute Optical Shaft Encoders**: In robotic arm joints, CNC mills, and industrial automation motors, a rotating transparent disk with alternating opaque sectors tracks physical angular position. If the disk tracks angle using standard binary (`011` $\to$ `100`), slight mechanical misalignment causes sensors to read transient intermediate states like `111` or `000` for microseconds, causing violent robotic motor jerks. By encoding angles in **Gray code**, only one optical track switches at any physical boundary, guaranteeing glitch-free position sensing.
+2. **ASIC Instruction Decoders**: In microprocessors (ARM, RISC-V), instruction opcodes are grouped into functional blocks using K-map adjacencies to minimize the gate delay of control-path ALU multiplexers.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Gray Code Sequence Generation & Hamming Distance Verification
+**Problem Statement:**  
+1. Generate the complete 4-bit Gray code sequence using the recursive reflection method.
+2. Verify that the Hamming distance between codeword index 7 and index 8 is strictly 1.
+3. Verify that the cyclic transition between the last codeword (index 15) and the first codeword (index 0) has a Hamming distance of strictly 1.
+
+**Step-by-Step Solution:**
+
+1. **Recursive Reflection:**
+   * **2-bit Gray code**: `00, 01, 11, 10`.
+   * **3-bit Gray code**: Prepend `0` to 2-bit list: `000, 001, 011, 010`.  
+     Reflect and prepend `1`: `110, 111, 101, 100`.
+   * **4-bit Gray code**: Prepend `0` to 3-bit list (indices 0–7):
+     * $0$: `0000`, $1$: `0001`, $2$: `0011`, $3$: `0010`
+     * $4$: `0110`, $5$: `0111`, $6$: `0101`, $7$: `0100`
+   * Reflect 3-bit list and prepend `1` (indices 8–15):
+     * $8$: `1100`, $9$: `1101`, $10$: `1111`, $11$: `1110`
+     * $12$: `1010`, $13$: `1011`, $14$: `1001`, $15$: `1000`
+
+2. **Verify Transition $7 \to 8$:**
+   * Codeword 7: `0 1 0 0`
+   * Codeword 8: `1 1 0 0`
+   * Only the most significant bit (MSB) differs ($0 \to 1$). Remaining 3 bits (`100`) are identical.
+   * $$d_H(\text{Word}_7, \text{Word}_8) = 1 \quad \text{[Verified]}$$
+
+3. **Verify Cyclic Transition $15 \to 0$:**
+   * Codeword 15: `1 0 0 0`
+   * Codeword 0: `0 0 0 0`
+   * Only the MSB differs ($1 \to 0$). Remaining 3 bits (`000`) are identical.
+   * $$d_H(\text{Word}_{15}, \text{Word}_0) = 1 \quad \text{[Verified]}$$
+
+---
+
+### Example 2: Plotting and Mapping Adjacencies on a 3-Variable K-Map
+**Problem Statement:**  
+Given the 3-variable Boolean function:
+
+$$
+F(A, B, C) = \sum m(1, 3, 5, 7)
+$$
+
+1. Plot the function onto the standard 3-variable K-map grid.
+2. Identify all spatial adjacencies between the plotted 1s.
+3. State the single common literal shared by this complete group.
+
+**Step-by-Step Solution:**
+
+1. **Plot the K-Map & Form Adjacency Groups:**
+
+<KMapDiagram
+  title="3-Variable K-Map Adjacency & Quad Formation (Example 2)"
+  subtitle="Hover or tap the group pill below to inspect the column Quad {m1, m3, m5, m7} reducing to literal C"
+  numVariables={3}
+  variables={['A', 'B', 'C']}
+  minterms={[1, 3, 5, 7]}
+  groups={[
+    {
+      name: "C",
+      type: "Quad",
+      cells: [1, 3, 5, 7],
+      color: "emerald",
+      detail: "Columns 01 and 11 form a contiguous Quad. Variables A and B change states and are eliminated.",
+    },
+  ]}
+  expression="C"
+/>
+
+2. **Identify Adjacencies:**
+   * $m_1$ (`001`) is horizontally adjacent to $m_3$ (`011`) $\to$ differs only in variable $B$.
+   * $m_5$ (`101`) is horizontally adjacent to $m_7$ (`111`) $\to$ differs only in variable $B$.
+   * $m_1$ (`001`) is vertically adjacent to $m_5$ (`101`) $\to$ differs only in variable $A$.
+   * $m_3$ (`011`) is vertically adjacent to $m_7$ (`111`) $\to$ differs only in variable $A$.
+   * Together, $\{m_1, m_3, m_5, m_7\}$ form a contiguous **$2 \times 2$ Quad** (4 adjacent cells).
+
+3. **Determine the Common Literal:**
+   * Across rows ($A = 0$ and $A = 1$): variable $A$ changes from $0 \to 1$ (eliminated).
+   * Across columns ($BC = 01$ and $BC = 11$): variable $B$ changes from $0 \to 1$ (eliminated).
+   * Variable $C = 1$ remains constant across all 4 cells.
+   * **Result**: The entire function reduces to:
+
+$$
+F(A, B, C) = C
+$$
+
+---
+
+### Example 3: Edge Wrap-Around Minimization on a 4-Variable K-Map
+**Problem Statement:**  
+A 4-variable digital circuit produces HIGH outputs for the minterm set:
+
+$$
+F(A, B, C, D) = \sum m(4, 6, 12, 14)
+$$
+
+1. Plot $F$ onto a 4-variable K-map grid.
+2. Determine which wrap-around adjacency principle applies.
+3. Write the simplified minimal product term.
+
+**Step-by-Step Solution:**
+
+1. **Plot the 4-Variable K-Map & Identify Wrap-Around Groups:**
+
+<KMapDiagram
+  title="4-Variable Horizontal Wrap-Around Quad (Example 3)"
+  subtitle="Hover or tap the group pill below to inspect how columns 00 and 10 wrap around the cylinder"
+  numVariables={4}
+  variables={['A', 'B', 'C', 'D']}
+  minterms={[4, 6, 12, 14]}
+  groups={[
+    {
+      name: "BD'",
+      type: "Quad",
+      cells: [4, 6, 12, 14],
+      color: "blue",
+      detail: "Wrap-around Quad: Column 00 and Column 10 merge horizontally, eliminating literals A and C.",
+    },
+  ]}
+  expression="BD'"
+/>
+
+2. **Analyze Geometric Structure:**
+   * Cells $m_4$ and $m_{12}$ occupy column `00` ($\bar{C}\bar{D}$).
+   * Cells $m_6$ and $m_{14}$ occupy column `10` ($C\bar{D}$).
+   * By the **Horizontal Wrap-Around Property**, the first column ($00$) and the fourth column ($10$) are directly adjacent!
+   * Vertically, row $01$ ($\bar{A}B$) and row $11$ ($AB$) are directly adjacent.
+   * Therefore, $\{m_4, m_6, m_{12}, m_{14}\}$ forms a single, valid **Quad of 4 cells**.
+
+3. **Extract the Minimized Product Term:**
+   * Across rows $01$ ($\bar{A}B$) and $11$ ($AB$): $A$ changes ($0 \to 1$), while **$B = 1$** is constant.
+   * Across columns $00$ ($\bar{C}\bar{D}$) and $10$ ($C\bar{D}$): $C$ changes ($0 \to 1$), while **$\bar{D}$ ($D = 0$)** is constant.
+   * Combining constant literals:
+
+$$
+F(A, B, C, D) = B\bar{D}
+$$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why are K-map coordinates sequenced as $00, 01, 11, 10$ instead of standard binary $00, 01, 10, 11$?**  
+  Standard binary counting contains a 2-bit Hamming distance between $01$ and $10$. If column coordinates were written in standard binary, adjacent columns would not share a single common variable, making visual grouping and Boolean absorption impossible. Gray code guarantees a Hamming distance of strictly $1$ between any two adjacent columns or rows, which is the exact mathematical condition required for $X + \bar{X} = 1$ absorption.
+
+* **Why is the Karnaugh map impractical for functions with more than 4 or 5 variables?**  
+  A 4-variable K-map is a 2D planar map of a 2D torus. A 5-variable K-map requires two 4-variable grids stacked along a 3rd dimension (requiring spatial visualization between layers). A 6-variable K-map requires four 4-variable grids in a $2 \times 2$ super-grid. Beyond 5 or 6 variables, visualizing multi-dimensional adjacencies becomes cognitive overload, which is why electronic design automation (EDA) tools switch to computer algorithms like **Quine-McCluskey** and **Espresso**.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Forgetting that column 3 and row 3 are inverted in decimal index order.**  
+  Candidates frequently write K-map minterm cells as $0, 1, 2, 3$ in order across the first row. Because of Gray code, the sequence is strictly **$m_0, m_1, m_3, m_2$**! Similarly, the row order is $m_0, m_4, m_{12}, m_8$ vertically. Misplacing minterm indices causes completely incorrect groupings.
+
+* **Trap: Attempting to group diagonally touching 1s.**  
+  Two cells that touch only diagonally (such as $m_0$ at `0000` and $m_5$ at `0101`) have a Hamming distance of $2$. They share zero eliminable literals. Diagonals can NEVER be grouped together.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "3.3 Duality, Neutral Functions & Self-Dual Logic",
+    url: "/coredose/digital-logic/module-03/duality-neutral-functions-and-self-dual-logic",
+  }}
+  next={{
+    title: "4.2 3-Variable and 4-Variable K-Map Minimization",
+    url: "/coredose/digital-logic/module-04/3-variable-and-4-variable-k-map-minimization",
+  }}
+  courseUrl="/coredose/digital-logic"
+/>

@@ -1,0 +1,537 @@
+---
+title: "4.2 3-Variable and 4-Variable K-Map Minimization"
+description: "Mastering K-Map grouping rules, subcubes (pairs, quads, octets), variable elimination theorem, step-by-step SOP/POS minimization procedures, and handling redundant overlapping loops."
+slug: 3-variable-and-4-variable-k-map-minimization
+hide_table_of_contents: true
+---
+
+# 4.2 3-Variable and 4-Variable K-Map Minimization
+
+<CoreDoseLessonHeader
+  module="Module 04: Simplification of Boolean Expressions & K-Maps"
+  topic="Topic 4.2"
+  courseUrl="/coredose/digital-logic"
+  readTime="16 min read"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Foundational Computing"
+/>
+
+## 💡 Core Intuition: Land Consolidation & Boundary Removal
+
+Imagine an urban planner tasked with zoning a new city block divided into individual $1 \times 1$ meter plots of land:
+
+### 🍳 The Everyday Analogy: Merging Plots into Superblocks
+
+* **Individual Plots (Unminimized Minterms)**: If every land owner builds a standalone perimeter fence around their tiny $1 \times 1$ plot, the block becomes a maze of costly walls, gates, and redundant boundaries.
+* **Consolidation into Superblocks (K-Map Grouping)**: The city permits developers to merge adjacent plots to build commercial superblocks. However, municipal bylaws enforce strict geometric constraints:
+  * You can only consolidate plots in binary powers of 2: **1, 2, 4, 8, or 16 plots**. You cannot zone a 3-plot or 6-plot superblock.
+  * Plots must form a contiguous rectangle or square.
+  * Every internal fence knocked down between merged plots saves construction material and wiring costs.
+
+A 2-plot merger (**Pair**) knocks down 1 internal wall. A 4-plot merger (**Quad**) eliminates 4 boundaries. An 8-plot merger (**Octet**) clears almost the entire city block. In digital electronics, every boundary knocked down in a K-map grouping permanently removes an entire physical transistor input from your circuit!
+
+### 💻 Bridging to Computer Science
+
+In digital design:
+1. Every cell containing a `1` on a Karnaugh map is a single minterm containing all $n$ literals.
+2. Grouping adjacent cells into binary subcubes ($2^k$) applies the fundamental Boolean absorption identity $AX + A\bar{X} = A$.
+3. Merging $2^k$ cells eliminates exactly **$k$ independent variables**, producing an optimized product term with only **$(n - k)$ literals**.
+
+Maximizing group sizes and minimizing the total count of groups directly yields the absolute minimum number of logic gates and inputs required to realize the function in silicon.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 📏 The 4 Golden Rules of K-Map Subcube Grouping
+
+To guarantee that a grouped K-map produces a valid, minimal Boolean expression, every grouping (called a **subcube**) must strictly obey four geometric and algebraic laws:
+
+<SubsystemGrid
+  items={[
+    {
+      icon: "2️⃣",
+      title: "Rule 1: Powers of Two",
+      tag: "Size Constraint",
+      color: "blue",
+      points: [
+        "A subcube MUST contain exactly 2ᵏ cells: 1, 2, 4, 8, or 16 cells.",
+        "Groups of 3, 5, 6, 7, 10, or 12 cells are STRICTLY FORBIDDEN.",
+        "Only powers of 2 provide symmetric complement cancellation (X + X' = 1)."
+      ],
+      syscalls: ["Size ∈ {1, 2, 4, 8, 16}"]
+    },
+    {
+      icon: "📐",
+      title: "Rule 2: Rectangular Geometry",
+      tag: "Shape Constraint",
+      color: "purple",
+      points: [
+        "Groups must be rectangular or square (1x1, 1x2, 2x1, 2x2, 1x4, 4x1, 2x4, 4x4).",
+        "L-shaped, T-shaped, diagonal, or cross-shaped groups are invalid.",
+        "Rectangles include toroidal wrap-arounds across map edges and corners."
+      ],
+      syscalls: ["Rows × Cols = 2ᵏ"]
+    },
+    {
+      icon: "🎯",
+      title: "Rule 3: Maximal Subcube Size",
+      tag: "Optimization Rule",
+      color: "emerald",
+      points: [
+        "Always make groups as LARGE as possible.",
+        "An octet (8 cells) is strictly superior to two quads (4 cells each).",
+        "A quad (4 cells) is strictly superior to two pairs (2 cells each).",
+        "Larger groups eliminate more literals, reducing gate fan-in."
+      ],
+      syscalls: ["Max(2ᵏ) → Min(Literals)"]
+    },
+    {
+      icon: "✂️",
+      title: "Rule 4: Redundancy Elimination",
+      tag: "Pruning Rule",
+      color: "rose",
+      points: [
+        "Every 1 must be covered by at least one group.",
+        "Overlapping is allowed and encouraged to enlarge groups.",
+        "However, if all 1s in a group are already covered by other essential groups, that group is REDUNDANT and must be pruned."
+      ],
+      syscalls: ["Prune Subsets"]
+    }
+  ]}
+/>
+
+---
+
+## 🧮 The Subcube Variable Elimination Theorem
+
+<MathBox title="Theorem 4.2: Variable Elimination in K-Map Subcubes" type="theorem">
+
+In an $n$-variable Karnaugh map, grouping $2^k$ adjacent cells together into a valid subcube eliminates exactly $k$ variables, resulting in a simplified product term containing strictly:
+
+$$
+\text{Literal Count} = n - k
+$$
+
+where:
+* $n = \text{total number of system variables}$.
+* $k = \log_2(\text{number of cells in the subcube})$.
+
+</MathBox>
+
+<MathBox title="Derivation: Algebraic Proof of the Variable Elimination Theorem" type="proof">
+
+Let an $n$-variable system have a subcube of $2^k$ minterms. By definition of Gray code adjacency, across these $2^k$ cells:
+1. Exactly $(n - k)$ variables remain **constant** across all cells (either fixed at 0 or fixed at 1).
+2. Exactly $k$ variables undergo all possible $2^k$ binary permutations of 0s and 1s.
+
+Factoring out the $(n - k)$ constant literals into a common product term $P$:
+
+$$
+F_{\text{subcube}} = P \cdot \sum_{j=0}^{2^k - 1} m_j(y_1, y_2, \dots, y_k)
+$$
+
+Because the sum of all $2^k$ canonical minterms of $k$ variables equals logic 1 (Tautology Law):
+
+$$
+\sum_{j=0}^{2^k - 1} m_j(y_1, \dots, y_k) = 1
+$$
+
+Therefore:
+
+$$
+F_{\text{subcube}} = P \cdot 1 = P \quad \blacksquare
+$$
+
+The resulting term $P$ contains exactly $(n - k)$ literals.
+
+</MathBox>
+
+### Subcube Hierarchy & Literal Savings Table
+
+| Subcube Name | Number of Cells ($2^k$) | Variables Eliminated ($k$) | Resulting Term Size in 3-Var Map ($3 - k$) | Resulting Term Size in 4-Var Map ($4 - k$) |
+| :---: | :---: | :---: | :---: | :---: |
+| **Single** | $2^0 = 1$ | $0$ | 3 literals (e.g., $A\bar{B}C$) | 4 literals (e.g., $A\bar{B}C\bar{D}$) |
+| **Pair** | $2^1 = 2$ | $1$ | 2 literals (e.g., $AB$) | 3 literals (e.g., $AB\bar{C}$) |
+| **Quad** | $2^2 = 4$ | $2$ | 1 literal (e.g., $A$) | 2 literals (e.g., $AC$) |
+| **Octet** | $2^3 = 8$ | $3$ | 0 literals (Logic 1) | 1 literal (e.g., $B$) |
+| **Hexadecet** | $2^4 = 16$ | $4$ | — | 0 literals (Logic 1) |
+
+---
+
+## 🔄 Step-by-Step SOP Minimization Algorithm
+
+<FlowPipeline
+  title="The 4-Stage Systematic K-Map Minimization Workflow"
+  subtitle="Standard procedural algorithm for guaranteed minimal Sum-of-Products expressions"
+  nodes={[
+    {
+      badge: "Stage 1",
+      title: "Plot & Identify Singles",
+      icon: "📍",
+      color: "blue",
+      description: "Place a 1 in each minterm cell and identify isolated 1s with zero adjacent neighbors.",
+      connectorLabel: "Check Neighbors",
+    },
+    {
+      badge: "Stage 2",
+      title: "Form Maximal Subcubes",
+      icon: "📦",
+      color: "emerald",
+      description: "Prioritize 1s with unique neighbors. Expand into maximal Octets (8), Quads (4), or Pairs (2).",
+      connectorLabel: "Cover All 1s",
+    },
+    {
+      badge: "Stage 3",
+      title: "Prune Redundant Loops",
+      icon: "✂️",
+      color: "rose",
+      description: "Inspect each group: if all its 1s are already covered by other chosen groups, discard it completely.",
+      connectorLabel: "Minimal Cover",
+    },
+    {
+      badge: "Stage 4",
+      title: "Extract Minimized SOP",
+      icon: "⚡",
+      color: "cyan",
+      description: "Read constant variables for each surviving group and combine them using logical OR (+).",
+    },
+  ]}
+/>
+
+<KMapDiagram
+  title="Visual 4-Variable K-Map Subcube Inspector"
+  subtitle="Hover or tap group pills below to inspect subcube coverage on the toroidal grid"
+  numVariables={4}
+  variables={['A', 'B', 'C', 'D']}
+  minterms={[0, 2, 5, 7, 8, 10, 13, 15]}
+  groups={[
+    {
+      name: "BD",
+      type: "EPI",
+      cells: [5, 7, 13, 15],
+      color: "emerald",
+      detail: "Central Quad: Covers {m5, m7, m13, m15}. Eliminates variables A and C.",
+    },
+    {
+      name: "B'D'",
+      type: "EPI",
+      cells: [0, 2, 8, 10],
+      color: "blue",
+      detail: "Four-Corner Quad: Covers {m0, m2, m8, m10} via toroidal wrap-around. Eliminates variables A and C.",
+    },
+  ]}
+  expression="BD + B'D'"
+/>
+
+---
+
+## 🛡️ Step-by-Step POS Minimization Algorithm
+
+When minimizing Product of Sums (POS), the logic is dual:
+
+<ConceptComparison
+  title="SOP Minimization vs. POS Minimization on K-Maps"
+  subtitle="Contrasting the procedural mechanics between grouping 1s and grouping 0s"
+  concepts={[
+    {
+      badge: "SOP Minimization",
+      title: "Sum of Products (∑ m)",
+      icon: "➕",
+      color: "purple",
+      domain: "Active-HIGH Output Logic",
+      points: [
+        "Plot 1s for all minterm indices.",
+        "Form maximal subcubes covering all 1s.",
+        "Extract common literals: Variable = 1 → uncomplemented (A), Variable = 0 → complemented (A').",
+        "Form product terms and combine them with OR (+)."
+      ],
+      quote: "Target the peaks: F = ∑(Product Terms)"
+    },
+    {
+      badge: "POS Minimization",
+      title: "Product of Sums (∏ M)",
+      icon: "✖️",
+      color: "emerald",
+      domain: "Active-LOW Output Logic",
+      points: [
+        "Plot 0s for all maxterm indices.",
+        "Form maximal subcubes covering all 0s.",
+        "Extract common literals: Variable = 0 → uncomplemented (A), Variable = 1 → complemented (A').",
+        "Form sum terms and combine them with AND (·)."
+      ],
+      quote: "Target the troughs: F = ∏(Sum Terms)"
+    }
+  ]}
+/>
+
+---
+
+## 🏭 Real-World Production Context: ALU Multiplexer Tree Minimization
+
+In high-performance microprocessors (such as AMD Zen 4 and Intel Core architectures), the Arithmetic Logic Unit (ALU) execution datapath must complete operations in under a single clock cycle ($\sim 200\text{ picoseconds}$ at $5\text{ GHz}$).
+
+<FlowPipeline
+  title="ALU Control Path Latency Optimization via K-Map Minimization"
+  subtitle="Transforming multi-level logic into shallow, high-speed execution stages"
+  nodes={[
+    {
+      badge: "Decode",
+      title: "Opcode Control",
+      icon: "🔢",
+      color: "blue",
+      description: "Binary opcode bits dispatched from the processor pipeline.",
+      connectorLabel: "K-Map",
+    },
+    {
+      badge: "Decoder",
+      title: "Shallow Gate Array",
+      icon: "⚡",
+      color: "purple",
+      description: "Quad grouping reduces 4-input gates to fast 2-input gates.",
+      connectorLabel: "Assert",
+    },
+    {
+      badge: "MUX Tree",
+      title: "Function Selector",
+      icon: "🔀",
+      color: "emerald",
+      description: "Routes datapath to ADD, SUB, or XOR without stall cycles.",
+      connectorLabel: "1-Cycle",
+    },
+    {
+      badge: "Core",
+      title: "Register Writeback",
+      icon: "🎯",
+      color: "cyan",
+      description: "Critical path latency drops from 4 down to 2 gate delays.",
+    },
+  ]}
+/>
+
+1. **Gate Delay Reduction**: A standard 4-input AND gate has higher capacitive input load and slower propagation delay than a 2-input AND gate. By grouping 4 cells into a Quad, the synthesis compiler eliminates 2 literals, transforming a slow 4-input gate into a fast 2-input gate.
+2. **Dynamic Power Savings**: In CMOS circuits, power is consumed during voltage switching: $P_{\text{dynamic}} = \alpha C V_{DD}^2 f$. Minimizing redundant product terms reduces parasitic wire capacitance $C$ and switching activity $\alpha$, directly cooling the silicon die.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: 3-Variable SOP Minimization with Overlapping Groups
+**Problem Statement:**  
+Minimize the 3-variable Boolean switching function using a Karnaugh map:
+
+$$
+F(A, B, C) = \sum m(1, 2, 3, 5, 7)
+$$
+
+Identify all groups formed, verify redundancy, and write the simplified minimal SOP equation.
+
+**Step-by-Step Solution:**
+
+1. **Plot the 3-Variable K-Map & Identify Groups:**
+
+<KMapDiagram
+  title="3-Variable K-Map Minimization (Example 1)"
+  subtitle="Hover or tap group pills below to inspect the Quad {m1, m3, m5, m7} and Pair {m2, m3}"
+  numVariables={3}
+  variables={['A', 'B', 'C']}
+  minterms={[1, 2, 3, 5, 7]}
+  groups={[
+    {
+      name: "C",
+      type: "EPI",
+      cells: [1, 3, 5, 7],
+      color: "emerald",
+      detail: "Column Quad: Covers {m1, m3, m5, m7}. Eliminates variables A and B.",
+    },
+    {
+      name: "A'B",
+      type: "EPI",
+      cells: [2, 3],
+      color: "blue",
+      detail: "Adjacent Pair: Covers {m2, m3}. Eliminates variable C.",
+    },
+  ]}
+  expression="C + A'B"
+/>
+
+2. **Identify Groups:**
+   * **Group 1 (Quad of 4 cells)**: Notice the entire column $01$ and column $11$ are filled with 1s:
+     $$\text{Cells } \{m_1, m_3, m_5, m_7\}$$
+     * Across rows: $A$ varies from $0 \to 1$ (eliminated).
+     * Across columns: $B$ varies from $0 \to 1$ (eliminated), while **$C = 1$** is constant.
+     * Term for Group 1 $= C$.
+   * **Group 2 (Pair of 2 cells)**: Inspect minterm $m_2$ at row 0, col 10 (`010`).
+     * Cell $m_2$ is isolated vertically (below it is 0).
+     * Horizontally, its only neighbor is cell $m_3$ (`011`).
+     * We form a Pair: $\{m_2, m_3\}$.
+     * Across row: **$A = 0$** ($\bar{A}$) is constant.
+     * Across cols $11$ and $10$: **$B = 1$** is constant, while $C$ varies from $1 \to 0$ (eliminated).
+     * Term for Group 2 $= \bar{A}B$.
+
+3. **Check for Redundant Groups:**
+   * Minterm $m_2$ is covered *only* by Group 2 $\implies$ Group 2 is mandatory.
+   * Minterms $m_5, m_7$ are covered *only* by Group 1 $\implies$ Group 1 is mandatory.
+   * Both groups are essential. Zero redundant groups exist.
+
+4. **Final Minimized Expression:**
+
+$$
+F(A, B, C) = C + \bar{A}B
+$$
+
+*Initial canonical cost*: 5 product terms with 3 literals each = 15 literals.  
+*Minimized cost*: 1 single literal + 1 two-literal term = **3 literals** (80% silicon area reduction!).
+
+---
+
+### Example 2: 4-Variable SOP Minimization with Corner and Edge Quads
+**Problem Statement:**  
+Minimize the 4-variable Boolean function:
+
+$$
+F(A, B, C, D) = \sum m(0, 2, 5, 7, 8, 10, 13, 15)
+$$
+
+**Step-by-Step Solution:**
+
+1. **Plot the 4-Variable K-Map & Identify Groups:**
+
+<KMapDiagram
+  title="4-Variable Disjoint Quads Minimization (Example 2)"
+  subtitle="Hover or tap group pills below to highlight the Central Quad {m5, m7, m13, m15} and Four-Corner Quad {m0, m2, m8, m10}"
+  numVariables={4}
+  variables={['A', 'B', 'C', 'D']}
+  minterms={[0, 2, 5, 7, 8, 10, 13, 15]}
+  groups={[
+    {
+      name: "BD",
+      type: "EPI",
+      cells: [5, 7, 13, 15],
+      color: "emerald",
+      detail: "Central Quad: Covers {m5, m7, m13, m15}. Eliminates variables A and C.",
+    },
+    {
+      name: "B'D'",
+      type: "EPI",
+      cells: [0, 2, 8, 10],
+      color: "blue",
+      detail: "Four-Corner Quad: Covers {m0, m2, m8, m10} via toroidal wrap-around. Eliminates variables A and C.",
+    },
+  ]}
+  expression="BD + B'D'"
+/>
+
+2. **Identify Geometric Patterns:**
+   * **Pattern 1: The Central Quad (4 cells)**:
+     * Cells $\{m_5, m_7, m_{13}, m_{15}\}$ form a contiguous $2 \times 2$ block in the center!
+     * Across rows $01$ ($\bar{A}B$) and $11$ ($AB$): $A$ changes ($0 \to 1$), while **$B = 1$** is constant.
+     * Across columns $01$ ($\bar{C}D$) and $11$ ($CD$): $C$ changes ($0 \to 1$), while **$D = 1$** is constant.
+     * Term $= BD$.
+   * **Pattern 2: The Four Corners Quad (4 cells)**:
+     * Cells $\{m_0, m_2, m_8, m_{10}\}$ occupy the four extreme corners of the toroidal grid!
+     * Across top row $00$ and bottom row $10$: $A$ changes ($0 \to 1$), while **$\bar{B}$ ($B = 0$)** is constant.
+     * Across left column $00$ and right column $10$: $C$ changes ($0 \to 1$), while **$\bar{D}$ ($D = 0$)** is constant.
+     * Term $= \bar{B}\bar{D}$.
+
+3. **Check Coverage:**
+   * All 8 minterms are completely covered by these two disjoint Quads.
+   * Neither group is redundant.
+
+4. **Final Minimized Expression:**
+
+$$
+F(A, B, C, D) = BD + \bar{B}\bar{D}
+$$
+
+*Observation*: Notice that $BD + \bar{B}\bar{D} = B \odot D$ (an XNOR gate between $B$ and $D$). Variables $A$ and $C$ were entirely redundant!
+
+---
+
+### Example 3: 4-Variable POS Minimization (Grouping 0s)
+**Problem Statement:**  
+Find the minimal Product of Sums (POS) expression for the switching function:
+
+$$
+F(A, B, C, D) = \prod M(0, 1, 4, 5, 8, 9, 12, 13)
+$$
+
+**Step-by-Step Solution:**
+
+1. **Plot the 4-Variable POS K-Map (Entering 0s):**
+
+<KMapDiagram
+  title="4-Variable POS K-Map Minimization (Example 3)"
+  subtitle="Hover or tap the Octet group pill below to see columns 00 and 01 merge, eliminating variables A, B, and D"
+  numVariables={4}
+  variables={['A', 'B', 'C', 'D']}
+  mode="POS"
+  maxterms={[0, 1, 4, 5, 8, 9, 12, 13]}
+  groups={[
+    {
+      name: "C",
+      type: "Octet",
+      cells: [0, 1, 4, 5, 8, 9, 12, 13],
+      color: "emerald",
+      detail: "Massive 8-cell Octet across columns 00 and 01. In POS, C=0 yields uncomplemented sum term C.",
+    },
+  ]}
+  expression="C"
+/>
+
+2. **Identify Grouping Structure:**
+   * Inspect the plotted 0s: columns `00` and `01` are completely filled with 0s across **all 4 rows**!
+   * This forms a massive **Octet of 8 cells**:
+     $$\text{Cells } \{M_0, M_1, M_4, M_5, M_8, M_9, M_{12}, M_{13}\}$$
+   * By the Variable Elimination Theorem, an octet ($2^3 = 8$) eliminates $k = 3$ variables from a 4-variable system, leaving strictly $4 - 3 = \mathbf{1\text{ literal}}$.
+
+3. **Extract the Minimal Sum Term:**
+   * Across all 4 rows ($00, 01, 11, 10$): both variables $A$ and $B$ take on all combinations of 0 and 1 $\implies$ $A$ and $B$ are completely eliminated!
+   * Across columns $CD = 00$ and $CD = 01$:
+     * Variable $D$ changes from $0 \to 1$ $\implies$ $D$ is eliminated.
+     * Variable $C = 0$ remains constant across all 8 cells.
+   * In POS convention, a variable with value **0** corresponds to its **uncomplemented form ($C$)**.
+
+4. **Final Minimized POS Expression:**
+
+$$
+F(A, B, C, D) = C
+$$
+
+An expression originally requiring eight 4-variable OR gates reduces down to a single bare wire carrying signal $C$!
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does grouping an Octet (8 cells) provide double the hardware savings of two Quads (4 cells each)?**  
+  Two independent Quads generate two distinct 2-literal product terms (e.g., $AB + CD$), requiring two 2-input AND gates plus a 2-input OR gate (total: 3 logic gates and 6 transistor inputs).  
+  In contrast, an Octet merges all 8 cells into a single 1-literal term (e.g., $A$), completely eliminating the AND gates and the OR gate. An Octet eliminates $3$ variables, whereas a Quad eliminates only $2$.
+
+* **How can you mathematically detect if a group in a K-map is completely redundant?**  
+  A group is redundant if and only if every single minterm (1) contained inside that group is also a member of at least one other selected group. To test for redundancy, temporarily remove the group. If every 1 on the map is still covered by the remaining groups, the removed group was redundant and must be permanently discarded.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Forgetting that wrap-around columns 1 and 4 are adjacent.**  
+  Candidates frequently circle minterm $m_4$ (`0100`) and minterm $m_6$ (`0110`) as two separate isolated 1s, overlooking that column $00$ and column $10$ are horizontally adjacent across the cylinder seam. They form a Pair ($B\bar{D}$), saving a literal and a gate.
+
+* **Trap: Inverting variables when formulating POS sum terms.**  
+  A very common error is using SOP rules when reading POS groups. In SOP, $A = 0$ is $\bar{A}$. In POS, $A = 0$ is **uncomplemented $A$**, and $A = 1$ is **complemented $\bar{A}$**. Writing $\bar{C}$ instead of $C$ for a cell with $C = 0$ in a POS map inverts the entire logic circuit!
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "4.1 Karnaugh Map Foundations & Gray Code Adjacency",
+    url: "/coredose/digital-logic/module-04/karnaugh-map-foundations-and-gray-code-adjacency",
+  }}
+  next={{
+    title: "4.3 Implicants, Prime Implicants & Don't Care Conditions",
+    url: "/coredose/digital-logic/module-04/implicants-prime-implicants-and-dont-care-conditions",
+  }}
+  courseUrl="/coredose/digital-logic"
+/>

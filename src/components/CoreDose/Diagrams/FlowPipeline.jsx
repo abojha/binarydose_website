@@ -16,7 +16,10 @@ function PipelineNodeCard({ step }) {
   };
   const themeClass = themeMap[step.color] || styles.blueTheme;
   const details = step.details || step.detail;
-  const roleText = step.badge || step.role;
+  const roleText = step.badge || step.role || step.type || (step.step ? `Step ${step.step}` : null);
+
+  const titleText = step.title || step.name || step.label;
+  const descText = step.description || step.desc || step.summary || (step.details && !step.description ? step.details : step.detail);
 
   return (
     <div
@@ -26,22 +29,24 @@ function PipelineNodeCard({ step }) {
       onClick={() => setIsOpen((prev) => !prev)}
     >
       {/* Header: Icon & Role Badge */}
-      <div className={styles.cardHeader}>
-        {step.icon && <span className={styles.nodeIcon}>{step.icon}</span>}
-        {roleText && <span className={styles.nodeRole}>{roleText}</span>}
-      </div>
+      {(step.icon || roleText) && (
+        <div className={styles.cardHeader}>
+          {step.icon && <span className={styles.nodeIcon}>{step.icon}</span>}
+          {roleText && <span className={styles.nodeRole}>{roleText}</span>}
+        </div>
+      )}
 
       {/* Title */}
-      <h4 className={styles.nodeTitle}>{step.title}</h4>
+      {titleText && <h4 className={styles.nodeTitle}>{titleText}</h4>}
 
       {/* Sublabel */}
       {step.sublabel && <div className={styles.nodeSublabel}>{step.sublabel}</div>}
 
       {/* Description */}
-      {step.description && <p className={styles.nodeDesc}>{step.description}</p>}
+      {descText && <p className={styles.nodeDesc}>{descText}</p>}
 
       {/* Floating Tooltip Beside / Above the Card */}
-      {details && isOpen && (
+      {details && details !== descText && isOpen && (
         <div
           className={styles.floatingTooltip}
           onClick={(e) => e.stopPropagation()}
@@ -73,7 +78,7 @@ function PipelineNodeCard({ step }) {
  */
 function PipelineConnector({ step, index }) {
   const stepNumber = step.step || index + 1;
-  const actionText = step.actionText || step.label || step.connectorLabel;
+  const actionText = step.actionText || step.connectorLabel || step.transition || step.arrowText;
 
   return (
     <div className={styles.connector}>

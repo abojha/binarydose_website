@@ -1,0 +1,520 @@
+---
+title: "5.3 Multiplexers (MUX) & Function Implementation"
+description: "First-principles engineering guide to Multiplexers (MUX), 2:1, 4:1, and 8:1 data selectors, hierarchical MUX tree synthesis, implementing arbitrary n-variable Boolean logic using 2^{n-1}:1 MUXes, and residue table methods."
+hide_table_of_contents: true
+---
+
+# 5.3 Multiplexers (MUX) & Function Implementation
+
+<CoreDoseLessonHeader
+  module="Module 05: Combinational Logic Circuits"
+  topic="Topic 5.3"
+  courseUrl="/coredose/digital-logic"
+  readTime="20 min read"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Foundational Computing"
+/>
+
+## 💡 Core Intuition: The Rotary Train Track Switch
+
+Imagine a busy train terminal where four separate incoming freight lines ($I_0, I_1, I_2, I_3$) merge into a single outbound mainline track ($Y$). A switch operator sits in a control tower with a two-lever selector console ($S_1, S_0$). By flipping the levers into one of four possible binary combinations ($00, 01, 10, 11$), the operator physically steers exactly one train onto the main track while holding all others back.
+
+### 🍳 The Everyday Analogy: The Multi-Source TV Remote
+
+* **The Input Channels**: Your television has multiple ports: HDMI 1 ($I_0$), HDMI 2 ($I_1$), DisplayPort ($I_2$), and Cable TV ($I_3$).
+* **The Single Display Output**: Your TV screen ($Y$) can only display one video feed at any given moment.
+* **The Selector Buttons**: When you push button "2" on your remote control ($S_1 S_0 = 01$), an internal routing switch disconnects all other inputs and routes HDMI 2 directly to the screen pixels.
+* This is a **Multiplexer (MUX)**: a digitally controlled data selector that funnels $2^n$ data input channels into a single output line under the direction of $n$ control select lines.
+
+### 💻 Bridging to Computer Science
+
+In computer architecture, data routing is ubiquitous:
+1. **CPU Register Files**: When an instruction executes `ADD R1, R2, R3`, a multiplexer decodes the register ID `R2` to select which physical register lines are wired to the ALU's operand port.
+2. **Bus Arbitration**: Multiple memory controllers and DMA engines contend for a single memory bus. A multiplexer network grants channel access to one master at a time.
+3. **FPGA Architecture**: Field Programmable Gate Arrays do not physically re-wire AND/OR gates at runtime. Instead, an FPGA consists of millions of **Look-Up Tables (LUTs)**, which are essentially SRAM memory cells feeding wide multiplexer trees!
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+<div id="multiplexer-fundamentals-and-schematics" />
+
+## 🔀 MUX Fundamentals & Gate Architecture
+
+A **Multiplexer** (often abbreviated as **MUX** or **Data Selector**) possesses:
+* $2^n$ Data Inputs: $I_0, I_1, \dots, I_{2^n-1}$
+* $n$ Select Inputs: $S_{n-1}, S_{n-2}, \dots, S_0$
+* $1$ Enable Input (Strobe): $\bar{E}$ or $E$ (optional chip-select line)
+* $1$ Single Output: $Y$
+
+<SubsystemGrid
+  items={[
+    {
+      icon: "🔀",
+      title: "Data Inputs (2ⁿ)",
+      tag: "Source Streams",
+      color: "blue",
+      points: [
+        "Carries digital information from multiple independent sources.",
+        "Can carry constant logic levels (0, 1) or time-varying data signals."
+      ],
+      syscalls: ["I₀, I₁, ..., I_{2ⁿ-1}"]
+    },
+    {
+      icon: "🎛️",
+      title: "Select Lines (n)",
+      tag: "Address Control",
+      color: "amber",
+      points: [
+        "An n-bit binary control word selects exactly one active input channel.",
+        "Number of select lines is logarithmic: n = log₂(Data Inputs)."
+      ],
+      syscalls: ["S_{n-1}, ..., S₀"]
+    },
+    {
+      icon: "🚪",
+      title: "Enable / Strobe",
+      tag: "Chip Control",
+      color: "emerald",
+      points: [
+        "Typically active-low (E_bar).",
+        "When asserted (0), normal MUX routing occurs; when de-asserted (1), output is forced to 0 (or High-Z)."
+      ],
+      syscalls: ["E_bar = 0 (Active)"]
+    }
+  ]}
+/>
+
+---
+
+### The 2:1 Multiplexer
+
+* Inputs: $2$ data lines ($I_0, I_1$), $1$ select line ($S$), $1$ output ($Y$).
+
+| Select ($S$) | Active Input Selected | Output ($Y$) |
+| :---: | :---: | :---: |
+| $0$ | $I_0$ | $Y = I_0$ |
+| $1$ | $I_1$ | $Y = I_1$ |
+
+<MathBox title="2:1 MUX Governing Equation" type="formula">
+
+$$
+Y = \bar{S}I_0 + S I_1
+$$
+
+With active-low enable input $\bar{E}$:
+
+$$
+Y = \overline{E} \cdot (\bar{S}I_0 + S I_1)
+$$
+
+</MathBox>
+
+* **Channel 0 AND Gate**: Evaluates $\bar{S} \cdot I_0$.
+* **Channel 1 AND Gate**: Evaluates $S \cdot I_1$.
+* **Output OR Gate**: Combines both paths: $Y = \bar{S}I_0 + SI_1$.
+
+---
+
+### The 4:1 Multiplexer
+
+* Inputs: $4$ data lines ($I_0, I_1, I_2, I_3$), $2$ select lines ($S_1, S_0$), $1$ output ($Y$).
+
+| Enable ($\bar{E}$) | $S_1$ (MSB) | $S_0$ (LSB) | Selected Input | Output ($Y$) |
+| :---: | :---: | :---: | :---: | :---: |
+| $1$ | $\times$ | $\times$ | None (Disabled) | $0$ |
+| $0$ | $0$ | $0$ | $I_0$ | $Y = I_0$ |
+| $0$ | $0$ | $1$ | $I_1$ | $Y = I_1$ |
+| $0$ | $1$ | $0$ | $I_2$ | $Y = I_2$ |
+| $0$ | $1$ | $1$ | $I_3$ | $Y = I_3$ |
+
+<MathBox title="4:1 MUX Governing Equation" type="formula">
+
+$$
+Y = \bar{S}_1\bar{S}_0 I_0 + \bar{S}_1 S_0 I_1 + S_1\bar{S}_0 I_2 + S_1 S_0 I_3
+$$
+
+</MathBox>
+
+<CircuitSimulator
+  circuit="mux-4-to-1"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+---
+
+<div id="mux-tree-expansion" />
+
+## 🌳 Hierarchical MUX Tree Expansion
+
+When a system requires a wider multiplexer than what is available in standard catalog ICs (e.g., building a 16:1 MUX from 4:1 MUXes), we construct a **Hierarchical MUX Tree**.
+
+### Synthesizing a 4:1 MUX Using Three 2:1 MUXes
+
+We can build a 4:1 MUX using two levels of 2:1 MUXes:
+* **Level 1**: Two 2:1 MUXes select between pairs of inputs controlled by $S_0$:
+  * $MUX_A$: Inputs $(I_0, I_1)$ controlled by $S_0 \implies Y_A = \bar{S}_0 I_0 + S_0 I_1$
+  * $MUX_B$: Inputs $(I_2, I_3)$ controlled by $S_0 \implies Y_B = \bar{S}_0 I_2 + S_0 I_3$
+* **Level 2**: One 2:1 MUX selects between $Y_A$ and $Y_B$ controlled by $S_1$:
+  * $MUX_{final}$: Inputs $(Y_A, Y_B)$ controlled by $S_1 \implies Y = \bar{S}_1 Y_A + S_1 Y_B$
+
+<FlowPipeline
+  title="Two-Level 4:1 MUX Tree Hierarchy Using 2:1 MUXes"
+  subtitle="Hierarchical steering: Level 1 decodes LSB select S₀, Level 2 decodes MSB select S₁"
+  steps={[
+    {
+      title: "Level 1: S₀ Selection",
+      badge: "Stage 1 (2 MUXes)",
+      color: "blue",
+      description: "MUX A routes (I₀, I₁) to Y_A; MUX B routes (I₂, I₃) to Y_B.",
+      detail: "MUX A evaluates Y_A = S₀'·I₀ + S₀·I₁.\nMUX B evaluates Y_B = S₀'·I₂ + S₀·I₃.\nOperate concurrently in 1 t_MUX.",
+      actionText: "Routes to Level 2"
+    },
+    {
+      title: "Level 2: S₁ Selection",
+      badge: "Stage 2 (1 MUX)",
+      color: "purple",
+      description: "Final MUX selects between intermediate outputs (Y_A, Y_B).",
+      detail: "Evaluates Y = S₁'·Y_A + S₁·Y_B.\nProduces the full 4:1 multiplexed output.\nTotal Tree Latency: 2 t_MUX."
+    }
+  ]}
+/>
+
+<MathBox title="Algebraic Proof of 2:1 MUX Tree Expansion" type="proof">
+
+Substitute $Y_A$ and $Y_B$ into the Level 2 equation:
+
+$$
+\begin{aligned}
+Y &= \bar{S}_1 Y_A + S_1 Y_B \\
+&= \bar{S}_1(\bar{S}_0 I_0 + S_0 I_1) + S_1(\bar{S}_0 I_2 + S_0 I_3) \\
+&= \bar{S}_1\bar{S}_0 I_0 + \bar{S}_1 S_0 I_1 + S_1\bar{S}_0 I_2 + S_1 S_0 I_3
+\end{aligned}
+$$
+
+The result matches the exact equation of a 4:1 Multiplexer.
+
+</MathBox>
+
+### General MUX Sizing Rule
+
+To synthesize an $M$-to-1 MUX using $N$-to-1 MUX modules:
+* Number of modules in First Stage $= \lceil M / N \rceil$
+* Continue cascading until a single output remains.
+* Total number of $N:1$ MUXes $= \frac{M - 1}{N - 1}$ (when $M$ and $N$ are powers of 2).
+
+For example:
+* Building an **8:1 MUX using 2:1 MUXes**: $\frac{8 - 1}{2 - 1} = \mathbf{7\text{ MUXes}}$ ($4$ in stage 1, $2$ in stage 2, $1$ in stage 3).
+* Building a **16:1 MUX using 4:1 MUXes**: $\frac{16 - 1}{4 - 1} = \mathbf{5\text{ MUXes}}$ ($4$ in stage 1, $1$ in stage 2).
+
+---
+
+<div id="implementing-functions-using-mux" />
+
+## ⚡ Boolean Logic Implementation via MUX
+
+A multiplexer is essentially a programmable truth table lookup engine.
+
+### Method 1: Trivial Implementation Using a $2^n$-to-1 MUX
+
+To implement an arbitrary $n$-variable Boolean function $F(X_1, X_2, \dots, X_n)$ using a $2^n$-to-1 MUX:
+1. Connect all $n$ function variables directly to the $n$ select lines: $S_{n-1} = X_1, \dots, S_0 = X_n$.
+2. For every minterm $m_k$ where $F = 1$, tie the corresponding data input $I_k$ to **Logic 1 ($V_{DD}$)**.
+3. For every minterm $m_k$ where $F = 0$, tie the corresponding data input $I_k$ to **Logic 0 ($GND$)**.
+
+While simple, this method is hardware-inefficient because it requires a large MUX. In engineering interviews and real chip design, we use **Method 2**.
+
+---
+
+<div id="the-residue-table-method" />
+
+## 📝 The Residue Table Method ($2^{n-1}:1$ MUX)
+
+Any $n$-variable Boolean function can be implemented using a multiplexer with only **$n-1$ select lines** (a $2^{n-1}$-to-1 MUX) without needing any additional external logic gates!
+
+### The Step-by-Step Algorithm
+
+1. **Select Control Variables**: Assign $(n-1)$ variables to the MUX select lines. By convention, assign the most significant variables to select lines $(S_{n-2}, \dots, S_0)$.
+2. **Identify the Residue Variable**: Let the single remaining unassigned variable be $Z$ (typically the LSB).
+3. **Construct the Implementation Table**:
+   * Create $2^{n-1}$ columns corresponding to the MUX inputs $I_0, I_1, \dots, I_{2^{n-1}-1}$.
+   * Under each input $I_k$, list the two minterms it addresses:
+     * Top row: minterm when $Z = 0$ ($\bar{Z}$)
+     * Bottom row: minterm when $Z = 1$ ($Z$)
+   * Circle the minterms that are present in the function's ON-set ($\sum m$).
+4. **Determine Each Data Input Value**:
+   * If **neither** minterm in the column is circled $\implies I_k = \mathbf{0}$.
+   * If **both** minterms in the column are circled $\implies I_k = \mathbf{1}$.
+   * If **only the top** minterm ($\bar{Z}$) is circled $\implies I_k = \mathbf{\bar{Z}}$.
+   * If **only the bottom** minterm ($Z$) is circled $\implies I_k = \mathbf{Z}$.
+
+<FlowPipeline
+  title="The 4-Way Residue Table Decision Rules"
+  subtitle="Mapping circled minterms in column k directly to MUX data input pin I_k"
+  steps={[
+    {
+      title: "Neither Circled",
+      badge: "Logic 0 (GND)",
+      color: "blue",
+      description: "Both minterms absent from function ON-set.",
+      detail: "Neither state activates the output: tie input pin I_k permanently to Logic 0 (GND).",
+      actionText: "Tie to GND"
+    },
+    {
+      title: "Both Circled",
+      badge: "Logic 1 (V_DD)",
+      color: "emerald",
+      description: "Both minterms present in function ON-set.",
+      detail: "Output is active regardless of residue variable Z: tie input pin I_k permanently to Logic 1 (V_DD).",
+      actionText: "Tie to V_DD"
+    },
+    {
+      title: "Top Only Circled",
+      badge: "Complement (Z̄)",
+      color: "purple",
+      description: "Asserted only when residue variable Z = 0.",
+      detail: "Output matches complement: tie input pin I_k to Z̄ (or feed through inverter).",
+      actionText: "Wire Z̄"
+    },
+    {
+      title: "Bottom Only Circled",
+      badge: "Direct (Z)",
+      color: "amber",
+      description: "Asserted only when residue variable Z = 1.",
+      detail: "Output matches true variable: connect input pin I_k directly to variable Z."
+    }
+  ]}
+/>
+
+---
+
+<div id="universal-logic-property" />
+
+## 🧩 The Universal Logic Module Property
+
+A multiplexer is a **universal logic module**: any fundamental logic gate can be implemented using a single 2:1 Multiplexer.
+
+<MathBox title="Synthesizing Basic Gates Using a 2:1 MUX (Y = S'I₀ + SI₁)" type="formula">
+
+Let select line $S = A$:
+1. **NOT Gate ($\bar{A}$)**:  
+   Set $I_0 = 1, I_1 = 0 \implies Y = \bar{A}(1) + A(0) = \mathbf{\bar{A}}$
+2. **AND Gate ($AB$)**:  
+   Set $I_0 = 0, I_1 = B \implies Y = \bar{A}(0) + A(B) = \mathbf{AB}$
+3. **OR Gate ($A + B$)**:  
+   Set $I_0 = B, I_1 = 1 \implies Y = \bar{A}B + A(1) = A + \bar{A}B = \mathbf{A + B}$
+4. **NAND Gate ($\overline{AB}$)**:  
+   Set $I_0 = 1, I_1 = \bar{B} \implies Y = \bar{A}(1) + A\bar{B} = \bar{A} + \bar{B} = \mathbf{\overline{AB}}$
+5. **NOR Gate ($\overline{A + B}$)**:  
+   Set $I_0 = \bar{B}, I_1 = 0 \implies Y = \bar{A}\bar{B} + A(0) = \mathbf{\bar{A}\bar{B} = \overline{A + B}}$
+6. **XOR Gate ($A \oplus B$)**:  
+   Set $I_0 = B, I_1 = \bar{B} \implies Y = \bar{A}B + A\bar{B} = \mathbf{A \oplus B}$
+7. **XNOR Gate ($A \odot B$)**:  
+   Set $I_0 = \bar{B}, I_1 = B \implies Y = \bar{A}\bar{B} + AB = \mathbf{A \odot B}$
+
+</MathBox>
+
+---
+
+<div id="fpga-look-up-tables-lut" />
+
+## 🏭 Real-World Production Context: Data Steering, Processor Interconnects & FPGA LUTs
+
+Why does modern compute and reconfigurable hardware care so deeply about multiplexers?
+* **CPU Register Files**: When executing `ADD R1, R2, R3`, a multiplexer decodes register address `R2` to steer the physical register lines onto the ALU operand bus.
+* **Shared Memory Interconnects**: Crossbar switches and AXI bus interconnects route multi-core memory traffic using cascaded MUX arrays.
+* **FPGA Look-Up Tables (LUTs)**: Configurable logic blocks in modern FPGAs (AMD Xilinx, Intel Altera) rely on SRAM cells driving wide multiplexer trees to emulate arbitrary combinational functions in single-cycle deterministic latency:
+
+<ArchitectureStack
+  title="Inside a 6-Input FPGA Look-Up Table (LUT6)"
+  subtitle="How configuration SRAM cells and high-speed multiplexer trees evaluate arbitrary Boolean logic"
+  layers={[
+    {
+      badge: "Storage Layer",
+      title: "Configuration SRAM Cells (64 Bits)",
+      icon: "💾",
+      color: "blue",
+      description: "Holds the truth table output bits (0 or 1) programmed during bitstream upload.",
+      items: ["64x1 SRAM Array", "Static Retention", "Bitstream Configured"],
+      connectorText: "SRAM Bitlines to MUX Inputs"
+    },
+    {
+      badge: "Steering Core",
+      title: "6-Level Multiplexer Tree (64:1 MUX)",
+      icon: "🔀",
+      color: "purple",
+      description: "Constructed from cascading 2:1 MUXes controlled by primary inputs A, B, C, D, E, F.",
+      items: ["6 Cascaded Levels", "Fast NMOS Pass Gates", "Tree Decoder"],
+      connectorText: "Selected Bit to Output"
+    },
+    {
+      badge: "Output Stage",
+      title: "LUT Output Pin (Y)",
+      icon: "⚡",
+      color: "emerald",
+      description: "Delivers the evaluated Boolean function in a deterministic 150-picosecond latency.",
+      items: ["Deterministic t_pd", "Flip-Flop Bypass", "Carry Chain Tap"]
+    }
+  ]}
+/>
+
+* When a software developer writes Verilog/VHDL code for an arbitrary equation $F(A, B, C, D, E, F)$, the synthesis tool evaluates the truth table and stores all 64 output bits into 64 SRAM cells.
+* The 6 input signals act as select lines driving a 64:1 MUX tree.
+* In silicon, any arbitrary 6-variable Boolean function executes in the exact same deterministic propagation delay, regardless of whether the function is a simple AND gate or a complex cryptographic hash round!
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Full Adder Implementation Using Two 4:1 Multiplexers
+**Problem Statement:**  
+Design a 1-bit Full Adder ($A, B, C_{in} \to S, C_{out}$) using two 4:1 Multiplexers. Connect variables $A$ and $B$ to select lines ($S_1 = A, S_0 = B$) and derive the exact data input connections for both MUXes using the residue table method.
+
+#### Step 1: Write Truth Table for Full Adder
+Inputs: $A, B, C_{in}$. Output: $S = \sum m(1, 2, 4, 7)$, $C_{out} = \sum m(3, 5, 6, 7)$.
+
+| Minterm | $A$ ($S_1$) | $B$ ($S_0$) | $C_{in}$ (Residue) | Sum ($S$) | Carry ($C_{out}$) |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| $m_0$ | $0$ | $0$ | $0$ | $0$ | $0$ |
+| $m_1$ | $0$ | $0$ | $1$ | $1$ | $0$ |
+| $m_2$ | $0$ | $1$ | $0$ | $1$ | $0$ |
+| $m_3$ | $0$ | $1$ | $1$ | $0$ | $1$ |
+| $m_4$ | $1$ | $0$ | $0$ | $1$ | $0$ |
+| $m_5$ | $1$ | $0$ | $1$ | $0$ | $1$ |
+| $m_6$ | $1$ | $1$ | $0$ | $0$ | $1$ |
+| $m_7$ | $1$ | $1$ | $1$ | $1$ | $1$ |
+
+#### Step 2: Implementation Table for Sum ($S = \sum m(1, 2, 4, 7)$)
+Select lines: $S_1 = A, S_0 = B$. Residue variable: $C_{in}$.
+
+| Row Condition | $I_0$ ($AB=00$) | $I_1$ ($AB=01$) | $I_2$ ($AB=10$) | $I_3$ ($AB=11$) |
+| :--- | :---: | :---: | :---: | :---: |
+| $C_{in} = 0$ ($\bar{C}_{in}$) | $m_0$ | **$m_2$** (circled) | **$m_4$** (circled) | $m_6$ |
+| $C_{in} = 1$ ($C_{in}$) | **$m_1$** (circled) | $m_3$ | $m_5$ | **$m_7$** (circled) |
+| **Data Input Value** | **$C_{in}$** | **$\bar{C}_{in}$** | **$\bar{C}_{in}$** | **$C_{in}$** |
+
+* Column $I_0$: $m_1$ circled $\implies I_0 = C_{in}$
+* Column $I_1$: $m_2$ circled $\implies I_1 = \bar{C}_{in}$
+* Column $I_2$: $m_4$ circled $\implies I_2 = \bar{C}_{in}$
+* Column $I_3$: $m_7$ circled $\implies I_3 = C_{in}$
+
+#### Step 3: Implementation Table for Carry ($C_{out} = \sum m(3, 5, 6, 7)$)
+
+| Row Condition | $I_0$ ($AB=00$) | $I_1$ ($AB=01$) | $I_2$ ($AB=10$) | $I_3$ ($AB=11$) |
+| :--- | :---: | :---: | :---: | :---: |
+| $C_{in} = 0$ ($\bar{C}_{in}$) | $m_0$ | $m_2$ | $m_4$ | **$m_6$** (circled) |
+| $C_{in} = 1$ ($C_{in}$) | $m_1$ | **$m_3$** (circled) | **$m_5$** (circled) | **$m_7$** (circled) |
+| **Data Input Value** | **$0$** | **$C_{in}$** | **$C_{in}$** | **$1$** |
+
+* Column $I_0$: Neither circled $\implies I_0 = 0$ (GND)
+* Column $I_1$: $m_3$ circled $\implies I_1 = C_{in}$
+* Column $I_2$: $m_5$ circled $\implies I_2 = C_{in}$
+* Column $I_3$: Both circled ($m_6, m_7$) $\implies I_3 = 1$ ($V_{DD}$)
+
+#### Final Circuit Summary
+* **MUX 1 (Sum)**: Inputs $[I_0, I_1, I_2, I_3] = [C_{in}, \bar{C}_{in}, \bar{C}_{in}, C_{in}]$, Selects $S_1 = A, S_0 = B$.
+* **MUX 2 (Carry)**: Inputs $[I_0, I_1, I_2, I_3] = [0, C_{in}, C_{in}, 1]$, Selects $S_1 = A, S_0 = B$.
+
+---
+
+### Example 2: Implementing a 4-Variable Function Using an 8:1 Multiplexer
+**Problem Statement:**  
+Implement the 4-variable Boolean function:
+$$F(A, B, C, D) = \sum m(0, 1, 3, 4, 8, 9, 11, 14, 15)$$
+Using an 8:1 Multiplexer with $A, B, C$ connected to select lines $S_2, S_1, S_0$ respectively.
+
+#### Step 1: Map Variables to Select and Residue Lines
+* $n = 4$ variables ($A, B, C, D$).
+* Select inputs of 8:1 MUX: $S_2 = A$, $S_1 = B$, $S_0 = C$.
+* Residue variable: $D$.
+
+#### Step 2: Construct the Residue Table
+Inputs: $I_0$ to $I_7$ corresponding to $ABC \in \{000, 001, 010, 011, 100, 101, 110, 111\}$.
+
+| Row | $I_0$ ($000$) | $I_1$ ($001$) | $I_2$ ($010$) | $I_3$ ($011$) | $I_4$ ($100$) | $I_5$ ($101$) | $I_6$ ($110$) | $I_7$ ($111$) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| $D = 0$ ($\bar{D}$) | **$m_0$** | $m_2$ | **$m_4$** | $m_6$ | **$m_8$** | $m_{10}$ | $m_{12}$ | **$m_{14}$** |
+| $D = 1$ ($D$) | **$m_1$** | **$m_3$** | $m_5$ | $m_7$ | **$m_9$** | **$m_{11}$** | $m_{13}$ | **$m_{15}$** |
+| **Input** | **$1$** | **$D$** | **$\bar{D}$** | **$0$** | **$1$** | **$D$** | **$0$** | **$1$** |
+
+#### Step 3: Determine Values for Each Input
+* Column $I_0$: Both $m_0, m_1$ are in $F \implies I_0 = \mathbf{1}$
+* Column $I_1$: Only $m_3$ is in $F \implies I_1 = \mathbf{D}$
+* Column $I_2$: Only $m_4$ is in $F \implies I_2 = \mathbf{\bar{D}}$
+* Column $I_3$: Neither $m_6$ nor $m_7$ is in $F \implies I_3 = \mathbf{0}$
+* Column $I_4$: Both $m_8, m_9$ are in $F \implies I_4 = \mathbf{1}$
+* Column $I_5$: Only $m_{11}$ is in $F \implies I_5 = \mathbf{D}$
+* Column $I_6$: Neither $m_{12}$ nor $m_{13}$ is in $F \implies I_6 = \mathbf{0}$
+* Column $I_7$: Both $m_{14}, m_{15}$ are in $F \implies I_7 = \mathbf{1}$
+
+**Final Connections**:  
+* Select lines: $S_2 = A, S_1 = B, S_0 = C$.
+* Data inputs: $I = [1, D, \bar{D}, 0, 1, D, 0, 1]$.
+
+---
+
+### Example 3: Synthesizing an 8:1 MUX Using Only 2:1 MUXes
+**Problem Statement:**  
+1. Determine the exact number of 2:1 Multiplexers required to construct an 8:1 Multiplexer.
+2. Draw the tree hierarchy showing how select lines $S_2, S_1, S_0$ are mapped across each level.
+3. If each 2:1 MUX has a propagation delay of $1.5\text{ ns}$, calculate the total propagation delay of the 8:1 MUX tree.
+
+#### Step 1: Calculate Module Count
+Using the formula $\frac{M - 1}{N - 1}$:
+$$\text{Number of 2:1 MUXes} = \frac{8 - 1}{2 - 1} = \mathbf{7\text{ MUXes}}$$
+
+#### Step 2: Architecture & Select Line Allocation
+The 7 multiplexers are arranged in a 3-level binary tree:
+* **Stage 1 (4 MUXes)**:
+  * Inputs: $(I_0, I_1)$, $(I_2, I_3)$, $(I_4, I_5)$, $(I_6, I_7)$
+  * Select input for all 4 MUXes: **$S_0$ (LSB)**
+  * Produces 4 intermediate outputs: $Y_{1A}, Y_{1B}, Y_{1C}, Y_{1D}$.
+* **Stage 2 (2 MUXes)**:
+  * Inputs: $(Y_{1A}, Y_{1B})$ and $(Y_{1C}, Y_{1D})$
+  * Select input for both MUXes: **$S_1$**
+  * Produces 2 intermediate outputs: $Y_{2A}, Y_{2B}$.
+* **Stage 3 (1 MUX)**:
+  * Inputs: $(Y_{2A}, Y_{2B})$
+  * Select input: **$S_2$ (MSB)**
+  * Delivers the final output $Y$.
+
+#### Step 3: Propagation Delay Analysis
+* Signal propagation passes sequentially through one MUX in Stage 1, one MUX in Stage 2, and one MUX in Stage 3.
+* Total logic depth $= \log_2(8) = 3\text{ levels}$.
+* Total propagation delay:
+  $$T_{pd} = 3 \times t_{2:1\_MUX} = 3 \times 1.5\text{ ns} = \mathbf{4.5\text{ ns}}$$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why can any $n$-variable Boolean function be implemented with a $2^{n-1}:1$ MUX, but requires a $2^n:1$ MUX if no inverted input ($\bar{Z}$) is available?**  
+  The residue method depends on feeding four possible values to each MUX input: $\{0, 1, Z, \bar{Z}\}$. If you only have $Z$ available without an inverter (NOT gate), you cannot generate $\bar{Z}$ for columns that only circle the top minterm. In that case, you must either add an external NOT gate or upgrade to a $2^n:1$ MUX where inputs are strictly constants ($0$ or $1$).
+
+* **Can you implement an $n$-variable function using a $2^{n-2}:1$ MUX?**  
+  **Yes, but it requires external logic gates.** With a $2^{n-2}:1$ MUX, two variables remain as residue variables. Each MUX input must then be driven by an arbitrary function of those two residue variables (e.g., $Z_1 Z_2$, $Z_1 + Z_2$, $Z_1 \oplus Z_2$), which requires external AND/OR/XOR gates.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Inverting the Select Line Significance.**  
+  When mapping variables to select lines, always verify MSB vs LSB alignment. If you assign $S_1 = C$ and $S_0 = A$, your binary row selection will scramble the minterm addressing! Always maintain: $S_{MSB} = \text{Variable}_{MSB}$.
+* **Trap: Forgetting that MUX inputs must be tied off.**  
+  In CMOS hardware, leaving an unused MUX input "floating" causes high-impedance oscillation and excessive static power consumption. In synthesis and schematic diagrams, every unused input MUST be explicitly tied to $V_{DD}$ or $GND$.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "5.2 Carry Lookahead Adder & High-Speed Addition",
+    url: "/coredose/digital-logic/module-05/carry-lookahead-adder-and-high-speed-addition",
+  }}
+  next={{
+    title: "5.4 Decoders, Encoders & Priority Encoders",
+    url: "/coredose/digital-logic/module-05/decoders-encoders-and-priority-encoders",
+  }}
+  courseUrl="/coredose/digital-logic"
+/>

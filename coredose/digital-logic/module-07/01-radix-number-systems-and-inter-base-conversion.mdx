@@ -1,0 +1,597 @@
+---
+title: "7.1 Radix Number Systems & Inter-Base Conversion"
+description: "Master positional number systems, radix polynomial expansions, binary, octal, decimal, hexadecimal representations, integer division algorithms, fractional multiplication, power-of-two bit grouping, and floating-point precision limits."
+hide_table_of_contents: true
+---
+
+# 7.1 Radix Number Systems & Inter-Base Conversion
+
+<CoreDoseLessonHeader
+  module="Module 07: Number Systems, Complements & Arithmetic"
+  topic="Topic 7.1"
+  courseUrl="/coredose/digital-logic"
+  readTime="20 min read"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Foundational Computing"
+/>
+
+## 💡 Core Intuition: The Odometer & The Radix Weight Balance
+
+Every number we write is a shorthand code. When you write the number $354$, you do not simply possess three digits; you possess:
+
+$$
+3 \times 10^2 + 5 \times 10^1 + 4 \times 10^0 = 300 + 50 + 4
+$$
+
+The base—or **Radix ($r$)**—defines how many distinct numerical symbols exist in that system before a column rolls over to zero and propagates a carry to the next position, exactly like the mechanical wheels of an automotive odometer.
+
+### 🍳 The Everyday Analogy: The Currency Exchange Desk
+
+Imagine an eccentric bank where cash is dispensed strictly in powers of a currency unit:
+* In a **Decimal (Base-10)** bank, the teller dispenses `$1000`, `$100`, `$10`, and `$1` notes.
+* In a **Binary (Base-2)** bank, the teller only stocks `$16`, `$8`, `$4`, `$2`, and `$1` notes.
+* In an **Octal (Base-8)** bank, the teller dispenses `$64`, `$8`, and `$1` notes.
+* In a **Hexadecimal (Base-16)** bank, the teller dispenses `$4096`, `$256`, `$16`, and `$1` notes.
+
+If you request `$42` from the Binary teller, they hand you:
+$$
+1 \times 32 + 0 \times 16 + 1 \times 8 + 0 \times 4 + 1 \times 2 + 0 \times 1 = (101010)_2
+$$
+
+Each base is merely a different combination of power weights describing the exact same underlying physical quantity!
+
+### 💻 Bridging to Computer Science & Silicon Hardware
+
+Why do digital computers operate in binary when humans think in decimal?
+1. **CMOS Voltage Margins**: In silicon, distinguishing between two discrete electrical voltage states (ground $0\,\text{V}$ and supply $V_{DD} = 1.2\,\text{V}$) provides maximum noise immunity. Distinguishing 10 distinct voltage levels ($0.12\,\text{V}$ per state) would cause catastrophic bit flips from thermal noise.
+2. **Octal ($2^3$) and Hexadecimal ($2^4$) as Human Shorthand**: Modern 64-bit microprocessors deal with memory addresses like `0x7FFE_4A10_B9C0`. Writing this address in binary requires 64 ones and zeros (`0111111111111110...`), which is humanly impossible to parse without error. Because $16 = 2^4$, each hexadecimal character directly groups **exactly 4 binary bits (one nibble)**, providing a 1:1 lossless window into physical hardware memory without performing complex division.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 📐 Positional Number Systems & The Radix Polynomial
+
+In a positional number system with radix $r$, any real number $N$ is expressed as an ordered sequence of digits:
+
+$$
+(N)_r = (d_{n-1} \, d_{n-2} \dots d_1 \, d_0 \, . \, d_{-1} \, d_{-2} \dots d_{-m})_r
+$$
+
+Where:
+* $r$ is the **Radix (Base)** of the number system ($r \ge 2, \, r \in \mathbb{Z}^+$).
+* $d_i$ is a digit satisfying $0 \le d_i \le r - 1$.
+* $n$ is the number of integer digits to the left of the radix point.
+* $m$ is the number of fractional digits to the right of the radix point.
+
+<MathBox title="The Fundamental Radix Polynomial Expansion" type="formula">
+
+$$
+(N)_{10} = \sum_{i=-m}^{n-1} d_i \cdot r^i = d_{n-1}r^{n-1} + \dots + d_1 r^1 + d_0 r^0 + d_{-1} r^{-1} + \dots + d_{-m} r^{-m}
+$$
+
+</MathBox>
+
+Each position corresponds to an exponential weight $r^i$. Notice that:
+* $r^0 = 1$ is always the **units digit** directly preceding the radix point.
+* Positions to the left increment powers: $r^1, r^2, r^3, \dots$
+* Positions to the right decrement negative powers: $r^{-1} = \frac{1}{r}, \, r^{-2} = \frac{1}{r^2}, \dots$
+
+---
+
+## 🗂️ Standard Radices in Computing (Base 2, 8, 10, 16)
+
+<ConceptComparison
+  title="Comparison of Primary Computer Science Number Systems"
+  leftTitle="System & Radix"
+  rightTitle="Allowed Digits & Physical Silicon Use Case"
+  rows={[
+    {
+      feature: "Binary (Radix 2)",
+      left: "Symbols: {0, 1}",
+      right: "Native hardware machine representation. Corresponds directly to transistor cutoff (0) and saturation (1)."
+    },
+    {
+      feature: "Octal (Radix 8)",
+      left: "Symbols: {0, 1, 2, 3, 4, 5, 6, 7}",
+      right: "Historic 12-bit / 36-bit architectures (PDP-8, PDP-11) and modern POSIX file permissions (e.g. chmod 755 = rwxr-xr-x)."
+    },
+    {
+      feature: "Decimal (Radix 10)",
+      left: "Symbols: {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}",
+      right: "Human biological standard (derived from 10 fingers). Requires BCD (Binary Coded Decimal) or binary conversion in silicon."
+    },
+    {
+      feature: "Hexadecimal (Radix 16)",
+      left: "Symbols: {0–9, A=10, B=11, C=12, D=13, E=14, F=15}",
+      right: "Universal programmer notation for byte-level memory addresses, IPv6 packets, RGB color codes (#FF5733), and machine code opcodes."
+    }
+  ]}
+/>
+
+---
+
+## 🔄 Non-Decimal to Decimal: Weighted Expansion
+
+To convert any number from an arbitrary base $r$ to Decimal (Base-10), expand every digit into its corresponding weight $r^i$ and compute the arithmetic sum in decimal.
+
+### Example 1: Binary to Decimal with Fractions
+Convert $(11010.101)_2$ to decimal:
+
+$$
+\begin{aligned}
+(11010.101)_2 &= (1 \times 2^4) + (1 \times 2^3) + (0 \times 2^2) + (1 \times 2^1) + (0 \times 2^0) + (1 \times 2^{-1}) + (0 \times 2^{-2}) + (1 \times 2^{-3}) \\
+&= 16 + 8 + 0 + 2 + 0 + 0.5 + 0 + 0.125 \\
+&= (26.625)_{10}
+\end{aligned}
+$$
+
+### Example 2: Hexadecimal to Decimal
+Convert $(3\text{F}2.\text{C})_{16}$ to decimal (recall $\text{F} = 15, \, \text{C} = 12$):
+
+$$
+\begin{aligned}
+(3\text{F}2.\text{C})_{16} &= (3 \times 16^2) + (15 \times 16^1) + (2 \times 16^0) + (12 \times 16^{-1}) \\
+&= (3 \times 256) + (15 \times 16) + (2 \times 1) + (12 \times 0.0625) \\
+&= 768 + 240 + 2 + 0.75 \\
+&= (1010.75)_{10}
+\end{aligned}
+$$
+
+---
+
+## ➗ Decimal to Any Base: Successive Division & Multiplication
+
+Converting from Decimal (Base-10) to an arbitrary target radix $r$ requires **separating the number into its integer and fractional components**:
+1. **Integer Part**: Processed using **Successive Division by $r$**.
+2. **Fractional Part**: Processed using **Successive Multiplication by $r$**.
+
+<ConceptComparison
+  title="Decimal to Arbitrary Radix (Base r) Conversion Framework"
+  subtitle="Decomposing real numbers into integer division and fractional multiplication pipelines"
+  concepts={[
+    {
+      title: "Integer Part (N_int)",
+      badge: "Successive Division",
+      domain: "Repeated Division by Radix r",
+      color: "blue",
+      points: [
+        "Divide integer dividend N by target radix r at each iteration.",
+        "Record remainder as the current radix-r digit (range: 0 to r - 1).",
+        "Replace dividend with the integer quotient: Q = ⌊N / r⌋.",
+        "Termination Condition: Stop when quotient reaches 0.",
+        "Crucial Read Order: Read remainders Bottom-to-Top (First remainder = LSB, Final remainder = MSB)."
+      ]
+    },
+    {
+      title: "Fractional Part (N_frac)",
+      badge: "Successive Multiplication",
+      domain: "Repeated Multiplication by Radix r",
+      color: "emerald",
+      points: [
+        "Multiply current fractional part by target radix r at each iteration.",
+        "Extract the generated integer carry digit (range: 0 to r - 1).",
+        "Retain the remaining purely fractional part for the next cycle.",
+        "Termination Condition: Stop when fraction equals 0 or required precision bits are met.",
+        "Crucial Read Order: Read extracted integer digits Top-to-Bottom (First carry = MSB / r⁻¹, subsequent = r⁻², r⁻³, ...)."
+      ]
+    }
+  ]}
+/>
+
+<FlowPipeline
+  title="Dual-Pipeline Base Conversion Execution Flow"
+  subtitle="Step-by-step algorithm branching into Integer Division and Fractional Multiplication"
+  stages={[
+    {
+      id: "integer-pipeline",
+      stageName: "Pipeline A: Integer Conversion (Successive Division)",
+      steps: [
+        {
+          title: "Divide by Target Radix r",
+          sublabel: "N ÷ r",
+          description: "Perform integer division of dividend N by radix r.",
+          color: "blue",
+          badge: "Step 1",
+          actionText: "Produces Q and R"
+        },
+        {
+          title: "Record Remainder (R)",
+          sublabel: "0 ≤ R < r",
+          description: "Remainder R becomes next digit. First remainder is LSB.",
+          color: "amber",
+          badge: "Step 2",
+          actionText: "Update dividend N = Q"
+        },
+        {
+          title: "Check Q = 0 Condition",
+          sublabel: "Loop until Q = 0",
+          description: "If Q > 0, repeat division. When Q = 0, stop.",
+          color: "purple",
+          badge: "Step 3",
+          actionText: "Collect digits"
+        },
+        {
+          title: "Read Bottom-to-Top",
+          sublabel: "LSB → MSB",
+          description: "Assemble integer digits in reverse generation order (Bottom-to-Top).",
+          color: "emerald",
+          badge: "Final Digits",
+          actionText: "Integer result complete"
+        }
+      ]
+    },
+    {
+      id: "fraction-pipeline",
+      stageName: "Pipeline B: Fractional Conversion (Successive Multiplication)",
+      steps: [
+        {
+          title: "Multiply by Radix r",
+          sublabel: "F × r",
+          description: "Multiply remaining fractional value by target radix r.",
+          color: "emerald",
+          badge: "Step 1",
+          actionText: "Extract integer part"
+        },
+        {
+          title: "Record Integer Carry",
+          sublabel: "Digit = ⌊F × r⌋",
+          description: "Extracted integer is next fractional digit. First carry is MSB (r⁻¹).",
+          color: "amber",
+          badge: "Step 2",
+          actionText: "Retain fractional part"
+        },
+        {
+          title: "Check F = 0 Condition",
+          sublabel: "Loop until F = 0 or limit",
+          description: "Continue multiplying remaining fraction until it reaches 0 or required precision.",
+          color: "purple",
+          badge: "Step 3",
+          actionText: "Collect digits"
+        },
+        {
+          title: "Read Top-to-Bottom",
+          sublabel: "MSB → LSB",
+          description: "Assemble fractional digits in direct order of extraction (Top-to-Bottom).",
+          color: "rose",
+          badge: "Final Digits",
+          actionText: "Fractional result complete"
+        }
+      ]
+    }
+  ]}
+/>
+
+### 1. Integer Conversion: Successive Division Algorithm
+Divide the integer repeatedly by target base $r$. At each iteration:
+* The remainder becomes the next digit.
+* The quotient becomes the dividend for the next step.
+* **Stop** when the quotient reaches $0$.
+* **Critical Order**: The **first remainder** generated is the **Least Significant Bit (LSB)** ($r^0$). The **last remainder** generated is the **Most Significant Bit (MSB)**. Read from **Bottom to Top**!
+
+#### Example: Convert $(53)_{10}$ to Binary ($r=2$)
+$$
+\begin{array}{r|c|l}
+\text{Dividend} & \text{Quotient} & \text{Remainder} \\
+\hline
+53 \div 2 & 26 & 1 \quad (\text{LSB}) \uparrow \\
+26 \div 2 & 13 & 0 \\
+13 \div 2 & 6 & 1 \\
+6 \div 2 & 3 & 0 \\
+3 \div 2 & 1 & 1 \\
+1 \div 2 & 0 & 1 \quad (\text{MSB}) \\
+\end{array}
+$$
+Reading bottom-to-top: $(53)_{10} = (110101)_2$.
+
+---
+
+### 2. Fractional Conversion: Successive Multiplication Algorithm
+Multiply the fractional portion repeatedly by target base $r$. At each iteration:
+* The integer part of the product is extracted as the next digit.
+* The remaining fractional part is multiplied again by $r$.
+* **Stop** when the fractional part reaches exactly $0$, or when desired precision is reached.
+* **Critical Order**: The **first integer extracted** corresponds to $r^{-1}$ (the MSB of the fraction). The subsequent integers follow downwards. Read from **Top to Bottom**!
+
+#### Example: Convert $(0.6875)_{10}$ to Binary ($r=2$)
+$$
+\begin{aligned}
+0.6875 \times 2 &= \mathbf{1}.3750 \implies \text{Digit } d_{-1} = 1 \quad (\text{MSB of fraction}) \downarrow \\
+0.3750 \times 2 &= \mathbf{0}.7500 \implies \text{Digit } d_{-2} = 0 \\
+0.7500 \times 2 &= \mathbf{1}.5000 \implies \text{Digit } d_{-3} = 1 \\
+0.5000 \times 2 &= \mathbf{1}.0000 \implies \text{Digit } d_{-4} = 1 \quad (\text{Terminates!})
+\end{aligned}
+$$
+Reading top-to-bottom: $(0.6875)_{10} = (0.1011)_2$.
+
+---
+
+## ⚡ Power-of-Two Fast Groupings (Binary ↔ Octal ↔ Hex)
+
+Whenever two radices are related by a power of two ($r_1 = 2^k$), conversion **bypasses decimal arithmetic completely**!
+
+$$
+8 = 2^3 \implies \mathbf{1 \text{ Octal Digit}} \iff \mathbf{3 \text{ Binary Bits}}
+$$
+$$
+16 = 2^4 \implies \mathbf{1 \text{ Hex Digit}} \iff \mathbf{4 \text{ Binary Bits (1 Nibble)}}
+$$
+
+### Binary $\leftrightarrow$ Hexadecimal Fast Mapping
+1. **Binary to Hexadecimal**: Group the binary string into sets of **4 bits**, starting from the radix point:
+   * For the integer part: Group moving **left** from the radix point (pad leading zeros on the far left if needed).
+   * For the fractional part: Group moving **right** from the radix point (pad trailing zeros on the far right if needed).
+   * Substitute each 4-bit group with its hexadecimal symbol ($0\dots9, \text{A}\dots\text{F}$).
+
+#### Example: Convert $(10111101011.101101)_2$ to Hexadecimal
+* **Integer part**: $\underbrace{0101}_{5} \quad \underbrace{1110}_{\text{E}} \quad \underbrace{1011}_{\text{B}}$ *(padded with leading zero)*
+* **Fractional part**: $\underbrace{1011}_{\text{B}} \quad \underbrace{0100}_{4}$ *(padded with two trailing zeros)*
+* **Result**: $(5\text{EB}.\text{B}4)_{16}$
+
+| Binary Groups | `0101` | `1110` | `1011` | `.` | `1011` | `0100` |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Hex Equivalent** | **`5`** | **`E`** | **`B`** | **`.`** | **`B`** | **`4`** |
+
+### Binary $\leftrightarrow$ Octal Fast Mapping
+Group into clusters of **3 bits**:
+* $(10111101011.101101)_2 \implies \underbrace{010}_{2} \quad \underbrace{111}_{7} \quad \underbrace{101}_{5} \quad \underbrace{011}_{3} \quad . \quad \underbrace{101}_{5} \quad \underbrace{101}_{5} = (2753.55)_8$
+
+---
+
+## 🌉 Arbitrary Base-to-Base Conversions (The Decimal Bridge)
+
+When converting between two arbitrary bases where neither is an integer power of the other (e.g., Base-5 to Base-7, or Base-3 to Base-8), use **Decimal as the intermediate bridge**:
+
+$$
+\text{Source Base } r_1 \xrightarrow{\text{Weighted Polynomial Expansion}} \text{Decimal (Base 10)} \xrightarrow{\text{Successive Division / Multiplication}} \text{Target Base } r_2
+$$
+
+### Concrete Problem: Convert $(243.2)_5$ to Base 7
+
+**Step 1: Convert Base-5 to Decimal**
+$$
+\begin{aligned}
+(243.2)_5 &= (2 \times 5^2) + (4 \times 5^1) + (3 \times 5^0) + (2 \times 5^{-1}) \\
+&= (2 \times 25) + (4 \times 5) + (3 \times 1) + (2 \times 0.2) \\
+&= 50 + 20 + 3 + 0.4 = (73.4)_{10}
+\end{aligned}
+$$
+
+**Step 2: Convert $(73.4)_{10}$ to Base-7**
+* **Integer (73)**:
+  $$
+  73 \div 7 = 10 \quad \text{rem } 3 \uparrow
+  $$
+  $$
+  10 \div 7 = 1 \quad \text{rem } 3
+  $$
+  $$
+  1 \div 7 = 0 \quad \text{rem } 1
+  $$
+  $\implies (133)_7$
+* **Fraction (0.4)**:
+  $$
+  0.4 \times 7 = \mathbf{2}.8 \implies 2 \downarrow
+  $$
+  $$
+  0.8 \times 7 = \mathbf{5}.6 \implies 5
+  $$
+  $$
+  0.6 \times 7 = \mathbf{4}.2 \implies 4
+  $$
+  $\implies (0.254\dots)_7$
+
+**Final Result**: $(243.2)_5 = (133.254\dots)_7$.
+
+---
+
+## 🎛️ Interactive Radix Converter & Derivation Stepper
+
+Experiment with any integer or fractional value across Binary, Octal, Decimal, and Hexadecimal. Inspect the full successive division and multiplication tables live:
+
+<NumberSystemSimulator
+  mode="converter"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+---
+
+## ⚠️ Fractional Precision Limits & Floating-Point Hazards
+
+One of the most profound realizations in computer systems is that **finite decimal fractions do not necessarily terminate in binary**!
+
+Consider the seemingly innocuous decimal number $0.1_{10}$ (one-tenth):
+
+$$
+\begin{aligned}
+0.1 \times 2 &= \mathbf{0}.2 \implies 0 \downarrow \\
+0.2 \times 2 &= \mathbf{0}.4 \implies 0 \\
+0.4 \times 2 &= \mathbf{0}.8 \implies 0 \\
+0.8 \times 2 &= \mathbf{1}.6 \implies 1 \\
+0.6 \times 2 &= \mathbf{1}.2 \implies 1 \\
+0.2 \times 2 &= \mathbf{0}.4 \implies 0 \quad (\text{Pattern repeats indefinitely!})
+\end{aligned}
+$$
+
+$$
+(0.1)_{10} = (0.0\overline{0011}00110011\dots)_2
+$$
+
+Because silicon registers have finite bit width (32-bit single precision or 64-bit double precision), the repeating bits must eventually be truncated or rounded!
+This leads to the famous programming anomaly:
+```javascript
+console.log(0.1 + 0.2 === 0.3); // Output: FALSE! (Evaluates to 0.30000000000000004)
+```
+
+<MathBox title="Condition for Terminating Fractional Representation" type="formula">
+
+A reduced fraction $\frac{P}{Q}$ terminates in radix $r$ if and only if **all prime factors of the denominator $Q$ divide the radix $r$**.
+* In **Decimal ($r=10 = 2 \times 5$)**: Any fraction whose denominator factors into only $2$s and $5$s terminates (e.g. $\frac{1}{2}, \frac{1}{4}, \frac{1}{5}, \frac{1}{10}$).
+* In **Binary ($r=2$)**: **Only** fractions whose denominator is an exact power of $2$ ($2^k$) terminate! $\frac{1}{10} = \frac{1}{2 \times 5}$ contains a prime factor $5$, making it infinitely repeating in binary!
+
+</MathBox>
+
+---
+
+<div id="real-world-production-context" />
+
+## 🏭 Real-World Production Context: Memory Addressing, Endianness & Unix Permissions
+
+In system programming and computer architecture, multi-radix mastery directly bridges software abstraction with underlying hardware registers.
+
+<ArchitectureStack
+  title="Computing Systems Multi-Radix Representation Hierarchy"
+  description="How different radices bridge high-level programming semantics with low-level transistor switching states."
+  layers={[
+    {
+      badge: "Application Layer",
+      title: "POSIX File Permissions & Hex Bitmasks",
+      icon: "💻",
+      color: "blue",
+      description: "Developers use octal chmod 755 (rwxr-xr-x) and hexadecimal color hexes (#FF5733) or network socket flags for readability.",
+      items: ["POSIX Octal Modes", "RGB Color Hex (#RRGGBB)", "Memory Offsets (0x1000)"],
+      connectorText: "Mapped to OS Memory Paging"
+    },
+    {
+      badge: "OS & Kernel",
+      title: "64-Bit Virtual Memory Addressing (Hex)",
+      icon: "🗂️",
+      color: "purple",
+      description: "Page tables and GDB debuggers express 64-bit pointers in 16 hex digits (e.g. 0x7FFF_FFFF_E000), where each character groups exactly 4 binary bits.",
+      items: ["4-Bit Nibble Grouping", "Lossless Memory Inspection", "Cache Line Alignment"],
+      connectorText: "Passed to CPU Register Files"
+    },
+    {
+      badge: "Architecture Datapath",
+      title: "ALU Register Files & Floating-Point Units",
+      icon: "⚡",
+      color: "amber",
+      description: "ALU datapaths execute operations on 32-bit/64-bit binary registers, where fractions like 0.1 become infinitely repeating mantissas.",
+      items: ["Fixed-Point Word Sizing", "Binary Rounding Hazards", "ALU Status Flags"],
+      connectorText: "Transistor Gate Voltage Switching"
+    },
+    {
+      badge: "Physical Silicon",
+      title: "CMOS Dual Voltage Levels (0V / 1.2V)",
+      icon: "🔬",
+      color: "emerald",
+      description: "Transistors switch between GND (Logic 0) and VDD (Logic 1), providing maximal noise margin in binary logic.",
+      items: ["Noise Margin Immunity", "Transistor Cutoff / Saturation", "Deterministic Switching Delay"]
+    }
+  ]}
+/>
+
+* **Memory Addressing in Hexadecimal**: Modern 64-bit systems handle addresses that would be unreadable in binary. Because $16 = 2^4$, each hexadecimal character directly corresponds to 4 physical flip-flop states (one nibble), enabling engineers to audit memory layouts losslessly without division.
+* **Octal in Unix Permissions**: The classic POSIX permissions model maps 3 bits (Read $= 4$, Write $= 2$, Execute $= 1$) into a single octal digit ($0$ through $7$). An octal string like `755` provides an instant view of three independent 3-bit registers controlling Owner, Group, and Other privileges.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: High-Precision Fractional Conversion to Binary & Hexadecimal
+**Problem Statement:**  
+Convert the decimal quantity $N = (105.6875)_{10}$ into:
+1. Exact binary representation.
+2. Hexadecimal representation via power-of-two nibble grouping.
+
+**Step-by-Step Solution:**
+1. **Integer Conversion ($105_{10} \to$ Binary via Successive Division by 2):**  
+   * $105 \div 2 = 52$ rem $1$ (LSB)  
+   * $52 \div 2 = 26$ rem $0$  
+   * $26 \div 2 = 13$ rem $0$  
+   * $13 \div 2 = 6$ rem $1$  
+   * $6 \div 2 = 3$ rem $0$  
+   * $3 \div 2 = 1$ rem $1$  
+   * $1 \div 2 = 0$ rem $1$ (MSB)  
+   * Reading Bottom-to-Top: $105_{10} = \mathbf{1101001}_2$.
+2. **Fractional Conversion ($0.6875_{10} \to$ Binary via Successive Multiplication by 2):**  
+   * $0.6875 \times 2 = \mathbf{1}.375 \implies 1$ (MSB, $2^{-1}$)  
+   * $0.375 \times 2 = \mathbf{0}.75 \implies 0$ ($2^{-2}$)  
+   * $0.75 \times 2 = \mathbf{1}.5 \implies 1$ ($2^{-3}$)  
+   * $0.5 \times 2 = \mathbf{1}.0 \implies 1$ ($2^{-4}$)  
+   * Fraction terminates at 0. Reading Top-to-Bottom: $0.6875_{10} = \mathbf{0.1011}_2$.  
+   * Combined Binary Result: $(105.6875)_{10} = \mathbf{1101001.1011}_2$.
+3. **Hexadecimal Conversion via 4-Bit Nibble Grouping:**  
+   * Pad integer on the left to complete 4-bit nibbles: $\underbrace{0110}_{6} \quad \underbrace{1001}_{9} \implies \mathbf{69}_{16}$.  
+   * Fractional nibble: $\underbrace{1011}_{\text{B}} \implies \mathbf{.B}_{16}$.  
+   * Final Hexadecimal Result: $(105.6875)_{10} = \mathbf{69.B}_{16}$.
+
+---
+
+### Example 2: Arbitrary Base Conversion via the Decimal Bridge
+**Problem Statement:**  
+Convert the base-5 number $(314.2)_5$ into its equivalent octal (base-8) representation, carrying the fractional conversion to 3 octal places.
+
+**Step-by-Step Solution:**
+1. **Bridge to Decimal via Radix-5 Polynomial Expansion:**  
+   $$(314.2)_5 = (3 \times 5^2) + (1 \times 5^1) + (4 \times 5^0) + (2 \times 5^{-1})$$  
+   $$(314.2)_5 = (3 \times 25) + (1 \times 5) + (4 \times 1) + (2 \times 0.2) = 75 + 5 + 4 + 0.4 = \mathbf{(84.4)_{10}}$$
+2. **Convert Decimal Integer $84_{10}$ to Octal via Successive Division by 8:**  
+   * $84 \div 8 = 10$ rem $4$ (LSB)  
+   * $10 \div 8 = 1$ rem $2$  
+   * $1 \div 8 = 0$ rem $1$ (MSB)  
+   * Reading Bottom-to-Top: $84_{10} = \mathbf{(124)_8}$.
+3. **Convert Decimal Fraction $0.4_{10}$ to Octal via Successive Multiplication by 8:**  
+   * $0.4 \times 8 = \mathbf{3}.2 \implies 3$ (First octal fractional digit)  
+   * $0.2 \times 8 = \mathbf{1}.6 \implies 1$  
+   * $0.6 \times 8 = \mathbf{4}.8 \implies 4$  
+   * Fractional Part: $(0.314\dots)_8$.  
+   * Final Result: $(314.2)_5 = \mathbf{(124.314\dots)_8}$.
+
+---
+
+### Example 3: Determination of Unknown Radix from an Algebraic Equation
+**Problem Statement:**  
+Find the unknown radix $b$ for which the arithmetic equation is valid:  
+$$\sqrt{(41)_b} = (5)_b$$
+
+**Step-by-Step Solution:**
+1. **Identify Positional Constraints on Radix $b$:**  
+   * The equation contains the digit $5$ in $(5)_b$ and digit $4$ in $(41)_b$.  
+   * Because every digit in radix $b$ must be $< b$, the base must satisfy $b > 5$ (i.e. $b \ge 6$).
+2. **Expand Both Sides into Decimal Algebraic Expressions:**  
+   * LHS: $\sqrt{(41)_b} = \sqrt{4 \cdot b^1 + 1 \cdot b^0} = \sqrt{4b + 1}$  
+   * RHS: $(5)_b = 5 \cdot b^0 = 5$
+3. **Solve for $b$:**  
+   $$\sqrt{4b + 1} = 5$$  
+   Square both sides:  
+   $$4b + 1 = 25 \implies 4b = 24 \implies \mathbf{b = 6}$$
+4. **Verification:**  
+   * Check $b = 6$: $(41)_6 = 4(6) + 1 = 25_{10}$.  
+   * $\sqrt{25_{10}} = 5_{10} = (5)_6$.  
+   * The constraint $b \ge 6$ is met exactly. The radix is $b = 6$.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why must we pad zeros on the LEFT for integers and on the RIGHT for fractions when grouping into nibbles?**  
+   Prepending zeros to an integer ($0011 = 3$) does not change its numerical magnitude ($0 \times 2^3 + 0 \times 2^2 + 1 \times 2^1 + 1 \times 2^0 = 3$). Similarly, appending zeros to the tail of a fraction ($0.1100 = 0.75$) does not change its value. However, appending zeros to an integer or prepending zeros to a fraction radically shifts the radix power weights and corrupts the number!
+* **How many total binary bits are required to store an $n$-digit decimal integer?**  
+   To represent an integer $N < 10^n$, we need $2^k \ge 10^n \implies k \ge n \log_2(10) \approx 3.322 \times n$. Thus, each decimal digit requires approximately **$3.32$ bits** (practically, we allocate 4 bits per decimal digit in BCD).
+:::
+
+:::warning Common Interview Traps
+* **Trap: Forgetting that a Hexadecimal digit can represent up to 15, not 16.**  
+   In Base-16, the symbol `10` represents $(16)_{10}$. The digit for decimal 15 is `F`. Never write `16` or `10` as a single digit in base 16!
+* **Trap: Inverting the read-out order between division and multiplication.**  
+   * Division remainders (integer conversion) are read **Bottom to Top** (first remainder is LSB).  
+   * Multiplication products (fractional conversion) are read **Top to Bottom** (first extracted digit is MSB). Inverting this order is the most common error in timed university examinations!
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "6.4 Registers, Shift Registers & Synchronous Counters",
+    url: "/coredose/digital-logic/module-06/registers-shift-registers-and-synchronous-counters",
+  }}
+  next={{
+    title: "7.2 r's and (r-1)'s Complements (1's & 2's Complement)",
+    url: "/coredose/digital-logic/module-07/rs-and-r-minus-1s-complements-and-subtraction",
+  }}
+  courseUrl="/coredose/digital-logic"
+/>

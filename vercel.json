@@ -1,5 +1,5 @@
 {
-  "buildCommand": "NODE_OPTIONS=\"--max-old-space-size=6144\" npm run build",
+  "buildCommand": "NODE_OPTIONS=\"--max-old-space-size=4608\" TERSER_PARALLEL=2 npm run build",
   "cleanUrls": true,
   "trailingSlash": false,
   "redirects": [

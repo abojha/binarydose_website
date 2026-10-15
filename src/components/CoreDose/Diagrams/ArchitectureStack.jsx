@@ -5,8 +5,9 @@ import styles from './ArchitectureStack.module.css';
  * ArchitectureStack: Renders a modern, responsive, multi-tier architectural stack.
  * Ideal for OS 4-Layer system, OSI 7-Layer model, TCP/IP stack, storage engine hierarchies.
  */
-export default function ArchitectureStack({ title, subtitle, layers = [], showConnectors = true }) {
-  if (!layers || layers.length === 0) return null;
+export default function ArchitectureStack({ title, subtitle, layers = [], levels, showConnectors = true }) {
+  const effectiveLayers = (layers && layers.length > 0) ? layers : (levels || []);
+  if (!effectiveLayers || effectiveLayers.length === 0) return null;
 
   const colorMap = {
     purple: styles.colorPurple,
@@ -27,13 +28,13 @@ export default function ArchitectureStack({ title, subtitle, layers = [], showCo
       )}
 
       <div className={styles.stack}>
-        {layers.map((layer, index) => {
+        {effectiveLayers.map((layer, index) => {
           const colorClass = colorMap[layer.color] || styles.colorBlue;
-          const isLast = index === layers.length - 1;
+          const isLast = index === effectiveLayers.length - 1;
           const renderConnector = showConnectors && layer.connectorText !== false && !isLast;
 
           const cardTitle = layer.title || layer.name;
-          const cardDesc = layer.description || layer.role;
+          const cardDesc = layer.description || layer.role || layer.desc;
           const cardItems = layer.items || (Array.isArray(layer.components) ? layer.components.map(c => typeof c === 'string' ? c : `${c.name || ''}${c.desc ? ` (${c.desc})` : ''}`) : []);
 
           return (

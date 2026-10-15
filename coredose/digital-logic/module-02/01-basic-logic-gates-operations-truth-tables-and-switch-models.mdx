@@ -1,0 +1,401 @@
+---
+title: "2.1 Basic Logic Gates: Operations, Truth Tables & Switch Models"
+description: "First-principles engineering guide to fundamental logic gates: NOT (Inverter), OR, and AND. Includes electrical switch analogies, truth tables, algebraic properties, data gating, and CMOS propagation delay mechanics."
+hide_table_of_contents: true
+---
+
+# 2.1 Basic Logic Gates: Operations, Truth Tables & Switch Models
+
+<CoreDoseLessonHeader
+  module="Module 02: Logic Gates & Universal Implementation"
+  topic="Topic 2.1"
+  courseUrl="/coredose/digital-logic"
+  readTime="14 min read"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Foundational Computing"
+/>
+
+## 💡 Core Intuition: The Valve and Switch Network
+
+Every digital computer, from an 8-bit microcontroller to a multi-core cloud processor, is built entirely from tiny physical switches called **logic gates**. A logic gate is an electronic circuit with one or more binary inputs and exactly one binary output that enforces a specific Boolean operation.
+
+### 🍳 The Everyday Analogy: Water Pipes and Light Switches
+
+Imagine an irrigation pipe network controlled by mechanical ball valves:
+
+* **Switches in Series (AND Gate)**: Water flows to the crops only if Valve $A$ **AND** Valve $B$ are both turned open. If either valve (or both) is closed, water flow stops completely ($0$).
+* **Switches in Parallel (OR Gate)**: Water reaches the crops if Valve $A$ **OR** Valve $B$ (or both) is turned open. Water flow is blocked only when every single valve along all paths is shut ($0$).
+* **The Spring-Loaded Vent Valve (NOT Gate)**: A normally open pressure-relief valve. Pushing the lever down (*applying input 1*) seals the vent (*output drops to 0*). Releasing the lever (*input 0*) allows water to discharge freely (*output is 1*).
+
+### 💻 Bridging to Computer Science
+
+In modern silicon microchips, these valves are constructed using **MOSFET transistors** (Metal-Oxide-Semiconductor Field-Effect Transistors). 
+* An **NMOS transistor** acts like a switch that closes when input voltage is HIGH ($1$).
+* A **PMOS transistor** acts like a switch that closes when input voltage is LOW ($0$).
+
+By combining PMOS transistors in pull-up networks and NMOS transistors in pull-down networks, digital logic gates execute millions of discrete mathematical operations every nanosecond with zero mechanical wear.
+
+---
+
+export const toc = [
+  { value: "The Inverter (NOT Gate)", id: "the-inverter-not-gate", level: 2 },
+  { value: "The Logical Disjunction (OR Gate)", id: "the-logical-disjunction-or-gate", level: 2 },
+  { value: "The Logical Conjunction (AND Gate)", id: "the-logical-conjunction-and-gate", level: 2 },
+  { value: "Interactive Logic Gate Simulator", id: "interactive-logic-gate-simulator", level: 2 },
+  { value: "Enable & Inhibit Data Gating Mechanics", id: "enable--inhibit-data-gating-mechanics", level: 2 },
+  { value: "Real-World Production Context: CMOS Inversion & Delay", id: "real-world-production-context-cmos-inversion--delay", level: 2 },
+  { value: "Numerical Applications & Worked Examples", id: "numerical-applications--worked-examples", level: 2 },
+  { value: "Exam & Interview Pitfall Check", id: "exam--interview-pitfall-check", level: 2 },
+];
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## ⚡ The Inverter (NOT Gate)
+
+The **NOT gate** (commonly called an **inverter**) is a single-input, single-output gate that computes the logical complement of its input signal.
+
+<MathBox title="Definition 2.1: Inverter Algebraic Operator" type="definition">
+
+$$
+Y = \bar{A} = A'
+$$
+
+</MathBox>
+
+### 1. Truth Table & Functional Behavior
+The output $Y$ is always the inverse of input $A$:
+
+| Input $A$ | Output $Y = \bar{A}$ | Physical Voltage Mapping ($5\text{V}$ Logic) |
+| :---: | :---: | :--- |
+| $0$ | $1$ | Input at $0\text{V}$ (GND) $\implies$ Output pulled to $+5\text{V}$ ($V_{DD}$) |
+| $1$ | $0$ | Input at $+5\text{V}$ ($V_{DD}$) $\implies$ Output shorted to $0\text{V}$ (GND) |
+
+### 2. Operational Properties of the NOT Gate
+1. **Involution Law**: Inverting a signal twice restores the original identity:
+   $$(A')' = A$$
+2. **Complementarity**:
+   $$A + \bar{A} = 1 \qquad\text{and}\qquad A \cdot \bar{A} = 0$$
+3. **Constants**:
+   $$0' = 1 \qquad\text{and}\qquad 1' = 0$$
+
+---
+
+## ➕ The Logical Disjunction (OR Gate)
+
+The **OR gate** implements logical addition (disjunction). It accepts two or more binary inputs and produces an output of $1$ if **at least one** of its inputs is $1$.
+
+<MathBox title="Definition 2.2: Two-Input OR Gate Operator" type="definition">
+
+$$
+Y = A + B
+$$
+
+</MathBox>
+
+### 1. Truth Table & Switch Analogy
+In an electrical circuit, an OR gate behaves identically to two mechanical switches connected in **parallel**:
+
+| Input $A$ | Input $B$ | Output $Y = A + B$ | Switch Circuit Equivalent |
+| :---: | :---: | :---: | :--- |
+| $0$ | $0$ | $0$ | Switch $A$ open, Switch $B$ open $\implies$ No current to load |
+| $0$ | $1$ | $1$ | Switch $A$ open, Switch $B$ closed $\implies$ Current flows through branch $B$ |
+| $1$ | $0$ | $1$ | Switch $A$ closed, Switch $B$ open $\implies$ Current flows through branch $A$ |
+| $1$ | $1$ | $1$ | Both switches closed $\implies$ Current flows through both branches |
+
+### 2. Fundamental Algebraic Laws Satisfied by OR Gates
+The OR operation satisfies all three primary algebraic consistency laws:
+
+<MathBox title="Law 2.1: Algebraic Laws of the OR Gate" type="law">
+
+$$
+\begin{aligned}
+A + A &= A \quad &&\text{[Idempotent Law]} \\
+A + B &= B + A \quad &&\text{[Commutative Law]} \\
+(A + B) + C &= A + (B + C) \quad &&\text{[Associative Law]}
+\end{aligned}
+$$
+
+</MathBox>
+
+### 3. Constant Input Interactions
+* **OR with ZERO (Identity Element)**:
+  $$A + 0 = A$$
+  Feeding a constant $0$ to one input makes the OR gate act as a **transparent buffer** for signal $A$.
+* **OR with ONE (Dominance / Annihilator Element)**:
+  $$A + 1 = 1$$
+  Feeding a constant $1$ forces the output permanently HIGH, **inhibiting** the data signal $A$.
+
+---
+
+## ✖️ The Logical Conjunction (AND Gate)
+
+The **AND gate** implements logical multiplication (conjunction). It accepts two or more binary inputs and produces an output of $1$ **if and only if all inputs are simultaneously $1$**.
+
+<MathBox title="Definition 2.3: Two-Input AND Gate Operator" type="definition">
+
+$$
+Y = A \cdot B = AB
+$$
+
+</MathBox>
+
+### 1. Truth Table & Switch Analogy
+In an electrical circuit, an AND gate behaves identically to two mechanical switches connected in **series**:
+
+| Input $A$ | Input $B$ | Output $Y = A \cdot B$ | Switch Circuit Equivalent |
+| :---: | :---: | :---: | :--- |
+| $0$ | $0$ | $0$ | Both switches open $\implies$ Circuit broken |
+| $0$ | $1$ | $0$ | Switch $A$ open, Switch $B$ closed $\implies$ Circuit broken at switch $A$ |
+| $1$ | $0$ | $0$ | Switch $A$ closed, Switch $B$ open $\implies$ Circuit broken at switch $B$ |
+| $1$ | $1$ | $1$ | Both switches closed $\implies$ Unbroken electrical path to load |
+
+### 2. Fundamental Algebraic Laws Satisfied by AND Gates
+
+<MathBox title="Law 2.2: Algebraic Laws of the AND Gate" type="law">
+
+$$
+\begin{aligned}
+A \cdot A &= A \quad &&\text{[Idempotent Law]} \\
+A \cdot B &= B \cdot A \quad &&\text{[Commutative Law]} \\
+(A \cdot B) \cdot C &= A \cdot (B \cdot C) \quad &&\text{[Associative Law]}
+\end{aligned}
+$$
+
+</MathBox>
+
+### 3. Constant Input Interactions
+* **AND with ZERO (Dominance / Annihilator Element)**:
+  $$A \cdot 0 = 0$$
+  Holding one input at $0$ forces the output permanently LOW, **inhibiting** (blocking) data line $A$.
+* **AND with ONE (Identity Element)**:
+  $$A \cdot 1 = A$$
+  Holding one input at $1$ allows data line $A$ to pass through completely unaltered (**enabling** transmission).
+
+---
+
+## 🕹️ Interactive Logic Gate Simulator
+
+Toggle the binary input pins below to observe real-time voltage propagation ($5\text{V}$ emerald glow vs $0\text{V}$ slate ground) and track the active row in the truth table:
+
+<LogicGateSimulator
+  title="Fundamental Logic Gate Simulator"
+  subtitle="Select AND, OR, or NOT to inspect vector IEEE symbols, circuit switch analogies, and live truth table tracking"
+  initialGate="AND"
+  allowGateSelect={true}
+/>
+
+---
+
+## 🎛️ Enable & Inhibit Data Gating Mechanics
+
+In microprocessor architectures and bus routers, control lines frequently need to permit or prevent data streams from passing onto a shared bus. This technique is called **data gating**:
+
+<ConceptComparison
+  title="Data Gating Architectures: AND vs. OR Control"
+  subtitle="How control signals steer, pass, or clamp digital data streams"
+  concepts={[
+    {
+      badge: "AND Gating",
+      title: "Active-High Enable Gate",
+      icon: "🚪",
+      color: "emerald",
+      domain: "Microprocessor Bus Multiplexing",
+      points: [
+        "Control = 1 (Enable): Output Y = Data · 1 = Data (Signal passes unaltered)",
+        "Control = 0 (Inhibit): Output Y = Data · 0 = 0 (Output clamped LOW)",
+        "Widely used for clock gating in low-power mobile CPUs",
+        "Prevents downstream capacitive charging when idle",
+      ],
+      quote: "Data passes when control is asserted HIGH.",
+    },
+    {
+      badge: "OR Gating",
+      title: "Active-Low Enable Gate",
+      icon: "🛡️",
+      color: "indigo",
+      domain: "Fault Bus & Alarm Monitoring",
+      points: [
+        "Control = 0 (Enable): Output Y = Data + 0 = Data (Signal passes unaltered)",
+        "Control = 1 (Inhibit): Output Y = Data + 1 = 1 (Output clamped HIGH)",
+        "Used extensively in active-low interrupt lines (IRQ)",
+        "Default resting state is high-rail V_DD",
+      ],
+      quote: "Data passes when control is asserted LOW.",
+    },
+  ]}
+/>
+
+---
+
+## 🏭 Real-World Production Context: CMOS Inversion & Delay
+
+In textbooks, AND and OR gates are introduced as the primary building blocks. However, in physical **CMOS (Complementary MOS) silicon fabrication**, pure inverting gates are fundamentally cheaper, faster, and more natural than non-inverting gates!
+
+### 1. Why Silicon Is Naturally Inverting
+A basic CMOS transistor stage connects PMOS pull-up transistors to $V_{DD}$ and NMOS pull-down transistors to $GND$:
+* When input voltage is HIGH, NMOS conducts to $GND$, pulling output **LOW**.
+* When input voltage is LOW, PMOS conducts to $V_{DD}$, pulling output **HIGH**.
+
+Because CMOS stages inherently invert signals, a physical CMOS **NAND gate requires only 4 transistors**, whereas a CMOS **AND gate requires 6 transistors** (a 4-transistor NAND followed by a 2-transistor Inverter stage)!
+* A physical AND gate is slower than a NAND gate because signals must traverse two sequential transistor stages ($t_{pd,\text{AND}} = t_{pd,\text{NAND}} + t_{pd,\text{INV}}$).
+
+### 2. Propagation Delay ($t_{pd}$) & Critical Path
+Every physical gate exhibits a finite propagation delay caused by internal parasitic capacitances charging through transistor channel resistance:
+* **$t_{pLH}$ (Low-to-High Delay)**: Time required for the output to transition from 10% to 90% of $V_{DD}$.
+* **$t_{pHL}$ (High-to-Low Delay)**: Time required for the output to transition from 90% to 10% of $V_{DD}$.
+
+* **Average Delay**:
+  $$t_{pd} = \frac{t_{pLH} + t_{pHL}}{2}$$
+
+In hyper-scale ASICs running at $4\text{ GHz}$, the clock cycle period is a mere $250\text{ ps}$. Designers must ensure the longest combinational path (**critical path**) contains no more than $15$–$20$ gate delays to avoid setup time violations.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Critical Path Propagation Delay in Cascaded Logic
+**Problem Statement:**  
+A combinational logic network implements the function $Y = (A \cdot B) + (C \cdot D) + E$.  
+The hardware realization uses two 2-input AND gates driving a 3-input OR gate. The individual gate propagation delays are specified as:
+* 2-input AND gate: $t_{pd,\text{AND}} = 1.8\text{ ns}$
+* 3-input OR gate: $t_{pd,\text{OR}} = 2.4\text{ ns}$
+* Output load wiring delay: $t_{wire} = 0.3\text{ ns}$
+
+Compute the maximum propagation delay (critical path delay) from the input pins to the primary output pin $Y$.
+
+**Step-by-Step Solution:**
+
+1. **Identify the Parallel Circuit Paths:**
+   * Path 1: From inputs $A, B \implies \text{AND Gate 1} \implies \text{OR Gate} \implies Y$.
+   * Path 2: From inputs $C, D \implies \text{AND Gate 2} \implies \text{OR Gate} \implies Y$.
+   * Path 3: Direct input $E \implies \text{OR Gate} \implies Y$.
+
+2. **Calculate the Delay for Each Path:**
+
+<MathBox title="Path Delay Calculations" type="formula">
+
+$$
+\begin{aligned}
+T_{\text{Path 1}} &= t_{pd,\text{AND1}} + t_{pd,\text{OR}} + t_{wire} = 1.8\text{ ns} + 2.4\text{ ns} + 0.3\text{ ns} = 4.5\text{ ns} \\
+T_{\text{Path 2}} &= t_{pd,\text{AND2}} + t_{pd,\text{OR}} + t_{wire} = 1.8\text{ ns} + 2.4\text{ ns} + 0.3\text{ ns} = 4.5\text{ ns} \\
+T_{\text{Path 3}} &= t_{pd,\text{OR}} + t_{wire} = 2.4\text{ ns} + 0.3\text{ ns} = 2.7\text{ ns}
+\end{aligned}
+$$
+
+</MathBox>
+
+3. **Determine the Critical Path:**  
+   The critical path is the maximum delay among all signal routes:
+
+   $$
+   T_{\text{critical}} = \max(T_{\text{Path 1}}, T_{\text{Path 2}}, T_{\text{Path 3}}) = 4.5\text{ ns}
+   $$
+
+   Therefore, the maximum frequency of operation for this circuit stage is:
+
+   $$
+   f_{max} = \frac{1}{T_{\text{critical}}} = \frac{1}{4.5 \times 10^{-9}\text{ s}} \approx 222.2\text{ MHz}
+   $$
+
+---
+
+### Example 2: Equivalent Mechanical Switch Network Extraction
+**Problem Statement:**  
+Analyze the mechanical relay switch network described below and determine the simplified Boolean algebraic equation for current flow between terminal $T_1$ and terminal $T_2$:
+* Branch 1 contains Switch $A$ in series with Switch $B$.
+* Branch 2 contains Switch $A$ in series with Switch $C$.
+* Branch 3 contains Switch $B$ in series with Switch $C$.
+* All three branches are wired in parallel across terminals $T_1$ and $T_2$.
+
+**Step-by-Step Solution:**
+
+1. **Formulate the Raw Boolean Expression from Circuit Topology:**  
+   * Series connections represent logical AND ($\cdot$).
+   * Parallel connections represent logical OR ($+$).
+   
+   $$
+   Y = (A \cdot B) + (A \cdot C) + (B \cdot C) = AB + AC + BC
+   $$
+
+2. **Evaluate for Algebraic Minimization:**  
+   Examine the expression $AB + AC + BC$:
+   * All three variables are in true form (no complemented literals).
+   * Since no variable appears both true and complemented, the Consensus Theorem cannot eliminate any term.
+   * Factoring common terms:
+
+<MathBox title="Algebraic Factoring of Switch Network" type="proof">
+
+$$
+\begin{aligned}
+Y &= A(B + C) + BC
+\end{aligned}
+$$
+
+</MathBox>
+
+3. **Physical Interpretation:**  
+   Current flows from $T_1$ to $T_2$ whenever any two or more switches are closed simultaneously. This circuit is physically equivalent to a **3-input majority logic voter circuit**.
+
+---
+
+### Example 3: Clock Gating & Inhibit Control Analysis
+**Problem Statement:**  
+A power-management unit controls an on-chip clock tree. The system clock signal is $CLK(t)$ with a square wave frequency of $100\text{ MHz}$. A designer uses a 2-input logic gate where Input 1 is $CLK$ and Input 2 is an active-high sleep control signal $SLEEP$.  
+1. If an AND gate is used ($Y = CLK \cdot SLEEP$), what is the output $Y$ when $SLEEP = 0$ (normal sleep mode) vs $SLEEP = 1$ (wake mode)?  
+2. If the sleep signal is active-low ($\overline{SLEEP}$), which basic logic gate must be used to keep the clock wire clamped to $0$ during sleep mode?
+
+**Step-by-Step Solution:**
+
+1. **Evaluate the AND Gating Scheme:**  
+   * When $SLEEP = 0$:  
+     $$Y = CLK \cdot 0 = 0\text{ (Constant Ground)}$$  
+     The clock waveform is completely extinguished. No downstream flip-flops toggle, eliminating dynamic switching power dissipation $P_{dyn} = C V^2 f$.
+   * When $SLEEP = 1$:  
+     $$Y = CLK \cdot 1 = CLK$$  
+     The full $100\text{ MHz}$ clock pulses pass through to the core.
+
+2. **Evaluate Active-Low Control Requirement:**  
+   If the control line is active-low ($\overline{SLEEP}$, where sleep mode is denoted by $\overline{SLEEP} = 1$ and wake mode by $\overline{SLEEP} = 0$):  
+   * During wake mode ($\overline{SLEEP} = 0$), we require $Y = CLK$.  
+   * During sleep mode ($\overline{SLEEP} = 1$), we require $Y = 1$ or clamped state.  
+   If we use an **OR gate**:  
+   $$Y = CLK + \overline{SLEEP}$$
+   * When awake ($\overline{SLEEP} = 0$): $Y = CLK + 0 = CLK$ (Clock passes!).  
+   * When asleep ($\overline{SLEEP} = 1$): $Y = CLK + 1 = 1$ (Clock clamped HIGH, dynamic power zero).
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Can a multi-input logic gate have more than two inputs in physical CMOS?**  
+  Yes, but with strict physical limits. A 4-input CMOS NAND gate stacks 4 NMOS transistors in series between output and ground. Since transistor channel resistances add in series, high-fan-in gates exhibit severely degraded fall times ($t_{pHL}$). In modern VLSI libraries, gates rarely exceed $4$ inputs; wider fan-in logic is broken into tree cascades of 2-input and 3-input gates.
+
+* **Why is an open/floating input pin dangerous on high-impedance CMOS gates?**  
+  CMOS transistor gates are insulated by a microscopic silicon dioxide layer, presenting near-infinite input impedance ($\sim 10^{12}\,\Omega$). An unconnected (floating) input pin acts as an antenna that accumulates ambient static charge, floating into the intermediate threshold zone ($V_{IL} < V < V_{IH}$). This turns both PMOS and NMOS transistors ON simultaneously, causing catastrophic **shoot-through current** and erratic output oscillations.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Assuming AND and OR gates are universal.**  
+  AND and OR gates can only generate monotonically non-decreasing Boolean functions. Without the NOT operation, you can never create an inversion ($0 \to 1$). Therefore, $\{AND, OR\}$ is **NOT a functionally complete set**.
+
+* **Trap: Confusing the Enable states of AND vs OR gates.**  
+  Remember:  
+  * An **AND gate** is enabled by **$1$** ($A \cdot 1 = A$) and inhibited by **$0$** ($A \cdot 0 = 0$).  
+  * An **OR gate** is enabled by **$0$** ($A + 0 = A$) and inhibited by **$1$** ($A + 1 = 1$).
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "1.3 Advanced Theorems: Consensus & Transposition",
+    url: "/coredose/digital-logic/module-01/advanced-theorems-consensus-and-transposition",
+  }}
+  next={{
+    title: "2.2 Universal Logic Gates: NAND and NOR Implementations",
+    url: "/coredose/digital-logic/module-02/universal-logic-gates-nand-and-nor-implementations",
+  }}
+  courseUrl="/coredose/digital-logic"
+/>

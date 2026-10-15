@@ -1,0 +1,795 @@
+---
+title: "5.1 Half Adder, Full Adder & Ripple Carry Architecture"
+description: "Comprehensive first-principles engineering breakdown of Half Adders, Full Adders, Subtractor circuits, cascading Ripple Carry Adders (RCA), worst-case propagation delays, controlled inverter Adder-Subtractors, and signed overflow detection."
+hide_table_of_contents: true
+---
+
+# 5.1 Half Adder, Full Adder & Ripple Carry Architecture
+
+<CoreDoseLessonHeader
+  module="Module 05: Combinational Logic Circuits"
+  topic="Topic 5.1"
+  courseUrl="/coredose/digital-logic"
+  readTime="18 min read"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Foundational Computing"
+/>
+
+## 💡 Core Intuition: The Assembly Line Bucket Relay
+
+Imagine a row of workers along an assembly line, each tasked with adding two single-digit quantities written on cards. If the sum exceeds $9$, a worker cannot store the extra ten on their desk—they must tap the shoulder of the colleague immediately to their left and hand them a "carry" marker.
+
+### 🍳 The Everyday Analogy: The Single-Digit Cash Register vs. The Ripple Conveyor
+
+* **The Single-Digit Addition (Half Adder)**: Suppose you only need to add two pennies in a vending machine slot ($A + B$). There is no incoming coin from anyone else. You either generate a local sum of $0$ or $1$, or if both pennies arrive ($1 + 1$), you report a sum of $0$ and drop a carry token into the next compartment. This is a **Half Adder**: it handles two operands, but lacks an input slot for a carry passed from a previous stage.
+* **The Full-Service Cash Register (Full Adder)**: In multi-column ledger arithmetic, a teller must add three quantities simultaneously: column digit $A$, column digit $B$, and whatever surplus carry digit $C_{in}$ rolled over from the column to the right. This is a **Full Adder**.
+* **The Ripple Conveyor (Ripple Carry Adder)**: When adding two 64-bit integers on a computer chip, you line up 64 Full Adders side by side. The rightmost stage finishes instantly, but stage 63 cannot finalize its output until the carry wave has physically propagated from stage 0 through stages 1, 2, ..., 62. Like a mechanical bucket brigade passing water down a line, the final total "ripples" sequentially across the silicon.
+
+### 💻 Bridging to Computer Science
+
+In modern computer organization, every arithmetic instruction (`ADD`, `SUB`, `INC`, array index address calculation `base + index * scale`) executed by an x86 or ARM CPU routes through the **Arithmetic Logic Unit (ALU)**. At the heart of the integer ALU sits an adder datapath. 
+
+Understanding the fundamental tradeoffs of adders reveals:
+1. Why subtraction is physically realized using the exact same adder hardware via 2's complement inversion.
+2. Why naive serial cascading (Ripple Carry) creates an $O(n)$ propagation delay bottleneck that limits the maximum clock frequency ($f_{CLK}$) of a processor core.
+3. How hardware engineers detect signed arithmetic overflow in a single clock cycle using a lone XOR gate.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+<div id="combinational-circuits-first-principles" />
+
+## ⚡ Combinational Logic: First Principles
+
+Before examining adder hardware, let us formalize the boundaries of **Combinational Logic Circuits**:
+
+<SubsystemGrid
+  items={[
+    {
+      icon: "⚡",
+      title: "Memoryless Operation",
+      tag: "Zero Storage",
+      color: "blue",
+      points: [
+        "The output vector Y at any instant t depends solely on the input vector X applied at that same instant t.",
+        "The circuit retains zero memory or history of previous input states: Y(t) = f(X(t))."
+      ],
+      syscalls: ["Y = f(X)"]
+    },
+    {
+      icon: "🚫",
+      title: "No Feedback Loops",
+      tag: "Acyclic Graph",
+      color: "amber",
+      points: [
+        "Signal propagation is strictly feedforward from inputs to outputs.",
+        "There are no closed feedback loops connecting output terminals back to input terminals."
+      ],
+      syscalls: ["DAG Topology"]
+    },
+    {
+      icon: "⏱️",
+      title: "Pure Delay Dynamics",
+      tag: "Transient Physics",
+      color: "emerald",
+      points: [
+        "State transitions are governed purely by the propagation delays of physical logic gates.",
+        "No master clock signal is required for combinational logic to evaluate its Boolean function."
+      ],
+      syscalls: ["t_pd = Σ t_gate"]
+    }
+  ]}
+/>
+
+---
+
+<div id="the-half-adder-ha" />
+
+## ➕ The Half Adder (HA) Architecture
+
+A **Half Adder** is a combinational circuit that computes the binary sum of two single-bit inputs, $A$ and $B$. It yields two outputs:
+1. **Sum ($S$)**: The least significant bit (LSB) of the two-bit arithmetic total.
+2. **Carry ($C$)**: The most significant bit (MSB) indicating a carry generation.
+
+### Truth Table Analysis
+
+| $A$ | $B$ | Arithmetic Total ($A + B$) | Sum ($S$) | Carry ($C$) | Minterm Form |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| $0$ | $0$ | $0 + 0 = 0_{10} = 00_2$ | $0$ | $0$ | $m_0$ |
+| $0$ | $1$ | $0 + 1 = 1_{10} = 01_2$ | $1$ | $0$ | $m_1$ |
+| $1$ | $0$ | $1 + 0 = 1_{10} = 01_2$ | $1$ | $0$ | $m_2$ |
+| $1$ | $1$ | $1 + 1 = 2_{10} = 10_2$ | $0$ | $1$ | $m_3$ |
+
+<CircuitSimulator
+  circuit="half-adder"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+### Mathematical Derivation of Half Adder Equations
+
+From the truth table:
+* $S = \sum m(1, 2) = \bar{A}B + A\bar{B} = A \oplus B$
+* $C = \sum m(3) = AB$
+
+<MathBox title="Half Adder Governing Equations" type="formula">
+
+$$
+S = A \oplus B = \bar{A}B + A\bar{B}
+$$
+
+$$
+C = AB
+$$
+
+</MathBox>
+
+### Minimum Gate Implementation
+
+A Half Adder requires:
+* Exactly **$1$ two-input XOR gate** to compute $S$.
+* Exactly **$1$ two-input AND gate** to compute $C$.
+
+* **Sum Path ($S$)**: Primary inputs $A$ and $B$ route directly into a 2-input XOR gate $\to S = A \oplus B$.
+* **Carry Path ($C$)**: Primary inputs $A$ and $B$ route concurrently into a 2-input AND gate $\to C = A \cdot B$.
+
+### Universal NAND-Only Realization (5 NAND Gates)
+
+In semiconductor fabrication, implementing circuits using universal NAND gates is preferred due to standard cell library symmetry and lower transistor counts in CMOS technology.
+
+<MathBox title="NAND-Only Half Adder Proof" type="proof">
+
+Let us express both $S$ and $C$ using strictly NAND operations:
+1. Compute the common term: $N_1 = \overline{AB}$
+2. Route $N_1$ to two secondary NAND gates:
+   * $N_2 = \overline{A \cdot N_1} = \overline{A \cdot \overline{AB}} = \bar{A} + AB = \bar{A} + B$
+   * $N_3 = \overline{B \cdot N_1} = \overline{B \cdot \overline{AB}} = \bar{B} + AB = \bar{B} + A$
+3. Compute the final Sum output:
+   * $S = \overline{N_2 \cdot N_3} = \overline{(\bar{A} + B)(\bar{B} + A)} = \overline{\bar{A}\bar{B} + AB} = A \oplus B$ (NAND 4)
+4. Compute the final Carry output by inverting $N_1$:
+   * $C = \overline{N_1} = \overline{\overline{AB}} = AB$ (NAND 5)
+
+**Conclusion**: Exactly **5 two-input NAND gates** are necessary and sufficient to synthesize a complete Half Adder.
+
+</MathBox>
+
+### Universal NOR-Only Realization (5 NOR Gates)
+
+By De Morgan's duality:
+* Exactly **5 two-input NOR gates** are also necessary and sufficient to construct a complete Half Adder.
+
+---
+
+<div id="the-full-adder-fa" />
+
+## 🔢 The Full Adder (FA) Architecture
+
+A **Full Adder** accepts three single-bit inputs:
+1. $A$: Operand bit from stage $i$
+2. $B$: Operand bit from stage $i$
+3. $C_{in}$: Incoming carry bit generated by the preceding less-significant stage $i-1$
+
+It generates two outputs:
+1. **Sum ($S$)**: Result bit for column $i$
+2. **Carry Out ($C_{out}$)**: Carry passed to the subsequent stage $i+1$
+
+### Truth Table Analysis
+
+| $A$ | $B$ | $C_{in}$ | Decimal Sum | Binary Output ($C_{out}S$) | $S$ | $C_{out}$ | Minterm |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| $0$ | $0$ | $0$ | $0$ | $00_2$ | $0$ | $0$ | $m_0$ |
+| $0$ | $0$ | $1$ | $1$ | $01_2$ | $1$ | $0$ | $m_1$ |
+| $0$ | $1$ | $0$ | $1$ | $01_2$ | $1$ | $0$ | $m_2$ |
+| $0$ | $1$ | $1$ | $2$ | $10_2$ | $0$ | $1$ | $m_3$ |
+| $1$ | $0$ | $0$ | $1$ | $01_2$ | $1$ | $0$ | $m_4$ |
+| $1$ | $0$ | $1$ | $2$ | $10_2$ | $0$ | $1$ | $m_5$ |
+| $1$ | $1$ | $0$ | $2$ | $10_2$ | $0$ | $1$ | $m_6$ |
+| $1$ | $1$ | $1$ | $3$ | $11_2$ | $1$ | $1$ | $m_7$ |
+
+### Boolean Minimization for Full Adder
+
+From the truth table:
+* $S = \sum m(1, 2, 4, 7)$ (The canonical odd-parity function)
+* $C_{out} = \sum m(3, 5, 6, 7)$ (The canonical majority function)
+
+<MathBox title="Algebraic Derivation of Full Adder Outputs" type="proof">
+
+**Deriving Sum ($S$):**
+
+$$
+\begin{aligned}
+S &= \bar{A}\bar{B}C_{in} + \bar{A}B\bar{C}_{in} + A\bar{B}\bar{C}_{in} + ABC_{in} \\
+&= C_{in}(\bar{A}\bar{B} + AB) + \bar{C}_{in}(\bar{A}B + A\bar{B}) \\
+&= C_{in}(\overline{A \oplus B}) + \bar{C}_{in}(A \oplus B) \\
+&= (A \oplus B) \oplus C_{in} = A \oplus B \oplus C_{in}
+\end{aligned}
+$$
+
+**Deriving Carry Out ($C_{out}$):**
+
+$$
+\begin{aligned}
+C_{out} &= \bar{A}BC_{in} + A\bar{B}C_{in} + AB\bar{C}_{in} + ABC_{in} \\
+&= C_{in}(\bar{A}B + A\bar{B}) + AB(\bar{C}_{in} + C_{in}) \\
+&= C_{in}(A \oplus B) + AB(1) \\
+&= AB + C_{in}(A \oplus B)
+\end{aligned}
+$$
+
+Alternatively, by direct grouping on a 3-variable K-map:
+
+$$
+C_{out} = AB + BC_{in} + AC_{in}
+$$
+
+</MathBox>
+
+### Implementation Using Two Half Adders and One OR Gate
+
+The factorized form $C_{out} = AB + C_{in}(A \oplus B)$ reveals how a Full Adder is cleanly synthesized using two Half Adders:
+
+<FlowPipeline
+  title="Full Adder Structural Synthesis via 2 Half Adders + 1 OR Gate"
+  steps={[
+    {
+      title: "HA Stage 1",
+      badge: "XOR 1 + AND 1",
+      description: "Inputs (A, B) produce S₁ = A ⊕ B and C₁ = AB.",
+      detail: "First Half Adder computes intermediate sum bit S₁ and intermediate carry C₁."
+    },
+    {
+      title: "HA Stage 2",
+      badge: "XOR 2 + AND 2",
+      description: "Inputs (S₁, C_in) produce Sum S and C₂ = S₁ · C_in.",
+      detail: "Second Half Adder computes the final odd-parity sum bit S and second carry C₂."
+    },
+    {
+      title: "OR Combiner",
+      badge: "Final Stage",
+      description: "Merges carries: C_out = C₁ + C₂ = AB + C_in(A ⊕ B).",
+      detail: "Because C₁ and C₂ are mutually exclusive (C₁·C₂ = 0), an OR gate safely computes the final carry out."
+    }
+  ]}
+/>
+
+<CircuitSimulator
+  circuit="full-adder"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+> 💡 **Why Can an OR Gate Safely Combine $C_1$ and $C_2$?**  
+> Notice that $C_1 = AB$ and $C_2 = (A \oplus B)C_{in}$.  
+> Can both $C_1$ and $C_2$ ever be logic $1$ simultaneously?  
+> For $C_1 = 1$, we must have $A = 1$ and $B = 1$. But if $A = 1$ and $B = 1$, then $A \oplus B = 0$, forcing $C_2 = (0) \cdot C_{in} = 0$!  
+> Because $C_1 \cdot C_2 = (AB) \cdot ((A \oplus B)C_{in}) = 0$, $C_1$ and $C_2$ are **mutually exclusive**.  
+> Therefore, an OR gate and an XOR gate produce the exact same result: $C_1 + C_2 \equiv C_1 \oplus C_2$.
+
+### Gate Count Summary for Full Adder
+
+| Implementation Style | XOR Gates | AND Gates | OR Gates | Total 2-Input Gates |
+| :--- | :---: | :---: | :---: | :---: |
+| **Using 2 HAs + 1 OR Gate** | $2$ | $2$ | $1$ | **$5$** |
+| **NAND-Only Implementation** | — | — | — | **$9$ NAND gates** |
+| **NOR-Only Implementation** | — | — | — | **$9$ NOR gates** |
+
+---
+
+<div id="subtractor-circuits-half-and-full" />
+
+## ➖ Subtractor Circuits (Half & Full Subtractors)
+
+Binary subtraction operates on the rule $A - B$. When subtracting $1$ from $0$, the circuit must pull a **Borrow** ($B_{out}$) of weight $2$ from the next higher position.
+
+### Half Subtractor (HS)
+
+Computes $A - B$ for two single bits without an incoming borrow.
+
+| $A$ | $B$ | Difference ($D$) | Borrow ($B_{out}$) | Remarks |
+| :---: | :---: | :---: | :---: | :--- |
+| $0$ | $0$ | $0$ | $0$ | $0 - 0 = 0$ |
+| $0$ | $1$ | $1$ | $1$ | Borrow $2$: $(2 + 0) - 1 = 1$ |
+| $1$ | $0$ | $1$ | $0$ | $1 - 0 = 1$ |
+| $1$ | $1$ | $0$ | $0$ | $1 - 1 = 0$ |
+
+<MathBox title="Half Subtractor Equations" type="formula">
+
+$$
+D = A \oplus B
+$$
+
+$$
+B_{out} = \bar{A}B
+$$
+
+</MathBox>
+
+<CircuitSimulator
+  circuit="half-subtractor"
+  title="Half Subtractor (HS) Gate-Level Schematic & Simulator"
+  subtitle="Interactive vector schematic: Toggle Minuend A and Subtrahend B to watch voltage route through the inverter, XOR difference gate, and borrow AND gate."
+  hideTabs={true}
+/>
+
+Notice that the Difference equation is **identical** to the Half Adder Sum equation ($D = S = A \oplus B$). Only the carry/borrow equation differs: $C = AB$ versus $B_{out} = \bar{A}B$.
+
+### Full Subtractor (FS)
+
+Computes $A - B - B_{in}$ where $B_{in}$ is the borrow pulled by the lower significant bit stage.
+
+| $A$ | $B$ | $B_{in}$ | Difference ($D$) | Borrow ($B_{out}$) | Minterm ($D$) | Minterm ($B_{out}$) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| $0$ | $0$ | $0$ | $0$ | $0$ | — | — |
+| $0$ | $0$ | $1$ | $1$ | $1$ | $m_1$ | $m_1$ |
+| $0$ | $1$ | $0$ | $1$ | $1$ | $m_2$ | $m_2$ |
+| $0$ | $1$ | $1$ | $0$ | $1$ | — | $m_3$ |
+| $1$ | $0$ | $0$ | $1$ | $0$ | $m_4$ | — |
+| $1$ | $0$ | $1$ | $0$ | $0$ | — | — |
+| $1$ | $1$ | $0$ | $0$ | $0$ | — | — |
+| $1$ | $1$ | $1$ | $1$ | $1$ | $m_7$ | $m_7$ |
+
+<MathBox title="Full Subtractor Equations" type="formula">
+
+$$
+D = A \oplus B \oplus B_{in}
+$$
+
+$$
+B_{out} = \bar{A}B + B_{in}(\overline{A \oplus B}) = \bar{A}B + \bar{A}B_{in} + BB_{in}
+$$
+
+</MathBox>
+
+<CircuitSimulator
+  circuit="full-subtractor"
+  title="Full Subtractor (FS) Gate-Level Schematic (2 HSs + 1 OR Gate)"
+  subtitle="Interactive vector schematic: Toggle A, B, and Bin to trace intermediate difference D₁, borrow B₁, B₂, and final difference D and borrow Bout in real time."
+  hideTabs={true}
+/>
+
+Just like a Full Adder, a Full Subtractor can be constructed using **$2$ Half Subtractors and $1$ OR gate**, or **$9$ universal NAND gates**.
+
+---
+
+<div id="parallel-binary-ripple-carry-adder" />
+
+## 🌊 Parallel Binary Ripple Carry Adder (RCA)
+
+To compute the arithmetic sum of two $n$-bit binary numbers:
+$$A = A_{n-1}A_{n-2}\dots A_1 A_0$$
+$$B = B_{n-1}B_{n-2}\dots B_1 B_0$$
+
+We cascade $n$ Full Adders in series. The carry output $C_{out}$ of each stage $i$ is directly wired to the carry input $C_{in}$ of the next higher stage $i+1$.
+
+<FlowPipeline
+  title="4-Bit Cascaded Ripple Carry Adder (RCA) Carry-Ripple Chain"
+  subtitle="The carry output Cout of each stage directly drives the Cin of the next stage"
+  steps={[
+    {
+      title: "FA 0 (LSB Stage)",
+      badge: "Bit 0",
+      color: "blue",
+      description: "Computes S₀ = A₀ ⊕ B₀ ⊕ C₀ with C₀ = 0.",
+      detail: "Inputs: A₀, B₀, C₀ (GND)\nOutputs: Sum S₀ (stable at 2Δ), Carry C₁ ripples to FA 1.",
+      actionText: "Ripples C₁"
+    },
+    {
+      title: "FA 1 (Bit 1 Stage)",
+      badge: "Bit 1",
+      color: "purple",
+      description: "Waits for C₁ from FA 0 before computing valid C₂.",
+      detail: "Inputs: A₁, B₁, C₁\nOutputs: Sum S₁, Carry C₂ ripples to FA 2 (delay: 4Δ).",
+      actionText: "Ripples C₂"
+    },
+    {
+      title: "FA 2 (Bit 2 Stage)",
+      badge: "Bit 2",
+      color: "amber",
+      description: "Waits for C₂ from FA 1 before computing valid C₃.",
+      detail: "Inputs: A₂, B₂, C₂\nOutputs: Sum S₂, Carry C₃ ripples to FA 3 (delay: 6Δ).",
+      actionText: "Ripples C₃"
+    },
+    {
+      title: "FA 3 (MSB Stage)",
+      badge: "Bit 3",
+      color: "emerald",
+      description: "Computes final Sum S₃ and terminal Carry Out C₄.",
+      detail: "Inputs: A₃, B₃, C₃\nOutputs: Sum S₃ (delay: 8Δ), Final Carry Out C₄ (delay: 8Δ)."
+    }
+  ]}
+/>
+
+<CircuitSimulator
+  circuit="ripple-carry-adder"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+### Propagation Delay & The Critical Path Bottleneck
+
+Let:
+* $t_{gate}$ = Propagation delay of an individual basic gate.
+* $t_{sum}$ = Delay required for a Full Adder to compute $S_i$ once its inputs $(A_i, B_i, C_i)$ are stable.
+* $t_{carry}$ = Delay required for a Full Adder to compute $C_{i+1}$ once its inputs $(A_i, B_i, C_i)$ are stable.
+
+Using the standard 2-level Full Adder realization:
+* $S_i = A_i \oplus B_i \oplus C_i \implies t_{sum} = 2 \cdot t_{XOR}$
+* $C_{i+1} = A_i B_i + C_i(A_i \oplus B_i) \implies t_{carry} = t_{AND} + t_{OR}$ (assuming $A_i \oplus B_i$ is already evaluated in parallel).
+
+For uniform gate delay analysis where each gate has delay $\Delta$:
+* $t_{carry} = 2\Delta$ (one AND layer + one OR layer)
+* $t_{sum} = 2\Delta$ (two XOR layers)
+
+<MathBox title="Worst-Case Ripple Carry Delay Formula" type="formula">
+
+In an $n$-bit Ripple Carry Adder:
+1. All operand bits $A_{n-1:0}$ and $B_{n-1:0}$ arrive simultaneously at time $t = 0$.
+2. The carry signal must ripple sequentially through all $n$ stages from $FA_0$ to $FA_{n-1}$.
+3. The final carry $C_n$ stabilizes after $n$ carry propagation delays:
+   $$T(C_n) = n \cdot t_{carry}$$
+4. The final sum bit $S_{n-1}$ can only evaluate after $C_{n-1}$ arrives:
+   $$T(S_{n-1}) = (n - 1) \cdot t_{carry} + t_{sum}$$
+
+Therefore, the total worst-case propagation delay of an $n$-bit RCA is:
+
+$$
+T_{RCA} = \max\Big(n \cdot t_{carry},\; (n - 1)t_{carry} + t_{sum}\Big)
+$$
+
+If $t_{carry} = t_{sum} = 2\Delta$:
+
+$$
+T_{RCA} = 2n\Delta
+$$
+
+</MathBox>
+
+> ⚠️ **The Ripple Carry Scaling Bottleneck**:  
+> The delay of a Ripple Carry Adder scales strictly linearly with word length: $O(n)$.  
+> For a 64-bit adder with $t_{carry} = 2\Delta$:
+> $$T_{64} = 64 \times 2\Delta = 128\Delta$$  
+> This prohibitive latency was the primary driver for the invention of **Carry Lookahead Adders (CLA)**, which evaluate all carries in $O(1)$ constant time.
+
+---
+
+<div id="controlled-adder-subtractor-unit" />
+
+## 🎛️ Controlled Adder-Subtractor & Overflow Logic
+
+Can we build a single unified hardware unit that performs both $A + B$ and $A - B$ without duplicating our adder array?
+
+### The XOR Gate as a Programmable Controlled Inverter
+
+Recall the XOR gate truth table:
+* $X \oplus 0 = X$ (Identity / Non-inverting buffer)
+* $X \oplus 1 = \bar{X}$ (Negation / Controlled inverter)
+
+By placing an XOR gate on each input line $B_i$ and feeding a mode control signal $M$ into the other pin:
+* When $M = 0$: The XOR output is $B_i \oplus 0 = B_i$.
+* When $M = 1$: The XOR output is $B_i \oplus 1 = \bar{B}_i$ (1's complement).
+
+### Unifying Addition and 2's Complement Subtraction
+
+In 2's complement arithmetic:
+$$A - B = A + (\text{2's complement of } B) = A + \bar{B} + 1$$
+
+Notice the remarkable symmetry:
+* To add: compute $A + B + 0$.
+* To subtract: compute $A + \bar{B} + 1$.
+
+By wiring the mode signal $M$ directly to the initial carry input $C_0$:
+
+| Mode ($M$) | Carry In ($C_0$) | Value Fed to $B$ Inputs | Operation Performed | Output Result |
+| :---: | :---: | :---: | :---: | :--- |
+| **$0$** | $C_0 = 0$ | $B_i \oplus 0 = B_i$ | $A + B + 0$ | **Addition**: $A + B$ |
+| **$1$** | $C_0 = 1$ | $B_i \oplus 1 = \bar{B}_i$ | $A + \bar{B} + 1$ | **Subtraction**: $A - B$ |
+
+<FlowPipeline
+  title="4-Bit Controlled Adder-Subtractor Datapath Flow"
+  subtitle="Unifying binary addition and 2's complement subtraction using XOR controlled inverters"
+  steps={[
+    {
+      title: "Mode Control (M)",
+      badge: "Op Select",
+      color: "blue",
+      description: "M = 0 selects ADD; M = 1 selects SUB (2's complement).",
+      detail: "M directly drives initial carry C₀ and serves as control input to all XOR gates.",
+      actionText: "Direct Wire"
+    },
+    {
+      title: "XOR Inverters",
+      badge: "Complementer",
+      color: "purple",
+      description: "Computes bitwise Bᵢ' = Bᵢ ⊕ M in parallel.",
+      detail: "M=0: Bᵢ ⊕ 0 = Bᵢ (Identity for ADD).\nM=1: Bᵢ ⊕ 1 = B̄ᵢ (1's complement for SUB).\nDelay: 1 t_XOR.",
+      actionText: "Feeds B Pins"
+    },
+    {
+      title: "Full Adder Array",
+      badge: "Arithmetic Core",
+      color: "cyan",
+      description: "Computes A + B' + M across all 4 stages.",
+      detail: "When M=0: A + B + 0 = A + B.\nWhen M=1: A + B̄ + 1 = A - B (exact 2's complement subtraction).",
+      actionText: "Carries to Flags"
+    },
+    {
+      title: "Overflow Check",
+      badge: "Flag Logic",
+      color: "rose",
+      description: "Evaluates V = C₄ ⊕ C₃ to flag signed overflow.",
+      detail: "If carries into and out of the sign bit differ (C₄ ≠ C₃), signed overflow has occurred (V = 1)."
+    }
+  ]}
+/>
+
+<CircuitSimulator
+  circuit="adder-subtractor"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+### Signed 2's Complement Overflow Detection
+
+When performing signed arithmetic with fixed $n$-bit words, the result may exceed the representable range $[-2^{n-1}, +2^{n-1}-1]$. This condition is termed **Arithmetic Overflow ($V$)**.
+
+<MathBox title="The Fundamental Law of Signed Overflow" type="law">
+
+An overflow occurs in signed addition if and only if:
+1. Adding two positive numbers yields a negative result ($+A + +B = -S$).
+2. Adding two negative numbers yields a positive result ($-A + -B = +S$).
+
+Adding numbers of opposite signs can **never** cause an overflow because the magnitude of the result is guaranteed to be strictly smaller than the larger operand.
+
+</MathBox>
+
+### Hardware Realization of Overflow Flag ($V$)
+
+How does the processor detect this condition instantly in hardware?  
+Look at the carry bits entering and exiting the sign bit position (MSB):
+* $C_{n-1}$: Carry entering the MSB Full Adder ($FA_{n-1}$).
+* $C_n$: Carry exiting the MSB Full Adder ($FA_{n-1}$).
+
+<MathBox title="The Carry XOR Overflow Theorem" type="theorem">
+
+For any $n$-bit 2's complement adder, signed arithmetic overflow occurs if and only if the carry into the sign bit differs from the carry out of the sign bit:
+
+$$
+V = C_n \oplus C_{n-1}
+$$
+
+* If $C_n = C_{n-1} \implies V = 0$ (No overflow; valid result).
+* If $C_n \neq C_{n-1} \implies V = 1$ (Signed overflow detected; OF flag asserted).
+
+</MathBox>
+
+---
+
+## 🏭 Real-World Production Context: ALU Arithmetic Pipelines
+
+In modern superscalar CPU microarchitectures (such as Intel Raptor Lake, AMD Zen 4, and Apple M-Series):
+* **Single-Cycle ALU Timing**: Modern desktop CPUs run at clock frequencies above $4.5\text{ GHz}$, meaning a single clock period is under $220\text{ picoseconds}$. An adder cannot afford a long serial ripple path through 64 full adders; it must finish its calculations before the next clock edge strikes.
+* **Hardware Economy**: Rather than manufacturing separate silicon dies for addition and subtraction, hardware designers reuse the exact same adder array by steering inputs through controlled XOR inverters.
+
+<ArchitectureStack
+  title="Silicon Datapath: Where Adders Live in Modern Compute Engines"
+  subtitle="Hierarchical view of arithmetic execution units in high-performance processors"
+  layers={[
+    {
+      badge: "Instruction Engine",
+      title: "Instruction Decode & Scheduler (Out-of-Order Engine)",
+      icon: "⚡",
+      color: "blue",
+      description: "Dispatches integer arithmetic micro-ops (uops) to execution ports with 1-cycle latency requirements.",
+      items: ["Reservation Stations", "Reorder Buffer (ROB)", "Register Renaming"],
+      connectorText: "Micro-op Dispatch"
+    },
+    {
+      badge: "Execution Core",
+      title: "Integer Arithmetic Logic Unit (ALU Datapath)",
+      icon: "🧮",
+      color: "purple",
+      description: "Fast 64-bit adder networks executing addition, subtraction, pointer indexing, and branch target calculations.",
+      items: ["64-Bit Adder Array", "XOR Inverter Bank", "Fast Carry Chains"],
+      connectorText: "Result & Flags"
+    },
+    {
+      badge: "State Storage",
+      title: "Register File & Flags Register (RFLAGS / CPSR)",
+      icon: "💾",
+      color: "emerald",
+      description: "Latches the 64-bit sum and captures condition flags: Carry (CF), Zero (ZF), Sign (SF), and Overflow (OF).",
+      items: ["Architectural Registers", "Physical Register File", "Condition Codes"]
+    }
+  ]}
+/>
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Critical Path Timing Analysis for Ripple Carry Adders
+**Problem Statement:**  
+A 16-bit Ripple Carry Adder is constructed using basic gates with the following individual propagation delays:
+* $t_{XOR} = 6\text{ ns}$
+* $t_{AND} = 4\text{ ns}$
+* $t_{OR} = 3\text{ ns}$
+
+Each Full Adder is constructed using 2 Half Adders and 1 OR gate:
+* $S_i = A_i \oplus B_i \oplus C_i$
+* $C_{i+1} = A_i B_i + C_i(A_i \oplus B_i)$
+
+All inputs $(A_{15:0}, B_{15:0}, C_0)$ arrive simultaneously at $t = 0$.
+1. Calculate the time required for $C_1$ to be generated by stage 0.
+2. Calculate the incremental carry propagation delay per stage ($t_{carry}$) for subsequent stages.
+3. Calculate the worst-case time required for the final sum bit $S_{15}$ and final carry $C_{16}$ to stabilize.
+
+#### Step 1: Analyze Stage 0 ($FA_0$)
+At $t = 0$, both $A_0$ and $B_0$ are available:
+* The first XOR gate computes $P_0 = A_0 \oplus B_0$ at $t = t_{XOR} = 6\text{ ns}$.
+* Simultaneously, the generate term $G_0 = A_0 B_0$ is computed at $t = t_{AND} = 4\text{ ns}$.
+* To compute $C_1 = G_0 + C_0 \cdot P_0$:
+  * $C_0 \cdot P_0$ requires an AND gate after $P_0$ is ready: $t_{AND\_ready} = 6\text{ ns} + 4\text{ ns} = 10\text{ ns}$.
+  * The final OR gate produces $C_1$ at: $t = 10\text{ ns} + t_{OR} = 10\text{ ns} + 3\text{ ns} = 13\text{ ns}$.
+
+Thus, $C_1$ is valid at $t = 13\text{ ns}$.
+
+#### Step 2: Determine Incremental Delay Per Subsequent Stage
+For any stage $i \ge 1$:
+* The local propagate term $P_i = A_i \oplus B_i$ was already computed at $t = 6\text{ ns}$ while waiting for $C_i$ to ripple!
+* When carry $C_i$ finally arrives from stage $i-1$, $P_i$ is already waiting.
+* Therefore, the carry signal only needs to pass through:
+  * 1 AND gate: computes $C_i \cdot P_i$ ($t_{AND} = 4\text{ ns}$)
+  * 1 OR gate: computes $C_{i+1} = G_i + C_i \cdot P_i$ ($t_{OR} = 3\text{ ns}$)
+
+$$\Delta t_{carry} = t_{AND} + t_{OR} = 4\text{ ns} + 3\text{ ns} = 7\text{ ns}$$
+
+#### Step 3: Compute Final Outputs
+1. **Time for $C_{16}$**:
+   $$T(C_{16}) = T(C_1) + 15 \times \Delta t_{carry} = 13\text{ ns} + 15 \times 7\text{ ns} = 13 + 105 = 118\text{ ns}$$
+
+2. **Time for $S_{15}$**:
+   * Carry $C_{15}$ arrives at $T(C_{15}) = 13\text{ ns} + 14 \times 7\text{ ns} = 13 + 98 = 111\text{ ns}$.
+   * Once $C_{15}$ arrives, $S_{15} = P_{15} \oplus C_{15}$ requires one XOR gate delay ($6\text{ ns}$):
+   $$T(S_{15}) = T(C_{15}) + t_{XOR} = 111\text{ ns} + 6\text{ ns} = 117\text{ ns}$$
+
+**Final Result:**  
+* The final sum bit $S_{15}$ stabilizes at **$117\text{ ns}$**.
+* The final carry out $C_{16}$ stabilizes at **$118\text{ ns}$**.
+* Total worst-case circuit delay = **$118\text{ ns}$**.
+
+---
+
+### Example 2: Full Subtractor Synthesis Using Two Half Subtractors
+**Problem Statement:**  
+Prove algebraically that a Full Subtractor can be constructed from two Half Subtractors and a single 2-input OR gate. Specify the internal signals and verify with a truth table test case ($A = 0, B = 1, B_{in} = 1$).
+
+#### Step 1: Define Half Subtractor Primitives
+A Half Subtractor with inputs $(X, Y)$ produces:
+* Difference: $Diff(X, Y) = X \oplus Y$
+* Borrow: $Borr(X, Y) = \bar{X}Y$
+
+#### Step 2: Cascade Two Half Subtractors
+1. **First Half Subtractor ($HS_1$)**:
+   * Inputs: $(A, B)$
+   * $D_1 = A \oplus B$
+   * $B_1 = \bar{A}B$
+
+2. **Second Half Subtractor ($HS_2$)**:
+   * Inputs: $(D_1, B_{in})$
+   * $D = D_1 \oplus B_{in} = (A \oplus B) \oplus B_{in} = A \oplus B \oplus B_{in}$ (Matches Full Subtractor Difference!)
+   * $B_2 = \bar{D}_1 \cdot B_{in} = (\overline{A \oplus B}) \cdot B_{in}$
+
+3. **OR Combiner**:
+   * Combine the borrow signals: $B_{out} = B_1 + B_2 = \bar{A}B + (\overline{A \oplus B})B_{in}$
+
+#### Step 3: Verify the Borrow Expression
+Expand $(\overline{A \oplus B})B_{in}$:
+$$(\overline{A \oplus B})B_{in} = (AB + \bar{A}\bar{B})B_{in} = ABB_{in} + \bar{A}\bar{B}B_{in}$$
+
+Add $B_1 = \bar{A}B$:
+$$B_{out} = \bar{A}B + \bar{A}\bar{B}B_{in} + ABB_{in}$$
+
+Apply absorption / minimization:
+$$\bar{A}B + \bar{A}\bar{B}B_{in} = \bar{A}(B + \bar{B}B_{in}) = \bar{A}(B + B_{in}) = \bar{A}B + \bar{A}B_{in}$$
+$$\bar{A}B_{in} + ABB_{in} = B_{in}(\bar{A} + AB) = B_{in}(\bar{A} + B) = \bar{A}B_{in} + BB_{in}$$
+
+Therefore:
+$$B_{out} = \bar{A}B + \bar{A}B_{in} + BB_{in}$$
+This matches the exact canonical Full Subtractor equation.
+
+#### Step 4: Numerical Verification for $A=0, B=1, B_{in}=1$
+* $D_1 = 0 \oplus 1 = 1$
+* $B_1 = \bar{0} \cdot 1 = 1 \cdot 1 = 1$
+* $D = D_1 \oplus B_{in} = 1 \oplus 1 = 0$
+* $B_2 = \bar{D}_1 \cdot B_{in} = \bar{1} \cdot 1 = 0$
+* $B_{out} = B_1 + B_2 = 1 + 0 = 1$
+
+**Arithmetic check**: $0 - 1 - 1 = -2$. In 2-bit signed/borrow notation, with Borrow $= 1$ (value $+2$), we have $+2 - 2 = 0$ ($D = 0$). **Derivation fully verified.**
+
+---
+
+### Example 3: Signed 2's Complement Addition & Overflow Evaluation
+**Problem Statement:**  
+A 4-bit 2's complement Adder-Subtractor operates on operands:
+* Case A: $A = +5$, $B = +4$ (Addition: $M = 0$)
+* Case B: $A = +5$, $B = -4$ (Subtraction: $M = 1$)
+* Case C: $A = +6$, $B = +5$ (Addition: $M = 0$)
+
+Represent each operand in 4-bit signed 2's complement, trace each stage's carry bits ($C_0, C_1, C_2, C_3, C_4$), calculate the sum bits, and evaluate the Overflow Flag $V = C_4 \oplus C_3$.
+
+#### Case A: $(+5) + (+4)$
+* $A = 5_{10} = 0101_2$
+* $B = 4_{10} = 0100_2$
+* $M = 0 \implies C_0 = 0$, $B' = B = 0100_2$
+
+Bit-by-bit addition:
+* Bit 0: $A_0 = 1, B'_0 = 0, C_0 = 0 \implies S_0 = 1, C_1 = 0$
+* Bit 1: $A_1 = 0, B'_1 = 0, C_1 = 0 \implies S_1 = 0, C_2 = 0$
+* Bit 2: $A_2 = 1, B'_2 = 1, C_2 = 0 \implies S_2 = 0, C_3 = 1$
+* Bit 3: $A_3 = 0, B'_3 = 0, C_3 = 1 \implies S_3 = 1, C_4 = 0$
+
+Sum = $1001_2$.  
+* Carries: $C_3 = 1$, $C_4 = 0$.
+* Overflow bit: $V = C_4 \oplus C_3 = 0 \oplus 1 = \mathbf{1}$ (OVERFLOW!).
+* **Verification**: In 4-bit signed 2's complement, the maximum positive number is $+7$. $+5 + +4 = +9$, which exceeds range $[-8, +7]$. The hardware produced $1001_2 = -7_{10}$, so the overflow flag correctly flagged an invalid result.
+
+#### Case B: $(+5) - (-4)$
+* $A = 5_{10} = 0101_2$
+* $-4_{10}$ in 4-bit 2's complement: $+4 = 0100 \implies$ invert $+ 1 = 1011 + 1 = 1100_2$. So $B = 1100_2$.
+* $M = 1$ (Subtraction) $\implies C_0 = 1$.
+* Inverted $B' = B \oplus 1 = 1100 \oplus 1111 = 0011_2$.
+
+Bit-by-bit addition ($A + B' + C_0$):
+* Bit 0: $1 + 1 + 1 = S_0 = 1, C_1 = 1$
+* Bit 1: $0 + 1 + 1 = S_1 = 0, C_2 = 1$
+* Bit 2: $1 + 0 + 1 = S_2 = 0, C_3 = 1$
+* Bit 3: $0 + 0 + 1 = S_3 = 1, C_4 = 0$
+
+Sum = $1001_2$.  
+* Carries: $C_3 = 1$, $C_4 = 0$.
+* Overflow bit: $V = C_4 \oplus C_3 = 0 \oplus 1 = \mathbf{1}$ (OVERFLOW!).
+* **Verification**: $+5 - (-4) = +9$, which again exceeds $+7$. Correctly flagged.
+
+#### Case C: $(+3) + (+2)$ (Non-overflow case)
+* $A = +3_{10} = 0011_2$, $B = +2_{10} = 0010_2$, $M = 0, C_0 = 0$.
+* Bit 0: $1 + 0 + 0 \implies S_0 = 1, C_1 = 0$
+* Bit 1: $1 + 1 + 0 \implies S_1 = 0, C_2 = 1$
+* Bit 2: $0 + 0 + 1 \implies S_2 = 1, C_3 = 0$
+* Bit 3: $0 + 0 + 0 \implies S_3 = 0, C_4 = 0$
+* Sum = $0101_2 = +5_{10}$.
+* Carries: $C_3 = 0, C_4 = 0 \implies V = 0 \oplus 0 = \mathbf{0}$ (No overflow; valid sum $+5$).
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why are Full Adders implemented using $C_{out} = AB + C_{in}(A \oplus B)$ instead of $C_{out} = AB + BC_{in} + AC_{in}$ in standard cell libraries?**  
+  In the two-level equation $AB + BC_{in} + AC_{in}$, three separate 2-input AND gates and one 3-input OR gate are required. In contrast, the factorized form $AB + C_{in}(A \oplus B)$ reuses the existing $(A \oplus B)$ term already computed for the Sum output ($S = (A \oplus B) \oplus C_{in}$). Reusing this intermediate signal eliminates an entire gate, reducing silicon area and dynamic switching power.
+
+* **Does an arithmetic carry ($C_n = 1$) always mean a signed overflow occurred?**  
+  **No.** $C_n$ represents the *unsigned carry flag* (CF), whereas overflow represents the *signed overflow flag* (OF). For example, in 4-bit addition: $(-1) + (-1) = 1111_2 + 1111_2 = 11110_2$. Here, $C_4 = 1$, but $C_3 = 1$, so $V = 1 \oplus 1 = 0$. The signed result is $-2$, which is completely valid! CF is used for unsigned multi-precision arithmetic, while OF is used exclusively for signed 2's complement range checks.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Confusing Half Adder with Half Subtractor Borrow logic.**  
+  Candidates often write $B_{out} = A\bar{B}$ instead of $B_{out} = \bar{A}B$. Remember: you only need a borrow if the minuend is smaller than the subtrahend ($0 - 1$). Hence, the condition requiring borrow is $A = 0$ and $B = 1$, which is algebraically $\bar{A}B$.
+* **Trap: Forgetting that $t_{sum}$ and $t_{carry}$ evaluate concurrently.**  
+  When calculating Ripple Carry Adder delay, beginners often sum $n \times t_{sum} + n \times t_{carry}$. In reality, the $A_i$ and $B_i$ inputs are available immediately at $t = 0$ across all stages. Only the carry bit ripples serially down the chain. The sum bits evaluate in parallel with the carry propagation.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "4.3 Implicants, Prime Implicants & Don't Care Conditions",
+    url: "/coredose/digital-logic/module-04/implicants-prime-implicants-and-dont-care-conditions",
+  }}
+  next={{
+    title: "5.2 Carry Lookahead Adder & High-Speed Addition",
+    url: "/coredose/digital-logic/module-05/carry-lookahead-adder-and-high-speed-addition",
+  }}
+  courseUrl="/coredose/digital-logic"
+/>

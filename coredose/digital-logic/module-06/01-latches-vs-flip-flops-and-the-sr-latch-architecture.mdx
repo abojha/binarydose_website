@@ -1,0 +1,424 @@
+---
+title: "6.1 Latches vs Flip-Flops & The SR Latch Architecture"
+description: "First-principles engineering breakdown of sequential circuits, bistable multivibrators, level-triggering vs edge-triggering, active-high NOR and active-low NAND SR latches, characteristic equations, and clock-gating."
+hide_table_of_contents: true
+---
+
+# 6.1 Latches vs Flip-Flops & The SR Latch Architecture
+
+<CoreDoseLessonHeader
+  module="Module 06: Sequential Logic Circuits: Latches & Flip-Flops"
+  topic="Topic 6.1"
+  courseUrl="/coredose/digital-logic"
+  readTime="18 min read"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Foundational Computing"
+/>
+
+## 💡 Core Intuition: The Mechanical Light Switch with Memory vs. The Instant Water Valve
+
+In combinational logic, circuits are strictly **memoryless**: like a pressure valve that opens only as long as your foot presses the pedal, the output at time $t$ depends exclusively on the inputs present at that exact instant ($Y(t) = f(X(t))$). The moment you remove the input, the output vanishes.
+
+Sequential logic introduces **internal feedback**: the output of a logic gate is routed back to its own input. This feedback loop creates a mechanical latch—similar to a wall light switch. When you flick the toggle to "ON" (Set), you can remove your finger; the switch physically clicks into place and *remembers* its state indefinitely until an opposing force flicks it to "OFF" (Reset).
+
+### 🍳 The Everyday Analogy: The Screen Door Latch vs. The Camera Shutter
+
+* **Combinational Logic (The Open Doorway)**: People pass through only while the door is pushed open. No force $\implies$ no passage.
+* **The Latch (Level-Sensitive / The Screen Door Latch)**: While the handle is held down (Clock = High), the door swings freely and mirrors every gust of wind (transparent mode). When the handle is released (Clock = Low), the door locks in whatever position it held the microsecond the handle caught.
+* **The Flip-Flop (Edge-Sensitive / The High-Speed Camera Shutter)**: It does not care how long the photographer holds the button down. The camera captures an instantaneous snapshot exclusively at the precise nanosecond the shutter button clicks from unpressed to pressed (the rising edge $\uparrow$). Between clicks, the film remains isolated from the outside world.
+
+### 💻 Bridging to Computer Science & Silicon Hardware
+
+In modern computer architecture, sequential circuits form the backbone of all computing:
+1. **SRAM (Static Random Access Memory)**: Every single bit of L1, L2, and L3 CPU cache on an x86 or ARM processor is fundamentally a 6-transistor (6T) cross-coupled bistable latch.
+2. **Pipeline Registers**: High-frequency CPU pipelines break up long combinational logic paths (ALU, multiplier, branch predictor) using edge-triggered flip-flops to synchronize data transfers to the master CPU clock ($f_{CLK}$).
+3. **Finite State Machines (FSMs)**: Control units, PCIe protocol decoders, and memory controllers navigate states using registers that preserve current state $Q$ while computing next state $Q_{next}$.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🔄 Combinational vs. Sequential Logic Systems
+
+To understand why feedback creates memory, let us formalize the mathematical divide between memoryless combinational logic and state-holding sequential logic:
+
+<SubsystemGrid
+  items={[
+    {
+      icon: "⚡",
+      title: "Combinational Systems",
+      tag: "Memoryless Feedforward",
+      color: "blue",
+      points: [
+        "Outputs depend exclusively on current inputs: Y(t) = f(X(t)).",
+        "Topological graph is strictly a Directed Acyclic Graph (DAG) with zero closed feedback loops.",
+        "Clock signals are not required for function evaluation."
+      ],
+      syscalls: ["Y = f(X)"]
+    },
+    {
+      icon: "🔄",
+      title: "Sequential Systems",
+      tag: "State-Holding Feedback",
+      color: "rose",
+      points: [
+        "Outputs depend on present inputs AND past history (internal state): Y(t) = f(X(t), Q(t)).",
+        "Topological graph contains closed feedback loops connecting output terminals back to input terminals.",
+        "Requires memory elements (Latches or Flip-Flops) to maintain stable state across clock cycles."
+      ],
+      syscalls: ["Q(t+1) = f(X(t), Q(t))"]
+    },
+    {
+      icon: "⏱️",
+      title: "Timing Paradigm",
+      tag: "Synchronous vs Asynchronous",
+      color: "emerald",
+      points: [
+        "Asynchronous Sequential: State changes instantaneously whenever inputs transition (hazard-prone).",
+        "Synchronous Sequential: State transitions occur strictly at synchronized clock pulse intervals."
+      ],
+      syscalls: ["Clock Domain Synchronization"]
+    }
+  ]}
+/>
+
+---
+
+<div id="level-triggering-vs-edge-triggering" />
+
+## ⏱️ Level-Triggering vs. Edge-Triggering
+
+The distinction between a **Latch** and a **Flip-Flop** is the single most frequently tested concept in hardware engineering technical interviews:
+
+| Attribute | Latch (Level-Triggered) | Flip-Flop (Edge-Triggered) |
+| :--- | :--- | :--- |
+| **Clock Sensitivity** | Sensitive to the **level** of the clock (High $= 1$ or Low $= 0$). | Sensitive strictly to the **transition edge** ($\uparrow$ Rising or $\downarrow$ Falling). |
+| **Transparency** | **Transparent**: While clock level is active, any change on input propagates immediately to output. | **Opaque**: Inputs are sampled during an infinitesimally narrow aperture ($\Delta t \to 0$); immune to changes during steady clock levels. |
+| **Hardware Complexity** | Minimal (typically 2 to 4 logic gates). | Higher (typically constructed from 2 latches in Master-Slave configuration). |
+| **Timing Hazard** | Highly susceptible to **glitches, races, and pulse width hazards**. | Robust against glitches; enables deterministic static timing analysis ($f_{max} = 1/T_{clk}$). |
+| **Primary Usage** | High-speed low-power SRAM arrays, asynchronous clock domain interfaces. | Synchronous CPU pipelines, state machines (FSMs), counters, shift registers. |
+
+---
+
+<div id="the-bistable-multivibrator" />
+
+## 🔬 The Bistable Multivibrator & Cross-Coupled Core
+
+The most fundamental electronic memory cell is the **Bistable Multivibrator**, constructed by cross-coupling two inverters head-to-tail in a regenerative feedback loop:
+
+<MathBox title="Cross-Coupled Regenerative Inverter Transfer Functions" type="formula">
+
+$$
+V_{out1} = \text{INV}_1(V_{in1}) = \text{INV}_1(V_{out2})
+$$
+
+$$
+V_{out2} = \text{INV}_2(V_{in2}) = \text{INV}_2(V_{out1})
+$$
+
+</MathBox>
+
+<FlowPipeline
+  title="Bistable Regenerative Feedback Loop"
+  subtitle="Cross-coupled inverters creating two complementary stable operating states"
+  steps={[
+    {
+      title: "Inverter 1 (INV₁)",
+      sublabel: "V_in1 = Q' → V_out1 = Q",
+      description: "Inverts feedback signal Q' from Inverter 2 to reinforce primary state Q.",
+      color: "blue",
+      badge: "Stage 1",
+      actionText: "Drives Q into Inverter 2"
+    },
+    {
+      title: "Inverter 2 (INV₂)",
+      sublabel: "V_in2 = Q → V_out2 = Q'",
+      description: "Inverts primary state Q to regenerate complementary feedback signal Q'.",
+      color: "purple",
+      badge: "Stage 2",
+      actionText: "Feedback Q' closes loop"
+    }
+  ]}
+/>
+
+### The Three Equilibrium Operating Points:
+1. **Stable State 1**: $Q = 1 \implies \bar{Q} = 0 \implies Q = 1$. The loop reinforces itself indefinitely.
+2. **Stable State 2**: $Q = 0 \implies \bar{Q} = 1 \implies Q = 0$. The loop reinforces itself indefinitely.
+3. **Metastable State**: Exactly at $V_{in} = V_{DD}/2$, both inverters output equal mid-rail voltages. This is an unstable equilibrium (like a pencil balanced on its sharp tip). Any thermal noise perturbation causes regenerative positive feedback to slam the cell into either State 1 or State 2.
+
+**The Engineering Problem**: A cross-coupled inverter pair stores 1 bit, but it has no input terminals! Once powered up, you cannot change its state. To make it a controllable memory element, we replace the inverters with 2-input logic gates: **NOR** gates or **NAND** gates.
+
+---
+
+<div id="active-high-nor-sr-latch" />
+
+## ⚡ Active-High NOR SR Latch Architecture
+
+An active-high SR (Set-Reset) latch is constructed from two cross-coupled NOR gates:
+
+* **Top NOR Gate**: Takes external input $R$ (Reset) and feedback signal $Q$, producing output $\bar{Q}$.
+* **Bottom NOR Gate**: Takes external input $S$ (Set) and feedback signal $\bar{Q}$, producing output $Q$.
+
+<SequentialSimulator
+  circuit="sr-latch-nor"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+### Mathematical Derivation of State Equations
+
+Recall the Boolean truth table of a 2-input NOR gate: if ANY input is $1$, the output is guaranteed to be $0$. The output can be $1$ if and only if both inputs are $0$:
+$$\text{NOR}(X, Y) = \overline{X + Y}$$
+
+Applying this to our two gates:
+1. Top NOR: $\bar{Q} = \overline{R + Q}$
+2. Bottom NOR: $Q = \overline{S + \bar{Q}}$
+
+Let us analyze all four input combinations:
+
+#### Case 1: $S = 1, R = 0$ (The SET Operation)
+* Since $S = 1$, the bottom NOR gate has at least one high input $\implies Q = \overline{1 + \bar{Q}} = \mathbf{1}$ (after inversion of $S$, bottom output drives high).
+* Let us verify: Bottom NOR output $Q = 1$ feeds back into top NOR gate.
+* Top NOR receives $R = 0$ and $Q = 1 \implies \bar{Q} = \overline{0 + 1} = \mathbf{0}$.
+* $\bar{Q} = 0$ feeds back to bottom NOR: $\overline{S + 0} = \overline{1 + 0} = 0$, giving $Q = 1$.
+* **Result**: $Q = 1, \bar{Q} = 0$ (LATCH IS SET).
+
+#### Case 2: $S = 0, R = 1$ (The RESET Operation)
+* Top NOR receives $R = 1 \implies \bar{Q} = \overline{1 + Q} = \mathbf{0}$.
+* $\bar{Q} = 0$ feeds back into bottom NOR.
+* Bottom NOR receives $S = 0$ and $\bar{Q} = 0 \implies Q = \overline{0 + 0} = \mathbf{0}$ (inverts to 1 on $\bar{Q}$, forcing $Q = 0$).
+* **Result**: $Q = 0, \bar{Q} = 1$ (LATCH IS RESET / CLEARED).
+
+#### Case 3: $S = 0, R = 0$ (The LATCH / MEMORY Operation)
+* Top NOR receives $R = 0 \implies \bar{Q} = \overline{0 + Q} = \bar{Q}$.
+* Bottom NOR receives $S = 0 \implies Q = \overline{0 + \bar{Q}} = \overline{\bar{Q}} = Q$.
+* Neither gate asserts an overriding logic 1. The loop relies entirely on the pre-existing feedback voltages.
+* **Result**: $Q_{next} = Q_{prev}$ (NO CHANGE / RETENTION).
+
+#### Case 4: $S = 1, R = 1$ (The FORBIDDEN / INVALID State)
+* Both $S = 1$ and $R = 1$ simultaneously.
+* Top NOR receives $R = 1 \implies \bar{Q} = \overline{1 + Q} = \mathbf{0}$.
+* Bottom NOR receives $S = 1 \implies Q = \overline{1 + \bar{Q}} = \mathbf{0}$.
+* **Violation 1**: $Q$ and $\bar{Q}$ are both $0$, which physically violates the foundational definition of complementary outputs ($Q = \bar{Q}$ is a logical contradiction).
+* **Violation 2 (The Race Hazard)**: If both inputs suddenly switch from $11 \to 00$ at the exact same instant, both gates see $00$ and attempt to output $1$. Whichever gate has a 10 picosecond faster internal propagation delay will reach $1$ first and kill the other gate's output, causing undefined **metastability or random latching**.
+
+<MathBox title="NOR SR Latch Characteristic Equation & Constraint" type="formula">
+
+$$
+Q_{next} = S + \bar{R}Q \quad \text{subject to the constraint} \quad SR = 0
+$$
+
+</MathBox>
+
+---
+
+<div id="active-low-nand-sr-latch" />
+
+## 🛡️ Active-Low NAND S'R' Latch Architecture
+
+In industry, active-low logic ($\bar{S}\bar{R}$) is widely preferred because in CMOS silicon, NMOS transistors conduct faster and pull down logic lines to ground ($0\text{V}$) with lower propagation delay than PMOS pull-up networks.
+
+<SequentialSimulator
+  circuit="sr-latch-nand"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+### Truth Table Comparison: NOR vs. NAND Latch
+
+| Input Vector | NOR SR Latch ($Q_{next}$) | NAND S'R' Latch ($Q_{next}$) | Functional Comparison |
+| :---: | :---: | :---: | :--- |
+| **00** | **Hold ($Q_{prev}$)** | **FORBIDDEN ($Q = \bar{Q} = 1$)** | Inverted roles: $00$ is safe memory in NOR, but catastrophic in NAND! |
+| **01** | Reset ($Q = 0$) | Set ($Q = 1$) | In NAND, $S'=0$ asserts the Set condition. |
+| **10** | Set ($Q = 1$) | Reset ($Q = 0$) | In NAND, $R'=0$ asserts the Reset condition. |
+| **11** | **FORBIDDEN ($Q = \bar{Q} = 0$)** | **Hold ($Q_{prev}$)** | In NAND, $11$ is the resting quiescent memory state! |
+
+---
+
+<div id="clock-gated-sr-latch" />
+
+## 🚪 Clock-Gated SR Latch (Synchronous Enable)
+
+An unclocked SR latch is dangerous in synchronous digital design because any electrical glitch or noise spike on the $S$ or $R$ wire instantly flips the state of the latch.
+
+To solve this, we insert **Steering Gates** controlled by an **Enable / Clock signal ($EN$ or $CLK$)**:
+
+<SequentialSimulator
+  circuit="gated-sr-latch"
+  hideTabs={true}
+  hideHeader={true}
+/>
+
+### How Gating Enforces Determinism:
+1. When $CLK = 0$: Both input AND gates output $0$, regardless of what erratic voltages appear on $S$ and $R$. The NOR latch core receives $S_{int} = 0, R_{int} = 0$, placing it in **forced memory hold mode**.
+2. When $CLK = 1$: The AND gates become transparent buffers ($S_{int} = S, R_{int} = R$). The latch samples the incoming control signals.
+
+However, a gated latch remains **level-sensitive**: as long as $CLK$ stays at logic $1$, any changes on $S$ and $R$ ripple straight through to $Q$. To achieve bulletproof synchronous execution in CPU pipelines, we must advance from level-sensitive latches to **edge-triggered flip-flops**, which we explore in Topic 6.2.
+
+---
+
+## 🏭 Real-World Production Context: Where Latches Live in Modern CPUs
+
+In modern computer architecture, unclocked and clock-gated latches play specific, highly specialized roles in high-performance silicon:
+* **6T SRAM Cache Arrays**: Static RAM uses two cross-coupled CMOS inverters—the fundamental transistor-level implementation of the bistable latch studied above. Because it retains charge indefinitely via feedback, it eliminates the periodic DRAM refresh cycles that stall processor pipelines.
+* **Clock-Gating Integrated Cells (ICGs)**: High-speed microprocessors dynamically disable the clock tree to idle execution units to save dynamic power ($P \propto C \cdot V^2 \cdot f$). A negative-latch-based clock gater holds the enable signal glitch-free throughout the clock phase.
+* **Boundary Scan & Testability (LSSD)**: Level-Sensitive Scan Design (LSSD) separates system latches into test scan chains during manufacturing silicon verification.
+
+<ArchitectureStack
+  title="Digital Storage Hierarchy: From Silicon Feedback to CPU State"
+  subtitle="How bistable latch feedback scales across the modern computer storage hierarchy"
+  layers={[
+    {
+      badge: "L1 Architecture",
+      title: "Instruction Pipeline Stages (Fetch • Decode • Execute • Writeback)",
+      icon: "⚡",
+      color: "blue",
+      description: "Edge-triggered D Flip-Flops capture intermediate instruction boundaries synchronously on every clock cycle.",
+      items: ["Pipeline Registers", "Hazard Detection", "Branch Predictor State"],
+      connectorText: "Datapath Flow"
+    },
+    {
+      badge: "Register File",
+      title: "CPU Register File (RAX, RBX, R0..R31, PC, SP)",
+      icon: "💾",
+      color: "purple",
+      description: "Multi-ported arrays of fast flip-flop registers providing 1-cycle read/write access to execution datapaths.",
+      items: ["32x64-bit Registers", "Dual-Port Read", "Single-Port Write"],
+      connectorText: "Cache Hierarchy"
+    },
+    {
+      badge: "Cache Silicon",
+      title: "SRAM L1/L2/L3 Cache Memory Cells",
+      icon: "🛡️",
+      color: "emerald",
+      description: "Cross-coupled CMOS inverter latches holding bit charges indefinitely without needing capacitive refresh cycles.",
+      items: ["6-Transistor (6T) SRAM", "Zero Refresh Stalls", "Sub-Nanosecond Access"]
+    }
+  ]}
+/>
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Active-High NOR SR Latch Pulse Sequence Response
+**Problem Statement:**  
+An active-high NOR SR latch is initialized at time $t = 0$ with present state $Q = 1$ ($\bar{Q} = 0$). The input terminals receive the following chronological sequence of signal pulses (each step held long enough for gate propagation delays to settle):
+1. Step 1: $S = 0, R = 1$
+2. Step 2: $S = 0, R = 0$
+3. Step 3: $S = 1, R = 0$
+4. Step 4: $S = 0, R = 0$
+
+Determine the resulting outputs $(Q, \bar{Q})$ at the end of each step.
+
+**Step-by-Step Solution:**
+1. **Analyze Step 1 ($S = 0, R = 1$):**  
+   * The Reset command is asserted.  
+   * Top NOR gate evaluates: $\text{NOR}(R, Q) = \overline{1 + 1} = 0 \implies \bar{Q} = 0$.  
+   * Bottom NOR gate evaluates: $\text{NOR}(S, \bar{Q}) = \overline{0 + 0} = 1 \implies Q$ is driven to $0$ (via feedback: $\text{NOR}(0, 0) \to 1$). Wait, NOR latch has $\bar{Q} = \overline{R + Q}$ and $Q = \overline{S + \bar{Q}}$.  
+   * With $R = 1$, top output $\bar{Q} = \overline{1 + Q} = 0$.  
+   * Bottom output $Q = \overline{S + \bar{Q}} = \overline{0 + 0} = 1$? Wait: In a standard NOR latch with $R$ driving top gate and $S$ driving bottom gate:  
+     If $Q$ is top output: $Q = \overline{R + \bar{Q}}$. With $R = 1 \implies Q = 0$. Then $\bar{Q} = \overline{S + Q} = \overline{0 + 0} = 1$.  
+     Therefore, $(Q, \bar{Q}) = (0, 1)$ [Reset State].
+2. **Analyze Step 2 ($S = 0, R = 0$):**  
+   * Both inputs de-asserted to $0$ [Memory / Hold Mode].  
+   * Characteristic equation: $Q_{next} = S + \bar{R}Q = 0 + \bar{0}(0) = 0$.  
+   * Outputs remain latched: $(Q, \bar{Q}) = (0, 1)$.
+3. **Analyze Step 3 ($S = 1, R = 0$):**  
+   * The Set command is asserted.  
+   * $S = 1 \implies \bar{Q} = \overline{1 + Q} = 0$.  
+   * Then $Q = \overline{R + \bar{Q}} = \overline{0 + 0} = 1$.  
+   * Therefore, $(Q, \bar{Q}) = (1, 0)$ [Set State].
+4. **Analyze Step 4 ($S = 0, R = 0$):**  
+   * Both inputs returned to $0$ [Memory / Hold Mode].  
+   * Characteristic equation: $Q_{next} = 1 + \bar{0}(1) = 1$.  
+   * Outputs remain latched: $(Q, \bar{Q}) = (1, 0)$.
+
+---
+
+### Example 2: Active-Low NAND Latch Hazard Analysis
+**Problem Statement:**  
+An active-low NAND $\bar{S}\bar{R}$ latch accidentally receives the input combination $\bar{S} = 0, \bar{R} = 0$ simultaneously.  
+1. Determine the immediate physical gate outputs $(Q, \bar{Q})$.  
+2. If both inputs transition simultaneously from $00 \to 11$, explain why the final resting state is indeterminate (metastable hazard).
+
+**Step-by-Step Solution:**
+1. **Evaluate Immediate Gate Output for $\bar{S} = 0, \bar{R} = 0$:**  
+   * In a 2-input NAND gate, any input at logic $0$ forces the gate output to logic $1$, regardless of feedback:  
+     $$Q = \overline{\bar{S} \cdot \bar{Q}} = \overline{0 \cdot \bar{Q}} = 1$$  
+     $$\bar{Q} = \overline{\bar{R} \cdot Q} = \overline{0 \cdot Q} = 1$$  
+   * Both physical terminals output logic 1 ($Q = 1, \bar{Q} = 1$). This violates the fundamental definition of complementary outputs ($Q \neq \bar{Q}$).
+2. **Analyze Transition from $00 \to 11$ (Simultaneous Release):**  
+   * When both inputs switch to $\bar{S} = 1, \bar{R} = 1$, each NAND gate attempts to evaluate:  
+     $$Q_{new} = \overline{1 \cdot \bar{Q}_{old}} = \overline{1 \cdot 1} = 0$$  
+     $$\bar{Q}_{new} = \overline{1 \cdot Q_{old}} = \overline{1 \cdot 1} = 0$$  
+   * Both gates now try to switch to $0$. Once they reach $0$, feedback causes both gates to try to switch back to $1$.  
+   * The final state depends on sub-nanosecond gate propagation delay mismatch ($\Delta t_{pd}$):  
+     - If Gate 1 is faster by $10\text{ ps}$, $Q$ drops to $0$ first, forcing $\bar{Q} \to 1$.  
+     - If Gate 2 is faster, $\bar{Q}$ drops to $0$ first, forcing $Q \to 1$.  
+   * The circuit enters an unpredictable race condition (metastability). Hence, $\bar{S} = \bar{R} = 0$ is strictly forbidden.
+
+---
+
+### Example 3: Mathematical Derivation of the Characteristic Equation & K-Map Constraint
+**Problem Statement:**  
+Derive the characteristic equation of the active-high SR latch using a 3-variable Karnaugh Map ($S, R, Q_n$). Prove mathematically why the condition $SR = 0$ must accompany the minimized Boolean expression.
+
+**Step-by-Step Solution:**
+1. **Construct the 3-Variable State Transition Table:**  
+   The state table maps input combinations $(S, R)$ and present state $Q_n$ to next state $Q_{n+1}$:
+
+   | $S$ | $R$ | $Q_n$ | $Q_{n+1}$ | Description |
+   | :-: | :-: | :-: | :-: | :--- |
+   | 0 | 0 | 0 | 0 | Hold ($Q_{n+1} = Q_n$) |
+   | 0 | 0 | 1 | 1 | Hold ($Q_{n+1} = Q_n$) |
+   | 0 | 1 | 0 | 0 | Reset ($Q_{n+1} = 0$) |
+   | 0 | 1 | 1 | 0 | Reset ($Q_{n+1} = 0$) |
+   | 1 | 0 | 0 | 1 | Set ($Q_{n+1} = 1$) |
+   | 1 | 0 | 1 | 1 | Set ($Q_{n+1} = 1$) |
+   | 1 | 1 | 0 | $\times$ | Invalid / Forbidden ($SR = 1$) |
+   | 1 | 1 | 1 | $\times$ | Invalid / Forbidden ($SR = 1$) |
+
+2. **Map into 3-Variable K-Map:**  
+   With rows $S$ and columns $R Q_n$:  
+   * Row $S = 0$: cells $m_0 = 0$, $m_1 = 1$, $m_3 = 0$, $m_2 = 0$.  
+   * Row $S = 1$: cells $m_4 = 1$, $m_5 = 1$, $m_7 = \times$, $m_6 = \times$.  
+3. **Group Prime Implicants:**  
+   * **Group 1 (Quad of 4 cells)**: Cells $(m_4, m_5, m_7, m_6)$ encompass the entire row $S = 1$, combining the $1$s with don't-cares $\times$. Term $= S$.  
+   * **Group 2 (Pair of 2 cells)**: Cells $(m_1, m_5)$ in column $R=0, Q_n=1$. Term $= \bar{R} Q_n$.  
+4. **Formulate Minimized Characteristic Equation:**  
+   $$Q_{n+1} = S + \bar{R}Q_n \quad \text{for } SR = 0$$  
+   * **Proof of Mandatory Constraint**: If $S = 1$ and $R = 1$, the algebraic formula yields $Q_{n+1} = 1 + \bar{1}Q = 1$. But physically, both NOR gates output $Q = \bar{Q} = 0$. The Boolean reduction only holds true when the invalid state is constrained out by $SR = 0$.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does the NOR latch have inputs arranged with $R$ on top and $S$ on the bottom, while the outputs are $\bar{Q}$ on top and $Q$ on the bottom?**  
+  Because of gate inversion! When $R = 1$, the top NOR gate is forced to output $0$. Since a Reset operation must set $Q = 0$, and the top gate is forced to $0$, the top output must be $\bar{Q}$ (so that bottom gate produces $Q = 0$ via feedback). Crossing the inputs guarantees that activating $S$ sets $Q = 1$.
+* **How does an SR Latch eliminate mechanical switch contact bounce in embedded systems?**  
+  Mechanical switches bounce physically between contacts for $5$ to $20\text{ ms}$ upon closing, generating dozens of false voltage pulses. When connected to an active-low $\bar{S}\bar{R}$ latch (a Break-Before-Make switch with pull-up resistors), the very first microsecond contact sets the latch ($S'=0 \implies Q=1$). Subsequent bouncing between contact and mid-air ($S'=1$) enters the **Memory Hold** state ($11$), which keeps $Q=1$ rock-solid and absorbs all subsequent bounces!
+:::
+
+:::warning Common Interview Traps
+* **Trap: Stating that $S=R=1$ in a NOR latch produces $Q = 1$ and $\bar{Q} = 0$.**  
+  In reality, both NOR gates see a high input and drive their outputs to **logic 0 ($Q = \bar{Q} = 0$)**. Candidates who rely purely on truth table memorization often fail to trace the physical gate physics.
+* **Trap: Forgetting the constraint in the characteristic equation.**  
+  Writing $Q_{next} = S + \bar{R}Q$ without specifying the mandatory legal condition $SR = 0$ will result in point deductions in university exams and hardware interview screens. If $S = R = 1$, the equation gives $Q_{next} = 1 + 0 = 1$, which contradicts the actual physical gate output ($Q = 0$).
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "5.4 Decoders, Encoders & Priority Encoders",
+    url: "/coredose/digital-logic/module-05/decoders-encoders-and-priority-encoders",
+  }}
+  next={{
+    title: "6.2 JK Flip-Flop, Race-Around Condition & Master-Slave Solution",
+    url: "/coredose/digital-logic/module-06/jk-flip-flop-race-around-condition-and-master-slave-solution",
+  }}
+  courseUrl="/coredose/digital-logic"
+/>
