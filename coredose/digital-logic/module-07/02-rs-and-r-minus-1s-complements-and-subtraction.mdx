@@ -11,7 +11,7 @@ hide_table_of_contents: true
   topic="Topic 7.2"
   courseUrl="/coredose/digital-logic"
   readTime="22 min read"
-  relevance="University Semester Exams • GATE CS/EE • ALU Hardware Design"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Foundational Computing"
 />
 
 ## 💡 Core Intuition: The Clock Face & Turning Backwards by Moving Forwards
@@ -186,7 +186,7 @@ This single rule enables a hardware carry-chain or human engineer to evaluate 2'
 
 ---
 
-## ➕ Subtraction via Addition (Case 1: $M \ge N$ & Case 2: $M < N$)
+## ➕ Subtraction via Addition (Positive vs. Negative Results)
 
 Suppose an ALU needs to compute $M - N$ for two $n$-digit positive numbers using an adder.
 
@@ -253,7 +253,7 @@ Suppose an ALU needs to compute $M - N$ for two $n$-digit positive numbers using
 
 ---
 
-### Case 1: Subtraction when $M \ge N$ (Result is Positive)
+### Case 1: Subtraction when Minuend Exceeds Subtrahend (Positive Result)
 
 When the minuend $M$ is greater than or equal to the subtrahend $N$ ($M \ge N$), the true arithmetic difference $M - N$ is non-negative ($\ge 0$). In hardware complement arithmetic, adding the complement of $N$ generates an overflow end carry ($C_{out} = 1$), confirming that the result is strictly positive and requires no secondary complementation.
 
@@ -303,7 +303,7 @@ $$
 
 ---
 
-### Case 2: Subtraction when $M < N$ (Result is Negative)
+### Case 2: Subtraction when Subtrahend Exceeds Minuend (Negative Result)
 
 When $M < N$, adding the complement does **not generate an End Carry ($C_{out} = 0$)**.
 * The absence of an end carry indicates that the result is **negative**.

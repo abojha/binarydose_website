@@ -23,6 +23,11 @@ const katexPlugin = [
   },
 ];
 
+// Limit Terser parallel workers in CI/Vercel to 2 to prevent multi-worker memory explosion (SIGKILL) while avoiding single-threaded heap exhaustion (SIGABRT)
+if (!process.env.TERSER_PARALLEL) {
+  process.env.TERSER_PARALLEL = "2";
+}
+
 // Load local .env file if present
 if (fs.existsSync(".env")) {
   try {
@@ -80,6 +85,14 @@ const config = {
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
     v4: true, // Improve compatibility with the upcoming Docusaurus v4
+    experimental_faster: {
+      rspackBundler: true,
+      swcJsLoader: true,
+      swcJsMinimizer: true,
+      swcHtmlMinimizer: true,
+      lightningCssMinimizer: true,
+      mdxCrossCompilerCache: true,
+    },
   },
 
   // Set the production url of your site here (supports SITE_URL env override for seamless domain shifts)

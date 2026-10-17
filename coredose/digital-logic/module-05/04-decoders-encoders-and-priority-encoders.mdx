@@ -541,7 +541,7 @@ An 8-to-3 Priority Encoder has inputs $D_7 \dots D_0$ ($D_7$ highest priority) a
    $$D = [D_7, D_6, D_5, D_4, D_3, D_2, D_1, D_0] = [0, 0, 1, 0, 1, 1, 0, 1]$$
 
 #### Step 1: Derive Output Equations
-Following priority resolution rules where $D_k$ masks all lower bits $D_{<k}$:
+Following priority resolution rules where $D_k$ masks all lower-order bits ($D_i$ for $i < k$):
 * **Valid Bit ($V$)**:
   $$V = D_7 + D_6 + D_5 + D_4 + D_3 + D_2 + D_1 + D_0$$
 * **Output $Y_2$ (Asserted for inputs 4, 5, 6, 7)**:
