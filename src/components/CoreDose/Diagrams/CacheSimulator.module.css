@@ -1,0 +1,1138 @@
+.container {
+  margin: 2rem 0;
+  border-radius: 14px;
+  border: 1px solid var(--diagram-border, #334155);
+  background: var(--diagram-bg, #0b1120);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  font-family: var(--ifm-font-family-base, system-ui, -apple-system, sans-serif);
+  color: #f1f5f9;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.4rem;
+  background: var(--diagram-surface, #131c31);
+  border-bottom: 1px solid var(--diagram-border, #334155);
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: -0.01em;
+}
+
+.subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.presetBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid var(--diagram-border, #1e293b);
+  overflow-x: auto;
+  flex-wrap: wrap;
+}
+
+.presetLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 0.25rem;
+}
+
+.presetBtn {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid #334155;
+  color: #cbd5e1;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.presetBtn:hover {
+  background: #334155;
+  color: #f8fafc;
+  border-color: #64748b;
+}
+
+.presetBtnActive {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+}
+
+.controlsPanel {
+  padding: 1rem 1.4rem;
+  background: rgba(15, 23, 42, 0.4);
+  border-bottom: 1px solid var(--diagram-border, #1e293b);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1.1rem;
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 170px;
+}
+
+.controlGroupGrow {
+  flex: 1 1 280px;
+}
+
+.controlLabel {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.select, .input {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #f8fafc;
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.select:focus, .input:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
+}
+
+.stepperRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.4rem;
+  background: #0f172a;
+  border-bottom: 1px solid #1e293b;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btnGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #1e293b;
+  border: 1px solid #475569;
+  color: #f1f5f9;
+  border-radius: 7px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.actionBtn:hover:not(:disabled) {
+  background: #334155;
+  border-color: #94a3b8;
+  color: #ffffff;
+}
+
+.actionBtnActive {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+.actionBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.primaryAction {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border-color: #60a5fa;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.35);
+}
+
+.primaryAction:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  border-color: #93c5fd;
+}
+
+.cycleCounter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.cycleBadge {
+  background: #0284c7;
+  color: #ffffff;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
+.sequenceBar {
+  padding: 0.85rem 1.4rem;
+  background: #090e1a;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow-x: auto;
+}
+
+.seqPill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  padding: 0.35rem 0.5rem;
+  border-radius: 7px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.seqPill:hover {
+  border-color: #64748b;
+  transform: translateY(-2px);
+}
+
+.seqPillActive {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border-color: #38bdf8;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
+  transform: translateY(-2px);
+}
+
+.seqPillPassedHit {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.seqPillPassedMiss {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.seqBlockNum {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.seqResultBadge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: 0.15rem;
+}
+
+.badgeHit {
+  color: #34d399;
+}
+
+.badgeMiss {
+  color: #f87171;
+}
+
+.addressBreakdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.4rem;
+  background: #10192e;
+  border-bottom: 1px solid #1e293b;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.addrCard {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.addrLabel {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.addrPill {
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+
+.tagPill {
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid #a855f7;
+  color: #d8b4fe;
+}
+
+.setPill {
+  background: rgba(6, 182, 212, 0.2);
+  border: 1px solid #06b6d4;
+  color: #67e8f9;
+}
+
+.offsetPill {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid #10b981;
+  color: #6ee7b7;
+}
+
+.mainStage {
+  padding: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.mainStageReplacement {
+  padding: 0.6rem 1.4rem 1.4rem 1.4rem;
+}
+
+.cacheGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.setBox {
+  background: #111a2f;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.setBoxActive {
+  border-color: #38bdf8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+  background: #13223f;
+}
+
+.setHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #1e293b;
+}
+
+.setTitle {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.linesContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lineCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.75rem;
+  border-radius: 7px;
+  background: #1a253c;
+  border: 1px solid #334155;
+  transition: all 0.25s ease;
+}
+
+.lineCardActiveHit {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.18);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+.lineCardActiveMiss {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.18);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+}
+
+.lineLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.lineIndex {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.bitPill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.bitValidTrue {
+  background: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  border: 1px solid #10b981;
+}
+
+.bitValidFalse {
+  background: rgba(100, 116, 139, 0.2);
+  color: #64748b;
+  border: 1px solid #475569;
+}
+
+.bitDirtyTrue {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fbbf24;
+  border: 1px solid #f59e0b;
+}
+
+.bitDirtyFalse {
+  background: rgba(100, 116, 139, 0.2);
+  color: #64748b;
+  border: 1px solid #475569;
+}
+
+.lineContent {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.blockBadge {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.tagBadge {
+  font-size: 0.72rem;
+  font-family: monospace;
+  color: #c084fc;
+  background: rgba(192, 132, 252, 0.12);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.ageBadge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: #0f172a;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.explanationConsole {
+  background: #111a2f;
+  border-radius: 10px;
+  border: 1px solid #1e293b;
+  padding: 1rem 1.25rem;
+  border-left: 4px solid #0284c7;
+}
+
+.explanationTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #38bdf8;
+  margin-bottom: 0.4rem;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.explanationText {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+.metricsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+}
+
+.metricCard {
+  background: #111a2f;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  text-align: center;
+}
+
+.metricValue {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.metricLabel {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-top: 0.2rem;
+  font-weight: 600;
+}
+
+.hitValue {
+  color: #34d399;
+}
+
+.missValue {
+  color: #f87171;
+}
+
+/* ==========================================================================
+   📚 Textbook Trace Matrix Styles (Standard Academic Grid Diagram)
+   ========================================================================== */
+.textbookMatrixContainer {
+  margin: 1rem 1.4rem 0.25rem 1.4rem;
+  padding: 1rem 1.2rem;
+  background: #090e1a;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.matrixHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.matrixHeaderTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.matrixHint {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.matrixLegend {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  font-size: 0.74rem;
+  color: #94a3b8;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legendDotHit {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.legendDotMiss {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+}
+
+.legendDotCurrent {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+}
+
+.matrixScrollWrapper {
+  overflow-x: auto;
+  padding-bottom: 0.4rem;
+  border-radius: 6px;
+}
+
+.matrixTable {
+  border-collapse: separate;
+  border-spacing: 3px;
+  width: max-content;
+  font-size: 0.78rem;
+  font-family: inherit;
+  text-align: center;
+  margin: 0;
+}
+
+.matrixLabelCol {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: #131d33;
+  color: #cbd5e1;
+  font-weight: 700;
+  text-align: left;
+  padding: 0.35rem 0.65rem;
+  white-space: nowrap;
+  border-radius: 4px;
+  border: 1px solid #1e293b;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.25);
+  font-size: 0.76rem;
+}
+
+.matrixColHead {
+  padding: 0.3rem 0.45rem;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.7rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  min-width: 38px;
+}
+
+.matrixColHead:hover {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.matrixActiveColHead {
+  color: #38bdf8;
+  font-weight: 800;
+  background: rgba(56, 189, 248, 0.15);
+  border-radius: 4px 4px 0 0;
+}
+
+.matrixBlockHead {
+  padding: 0.35rem 0.45rem;
+  background: #1e293b;
+  color: #f8fafc;
+  font-weight: 800;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #334155;
+  transition: all 0.15s ease;
+  min-width: 38px;
+}
+
+.matrixBlockHead:hover {
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+.matrixActiveBlockHead {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+.matrixCell {
+  min-width: 38px;
+  height: 32px;
+  padding: 0.2rem;
+  background: #131c31;
+  border: 1px solid #1e293b;
+  border-radius: 4px;
+  color: #f1f5f9;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.matrixCell:hover {
+  border-color: #475569;
+}
+
+.matrixCellActiveCol {
+  background: #172554;
+  border-color: #2563eb;
+}
+
+.matrixCellFuture {
+  opacity: 0.25;
+  color: #475569;
+}
+
+.matrixCellHit {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: #10b981;
+  color: #6ee7b7;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.35);
+}
+
+.matrixCellMiss {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: #ef4444;
+  color: #fca5a5;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}
+
+.matrixEmpty {
+  color: #475569;
+  font-weight: 400;
+}
+
+.matrixBlockVal {
+  display: inline-block;
+}
+
+.matrixResCell {
+  min-width: 38px;
+  height: 28px;
+  padding: 0.2rem;
+  border-radius: 4px;
+  font-weight: 800;
+  font-size: 0.8rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.matrixResHit {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.matrixResMiss {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.rateValue {
+  color: #38bdf8;
+}
+
+/* ==========================================================================
+   🎮 Unified View Switcher (Trace Matrix vs Hardware Circuit)
+   ========================================================================== */
+.viewToggleGroup {
+  display: flex;
+  align-items: center;
+  background: #090e1a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.viewToggleBtn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.viewToggleBtn:hover {
+  color: #f1f5f9;
+}
+
+.viewToggleActive {
+  background: #1e293b;
+  color: #38bdf8;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* ==========================================================================
+   ⚡ Standard Textbook Hardware Architecture Circuit Styles
+   ========================================================================== */
+.hardwareStage {
+  padding: 1rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cpuRegisterCard {
+  background: #090e1a;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.registerTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.registerBitsRow {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.regField {
+  flex: 1 1 120px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.regFieldTag {
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.regFieldIdx {
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.4);
+}
+
+.regFieldOffset {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.regFieldHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.regBitsLabel {
+  font-size: 0.62rem;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+.regFieldVal {
+  font-size: 0.88rem;
+  font-weight: 800;
+  font-family: monospace;
+  color: #ffffff;
+}
+
+.circuitDiagramContainer {
+  background: #090e1a;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.circuitHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.circuitTitle {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #f1f5f9;
+}
+
+.circuitSubtitle {
+  font-size: 0.74rem;
+  color: #94a3b8;
+}
+
+.hardwareGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 0.85rem;
+}
+
+.hwSetCard {
+  background: #111a2f;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 0.75rem;
+  transition: all 0.25s ease;
+}
+
+.hwSetCardActive {
+  border-color: #38bdf8;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.2);
+  background: #13223f;
+}
+
+.hwSetHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #1e293b;
+}
+
+.hwSetTitle {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.decoderActiveBadge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid #0284c7;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+}
+
+.hwLinesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.hwLineRow {
+  display: grid;
+  grid-template-columns: 80px 1fr 105px;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  background: #18233a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.hwRowHit {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+}
+
+.hwRowMiss {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.hwLineMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hwLineId {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  font-family: monospace;
+}
+
+.hwBitBadge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+}
+
+.hwBitValid {
+  background: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  border: 1px solid #10b981;
+}
+
+.hwBitInvalid {
+  background: rgba(100, 116, 139, 0.2);
+  color: #64748b;
+  border: 1px solid #475569;
+}
+
+.hwLineData {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.hwTagBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #d8b4fe;
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid rgba(168, 85, 247, 0.5);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.hwBlockBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.hwEmptySlot {
+  font-size: 0.72rem;
+  color: #475569;
+  font-style: italic;
+}
+
+.comparatorBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.45rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.comparatorMatch {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: #10b981;
+  color: #34d399;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.comparatorSymbol {
+  font-weight: 900;
+  font-size: 0.8rem;
+}
+
+.comparatorStatus {
+  font-size: 0.65rem;
+  font-family: monospace;
+}
+
+.circuitResultRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+  border-top: 1px solid #1e293b;
+}
+
+.orGateBox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.85rem;
+  background: #111a2f;
+  border: 1px solid #334155;
+  border-radius: 6px;
+}
+
+.orGateLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+.orGateResult {
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+}
+
+.orGateHit {
+  background: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+  border: 1px solid #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+.orGateMiss {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid #ef4444;
+}

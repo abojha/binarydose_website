@@ -1,0 +1,869 @@
+---
+title: "Instruction Formats, Word Encoding & Opcode Expansion"
+description: "Master computer instruction word anatomy, 0 to 4-address machine architectures, code density trade-offs, and mathematical expanding opcode allocations."
+sidebar_label: "6.1 Instruction Formats & Expanding Opcode"
+keywords:
+  - instruction format
+  - opcode expansion
+  - expanding opcodes
+  - 3 address instruction
+  - 2 address instruction
+  - 1 address instruction
+  - 0 address instruction
+  - accumulator architecture
+  - stack architecture
+  - reverse polish notation
+  - instruction word encoding
+hide_table_of_contents: true
+---
+
+import CoreDoseLessonHeader from '@site/src/components/CoreDose/CoreDoseLessonHeader';
+import CoreDoseTOC from '@site/src/components/CoreDose/CoreDoseTOC';
+import CoreDoseNav from '@site/src/components/CoreDose/CoreDoseNav';
+import FrameFormat from '@site/src/components/CoreDose/Diagrams/FrameFormat';
+import ConceptComparison from '@site/src/components/CoreDose/Diagrams/ConceptComparison';
+import SubsystemGrid from '@site/src/components/CoreDose/Diagrams/SubsystemGrid';
+import ProcessFlow from '@site/src/components/CoreDose/Diagrams/ProcessFlow';
+import MathBox from '@site/src/components/CoreDose/Diagrams/MathBox';
+
+# 6.1 Instruction Formats, Word Encoding & Opcode Expansion
+
+<CoreDoseLessonHeader
+  module="06"
+  topic="6.1"
+  readTime="20 min"
+  difficulty="Core Engineering"
+  prerequisites="Module 01 (Binary Words) & Module 04 (Bus Interfaces & Registers)"
+  relevance="Instruction set encoding is the foundational contract between hardware and software. It determines how compact compiled code can be, how many operations and registers a CPU can support, and how efficiently the processor decodes machine instructions."
+/>
+
+## 💡 Core Intuition:
+
+### 🍳 The Everyday Analogy:
+Imagine an executive courier delivering official task dispatches across an enterprise. Depending on how much background knowledge the recipient has, the manager can write dispatches in four distinct styles:
+
+1. **The Ultra-Explicit 4-Address Memo:** *"Take Folder A from Cabinet 1, Folder B from Cabinet 2, merge them into File X in Cabinet 3, and your next memo will be waiting on Desk 4."*  
+   *The courier needs zero memory of past tasks, but the memo is massive and wastes half a page just repeating routing directions.*
+2. **The Office Sequence Memo (3-Address):** *"Take Folder A, Folder B, merge into File X."*  
+   *The courier doesn't need to be told where the next memo is because they follow a strict checklist numbered $1, 2, 3\dots$ (the Program Counter!).*
+3. **The Shared Desk Memo (2-Address):** *"Take Folder B and merge it directly into Folder A (overwriting Folder A)."*  
+   *Saves space by reusing Folder A as both a source and the final destination, though the original contents of Folder A are destroyed.*
+4. **The Central Whiteboard Memo (1-Address):** *"Add Folder B."*  
+   *The office maintains a single central whiteboard (the Accumulator). Everyone knows that any arithmetic command automatically operates between the whiteboard and the named folder.*
+5. **The Cafeteria Tray Stack (0-Address):** *"Add."*  
+   *Employees work with a spring-loaded stack of cafeteria trays. An operation pops the top two numbers, adds them, and pushes the result back onto the top. No names or cabinet numbers are needed in the instruction!*
+
+Now, what if the dispatch form only has a fixed width of $16\text{ centimeters}$? If some instructions need two long cabinet numbers while other instructions need zero numbers, how do you fit both onto the same form? You use **Expanding Opcodes**: when an operation doesn't need cabinet numbers, you expand the operation code to fill the empty space, allowing hundreds of specialized simple commands without lengthening the form!
+
+### 💻 Bridging to Computer Science
+In a microprocessor, an instruction word is a binary pattern stored in memory that instructs the hardware Control Unit to orchestrate register transfers and ALU computations. 
+
+Every processor architecture balances a fundamental tension:
+* **Expressiveness:** The instruction set must support a rich repertoire of operations (arithmetic, logic, control flow, memory access) and reference large register files or expansive address spaces.
+* **Hardware Constraints:** Memory bus bandwidth, cache capacity, and decoding silicon are finite. Instructions should be as short and uniform as possible.
+
+Understanding how machine instructions are partitioned into fields (Opcode, Addressing Mode, Register Specifiers, and Memory Displacements) and how **Expanding Opcode Techniques** maximize instruction encoding density is the gateway to computer architecture.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## Anatomy of an Instruction Word: Fields & Control Semantics
+
+A machine instruction is a formatted bit string divided into distinct operational fields:
+
+<FrameFormat
+  title="Generic Machine Instruction Word Encoding Anatomy"
+  subtitle="Decomposition of a 32-bit instruction word into operational control and addressing fields"
+  standardBadge="ISA Microarchitecture"
+  totalSizeBytes="32 Bits"
+  fields={[
+    {
+      name: "Opcode",
+      size: "6",
+      unit: "Bits",
+      sublabel: "[31:26]",
+      flex: 6,
+      color: "blue",
+      desc: "Operation Code: Specifies the hardware micro-operation (ADD, SUB, LOAD, STORE, JUMP). Supports up to 2^6 = 64 distinct base operations."
+    },
+    {
+      name: "Mode (I)",
+      size: "1",
+      unit: "Bit",
+      sublabel: "[25]",
+      flex: 1,
+      color: "purple",
+      desc: "Addressing Mode Flag: Distinguishes between direct and indirect addressing (0 = Direct, 1 = Indirect) or immediate vs register operands."
+    },
+    {
+      name: "Reg Dest (Rd)",
+      size: "5",
+      unit: "Bits",
+      sublabel: "[24:20]",
+      flex: 5,
+      color: "cyan",
+      desc: "Destination Register Identifier: Selects one of 2^5 = 32 general-purpose registers to receive the computation result."
+    },
+    {
+      name: "Reg Src1 (Rs)",
+      size: "5",
+      unit: "Bits",
+      sublabel: "[19:15]",
+      flex: 5,
+      color: "emerald",
+      desc: "First Source Register: Supplies the primary operand to ALU input port A."
+    },
+    {
+      name: "Immediate / Address",
+      size: "15",
+      unit: "Bits",
+      sublabel: "[14:0]",
+      flex: 15,
+      color: "amber",
+      desc: "Immediate Constant or Memory Offset: Provides an in-line literal integer (-16,384 to +16,383) or displacement for base-offset addressing."
+    }
+  ]}
+/>
+
+### Key Hardware Execution Elements
+To execute an instruction, the CPU datapath orchestrates several specialized internal registers and functional units:
+1. **Program Counter ($PC$):** Holds the memory address of the next instruction to be fetched. In modern computers, sequential execution increments $PC$ automatically ($PC \leftarrow PC + \text{Word Size}$), eliminating the need for instructions to specify their successor's address.
+2. **Instruction Register ($IR$):** Latches the binary instruction fetched from the instruction cache/memory. The control unit decodes the bit fields directly from $IR$.
+3. **Sequence Counter ($SC$):** A hardware counter that steps through the individual clock cycles ($T_0, T_1, T_2, \dots$) required to execute the multi-phase micro-operations of a single instruction.
+4. **Register File:** A bank of ultra-fast static flip-flop storage locations. If a CPU has $R$ registers, each register address field requires:
+   $$k = \lceil \log_2(R) \rceil \text{ bits}$$
+5. **Memory Address Bus:** If main memory contains $M$ addressable words, the memory address field requires:
+   $$A = \lceil \log_2(M) \rceil \text{ bits}$$
+
+---
+
+## The Instruction Format Hierarchy: 4-Address to 0-Address Machines
+
+Historically, computer architectures have been classified by the maximum number of operand addresses explicitly present in a single instruction word.
+
+<SubsystemGrid
+  title="The Canonical Instruction Format Taxonomy"
+  subtitle="Classified by explicit operand count, architectural state requirements, and code density"
+  items={[
+    {
+      title: "Self-Sequencing Format",
+      tag: "4-Address Format",
+      icon: "📜",
+      color: "rose",
+      points: [
+        "Fields: [ Opcode | Dest | Src1 | Src2 | Next_Addr ].",
+        "Explicitly encodes the address of the next instruction; obsoleted by the hardware Program Counter.",
+        "Extreme instruction word length with zero external next-PC logic."
+      ]
+    },
+    {
+      title: "General Register Machine",
+      tag: "3-Address Format",
+      icon: "🎯",
+      color: "blue",
+      points: [
+        "Fields: [ Opcode | Dest | Src1 | Src2 ]. Next instruction sequenced automatically by PC.",
+        "Preserves both source operands in their registers without destructive overwrites.",
+        "Produces programs with the fewest total instructions at the cost of wide instruction words."
+      ]
+    },
+    {
+      title: "Accumulator-Register Hybrid",
+      tag: "2-Address Format",
+      icon: "⚖️",
+      color: "cyan",
+      points: [
+        "Fields: [ Opcode | Dest_Src1 | Src2 ]. Dest address serves double duty as source and destination.",
+        "Destructively overwrites the first operand with the computed result.",
+        "Balanced medium instruction word width with moderate register requirements."
+      ]
+    },
+    {
+      title: "Accumulator Machine",
+      tag: "1-Address Format",
+      icon: "🧮",
+      color: "amber",
+      points: [
+        "Fields: [ Opcode | Operand ]. The CPU features a dedicated hardware Accumulator (AC).",
+        "The AC is the implied first source operand and the implied destination for all ALU operations.",
+        "Short instruction word requiring minimal silicon and only one memory address per instruction."
+      ]
+    },
+    {
+      title: "Stack Architecture",
+      tag: "0-Address Format",
+      icon: "🥞",
+      color: "emerald",
+      points: [
+        "Fields: [ Opcode ]. Operands are implicitly popped from and pushed to the Top of Stack (TOS).",
+        "Arithmetic expressions are evaluated using Postfix / Reverse Polish Notation (RPN).",
+        "Minimal instruction word length (opcode only) delivering high code density."
+      ]
+    }
+  ]}
+/>
+
+### In-Depth Breakdown of Instruction Formats with Mathematical Formulations & Program Traces
+
+To understand how each architecture physically executes code inside the CPU, we analyze each format alongside its **Frame Layout**, its **Mathematical Formulation Component**, and a concrete execution trace evaluating the expression:
+
+$$
+X = (A + B) \times (C + D)
+$$
+
+---
+
+#### 1. Three-Address Machine (General Register Architecture)
+
+In a 3-address architecture (e.g. MIPS, ARM, RISC-V), both source registers and the destination register are explicitly addressed, enabling non-destructive arithmetic:
+
+<FrameFormat
+  title="3-Address Instruction Word Layout (General Register Machine)"
+  subtitle="Syntax: OP Destination, Source1, Source2  -->  Rd <- Rs1 OP Rs2"
+  standardBadge="3-Address Architecture"
+  totalSizeBytes="32 Bits"
+  fields={[
+    {
+      name: "Opcode",
+      size: "6",
+      unit: "Bits",
+      sublabel: "[31:26]",
+      flex: 6,
+      color: "blue",
+      desc: "Operation Code: Specifies the ALU operation (ADD, SUB, AND, OR, MUL). Supports 2^6 = 64 distinct operations."
+    },
+    {
+      name: "Dest Reg (Rd)",
+      size: "5",
+      unit: "Bits",
+      sublabel: "[25:21]",
+      flex: 5,
+      color: "cyan",
+      desc: "Destination Register: Hardware index of the register storing the result. Preserves both source registers for reuse."
+    },
+    {
+      name: "Src1 Reg (Rs1)",
+      size: "5",
+      unit: "Bits",
+      sublabel: "[20:16]",
+      flex: 5,
+      color: "emerald",
+      desc: "First Source Register: Supplies the first operand to ALU input port A."
+    },
+    {
+      name: "Src2 Reg (Rs2)",
+      size: "5",
+      unit: "Bits",
+      sublabel: "[15:11]",
+      flex: 5,
+      color: "purple",
+      desc: "Second Source Register: Supplies the second operand to ALU input port B."
+    },
+    {
+      name: "Function / Padding",
+      size: "11",
+      unit: "Bits",
+      sublabel: "[10:0]",
+      flex: 11,
+      color: "gray",
+      desc: "Secondary ALU operation modifier (e.g. shift amount, funct) or reserved padding for 32-bit alignment."
+    }
+  ]}
+/>
+
+<MathBox title="Three-Address Program Execution Trace: X = (A + B) * (C + D)" type="formula">
+
+$$
+\begin{aligned}
+\mathbf{ADD}\; R_1, A, B & \implies R_1 \leftarrow M[A] + M[B] && \text{(Evaluates } A + B \text{)} \\
+\mathbf{ADD}\; R_2, C, D & \implies R_2 \leftarrow M[C] + M[D] && \text{(Evaluates } C + D \text{)} \\
+\mathbf{MUL}\; X, R_1, R_2 & \implies M[X] \leftarrow R_1 \times R_2 && \text{(Store product to } M[X] \text{)}
+\end{aligned}
+$$
+
+> **Hardware Invariant:** Non-destructive (source operands $A, B, C, D$ preserved)  
+> **Trace Cost:** $3$ Instructions • $2$ Temporary Registers ($R_1, R_2$) • Long Word Format
+
+</MathBox>
+
+---
+
+#### 2. Two-Address Machine (Register-Memory Hybrid Architecture)
+
+In a 2-address architecture (e.g. x86, PDP-11), one address serves double duty as both the first input operand and the destination, saving instruction bits at the cost of destructively overwriting the first source operand:
+
+<FrameFormat
+  title="2-Address Instruction Word Layout (Register-Memory Hybrid)"
+  subtitle="Syntax: OP Dest_and_Src1, Src2  -->  Rd <- Rd OP Rs2 (Destructive Overwrite)"
+  standardBadge="2-Address Architecture"
+  totalSizeBytes="32 Bits"
+  fields={[
+    {
+      name: "Opcode",
+      size: "6",
+      unit: "Bits",
+      sublabel: "[31:26]",
+      flex: 6,
+      color: "blue",
+      desc: "Operation Code: Specifies the operation. With fewer address fields, extra bits can be allocated to memory offsets."
+    },
+    {
+      name: "Dest / Src1 (Rd)",
+      size: "5",
+      unit: "Bits",
+      sublabel: "[25:21]",
+      flex: 5,
+      color: "cyan",
+      desc: "Dual-Role Destination Register: Supplies first input operand to ALU and receives the computed result, overwriting initial value."
+    },
+    {
+      name: "Src2 Reg (Rs2)",
+      size: "5",
+      unit: "Bits",
+      sublabel: "[20:16]",
+      flex: 5,
+      color: "emerald",
+      desc: "Second Source Register: Supplies second input operand to ALU. Remains unmodified after execution."
+    },
+    {
+      name: "Displacement / Imm",
+      size: "16",
+      unit: "Bits",
+      sublabel: "[15:0]",
+      flex: 16,
+      color: "amber",
+      desc: "16-bit Immediate constant or Memory Address Offset: Enables direct indexed addressing or literal loads."
+    }
+  ]}
+/>
+
+<MathBox title="Two-Address Program Execution Trace: X = (A + B) * (C + D)" type="formula">
+
+$$
+\begin{aligned}
+\mathbf{MOV}\; R_1, A & \implies R_1 \leftarrow M[A] && \text{(Load } A \text{ into } R_1 \text{)} \\
+\mathbf{ADD}\; R_1, B & \implies R_1 \leftarrow R_1 + M[B] && \text{(Overwrite } R_1 \leftarrow A + B \text{)} \\
+\mathbf{MOV}\; R_2, C & \implies R_2 \leftarrow M[C] && \text{(Load } C \text{ into } R_2 \text{)} \\
+\mathbf{ADD}\; R_2, D & \implies R_2 \leftarrow R_2 + M[D] && \text{(Overwrite } R_2 \leftarrow C + D \text{)} \\
+\mathbf{MUL}\; R_1, R_2 & \implies R_1 \leftarrow R_1 \times R_2 && \text{(Compute product into } R_1 \text{)} \\
+\mathbf{MOV}\; X, R_1 & \implies M[X] \leftarrow R_1 && \text{(Writeback to } M[X] \text{)}
+\end{aligned}
+$$
+
+> **Hardware Invariant:** $R_d \leftarrow R_d \circ R_{s2}$ (destructive overwrite of first operand)  
+> **Trace Cost:** $6$ Instructions • $3$ Extra Register-Transfer `MOV`s • Medium Word Format
+
+</MathBox>
+
+---
+
+#### 3. One-Address Machine (Accumulator Architecture)
+
+In a 1-address architecture (e.g. Intel 8051, early mainframes), the CPU contains a dedicated hardware **Accumulator ($AC$)**. The $AC$ is the implied first source operand and the implied destination for all arithmetic/logic operations:
+
+<FrameFormat
+  title="1-Address Instruction Word Layout (Accumulator Architecture)"
+  subtitle="Syntax: OP Address  -->  AC <- AC OP M[Address] (Accumulator is Implied)"
+  standardBadge="1-Address Architecture"
+  totalSizeBytes="16 Bits"
+  fields={[
+    {
+      name: "Opcode",
+      size: "4",
+      unit: "Bits",
+      sublabel: "[15:12]",
+      flex: 4,
+      color: "blue",
+      desc: "Operation Code: Specifies accumulator operation (LOAD, STORE, ADD, SUB, AND). Supports 16 operations."
+    },
+    {
+      name: "Addressing Mode (I)",
+      size: "1",
+      unit: "Bit",
+      sublabel: "[11]",
+      flex: 1,
+      color: "purple",
+      desc: "Direct (I=0) vs. Indirect (I=1) Memory Addressing bit."
+    },
+    {
+      name: "Memory Address",
+      size: "11",
+      unit: "Bits",
+      sublabel: "[10:0]",
+      flex: 11,
+      color: "amber",
+      desc: "Direct Memory Address: Specifies the operand memory location M[Address]. Accumulator (AC) is the implied second operand."
+    }
+  ]}
+/>
+
+<MathBox title="One-Address Accumulator Execution Trace: X = (A + B) * (C + D)" type="formula">
+
+$$
+\begin{aligned}
+\mathbf{LOAD}\; A & \implies AC \leftarrow M[A] && \text{(Load } A \text{ into } AC \text{)} \\
+\mathbf{ADD}\; B & \implies AC \leftarrow AC + M[B] && \text{(}AC \leftarrow A + B \text{)} \\
+\mathbf{STORE}\; T & \implies M[T] \leftarrow AC && \text{(Spill partial sum to } M[T] \text{)} \\
+\mathbf{LOAD}\; C & \implies AC \leftarrow M[C] && \text{(Load } C \text{ into } AC \text{)} \\
+\mathbf{ADD}\; D & \implies AC \leftarrow AC + M[D] && \text{(}AC \leftarrow C + D \text{)} \\
+\mathbf{MUL}\; T & \implies AC \leftarrow AC \times M[T] && \text{(Multiply with spilled } M[T] \text{)} \\
+\mathbf{STORE}\; X & \implies M[X] \leftarrow AC && \text{(Write product to } M[X] \text{)}
+\end{aligned}
+$$
+
+> **Accumulator Invariant:** $AC \leftarrow AC \circ M[A]$ ($AC$ is implied source & destination)  
+> **Trace Cost:** $7$ Instructions • $1$ Temporary Memory Spill ($T$) • High Bus Traffic
+
+</MathBox>
+
+---
+
+#### 4. Zero-Address Machine (Stack Architecture)
+
+In a 0-address architecture (e.g. Burroughs B5000, Java Virtual Machine JVM, WebAssembly), arithmetic instructions contain **zero address fields**. Operands are implicitly popped from the Top of Stack ($TOS$) and the result is pushed back:
+
+<FrameFormat
+  title="0-Address Instruction Word Layout (Stack Machine)"
+  subtitle="Syntax: OP  -->  TOS <- Pop() OP Pop() (Operands Implied at Top of Stack)"
+  standardBadge="0-Address Architecture"
+  totalSizeBytes="8 Bits"
+  fields={[
+    {
+      name: "Opcode",
+      size: "8",
+      unit: "Bits",
+      sublabel: "[7:0]",
+      flex: 8,
+      color: "emerald",
+      desc: "Pure Operation Code: Requires zero operand addresses! Operands are implicitly popped from Top of Stack (TOS) and result pushed back."
+    }
+  ]}
+/>
+
+<MathBox title="Zero-Address Stack Execution Trace: X = (A + B) * (C + D)" type="formula">
+
+> **Postfix (RPN) Sequence:** $(A + B) \times (C + D) \implies A \; B \; + \; C \; D \; + \; \times$
+
+$$
+\begin{aligned}
+\mathbf{PUSH}\; A & \implies TOS \leftarrow M[A] && \text{(Push operand } A \text{)} \\
+\mathbf{PUSH}\; B & \implies TOS \leftarrow M[B] && \text{(Push operand } B \text{)} \\
+\mathbf{ADD} & \implies TOS \leftarrow \text{Pop}() + \text{Pop}() = A + B && \text{(Evaluate } A + B \text{)} \\
+\mathbf{PUSH}\; C & \implies TOS \leftarrow M[C] && \text{(Push operand } C \text{)} \\
+\mathbf{PUSH}\; D & \implies TOS \leftarrow M[D] && \text{(Push operand } D \text{)} \\
+\mathbf{ADD} & \implies TOS \leftarrow \text{Pop}() + \text{Pop}() = C + D && \text{(Evaluate } C + D \text{)} \\
+\mathbf{MUL} & \implies TOS \leftarrow \text{Pop}() \times \text{Pop}() = (A+B)\times(C+D) && \text{(Multiply top elements)} \\
+\mathbf{POP}\; X & \implies M[X] \leftarrow TOS && \text{(Pop product into } M[X] \text{)}
+\end{aligned}
+$$
+
+> **Stack Invariant:** $TOS \leftarrow \text{Pop}() \circ \text{Pop}()$ (operands implied at Top of Stack)  
+> **Trace Cost:** $8$ Instructions • $0$ Address Fields in ALU Ops • High Byte Density
+
+</MathBox>
+
+<ConceptComparison
+  title="Architectural Trade-Offs Across Instruction Formats"
+  subtitle="Balancing instruction width, program instruction count, and hardware complexity"
+  concepts={[
+    {
+      badge: "High Expressiveness",
+      title: "3-Address Machine",
+      icon: "🚀",
+      color: "blue",
+      domain: "Modern RISC Processors (ARM, RISC-V)",
+      points: [
+        "Minimal instruction count per high-level program statement.",
+        "Non-destructive operations preserve input operands for reuse.",
+        "Requires wide instruction words (32+ bits) to encode 3 register IDs.",
+        "Complex multi-port register file required (two read ports, one write port)."
+      ],
+      quote: "Maximizes compiler freedom and execution speed at the cost of wider instruction encodings."
+    },
+    {
+      badge: "Maximum Compactness",
+      title: "0-Address Stack Machine",
+      icon: "📦",
+      color: "emerald",
+      domain: "Virtual Machines (JVM, WASM) & Forth Processors",
+      points: [
+        "Arithmetic instructions require only 6-8 bits for opcode alone.",
+        "Zero bits spent on register specifiers or explicit memory addresses.",
+        "High total instruction count; frequent memory stack traffic unless top elements are cached in hardware registers.",
+        "Direct natural target for syntax-tree compilation using Reverse Polish Notation."
+      ],
+      quote: "Eliminates operand address fields entirely, achieving the highest possible byte density."
+    }
+  ]}
+/>
+
+---
+
+## Expanding Opcode Technique: Principles & Mathematical Invariants
+
+When designing a processor with a **fixed instruction word length** (e.g., exactly $16\text{ bits}$), the architect encounters a dilemma:
+* Instructions with many operand addresses (e.g., 2-address instructions) leave very few bits for the opcode, severely limiting the number of distinct operations.
+* Instructions with few or zero addresses (e.g., 1-address or 0-address instructions) have vast amounts of unused bit space.
+
+The **Expanding Opcode Technique** solves this by dynamically varying the opcode length. Unused address fields in simpler instructions are repurposed as additional opcode bits!
+
+<ProcessFlow
+  title="The Opcode Expansion Mechanism"
+  subtitle="How unused address fields are systematically harvested into extended operational codes"
+  steps={[
+    {
+      step: "1",
+      title: "Base Opcode Allocation",
+      desc: "Reserve a small primary opcode field (e.g., 4 bits). This yields 2^4 = 16 total bit patterns."
+    },
+    {
+      step: "2",
+      title: "Allocate Multi-Address Instructions",
+      desc: "Assign a subset of patterns (e.g., 14 patterns) to 2-address instructions. Two addresses consume the remaining bits."
+    },
+    {
+      step: "3",
+      title: "The Escape Code (Prefix Trap)",
+      desc: "The remaining unused patterns (e.g., 2 patterns) act as 'escape codes'. When the decoder sees this prefix, it knows the following address field is actually an extended opcode!"
+    },
+    {
+      step: "4",
+      title: "Cascade into Single-Address & Zero-Address",
+      desc: "Multiply the escape codes by the bit space of the newly freed address field to generate dozens or hundreds of 1-address and 0-address instructions."
+    }
+  ]}
+/>
+
+### The Fundamental State-Space Invariant
+A fixed $N$-bit instruction word defines a total discrete state space of exactly:
+$$\text{Total Available Combinations} = 2^N$$
+
+Every instruction format consumes a slice of this $2^N$ state space. If an instruction allocates $k$ memory/register address fields where each address requires $a$ bits:
+$$\text{State Space Consumed per Instruction} = 2^{k \cdot a}$$
+
+For a machine supporting $N_3$ three-address instructions, $N_2$ two-address instructions, $N_1$ one-address instructions, and $N_0$ zero-address instructions:
+
+<MathBox title="The Expanding Opcode State Conservation Equation">
+$$N_3 \cdot 2^{3a} + N_2 \cdot 2^{2a} + N_1 \cdot 2^{a} + N_0 \cdot 2^0 \le 2^N$$
+</MathBox>
+
+This inequality is the universal law governing opcode expansion:
+* An architect can never exceed $2^N$ total states.
+* Sacrificing one 2-address instruction frees up exactly $2^{2a}$ states, which can yield $2^a$ one-address instructions, or $2^{2a}$ zero-address instructions!
+
+### Visualizing the Physical Bit Layout of Expanding Opcode Tiers
+
+Consider a 16-bit instruction word with 6-bit register addresses. Notice how the opcode field physically expands across instruction tiers by absorbing unused address slots:
+
+<FrameFormat
+  title="Tier 1: Two-Address Instruction (Base Opcode)"
+  subtitle="Allocates 15 base operations (0000 to 1110); pattern 1111 is reserved as the Escape Trap"
+  standardBadge="Expanding Tier 1"
+  totalSizeBytes="16 Bits"
+  fields={[
+    {
+      name: "Opcode (Base)",
+      size: "4",
+      unit: "Bits",
+      sublabel: "[15:12]",
+      flex: 4,
+      color: "blue",
+      desc: "Base Opcode: Patterns 0000_2 to 1110_2 designate 15 two-address instructions. Pattern 1111_2 is the escape prefix."
+    },
+    {
+      name: "Register Addr 1",
+      size: "6",
+      unit: "Bits",
+      sublabel: "[11:6]",
+      flex: 6,
+      color: "cyan",
+      desc: "First 6-bit register address (selects 1 of 64 general-purpose registers)."
+    },
+    {
+      name: "Register Addr 2",
+      size: "6",
+      unit: "Bits",
+      sublabel: "[5:0]",
+      flex: 6,
+      color: "emerald",
+      desc: "Second 6-bit register address (selects 1 of 64 general-purpose registers)."
+    }
+  ]}
+/>
+
+<FrameFormat
+  title="Tier 2: One-Address Instruction (Expanded 10-Bit Opcode)"
+  subtitle="Escape prefix 1111 unlocks the first 6-bit address slot as additional opcode bits"
+  standardBadge="Expanding Tier 2"
+  totalSizeBytes="16 Bits"
+  fields={[
+    {
+      name: "Escape Prefix",
+      size: "4",
+      unit: "Bits",
+      sublabel: "[15:12]",
+      flex: 4,
+      color: "rose",
+      desc: "Fixed Escape Code (1111_2): Informs the decoder that this is NOT a 2-address instruction."
+    },
+    {
+      name: "Extended Opcode",
+      size: "6",
+      unit: "Bits",
+      sublabel: "[11:6]",
+      flex: 6,
+      color: "blue",
+      desc: "Repurposed Address Slot: Functions as 6 additional opcode bits, yielding up to 63 one-address operations."
+    },
+    {
+      name: "Register Addr 2",
+      size: "6",
+      unit: "Bits",
+      sublabel: "[5:0]",
+      flex: 6,
+      color: "emerald",
+      desc: "Single 6-bit register operand."
+    }
+  ]}
+/>
+
+<FrameFormat
+  title="Tier 3: Zero-Address Instruction (Fully Expanded 16-Bit Opcode)"
+  subtitle="Both address slots are repurposed as operational control bits"
+  standardBadge="Expanding Tier 3"
+  totalSizeBytes="16 Bits"
+  fields={[
+    {
+      name: "Escape Prefix 1",
+      size: "4",
+      unit: "Bits",
+      sublabel: "[15:12]",
+      flex: 4,
+      color: "rose",
+      desc: "Fixed Escape Code 1 (1111_2): Directs decoder to Tier 2."
+    },
+    {
+      name: "Escape Prefix 2",
+      size: "6",
+      unit: "Bits",
+      sublabel: "[11:6]",
+      flex: 6,
+      color: "rose",
+      desc: "Fixed Escape Code 2 (111111_2): Directs decoder to Tier 3."
+    },
+    {
+      name: "Extended Opcode",
+      size: "6",
+      unit: "Bits",
+      sublabel: "[5:0]",
+      flex: 6,
+      color: "emerald",
+      desc: "Final 6 bits repurposed as zero-address operational codes (e.g. NOP, HLT, RET, PUSH, POP)."
+    }
+  ]}
+/>
+
+---
+
+## 🏭 Real-World Production Context:
+
+Modern instruction set architectures apply opcode expansion and variable-length encoding to conquer memory footprint and decoding bottlenecks:
+
+* **ARM Thumb-2 Technology:** Standard ARM instructions are fixed at $32\text{ bits}$. To reduce code size in memory-constrained mobile and embedded chips, ARM introduced **Thumb-2**. Thumb-2 utilizes expanding prefix decoders: instructions can be either $16\text{ bits}$ or $32\text{ bits}$ wide. The hardware instruction prefetch unit inspects the top 5 bits of the first 16-bit halfword; if it matches a specific prefix pattern (`0b11101`, `0b11110`, or `0b11111`), the CPU fetches another 16 bits to decode a 32-bit instruction. This achieves a $30\text{ to }35\%$ code density reduction with near-identical execution speed!
+* **x86-64 Variable Byte Stream:** x86 instructions range from $1\text{ byte}$ (`NOP = 0x90`) up to $15\text{ bytes}$ (`LOCK ADD [RAX + 2*RBX + 0x12345678], 0x99`). x86 achieves this through legacy prefix bytes (`0x66` for operand size, `0x67` for address size) and the 64-bit **REX Prefix Byte** (`0x40`–`0x4F`). Modern Intel and AMD cores require dedicated hardware Pre-Decode logic and instruction boundary markers in the L1 instruction cache to slice this irregular byte stream into discrete instructions before pipelined decoding!
+* **RISC-V Compressed Extension (RVC / "C" Extension):** Standard RISC-V is a clean, fixed 32-bit ISA. The "C" extension maps the most frequently executed 32-bit instructions (such as `ADDI`, `LW`, `SW`, `JAL`) into compact 16-bit equivalents. By reserving the lowest two bits (`[1:0]`) of every instruction word as a quadrant identifier (`00`, `01`, `10` for 16-bit instructions; `11` for 32-bit instructions), RISC-V decodes compressed instructions with zero cycle penalty and reduces memory footprint by up to $25\%$.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Calculating Maximum 1-Address Instructions from Available State Space
+**Problem Statement:**  
+A hypothetical processor features a $16\text{-bit}$ instruction word format and operates with a main memory containing $128\text{ words}$. The architecture supports both 2-address and 1-address instructions. If the system design explicitly implements exactly two ($2$) 2-address instructions, calculate the maximum number of 1-address instructions that this instruction set can support.
+
+**Step-by-Step Solution:**
+1. **Determine the Number of Bits per Address Field ($A$):**
+   The memory capacity is $128\text{ words}$:
+   $$A = \log_2(128) = \log_2(2^7) = \mathbf{7\text{ bits}}$$
+
+2. **Formulate the State Space per Format:**
+   * A 2-address instruction contains two $7\text{-bit}$ address fields:
+     $$\text{Address bits consumed} = 2 \times 7 = 14\text{ bits}$$
+     $$\text{Remaining bits for opcode} = 16 - 14 = 2\text{ bits}$$
+     Each 2-address instruction occupies a block of states equal to:
+     $$\text{States per 2-address instruction} = 2^7 \times 2^7 = 2^{14} \text{ states}$$
+   * A 1-address instruction contains one $7\text{-bit}$ address field:
+     $$\text{Address bits consumed} = 7\text{ bits}$$
+     Each 1-address instruction occupies a block of states equal to:
+     $$\text{States per 1-address instruction} = 2^7 \text{ states}$$
+
+3. **Apply the State Conservation Equation:**
+   Let $x$ be the number of 1-address instructions. The total available combinations in a 16-bit word is $2^{16}$:
+   $$x \cdot 2^7 + (2 \times 2^7 \times 2^7) = 2^{16}$$
+   $$x \cdot 2^7 + (2 \times 2^{14}) = 2^{16}$$
+   $$x \cdot 2^7 + 2^{15} = 2^{16}$$
+
+4. **Solve for $x$:**
+   $$x \cdot 2^7 = 2^{16} - 2^{15}$$
+   Factoring out $2^{15}$:
+   $$x \cdot 2^7 = 2^{15} \cdot (2 - 1) = 2^{15}$$
+   $$x = \frac{2^{15}}{2^7} = 2^{15 - 7} = 2^8 = \mathbf{256}$$
+
+**Final Conclusion:** The architecture can support up to **$256$ one-address instructions**.
+
+---
+
+### Example 2: Determining Minimum Instruction Word Length for Mixed Formats
+**Problem Statement:**  
+A system designer requires an instruction set architecture that supports:
+* $2,048$ distinct 1-address instructions
+* $4$ distinct 2-address instructions  
+The target memory system contains $512\text{ words}$. Determine the minimum required instruction word length in bits to support this instruction set without encoding collisions.
+
+**Step-by-Step Solution:**
+1. **Find Bits Required for Memory Address Field:**
+   $$\text{Memory Size} = 512\text{ words} = 2^9\text{ words}$$
+   $$\text{Address Field Width } A = \log_2(512) = \mathbf{9\text{ bits}}$$
+
+2. **Compute Total State Space Required:**
+   * Each 1-address instruction has one 9-bit address field, consuming $2^9$ states:
+     $$\text{States for 1-Address} = 2,048 \times 2^9 = 2^{11} \times 2^9 = 2^{20} \text{ states}$$
+   * Each 2-address instruction has two 9-bit address fields, consuming $2^9 \times 2^9 = 2^{18}$ states:
+     $$\text{States for 2-Address} = 4 \times 2^{18} = 2^2 \times 2^{18} = 2^{20} \text{ states}$$
+
+3. **Sum the Total Required Combinations:**
+   $$\text{Total Required Combinations} = 2^{20} + 2^{20} = 2 \times 2^{20} = \mathbf{2^{21}\text{ combinations}}$$
+
+4. **Determine the Minimum Word Length ($N$):**
+   $$\text{Instruction Word Length } N = \lceil \log_2(\text{Total Combinations}) \rceil = \log_2(2^{21}) = \mathbf{21\text{ bits}}$$
+
+**Final Conclusion:** The minimum instruction word length is **$21\text{ bits}$**.
+
+---
+
+### Example 3: Memory Footprint of Byte-Aligned Instructions with Multiple Fields
+**Problem Statement:**  
+A processor has $64$ general-purpose registers and an instruction set consisting of $12$ distinct instructions. Each instruction word contains five distinct fields:
+1. An Opcode field
+2. Two Source Register identifiers
+3. One Destination Register identifier
+4. A $12\text{-bit}$ Immediate Constant value  
+Each instruction must be stored in memory in a byte-aligned fashion (padded to the next higher multiple of $8\text{ bits}$). Calculate the total memory consumed in bytes by a compiled program consisting of $100$ instructions.
+
+**Step-by-Step Solution:**
+1. **Calculate Bits Required for Each Field:**
+   * **Opcode:** For $12$ distinct instructions:
+     $$\text{Bits}_{\text{opcode}} = \lceil \log_2(12) \rceil = \mathbf{4\text{ bits}} \quad (2^3 = 8 < 12 \le 16 = 2^4)$$
+   * **Registers:** For $64$ registers:
+     $$\text{Bits}_{\text{reg}} = \log_2(64) = \mathbf{6\text{ bits}}$$
+     * Source Register 1 ($Rs_1$): $6\text{ bits}$
+     * Source Register 2 ($Rs_2$): $6\text{ bits}$
+     * Destination Register ($Rd$): $6\text{ bits}$
+   * **Immediate Field:** Explicitly given as:
+     $$\text{Bits}_{\text{imm}} = \mathbf{12\text{ bits}}$$
+
+2. **Sum Raw Instruction Bits:**
+   $$\text{Total Bits}_{\text{raw}} = \text{Opcode} + Rs_1 + Rs_2 + Rd + \text{Immediate}$$
+   $$\text{Total Bits}_{\text{raw}} = 4 + 6 + 6 + 6 + 12 = \mathbf{34\text{ bits}}$$
+
+3. **Apply Byte-Alignment Padding:**
+   Because instructions must be stored in a byte-aligned fashion, the raw length ($34\text{ bits}$) must be rounded up to the nearest multiple of $8$:
+   $$\text{Padded Bits per Instruction} = \lceil 34 / 8 \rceil \times 8 = 5 \times 8 = \mathbf{40\text{ bits}}$$
+   $$\text{Bytes per Instruction} = \frac{40\text{ bits}}{8\text{ bits/byte}} = \mathbf{5\text{ bytes}}$$
+
+4. **Calculate Program Text Size for 100 Instructions:**
+   $$\text{Total Memory} = 100 \text{ instructions} \times 5\text{ bytes/instruction} = \mathbf{500\text{ bytes}}$$
+
+**Final Conclusion:** The program text consumes exactly **$500\text{ bytes}$** of memory.
+
+---
+
+### Example 4: Four-Category Expanding Opcode Allocation with Mixed Registers
+**Problem Statement:**  
+A processor features a $16\text{-bit}$ instruction word and incorporates:
+* $16$ Integer Registers ($R_0 \dots R_{15}$)
+* $64$ Floating-Point Registers ($F_0 \dots F_{63}$)  
+The instruction set is partitioned into four types:
+* **Type-1:** Instructions with three Integer Register operands ($3Rs$)
+* **Type-2:** Instructions with two Floating-Point Register operands ($2Fs$)
+* **Type-3:** Instructions with one Integer Register and one Floating-Point Register operand ($1R + 1F$)
+* **Type-4:** Instructions with zero operands ($0\text{-Address}$)  
+If the architecture implements four ($4$) Type-1 instructions, eight ($8$) Type-2 instructions, and fourteen ($14$) Type-3 instructions, calculate the maximum number of Type-4 ($0\text{-Address}$) instructions that can be implemented.
+
+**Step-by-Step Solution:**
+1. **Determine Register Field Widths:**
+   * Integer Register: $\log_2(16) = \mathbf{4\text{ bits}}$
+   * Floating-Point Register: $\log_2(64) = \mathbf{6\text{ bits}}$
+
+2. **Calculate Operand Bits and State Consumption per Category:**
+   * **Type-1 ($3Rs$):**
+     $$\text{Operand bits} = 3 \times 4 = 12\text{ bits}$$
+     $$\text{States consumed per Type-1 instruction} = 2^{12} = 4,096\text{ states}$$
+     $$\text{Total for 4 Type-1 instructions} = 4 \times 4,096 = 2^2 \times 2^{12} = \mathbf{16,384\text{ states}}$$
+   * **Type-2 ($2Fs$):**
+     $$\text{Operand bits} = 2 \times 6 = 12\text{ bits}$$
+     $$\text{States consumed per Type-2 instruction} = 2^{12} = 4,096\text{ states}$$
+     $$\text{Total for 8 Type-2 instructions} = 8 \times 4,096 = 2^3 \times 2^{12} = \mathbf{32,768\text{ states}}$$
+   * **Type-3 ($1R + 1F$):**
+     $$\text{Operand bits} = 4 + 6 = 10\text{ bits}$$
+     $$\text{States consumed per Type-3 instruction} = 2^{10} = 1,024\text{ states}$$
+     $$\text{Total for 14 Type-3 instructions} = 14 \times 1,024 = \mathbf{14,336\text{ states}}$$
+   * **Type-4 ($0\text{-Address}$):**
+     $$\text{Operand bits} = 0\text{ bits}$$
+     $$\text{States consumed per Type-4 instruction} = 2^0 = \mathbf{1\text{ state}}$$
+
+3. **Sum All Consumed States:**
+   $$\text{Consumed States} = 16,384 + 32,768 + 14,336 = \mathbf{63,488\text{ states}}$$
+
+4. **Calculate Remaining States Available for Type-4:**
+   Total available combinations in a 16-bit instruction word is $2^{16} = 65,536$:
+   $$\text{Remaining States} = 65,536 - 63,488 = \mathbf{2,048\text{ states}}$$
+   Since each Type-4 instruction consumes exactly $1$ state:
+   $$\text{Maximum Type-4 Instructions} = \frac{2,048}{1} = \mathbf{2,048}$$
+
+**Final Conclusion:** The architecture can support up to **$2,048$ zero-address (Type-4) instructions**.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Question 1: Why does a 0-Address stack machine have the highest code density, yet frequently exhibits lower performance than a 3-Address load-store register machine?**  
+  *Answer:* While 0-address instructions are exceptionally short (requiring only 6–8 bits for an opcode), an operation like $A + B$ requires separate `PUSH A`, `PUSH B`, `ADD`, and `POP Result` instructions. If the stack resides in main memory, this generates extensive memory bus traffic ($4\times\text{ to }6\times$ more memory references). Modern 3-address load-store RISC architectures keep values in ultra-fast general-purpose registers, executing operations with zero memory traffic once loaded.
+
+* **Question 2: What is the Prefix Property in variable-length opcode encoding?**  
+  *Answer:* The prefix property dictates that no valid opcode bit string can be a proper prefix (leading substring) of another opcode. For example, if `00` is assigned as the opcode for a 2-address instruction, no 1-address or 0-address instruction can begin with `00`. If this property were violated, the hardware instruction decoder would suffer from ambiguity and could not determine whether to interpret the following bits as an operand address or an extended opcode.
+
+* **Question 3: If a fixed 16-bit instruction format supports $k$ two-address instructions and $m$ one-address instructions, what is the maximum number of zero-address instructions that can be added?**  
+  *Answer:* By the state conservation invariant:
+  $$N_0 = 2^{16} - (k \cdot 2^{2a} + m \cdot 2^a)$$
+  where $a$ is the bit width of each address field. Any valid combination of instructions must ensure that $N_0 \ge 0$.
+:::
+
+:::warning Common Interview Traps
+* **Trap 1: Confusing Instruction Word Length with Memory Data Word Length.**  
+  An instruction word length does not need to equal the processor's data bus width. A 32-bit processor can have 16-bit instructions (ARM Thumb) or variable-length instructions from 8 to 120 bits (x86). However, instructions must typically be aligned to memory access boundaries (e.g., half-word or word boundaries) to prevent multiple memory fetch cycles per instruction.
+
+* **Trap 2: Forgetting to Byte-Align Program Text Size Calculations.**  
+  In many real-world systems and competitive architecture problems, hardware memory controllers enforce **byte-alignment** ($\text{multiple of } 8\text{ bits}$) or word-alignment. If a calculation yields $34\text{ bits}$ per instruction, storing it in memory without bit-packing requires rounding up to $40\text{ bits}$ ($5\text{ bytes}$). Multiplying $34\text{ bits}$ directly by the instruction count will yield an incorrect answer.
+
+* **Trap 3: Assuming All Free Opcode Patterns Expand by the Entire Word Length.**  
+  When an escape code expands into a lower-address format, it only gains the bits of the *vacated address field*, not the whole word. If moving from a 2-address format to a 1-address format where an address field is $6\text{ bits}$, each unused 2-address pattern expands into $2^6 = 64$ one-address patterns—not $2^{16}$ patterns!
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "5.3 Control Hazards, Dynamic Branch Prediction & Delayed Branching",
+    url: "/coredose/coa/module-05/control-hazards-and-branch-prediction",
+  }}
+  next={{
+    title: "6.2 Comprehensive Addressing Modes & Effective Address Mechanics",
+    url: "/coredose/coa/module-06/addressing-modes-and-effective-address",
+  }}
+  courseUrl="/coredose/coa"
+/>

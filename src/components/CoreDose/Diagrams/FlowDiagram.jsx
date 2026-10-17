@@ -92,10 +92,16 @@ export default function FlowDiagram({
 
     // Check if any edge arches across top, bottom, or outer sides
     const hasTopArches = rawEdges.some(
-      (e) => e.bend === 'top' || (e.fromPort === 'top' && e.toPort === 'top')
+      (e) =>
+        e.bend === 'top' ||
+        (typeof e.bend === 'number' && e.bend < 0) ||
+        (e.fromPort === 'top' && e.toPort === 'top')
     );
     const hasBottomArches = rawEdges.some(
-      (e) => e.bend === 'bottom' || (e.fromPort === 'bottom' && e.toPort === 'bottom')
+      (e) =>
+        e.bend === 'bottom' ||
+        (typeof e.bend === 'number' && e.bend > 0) ||
+        (e.fromPort === 'bottom' && e.toPort === 'bottom')
     );
     const hasOuterLeft = rawEdges.some(
       (e) => (e.fromPort === 'left' && (e.toPort === 'left' || e.toPort === 'top')) || e.bend === 'left'
@@ -104,11 +110,43 @@ export default function FlowDiagram({
       (e) => (e.fromPort === 'right' && (e.toPort === 'right' || e.toPort === 'top')) || e.bend === 'right'
     );
 
+    let maxTopArchH = 0;
+    if (hasTopArches) {
+      rawEdges.forEach((e) => {
+        if (
+          e.bend === 'top' ||
+          (typeof e.bend === 'number' && e.bend < 0) ||
+          (e.fromPort === 'top' && e.toPort === 'top')
+        ) {
+          const h = typeof e.bend === 'number' ? Math.abs(e.bend) : 38;
+          if (h > maxTopArchH) maxTopArchH = h;
+        }
+      });
+    }
+
+    let maxBottomArchH = 0;
+    if (hasBottomArches) {
+      rawEdges.forEach((e) => {
+        if (
+          e.bend === 'bottom' ||
+          (typeof e.bend === 'number' && e.bend > 0) ||
+          (e.fromPort === 'bottom' && e.toPort === 'bottom')
+        ) {
+          const h = typeof e.bend === 'number' ? Math.abs(e.bend) : 46;
+          if (h > maxBottomArchH) maxBottomArchH = h;
+        }
+      });
+    }
+
     // Dynamic padding:
     const hasTopHeaders = (domains || []).some((d) => d.position !== 'bottom');
     const hasBottomHeaders = (domains || []).some((d) => d.position === 'bottom');
-    const topPad = hasTopArches ? 92 : (hasTopHeaders ? 84 : 52);
-    const bottomPad = hasBottomHeaders ? 76 : (hasBottomArches ? 64 : 44);
+    const topPad = hasTopArches
+      ? Math.max(96, maxTopArchH + (hasTopHeaders ? 64 : 42))
+      : (hasTopHeaders ? 84 : 52);
+    const bottomPad = hasBottomArches
+      ? Math.max(96, maxBottomArchH + (hasBottomHeaders ? 74 : 50))
+      : (hasBottomHeaders ? 76 : 44);
     const leftPad = hasOuterLeft ? 52 : 28;
     const rightPad = hasOuterRight ? 52 : 28;
     const cardH = 78; // 78px for abundant vertical text breathing room
@@ -148,8 +186,8 @@ export default function FlowDiagram({
     const mobileBaseWidth = Math.max(860, numCols * 225);
     const isMobileViewport = containerWidth > 0 && containerWidth < 660;
 
-    // Use mobile base width on mobile, or available container width on desktop/laptop
-    const targetW = isMobileViewport ? mobileBaseWidth : availableW;
+    // Use mobile base width on mobile, or explicit width/available container width on desktop/laptop
+    const targetW = isMobileViewport ? mobileBaseWidth : (width || availableW);
 
     // Usable width strictly between left and right padding
     const usableW = Math.max(targetW - (leftPad + rightPad), 280);
@@ -232,13 +270,73 @@ export default function FlowDiagram({
       );
       if (domNodes.length === 0) return null;
 
-      const minX = Math.min(...domNodes.map((n) => n.x)) - 10;
-      const maxX = Math.max(...domNodes.map((n) => n.x + n.w)) + 10;
+      const domNodeIds = new Set(domNodes.map((n) => n.id));
+      const domEdges = rawEdges.filter((e) => {
+        const s = e.from || e.source;
+        const t = e.to || e.target;
+        return domNodeIds.has(s) || domNodeIds.has(t);
+      });
+
+      // Detect bottom arches attached to this domain
+      let maxDomBottomArch = 0;
+      domEdges.forEach((e) => {
+        if (
+          e.bend === 'bottom' ||
+          (typeof e.bend === 'number' && e.bend > 0) ||
+          (e.fromPort === 'bottom' && e.toPort === 'bottom')
+        ) {
+          const h = typeof e.bend === 'number' ? Math.abs(e.bend) : 46;
+          if (h > maxDomBottomArch) maxDomBottomArch = h;
+        }
+      });
+
+      // Detect top arches attached to this domain
+      let maxDomTopArch = 0;
+      domEdges.forEach((e) => {
+        if (
+          e.bend === 'top' ||
+          (typeof e.bend === 'number' && e.bend < 0) ||
+          (e.fromPort === 'top' && e.toPort === 'top')
+        ) {
+          const h = typeof e.bend === 'number' ? Math.abs(e.bend) : 38;
+          if (h > maxDomTopArch) maxDomTopArch = h;
+        }
+      });
+
+      const domHasOuterLeft = domEdges.some(
+        (e) => (e.fromPort === 'left' && (e.toPort === 'left' || e.toPort === 'top')) || e.bend === 'left'
+      );
+      const domHasOuterRight = domEdges.some(
+        (e) => (e.fromPort === 'right' && (e.toPort === 'right' || e.toPort === 'top')) || e.bend === 'right'
+      );
+
+      const domLeftMargin = domHasOuterLeft ? 46 : 14;
+      const domRightMargin = domHasOuterRight ? 46 : 14;
+
+      const minX = Math.min(...domNodes.map((n) => n.x)) - domLeftMargin;
+      const maxX = Math.max(...domNodes.map((n) => n.x + n.w)) + domRightMargin;
       const domMinY = Math.min(...domNodes.map((n) => n.y));
-      const domTopMargin = dom.position === 'bottom' ? 14 : 46;
+      const domMaxY = Math.max(...domNodes.map((n) => n.y + n.h));
+
+      // Dynamic Top Margin:
+      // If header is at top, ensure room for top arch + label + domain header pill
+      let domTopMargin = 46;
+      if (dom.position === 'bottom') {
+        domTopMargin = maxDomTopArch > 0 ? (maxDomTopArch + 36) : 14;
+      } else {
+        domTopMargin = maxDomTopArch > 0 ? (maxDomTopArch + 64) : 46;
+      }
       const minY = Math.max(10, domMinY - domTopMargin);
-      const domBottomMargin = dom.position === 'bottom' ? 54 : 14;
-      const maxY = Math.max(...domNodes.map((n) => n.y + n.h)) + domBottomMargin;
+
+      // Dynamic Bottom Margin:
+      // If header is at bottom, ensure room for bottom arch + label + domain header pill
+      let domBottomMargin = 18;
+      if (dom.position === 'bottom') {
+        domBottomMargin = maxDomBottomArch > 0 ? (maxDomBottomArch + 68) : 54;
+      } else {
+        domBottomMargin = maxDomBottomArch > 0 ? (maxDomBottomArch + 46) : 18;
+      }
+      const maxY = domMaxY + domBottomMargin;
 
       return {
         ...dom,
@@ -249,11 +347,17 @@ export default function FlowDiagram({
       };
     }).filter(Boolean);
 
+    // Ensure total SVG height accommodates all expanded domains with safety padding
+    const domainMaxExtentY = computedDomains.length > 0
+      ? Math.max(...computedDomains.map((d) => d.y + d.h + 20))
+      : 0;
+    const finalSvgHeight = Math.max(totalH, domainMaxExtentY);
+
     return {
       layoutNodes: assignedNodes,
       layoutDomains: computedDomains,
       svgWidth: totalW,
-      svgHeight: totalH,
+      svgHeight: finalSvgHeight,
       isCompact: cardW < 134,
       scaleFactor: scale,
     };
@@ -350,8 +454,10 @@ export default function FlowDiagram({
       } else if (fromPort === 'bottom' && toPort === 'top') {
         if (Math.abs(start.x - end.x) < 5) {
           pathD = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
-          const isRightHalf = start.x > (svgWidth / 2);
-          labelX = isRightHalf ? start.x - 48 : start.x + 48;
+          const isRightLane = fromRatio > 0.55 || edge.labelPosition === 'right';
+          const isLeftLane = fromRatio < 0.45 || edge.labelPosition === 'left';
+          const defaultLabelOffsetX = isLeftLane ? -52 : (isRightLane ? 52 : (start.x > (svgWidth / 2) ? -48 : 48));
+          labelX = start.x + defaultLabelOffsetX;
           labelY = (start.y + end.y) / 2;
         } else {
           const midY = (start.y + end.y) / 2;
@@ -362,8 +468,10 @@ export default function FlowDiagram({
       } else if (fromPort === 'top' && toPort === 'bottom') {
         if (Math.abs(start.x - end.x) < 5) {
           pathD = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
-          const isRightHalf = start.x > (svgWidth / 2);
-          labelX = isRightHalf ? start.x - 48 : start.x + 48;
+          const isRightLane = fromRatio > 0.55 || edge.labelPosition === 'right';
+          const isLeftLane = fromRatio < 0.45 || edge.labelPosition === 'left';
+          const defaultLabelOffsetX = isLeftLane ? -52 : (isRightLane ? 52 : (start.x > (svgWidth / 2) ? -48 : 48));
+          labelX = start.x + defaultLabelOffsetX;
           labelY = (start.y + end.y) / 2;
         } else {
           const midY = (start.y + end.y) / 2;
@@ -381,15 +489,17 @@ export default function FlowDiagram({
         labelX = (start.x + end.x) / 2;
         labelY = (start.y + end.y) / 2;
       } else if (fromPort === 'left' && toPort === 'right') {
+        const isLowerLane = fromRatio > 0.55 || edge.labelPosition === 'bottom' || edge.labelPosition === 'below';
+        const defaultLabelOffsetY = isLowerLane ? 18 : -18;
         if (Math.abs(start.y - end.y) < 5) {
           pathD = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
           labelX = (start.x + end.x) / 2;
-          labelY = start.y - 18;
+          labelY = start.y + defaultLabelOffsetY;
         } else {
           const midX = (start.x + end.x) / 2;
           pathD = `M ${start.x} ${start.y} C ${midX} ${start.y}, ${midX} ${end.y}, ${end.x} ${end.y}`;
           labelX = midX;
-          labelY = (start.y + end.y) / 2 - 18;
+          labelY = (start.y + end.y) / 2 + defaultLabelOffsetY;
         }
       } else if (fromPort === 'left' && toPort === 'bottom') {
         pathD = `M ${start.x} ${start.y} C ${end.x} ${start.y}, ${end.x} ${start.y}, ${end.x} ${end.y}`;
@@ -404,16 +514,17 @@ export default function FlowDiagram({
         labelX = end.x + 12;
         labelY = (start.y + end.y) / 2;
       } else if (fromPort === 'right' && toPort === 'left') {
-        // Straight Horizontal Line: label elevated 18px ABOVE line
+        const isLowerLane = fromRatio > 0.55 || edge.labelPosition === 'bottom' || edge.labelPosition === 'below';
+        const defaultLabelOffsetY = isLowerLane ? 18 : -18;
         if (Math.abs(start.y - end.y) < 5) {
           pathD = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
           labelX = (start.x + end.x) / 2;
-          labelY = start.y - 18;
+          labelY = start.y + defaultLabelOffsetY;
         } else {
           const midX = (start.x + end.x) / 2;
           pathD = `M ${start.x} ${start.y} C ${midX} ${start.y}, ${midX} ${end.y}, ${end.x} ${end.y}`;
           labelX = midX;
-          labelY = (start.y + end.y) / 2 - 18;
+          labelY = (start.y + end.y) / 2 + defaultLabelOffsetY;
         }
       } else if (fromPort === 'left' && toPort === 'top') {
         const outerOffset = typeof edge.gutterOffset === 'number' ? edge.gutterOffset : 28;

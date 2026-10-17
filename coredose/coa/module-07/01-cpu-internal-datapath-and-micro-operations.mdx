@@ -1,0 +1,687 @@
+---
+title: "CPU Internal Datapath & Register Transfer Micro-Operations"
+description: "Explore the internal single-bus and multi-bus CPU datapath, register-transfer-level (RTL) micro-operations, and complete cycle-by-cycle instruction execution."
+sidebar_label: "7.1 CPU Datapath & Micro-Operations"
+keywords:
+  - CPU datapath
+  - register transfer
+  - RTL micro-operations
+  - single-bus architecture
+  - multi-bus datapath
+  - accumulator architecture
+  - instruction cycle
+  - timing signals
+  - fetch decode execute
+  - basic computer
+hide_table_of_contents: true
+---
+
+import CoreDoseLessonHeader from '@site/src/components/CoreDose/CoreDoseLessonHeader';
+import CoreDoseTOC from '@site/src/components/CoreDose/CoreDoseTOC';
+import CoreDoseNav from '@site/src/components/CoreDose/CoreDoseNav';
+import FrameFormat from '@site/src/components/CoreDose/Diagrams/FrameFormat';
+import ConceptComparison from '@site/src/components/CoreDose/Diagrams/ConceptComparison';
+import SubsystemGrid from '@site/src/components/CoreDose/Diagrams/SubsystemGrid';
+import ProcessFlow from '@site/src/components/CoreDose/Diagrams/ProcessFlow';
+import MathBox from '@site/src/components/CoreDose/Diagrams/MathBox';
+import ArchitectureStack from '@site/src/components/CoreDose/Diagrams/ArchitectureStack';
+
+# 7.1 CPU Internal Datapath & Register Transfer Micro-Operations
+
+<CoreDoseLessonHeader
+  module="07"
+  topic="7.1"
+  readTime="30 min"
+  difficulty="Core Engineering"
+  prerequisites="Module 06 (Instruction Formats) & Module 04 (Bus Interfaces & Registers)"
+  relevance="Understanding the internal CPU datapath and register transfer logic bridges the gap between high-level instructions and physical silicon gating. It forms the foundation for control unit synthesis, multi-cycle micro-operations, and pipelined processor design."
+/>
+
+## 💡 Core Intuition: The Central Processing Datapath
+
+At the physical core of every computing system lies the **CPU Datapath**: the interconnected collection of high-speed storage elements (**registers**), operational functional units (**ALU, shifters**), and shared communication pathways (**internal buses**) that physically latch, route, and transform binary words. 
+
+Every high-level software construct—from a simple integer addition to a complex database pointer dereference—decomposes into a deterministic sequence of atomic hardware operations known as **Register Transfer Level (RTL) Micro-Operations**.
+
+### 🍳 The Everyday Analogy: The Single-Track Factory Railway
+
+Imagine an industrial manufacturing floor with multiple specialized workstations:
+- A **Raw Material Bin** (Memory Unit) holding incoming parts.
+- A **Clipboard Worker** (Program Counter, $PC$) noting which assembly card to pull next.
+- An **Index Card Holder** (Address Register, $AR$) pointing to the exact bin slot.
+- A **Work Inspection Desk** (Instruction Register, $IR$) examining the assembly blueprint.
+- A **Heavy-Duty Hydraulic Press** (Arithmetic Logic Unit, ALU) performing forging operations.
+- An **Assembler's Staging Workbench** (Accumulator Register, $AC$) holding the work-in-progress item.
+
+Now imagine all these stations must exchange components over a **single shared railway track** (The Common Bus). Only **one station** may place a payload onto the railway track at any given instant. If two stations placed parts on the track simultaneously, a physical crash would occur (bus contention). However, **multiple stations** can simultaneously observe and latch the item rolling past if their gate latches are opened.
+
+The foreman timing every rail movement with an ultra-precise metronome is the **Timing Circuit & Sequence Counter**.
+
+<FlowPipeline
+  title="The Shared Single-Bus Datapath Pipeline"
+  subtitle="How multiplexed register outputs drive the common bus wire without electrical contention"
+  nodes={[
+    {
+      badge: "Source Station",
+      title: "Register File (AR, PC, DR, AC)",
+      icon: "📦",
+      color: "blue",
+      description: "Registers assert data words onto multiplexer inputs.",
+      connectorLabel: "Bus Select (S2, S1, S0)"
+    },
+    {
+      badge: "Arbitration",
+      title: "Common Bus Multiplexer",
+      icon: "🔀",
+      color: "purple",
+      description: "Selects exactly 1 of 8 hardware units to drive the bus.",
+      connectorLabel: "16-Bit Shared Rail"
+    },
+    {
+      badge: "Destination",
+      title: "Receiving Register Latches",
+      icon: "📥",
+      color: "emerald",
+      description: "Asserted Load (LD) signal latches data into destination flip-flops on the clock edge."
+    }
+  ]}
+/>
+
+### 💻 Bridging to Computer Science
+
+In physical hardware, a digital system coordinates transfers between registers synchronized to a master system clock. A micro-operation is an elementary operation performed on information stored in one or more registers during a single clock cycle.
+
+Mathematically, a conditional register transfer is written as:
+
+$$
+P: \; R_2 \leftarrow R_1
+$$
+
+Where:
+- $P$ is a **control condition** (a Boolean predicate generated by the control unit).
+- $R_1$ is the **source register**.
+- $R_2$ is the **destination register**.
+- The transfer occurs synchronously on the rising (or falling) edge of the clock signal only when $P = 1$.
+
+<MathBox title="Clock Synchronization & RTL Transfer Invariant" type="definition">
+
+$$
+\text{Clock Event: } \uparrow \text{clk} \quad \text{AND} \quad (P = 1) \implies R_2 \leftarrow R_1
+$$
+
+$$
+\text{Setup Time Invariant: } t_{\text{setup}} + t_{\text{prop}} \le T_{\text{clk}}
+$$
+
+> **Edge-Triggered Semantic:** The output of $R_1$ is transferred into the flip-flops of $R_2$ exclusively on the active transition of the clock pulse while control condition $P$ evaluates to true ($1$).
+
+</MathBox>
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🏛️ Processor Register Architecture
+
+A classic basic computer system operates over a memory space of $4096 \text{ words} = 2^{12} \text{ words}$, where each word is $16 \text{ bits}$ wide. To coordinate execution, the CPU datapath maintains eight dedicated registers, each sized precisely to its functional domain.
+
+<SubsystemGrid
+  title="CPU Datapath Register Organization"
+  subtitle="Functional breakdown, bit widths, and bus roles of the primary internal registers"
+  items={[
+    {
+      title: "Program Counter (PC)",
+      tag: "12 Bits",
+      icon: "📍",
+      color: "blue",
+      points: [
+        "Holds the memory address of the next instruction word to fetch.",
+        "Auto-increments sequentially via INR(PC) during fetch cycle T1.",
+        "Connects directly to the 12 least significant lines of the Common Bus."
+      ]
+    },
+    {
+      title: "Address Register (AR)",
+      tag: "12 Bits",
+      icon: "📫",
+      color: "purple",
+      points: [
+        "Directly drives the 12-bit physical address lines into the Memory Unit.",
+        "Must latch the target memory address before any read/write cycle.",
+        "Loaded from PC during fetch, or from IR/Bus during decode."
+      ]
+    },
+    {
+      title: "Data Register (DR)",
+      tag: "16 Bits",
+      icon: "📦",
+      color: "cyan",
+      points: [
+        "Serves as the bidirectional Memory Data Register (MDR).",
+        "Latches 16-bit operands read from memory at M[AR].",
+        "Directly feeds operand input port B of the 16-bit ALU."
+      ]
+    },
+    {
+      title: "Accumulator (AC)",
+      tag: "16 Bits",
+      icon: "🧮",
+      color: "emerald",
+      points: [
+        "Primary computational register holding intermediate and final results.",
+        "Directly latches ALU results and supplies operand port A.",
+        "Coupled with the 1-bit extended carry flip-flop (E)."
+      ]
+    },
+    {
+      title: "Instruction Register (IR)",
+      tag: "16 Bits",
+      icon: "📜",
+      color: "amber",
+      points: [
+        "Holds the fetched machine instruction word: Opcode [14:12], Mode [15], Address [11:0].",
+        "Directly feeds the 3x8 opcode decoder and control logic.",
+        "Cannot drive the Common Bus directly (address field gates via bus multiplexer)."
+      ]
+    },
+    {
+      title: "Temporary Register (TR)",
+      tag: "16 Bits",
+      icon: "⏳",
+      color: "rose",
+      points: [
+        "Internal scratchpad holding intermediate data words during multi-cycle execution.",
+        "Prevents register clobbering when AC or DR must be preserved.",
+        "Drives Common Bus input 6 via S2, S1, S0 = 110."
+      ]
+    },
+    {
+      title: "Input Register (INPR)",
+      tag: "8 Bits",
+      icon: "⌨️",
+      color: "blue",
+      points: [
+        "Buffers incoming 8-bit character data from peripheral devices.",
+        "Routes data to the 8 least significant bits of AC via ALU logic.",
+        "Synchronized to serial input flag flip-flop (FGI)."
+      ]
+    },
+    {
+      title: "Output Register (OUTR)",
+      tag: "8 Bits",
+      icon: "🖥️",
+      color: "purple",
+      points: [
+        "Latches 8-bit ASCII characters from Common Bus bits [7:0] for external displays.",
+        "Does NOT drive the Common Bus (write-only peripheral port).",
+        "Synchronized to display output flag flip-flop (FGO)."
+      ]
+    }
+  ]}
+/>
+
+### Register Bit Allocation & Specification Summary
+
+| Register Symbol | Register Name | Width (Bits) | Function & Operational Description |
+| :--- | :--- | :---: | :--- |
+| **AR** | Address Register | $12$ | Supplies address directly to the $4096 \times 16$ Memory Unit. |
+| **PC** | Program Counter | $12$ | Holds address of next instruction; auto-increments via $INR(PC)$. |
+| **DR** | Data Register | $16$ | Holds memory operand; feeds one port of the 16-bit ALU. |
+| **AC** | Accumulator | $16$ | Core processing register; holds intermediate and final arithmetic/logic results. |
+| **IR** | Instruction Register | $16$ | Holds current instruction opcode ($15\text{--}12$) and address ($11\text{--}0$). |
+| **TR** | Temporary Register | $16$ | Stores temporary processor variables during instruction execution. |
+| **INPR** | Input Register | $8$ | Buffers incoming 8-bit character from peripheral input device. |
+| **OUTR** | Output Register | $8$ | Latches 8-bit character from bus for peripheral output device. |
+| **E** | Extended Accumulator | $1$ | 1-bit flip-flop latching ALU carry-out ($C_{out}$) and shift overflow. |
+| **I** | Indirect Addressing Bit | $1$ | Latching bit 15 of $IR$; determines direct ($I=0$) vs indirect ($I=1$). |
+| **SC** | Sequence Counter | $4$ | Generates 16 orthogonal timing intervals $T_0 \text{ to } T_{15}$. |
+
+---
+
+## 🚌 Common Bus System Architecture
+
+Instead of providing individual point-to-point physical wires between every pair of registers (which would require $O(N^2)$ copper traces and cause silicon routing congestion), modern processors utilize a **Common Bus Architecture**.
+
+### Multiplexer-Based Bus Interconnect
+
+In a 16-bit multiplexer-based common bus system, 16 individual $8 \times 1$ multiplexers are connected such that multiplexer $i$ selects bit $i$ from one of seven potential driving registers or the memory unit.
+
+Each bit line $i$ ($0 \le i \le 15$) of the 16-bit common bus receives inputs from bit $i$ of all seven registers and the memory output, gated by a bank of sixteen $8 \times 1$ multiplexers sharing common selection lines $S_2, S_1, S_0$:
+
+Three binary selection lines ($S_2, S_1, S_0$) control which unit drives the 16-bit bus lines at any specific cycle:
+
+| $S_2$ | $S_1$ | $S_0$ | Decimal Select | Active Source Register Placed on Bus |
+| :---: | :---: | :---: | :---: | :--- |
+| $0$ | $0$ | $0$ | $0$ | **None** (Bus is idle / High-Impedance) |
+| $0$ | $0$ | $1$ | $1$ | **Address Register (AR)** |
+| $0$ | $1$ | $0$ | $2$ | **Program Counter (PC)** |
+| $0$ | $1$ | $1$ | $3$ | **Data Register (DR)** |
+| $1$ | $0$ | $0$ | $4$ | **Accumulator (AC)** |
+| $1$ | $0$ | $1$ | $5$ | **Instruction Register (IR)** |
+| $1$ | $1$ | $0$ | $6$ | **Temporary Register (TR)** |
+| $1$ | $1$ | $1$ | $7$ | **Memory Unit ($M[AR]$)** |
+
+> [!IMPORTANT]
+> **Single Driver Invariant**: Only **one** register can drive the bus per clock cycle. However, **multiple destination registers** can simultaneously latch data from the bus on the same clock pulse by asserting their respective Load ($LD$) enable lines!
+
+### Tri-State Bus Drivers Alternative
+
+An alternative to multiplexer switching is the use of **Three-State (Tri-state) Bus Buffers**. A tri-state gate exhibits three distinct states:
+1. **Logic 0**: Low output voltage (active drive low).
+2. **Logic 1**: High output voltage (active drive high).
+3. **High-Impedance State ($Z$)**: The output is physically disconnected from the bus wire, presenting near-infinite open-circuit resistance.
+
+When using tri-state buffers, each register output connects to the shared copper line through a buffer enabled by a decoded control signal ($E$). Exactly one buffer enable is driven high ($E=1$) while all other drivers remain in state $Z$, preventing current contention while eliminating the routing bulk of centralized multiplexers.
+
+---
+
+## ⚡ Datapath Topologies: Single-Bus vs. Multi-Bus
+
+Processor datapaths are classified by the number of simultaneous internal communication channels available between registers and arithmetic execution units:
+
+<ConceptComparison
+  title="Processor Datapath Architectures"
+  subtitle="The fundamental architectural trade-off between silicon footprint and execution latency"
+  concepts={[
+    {
+      badge: "Single-Bus",
+      title: "Single-Bus Datapath",
+      icon: "🚌",
+      color: "blue",
+      domain: "Area-Optimized (Microcontrollers & Edge Silicon)",
+      points: [
+        "Only one data word can traverse the CPU bus per clock cycle.",
+        "ALU requires temporary latch registers (Y and Z) to hold operands across clock edges.",
+        "An arithmetic instruction like R1 <- R2 + R3 requires 3 serialized clock cycles.",
+        "Lowest silicon area, minimal routing metal layers, and lowest static leakage."
+      ],
+      quote: "Minimizes silicon interconnects at the cost of serialized multi-cycle ALU transfers."
+    },
+    {
+      badge: "Three-Bus",
+      title: "Three-Bus Datapath",
+      icon: "⚡",
+      color: "emerald",
+      domain: "High-Throughput (Pipelined RISC-V & Superscalar)",
+      points: [
+        "Three independent buses: Bus A & Bus B (source operands) and Bus C (result writeback).",
+        "Both source registers feed ALU input ports A and B concurrently in a single clock cycle.",
+        "ALU result writes back directly to destination register R1 via Bus C.",
+        "An arithmetic instruction like R1 <- R2 + R3 executes in exactly 1 single clock cycle."
+      ],
+      quote: "Maximizes throughput by routing dual operands and writeback concurrently in a single cycle."
+    }
+  ]}
+/>
+
+### Single-Bus ALU Contention & Pipeline Bubbles
+
+In a **single-bus datapath**, the ALU cannot receive two register inputs simultaneously from the bus. Consider executing the register addition:
+
+$$
+R_1 \leftarrow R_2 + R_3
+$$
+
+The processor must serialize the transfer across three clock cycles using temporary registers $Y$ and $Z$:
+1. **Cycle 1**: Place $R_2$ on the bus; assert $LD(Y)$. ($Y \leftarrow R_2$)
+2. **Cycle 2**: Place $R_3$ on the bus; configure ALU to add; latch output into $Z$. ($Z \leftarrow Y + R_3$)
+3. **Cycle 3**: Place $Z$ on the bus; assert $LD(R_1)$. ($R_1 \leftarrow Z$)
+
+In contrast, a **three-bus datapath** places $R_2$ onto Bus A, $R_3$ onto Bus B, triggers the addition, and gates the result onto Bus C directly into $R_1$ in **one single clock cycle**.
+
+---
+
+## 🔄 The Instruction Cycle & Micro-Operation Phases
+
+Every instruction loaded into the CPU undergoes four mandatory sequential phases:
+
+<ProcessFlow
+  title="The Universal Instruction Execution Lifecycle"
+  steps={[
+    {
+      title: "Fetch Phase (T0 - T1)",
+      description: "Transfer current PC address to AR, load instruction word from memory into IR, and increment PC.",
+      color: "blue"
+    },
+    {
+      title: "Decode Phase (T2)",
+      description: "Decode 3-bit opcode into D0-D7, transfer 12-bit address field to AR, and extract Indirect flag bit I.",
+      color: "purple"
+    },
+    {
+      title: "Effective Address Phase (T3)",
+      description: "If addressing mode is indirect (I=1), fetch the 12-bit effective address from memory location M[AR].",
+      color: "amber"
+    },
+    {
+      title: "Execution Phase (T4 - T6)",
+      description: "Execute the decoded operation (ALU manipulation, data transfer, branching) and clear Sequence Counter to 0.",
+      color: "emerald"
+    }
+  ]}
+/>
+
+### Timing Circuit & Sequence Counter
+
+The timing of all micro-operations is controlled by a **4-bit Sequence Counter ($SC$)**. 
+- $SC$ receives a continuous system clock and has control inputs: Increment ($INR$) and Clear ($CLR$).
+- The 4-bit output of $SC$ is decoded by a $4 \times 16$ decoder into 16 mutually exclusive timing pulses: $T_0, T_1, T_2, \dots, T_{15}$.
+- Only **one** timing pulse is active ($1$) during any given clock period.
+
+<MathBox title="Sequence Counter Timing Invariant">
+
+$$
+T_i \cdot T_j = 0 \quad (\forall i \neq j), \quad \sum_{k=0}^{15} T_k = 1
+$$
+
+When an instruction finishes execution at cycle $T_k$, the control unit asserts $CLR(SC)$, causing the next clock edge to reset $SC$ to $0000_2$, returning the processor to $T_0$ for the next instruction fetch.
+</MathBox>
+
+---
+
+## ⚙️ Micro-Operation Execution Traces for Memory-Reference Instructions
+
+The operation code in $IR(14-12)$ is decoded by a $3 \times 8$ decoder into eight output lines $D_0, D_1, \dots, D_7$. 
+- If $D_7 = 0$, the instruction is a **Memory-Reference Instruction**.
+- If $D_7 = 1$ and $I = 0$, the instruction is a **Register-Reference Instruction**.
+- If $D_7 = 1$ and $I = 1$, the instruction is an **Input/Output Instruction**.
+
+### 1. Fetch & Decode Phase RTL (Universal for All Instructions)
+
+During cycles $T_0$, $T_1$, and $T_2$, all instructions execute the identical micro-operation sequence regardless of opcode:
+
+$$
+\begin{aligned}
+T_0 &: \; AR \leftarrow PC && \text{(Select PC onto bus, } LD(AR)=1\text{)} \\
+T_1 &: \; IR \leftarrow M[AR], \quad PC \leftarrow PC + 1 && \text{(Memory Read, } LD(IR)=1, \; INR(PC)=1\text{)} \\
+T_2 &: \; D_0 \dots D_7 \leftarrow \text{Decode } IR(14-12), \quad AR \leftarrow IR(11-0), \quad I \leftarrow IR(15)
+\end{aligned}
+$$
+
+### 2. Addressing Evaluation at $T_3$
+
+At timing pulse $T_3$, the control unit inspects $D_7$ and $I$:
+
+$$
+\begin{aligned}
+D_7' I T_3 &: \; AR \leftarrow M[AR] && \text{(Indirect Memory Reference: fetch Effective Address)} \\
+D_7' I' T_3 &: \; \text{NOP} && \text{(Direct Memory Reference: Effective Address already in } AR\text{)} \\
+D_7 I' T_3 &: \; \text{Execute Register-Reference Instruction} && \text{(Execution completes in } T_3, \; SC \leftarrow 0\text{)} \\
+D_7 I T_3 &: \; \text{Execute I/O Instruction} && \text{(Execution completes in } T_3, \; SC \leftarrow 0\text{)}
+\end{aligned}
+$$
+
+### 3. Execution Phase Micro-Operations ($T_4 \text{ to } T_6$)
+
+For memory-reference instructions ($D_7 = 0$), execution starts at $T_4$ with the effective address guaranteed to reside in $AR$:
+
+| Opcode Decoder | Instruction Mnemonic | Full Operation Name | Execution Cycle Spans |
+| :---: | :---: | :--- | :---: |
+| **$D_0$** | `AND` | Logical AND to Accumulator | $T_4 \text{ to } T_5$ |
+| **$D_1$** | `ADD` | Add to Accumulator with Carry ($E$) | $T_4 \text{ to } T_5$ |
+| **$D_2$** | `LDA` | Load Memory Word to Accumulator | $T_4 \text{ to } T_5$ |
+| **$D_3$** | `STA` | Store Accumulator into Memory | $T_4$ (Single Cycle!) |
+| **$D_4$** | `BUN` | Branch Unconditionally | $T_4$ (Single Cycle!) |
+| **$D_5$** | `BSA` | Branch and Save Return Address | $T_4 \text{ to } T_5$ |
+| **$D_6$** | `ISZ` | Increment Memory Word & Skip if Zero | $T_4 \text{ to } T_6$ |
+
+#### Detailed RTL Equations:
+
+1. **AND to AC ($D_0$)**:
+   - $D_0 T_4: \; DR \leftarrow M[AR]$ (Read memory operand into Data Register)
+   - $D_0 T_5: \; AC \leftarrow AC \land DR, \quad SC \leftarrow 0$ (Bitwise logical AND, reset counter)
+
+2. **ADD to AC ($D_1$)**:
+   - $D_1 T_4: \; DR \leftarrow M[AR]$ (Read operand)
+   - $D_1 T_5: \; AC \leftarrow AC + DR, \quad E \leftarrow C_{out}, \quad SC \leftarrow 0$ (Sum to AC, carry to E)
+
+3. **LDA: Load to AC ($D_2$)**:
+   - $D_2 T_4: \; DR \leftarrow M[AR]$
+   - $D_2 T_5: \; AC \leftarrow DR, \quad SC \leftarrow 0$ (Transfer DR to AC via ALU pass-through)
+
+4. **STA: Store AC ($D_3$)**:
+   - $D_3 T_4: \; M[AR] \leftarrow AC, \quad SC \leftarrow 0$ (Write AC to memory in a single cycle!)
+
+5. **BUN: Branch Unconditionally ($D_4$)**:
+   - $D_4 T_4: \; PC \leftarrow AR, \quad SC \leftarrow 0$ (Directly load target address into PC)
+
+6. **BSA: Branch and Save Return Address ($D_5$)**:
+   - $D_5 T_4: \; M[AR] \leftarrow PC, \quad AR \leftarrow AR + 1$ (Save return address at subroutine entry, advance AR)
+   - $D_5 T_5: \; PC \leftarrow AR, \quad SC \leftarrow 0$ (Jump execution to subroutine body)
+
+7. **ISZ: Increment and Skip if Zero ($D_6$)**:
+   - $D_6 T_4: \; DR \leftarrow M[AR]$ (Fetch loop counter from memory)
+   - $D_6 T_5: \; DR \leftarrow DR + 1$ (Increment counter in Data Register)
+   - $D_6 T_6: \; M[AR] \leftarrow DR, \quad \text{if } (DR = 0) \text{ then } (PC \leftarrow PC + 1), \quad SC \leftarrow 0$
+
+---
+
+## 🏭 Real-World Production Context: Modern Datapath Scaling
+
+Modern microprocessors have moved far beyond Mano's single-accumulator model, yet the fundamental concepts of register transfer and bus isolation remain universal:
+
+<ArchitectureStack
+  title="Modern Microprocessor Datapath Evolution"
+  subtitle="From basic accumulator machines to out-of-order superscalar architectures."
+  layers={[
+    {
+      badge: "Out-of-Order Engine",
+      title: "Superscalar Execution Core (Intel Raptor Lake / AMD Zen 4)",
+      icon: "🚀",
+      color: "purple",
+      description: "Replaces single buses with massive Reservation Stations, 180+ Physical Register Files (PRF), Register Alias Tables (RAT), and a Reorder Buffer (ROB) supporting 6+ micro-ops per cycle.",
+      items: ["Register Renaming", "Common Data Bus (CDB)", "Speculative Branch Recovery"],
+      connectorText: "Translates to Silicon Interconnect"
+    },
+    {
+      badge: "Embedded RISC",
+      title: "Pipelined 3-Bus Datapath (ARM Cortex-M4 / RISC-V RV32I)",
+      icon: "⚡",
+      color: "emerald",
+      description: "Direct separate Read Bus A, Read Bus B, and Writeback Bus C connected to 32 general-purpose registers, allowing single-cycle execution of arithmetic instructions.",
+      items: ["Dual 32-bit Read Ports", "Single 32-bit Write Port", "Forwarding Multiplexers"],
+      connectorText: "Fabricated with CMOS Standard Cells"
+    },
+    {
+      badge: "Classical Datapath",
+      title: "Mano Basic Computer & Microcontroller Datapaths (8051 / PIC)",
+      icon: "💾",
+      color: "blue",
+      description: "Single-bus architecture multiplexing shared registers to minimize silicon die area and pin count at the cost of multi-cycle instruction execution.",
+      items: ["Time-Multiplexed Bus", "Accumulator Bottleneck", "Micro-sequencer SC"],
+      connectorText: "Fundamental Foundation"
+    }
+  ]}
+/>
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Cycle-by-Cycle RTL Trace of Indirect ADD Instruction
+
+#### Problem Statement
+A basic computer with a 16-bit single common bus executes an `ADD` instruction with indirect addressing ($I = 1$) located at memory address $100_{16}$. The instruction word at memory address $100_{16}$ is:
+
+$$
+\text{Instruction Word} = 9250_{16}
+$$
+
+Memory contents are:
+- $M[100_{16}] = 9250_{16}$
+- $M[250_{16}] = 0500_{16}$
+- $M[500_{16}] = 0025_{16}$
+- Accumulator initial content: $AC = 0012_{16}$, $E = 0$.
+
+Determine:
+1. The opcode bit pattern and decoded output line $D_k$.
+2. The exact sequence of micro-operations executed cycle-by-cycle from $T_0$ to completion.
+3. The bus selection code ($S_2 S_1 S_0$) and active register control inputs for each clock cycle.
+4. The final values of $AC$, $E$, $PC$, and $SC$.
+
+#### Step-by-Step Solution
+
+**1. Instruction Word Decoding**:
+Convert $9250_{16}$ to 16-bit binary:
+
+$$
+9250_{16} = \underbrace{1}_{\text{Bit 15: } I} \; \underbrace{001}_{\text{Bits 14-12: Opcode}} \; \underbrace{0010 \; 0101 \; 0000}_{\text{Bits 11-0: Address } 250_{16}}
+$$
+
+- Bit $15 = 1 \implies I = 1$ (Indirect addressing).
+- Opcode $= 001_2 = 1_{10} \implies$ Decoder output **$D_1 = 1$** (ADD instruction).
+- Address field $= 250_{16}$.
+
+**2. Cycle-by-Cycle Execution Trace**:
+
+| Cycle | Active Pulse | Register Transfer Statement | Bus Source | $S_2 S_1 S_0$ | Active Register Controls | Description |
+| :---: | :---: | :--- | :---: | :---: | :--- | :--- |
+| **0** | $T_0$ | $AR \leftarrow PC$ | $PC$ | $010$ | $LD(AR)$ | $PC$ ($100_{16}$) transferred to $AR$. |
+| **1** | $T_1$ | $IR \leftarrow M[AR], \; PC \leftarrow PC + 1$ | Memory | $111$ | $LD(IR), \; INR(PC)$ | Fetch instruction word $9250_{16}$; $PC$ becomes $101_{16}$. |
+| **2** | $T_2$ | $AR \leftarrow IR(11\text{-}0), \; I \leftarrow IR(15)$ | $IR$ | $101$ | $LD(AR)$ | $AR \leftarrow 250_{16}$, $I \leftarrow 1$, Opcode decoded ($D_1=1$). |
+| **3** | $T_3$ | $AR \leftarrow M[AR]$ | Memory | $111$ | $LD(AR)$ | Read pointer at $250_{16}$: $M[250_{16}] = 0500_{16}$. $AR \leftarrow 500_{16}$. |
+| **4** | $T_4$ | $DR \leftarrow M[AR]$ | Memory | $111$ | $LD(DR)$ | Read operand at $500_{16}$: $DR \leftarrow M[500_{16}] = 0025_{16}$. |
+| **5** | $T_5$ | $AC \leftarrow AC + DR, \; E \leftarrow C_{out}, \; SC \leftarrow 0$ | None | $000$ | $LD(AC), \; CLR(SC)$ | $AC \leftarrow 0012_{16} + 0025_{16} = 0037_{16}$. $E \leftarrow 0$. Reset $SC$. |
+
+**3. Final Register State**:
+- $AC = 0037_{16}$
+- $E = 0$ (No carry out)
+- $PC = 101_{16}$
+- $SC = 0000_2$ (Instruction completed in exactly 6 clock cycles: $T_0 \text{ to } T_5$).
+
+---
+
+### Example 2: Subroutine Linkage Mechanics (BSA and Indirect Return)
+
+#### Problem Statement
+A processor executes a Branch and Save Return Address instruction: `BSA 150` located at memory address $20_{16}$.
+1. Detail the micro-operations occurring during cycles $T_4$ and $T_5$ of `BSA`.
+2. Write the exact memory contents at address $150_{16}$ and the value of $PC$ after $T_5$.
+3. Write the single instruction and addressing mode that must be placed at the end of the subroutine at memory address $180_{16}$ to return control to the main calling program.
+
+#### Step-by-Step Solution
+
+**1. Micro-Operations of `BSA`**:
+Prior to $T_4$:
+- At $T_0$: $AR \leftarrow PC = 20_{16}$.
+- At $T_1$: $IR \leftarrow M[20_{16}], \; PC \leftarrow 21_{16}$ (Notice that $PC$ is already incremented to point to the instruction *after* the call!).
+- At $T_2$: $AR \leftarrow 150_{16}$, $D_5 = 1$.
+- At $T_3$: $I = 0$ (direct addressing), NOP.
+
+At execution cycles:
+- **Cycle $T_4$**: 
+  $$
+  D_5 T_4: \; M[AR] \leftarrow PC, \quad AR \leftarrow AR + 1
+  $$
+  - $PC$ ($21_{16}$) is written into memory location $M[150_{16}]$.
+  - $AR$ increments: $AR \leftarrow 150_{16} + 1 = 151_{16}$.
+- **Cycle $T_5$**:
+  $$
+  D_5 T_5: \; PC \leftarrow AR, \quad SC \leftarrow 0
+  $$
+  - $PC$ is loaded with $151_{16}$.
+  - $SC$ is cleared to 0.
+
+**2. State After Execution**:
+- $M[150_{16}] = 0021_{16}$ (Return address stored in the entry slot of the subroutine!).
+- $PC = 151_{16}$ (Execution begins at the first executable instruction of the subroutine).
+
+**3. Subroutine Return Instruction**:
+To return to the calling program, the subroutine must branch to the address stored at $150_{16}$. It issues an **indirect unconditional branch**:
+
+$$
+\text{BUN } 150 \quad \text{with } I = 1 \quad (\text{Hex Machine Code: } C150_{16})
+$$
+
+During execution of `BUN 150 (I=1)`:
+- At $T_2$: $AR \leftarrow 150_{16}$.
+- At $T_3$: $AR \leftarrow M[AR] = M[150_{16}] = 021_{16}$.
+- At $T_4$: $PC \leftarrow AR = 021_{16}$.
+The calling program resumes seamlessly at address $21_{16}$.
+
+---
+
+### Example 3: Datapath Bus Contention & Latency Comparison
+
+#### Problem Statement
+An arithmetic logic instruction performs an in-memory accumulation:
+
+$$
+\text{Instruction: } AC \leftarrow AC + M[R_{\text{addr}}]
+$$
+
+Compare the cycle latency and intermediate register requirements between:
+1. A **Single Common Bus** datapath where memory output drives the bus directly.
+2. A **Dual-Bus Datapath** (Bus A connects register outputs to ALU input A, Bus B connects Memory/Registers to ALU input B, and ALU output latches directly into destination).
+3. If the clock frequency is $1 \text{ GHz}$ for both designs, calculate the execution time reduction achieved by the dual-bus architecture.
+
+#### Step-by-Step Solution
+
+**1. Single-Bus Datapath Execution**:
+On a single bus, each transfer requires a dedicated cycle:
+- **Cycle 1**: Transfer address to $AR$: $AR \leftarrow R_{\text{addr}}$. (Bus used by $R_{\text{addr}}$).
+- **Cycle 2**: Read memory operand into $DR$: $DR \leftarrow M[AR]$. (Bus used by Memory).
+- **Cycle 3**: Perform ALU addition and latch result: $AC \leftarrow AC + DR$. (Bus is free or used for latching).
+
+Total clock cycles on Single-Bus = **$3 \text{ cycles}$**.
+
+**2. Dual-Bus Datapath Execution**:
+With two independent buses (Bus A and Bus B) and direct ALU output feedback to $AC$:
+- **Cycle 1**: Place $R_{\text{addr}}$ on Bus A; latch into $AR$: $AR \leftarrow R_{\text{addr}}$.
+- **Cycle 2**: Memory reads operand directly onto Bus B while $AC$ is routed onto Bus A. The ALU computes $AC + M[AR]$ continuously and latches the final sum directly into $AC$ on the next clock edge!
+
+Total clock cycles on Dual-Bus = **$2 \text{ cycles}$**.
+
+**3. Execution Time & Speedup**:
+
+$$
+T_{\text{single}} = 3 \times \frac{1}{10^9 \text{ Hz}} = 3.0 \text{ ns}
+$$
+
+$$
+T_{\text{dual}} = 2 \times \frac{1}{10^9 \text{ Hz}} = 2.0 \text{ ns}
+$$
+
+$$
+\text{Speedup} = \frac{T_{\text{single}}}{T_{\text{dual}}} = \frac{3}{2} = 1.50 \times \quad (33.33\% \text{ latency reduction})
+$$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+1. **Why is the Address Register ($AR$) sized at 12 bits while the Data Register ($DR$) is 16 bits?**
+   - The memory capacity is $4096 \text{ words} = 2^{12} \text{ words}$. Hence, exactly 12 bits are required to address any memory location ($2^{12} = 4096$). In contrast, each memory word stores a 16-bit binary payload, meaning operands, instructions, and data words are 16 bits wide, requiring a 16-bit $DR$ and 16-bit data bus lines.
+
+2. **Can Memory and a Register drive the Common Bus simultaneously?**
+   - **No.** Attempting to drive the shared bus from two distinct digital drivers simultaneously results in electrical bus contention, creating indeterminate logic levels, massive current spikes, and hardware damage. The $3 \times 8$ multiplexer select circuit or tri-state enable decoders physically guarantee that at most one source ($S_2 S_1 S_0$) is gated onto the bus lines in any given clock cycle.
+
+3. **Why does $BSA$ save the return address at the destination address rather than pushing it onto a hardware stack?**
+   - In early accumulator-based architectures (like Mano's basic computer), there is no dedicated hardware Stack Pointer ($SP$) register. Storing the return address at $M[\text{subroutine\_entry}]$ was the standard subroutine linkage protocol (self-modifying code pattern). However, this architectural design fundamentally **cannot support recursion**, as a recursive call to the subroutine would overwrite the stored return address!
+:::
+
+:::warning Common Interview Traps
+- **Trap 1: Assuming $PC$ increments during the Execute phase ($T_4 \text{ to } T_6$).**
+  - In reality, $PC$ auto-increments at **$T_1$ during the Fetch phase** ($IR \leftarrow M[AR], \; PC \leftarrow PC + 1$). By the time execution begins, $PC$ already points to the next sequential instruction. This is why branching instructions must explicitly overwrite $PC$ ($PC \leftarrow AR$).
+- **Trap 2: Believing $T_3$ is an execution cycle for all instructions.**
+  - For direct memory-reference instructions ($D_7' I' T_3$), cycle $T_3$ performs **no operation (NOP)** because the effective address was already latched into $AR$ during $T_2$. $T_3$ only performs a memory read ($AR \leftarrow M[AR]$) if indirect addressing ($I = 1$) is asserted.
+- **Trap 3: Confusing Register Clear ($CLR$) with Sequence Counter Clear ($CLR(SC)$).**
+  - Clearing a data register ($AC \leftarrow 0$) zeroes the register's contents. Clearing the sequence counter ($SC \leftarrow 0$) terminates the current instruction's execution cycle and resets the timing state machine to $T_0$ to begin the next instruction fetch.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "6.3 RISC vs CISC Architectural Design & Register Windowing",
+    url: "/coredose/coa/module-06/risc-vs-cisc-architectural-comparison",
+  }}
+  next={{
+    title: "7.2 Hardwired Control Unit Design & State Machine Synthesis",
+    url: "/coredose/coa/module-07/hardwired-control-unit-design",
+  }}
+  courseUrl="/coredose/coa"
+/>

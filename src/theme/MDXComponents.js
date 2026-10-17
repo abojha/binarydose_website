@@ -36,6 +36,7 @@ import {
   CircuitSimulator,
   SequentialSimulator,
   NumberSystemSimulator,
+  CacheSimulator,
 } from '@site/src/components/Diagrams';
 
 
@@ -87,5 +88,6 @@ export default {
   CircuitSimulator,
   SequentialSimulator,
   NumberSystemSimulator,
+  CacheSimulator,
 };
 

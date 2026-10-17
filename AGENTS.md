@@ -613,7 +613,14 @@ Every diagram component (existing or newly created) MUST adhere strictly to thes
      - Use `<ProcessFlow />` (vertical numbered timeline).
      - Use `<ArchitectureStack />` (for vertical hierarchical stacks).
    - All diagram containers must enforce internal overflow protection (`overflow-x: auto`) and responsive stacking at `max-width: 996px` so no card or arrow ever bleeds outside the page.
-9. **Systematic Diagram Selection Framework (Strict Multi-Criteria Evaluation — NO FCFS SELECTION)**:
+9. **FrameFormat Proportionality & Clean Bit Encodings**:
+   - Every block must specify its exact bit allocation via `size: "X"`, `unit: "Bits"`, and `sublabel: "[MSB:LSB]"`.
+   - Specify `flex: X` proportionally matching its exact bit share so visual block widths reflect reality.
+   - **Bits Only**: Do NOT clutter frames with percentage or division arithmetic (e.g. no `bitPattern: "6 / 32 Bits (18.75%)"`). Keep it clean with bits and bit-range labels only.
+10. **Zero-Scrollbar MathBox Design**:
+   - In `<MathBox>`, keep algebraic and register-transfer alignment blocks compact ($\le 380\text{px}$) with concise step comments.
+   - For hardware invariants and metric summaries, use clean wrapping Markdown blockquotes (`> **Hardware Invariant:** ... > **Trace Cost:** ...`) inside `<MathBox>` rather than wide, single-line display math (`$$ ... \quad\vert\quad ... $$`) blocks, preventing horizontal scrollbars on desktop and mobile viewports.
+11. **Systematic Diagram Selection Framework (Strict Multi-Criteria Evaluation — NO FCFS SELECTION)**:
    > **CRITICAL RULE: NEVER USE FCFS (First-Come-First-Served) SELECTION BIAS.**  
    > Never lazily pick the first diagram component that comes to mind or force an architectural concept into an ill-fitting component just because it is familiar.  
    > **MANDATORY PROTOCOL**: Before writing any diagram, you MUST systematically compare the concept's mathematical/topological conditions against **ALL available diagram components** across the platform, evaluating dimensionality (1D vs 2D), time-dependency (space-time vector vs chronological state), actor interaction, and data encapsulation. Only select the component whose native geometry perfectly matches the concept's real-world behavior:
@@ -1056,5 +1063,70 @@ All course lessons across `coredose/` MUST adhere strictly to the locked 11-part
 * **No Empty Headings**: Never follow a parent heading or subheading immediately with a child heading (e.g. `### Case 1: ...` followed immediately by `#### A. ...`). Always provide substantive introductory explanation setting up the concepts.
 * **Handwritten Notes Priority**: All state transition tables, truth tables, circuit derivations, and worked examples must be verified against and adapted directly from the user's handwritten GATE notes (`E:\GATE-NOTES\`).
 
+---
 
+## 16. Strict Academic Textbook Standards for Diagrams & Interactive Simulators
 
+All diagrams, architectural visualizations, and interactive simulators across Binary Dose MUST strictly adhere to standard academic textbook conventions (Carl Hamacher, William Stallings, David Patterson & John Hennessy, M. Morris Mano, Andrew Tanenbaum, Abraham Silberschatz):
+
+1. **Hardware Architecture Visualizations (Physical Circuit Standard)**:
+   * **Bit-Field Allocations**: CPU address registers must explicitly display textbook bit splitting (e.g., Tag bits, Set/Line index decoder input bits, Word/Byte offset select bits).
+   * **Decoders & Parallel Comparators**:
+     * *Direct-Mapped*: Explicit $s$-to-$2^s$ line decoder driving a single comparator.
+     * *Set-Associative*: Set decoder enabling the target set, followed by $K$ parallel comparators operating simultaneously.
+     * *Fully Associative*: Full Content Addressable Memory (CAM) array with parallel comparators across all lines and zero index bits.
+   * **Logic Gate Aggregation**: Valid bit gating ($V = 1$) and multi-input OR/AND gates outputting the explicit $\text{HIT} = 1$ / $\text{MISS} = 0$ CPU control signal.
+
+2. **Algorithmic & Numerical Trace Visualizations (Execution Matrix Standard)**:
+   * **Standard Matrix View**: Must replicate the classic academic execution trace matrix used in university examinations and competitive tests (columns = discrete cycle time steps $t_1, t_2, \dots, t_N$, rows = resident cache lines/frames, bottom row = Hit/Miss outcome).
+   * **No Ad-Hoc / Fictional Abstractions**: Never invent arbitrary or gamified visualizations that diverge from textbook literature. Learners must recognize the exact diagrams and matrices they see in standard reference books and exam papers.
+
+3. **Generic & Unified Implementation**:
+   * Interactive components must share a single generic architecture across all modes.
+   * Mode switches must not cause layout bifurcation, broken styling, or isolated code paths.
+   * Dual-view toggles (`[ 📊 Trace Matrix ]` and `[ ⚡ Hardware Circuit ]`) must be synchronized to the same underlying state model and step sequencer.
+
+---
+
+## 17. CoreDose Course Production Status & Quick-Start Context
+
+When starting a new agent session, use this state register to immediately understand the current status without re-explaining from scratch:
+
+### 1. Active Curriculum Status
+* **Operating Systems (OS)**: 10 Modules, 51 Topics. Complete.
+* **Database Management Systems (DBMS)**: 10 Modules, 48 Topics. Complete.
+* **Computer Networks (CN)**: 10 Modules, 51 Topics. Complete.
+* **Digital Logic & Design (DLD)**: 7 Modules, 23 Topics. Complete.
+* **Computer Organization & Architecture (COA)**: 7 Modules, 22 Topics (+ `index.mdx`). 100% complete, fully audited, locked 11-part order, academic circuit & execution matrix standards enforced, dynamic siteStats synced. Branch: `feat/coredose-coa`.
+* **Platform Metrics** (`siteStats.json`): 5 Active Courses, 44 Modules, 195 Topics, 391+ Problems.
+
+### 2. Next Course in Queue
+* **Target Subject**: **Theory of Computation (TOC) & Compiler Design** (`/coredose/compiler`).
+  * **Curriculum Registry**: Registered in `CoreDoseHub.jsx` under id `"compiler"`.
+  * **Handwritten Notes Source**: `E:\GATE-NOTES\Theory Of Computation` and `E:\GATE-NOTES\Compiler Design`.
+  * **Primary Diagram Components**: `<StateTransitionDiagram />` (DFAs, NFAs, PDAs, Turing Machines), `<ExecutionBlueprint />`, `<FlowPipeline />` (multi-pass compiler stages, parsing pipelines).
+  * **Alternative Courses**:
+    * *Data Structures & Algorithms (DSA)*: `E:\GATE-NOTES\Data Structure` and `E:\GATE-NOTES\Algorithms`.
+    * *Discrete Mathematics*: `E:\GATE-NOTES\Discrete Mathematics`.
+    * *Object-Oriented Programming (OOPs)*: `/coredose/oops`.
+
+### 3. Strict Component Prop Invariants (Never Regress)
+* **`ConceptComparison`**: Must pass `concepts={[ { badge, title, icon, color, domain, points, quote }, ... ]}`. Never use `left` or `right` props.
+* **`SubsystemGrid`**: Items must use `title`, `tag`, `icon`, `color`, `points`. Never use `badge`, `desc`, or `features`.
+* **`FrameFormat`**: Blocks must specify `size: "X"`, `unit: "Bits"`, `sublabel: "[MSB:LSB]"`, and proportional `flex: X`. Use `totalSizeBytes`. Never use `totalBits` or `bits`. Keep bits clean without percentage or division clutter.
+* **`ArchitectureStack`**: Use `subtitle=` (never `description=`).
+* **`MathBox`**: Keep algebraic derivations compact ($\le 380\text{px}$). Use wrapping blockquotes (`> **Hardware Invariant:** ...`) inside `<MathBox>` rather than wide, single-line display math (`$$ ... \quad\vert\quad ... $$`) to eliminate horizontal scrollbars.
+* **`GiscusComments`**: Keep the clean single-layer page layout (`borderTop: 1px solid var(--ifm-color-emphasis-200)` and `💬 Discussion & Doubts`). The comment box dynamically detects `document.documentElement.getAttribute('data-theme')` so it renders in dark mode without white boxes. Do not wrap Giscus in nested outer cards, extra badges, or sync pills.
+
+### 4. Locked 11-Part Order Invariant
+1. Frontmatter (`title`, `description`, `hide_table_of_contents: true`)
+2. `# X.Y {Title}` Semantic H1
+3. `<CoreDoseLessonHeader />`
+4. `## 💡 Core Intuition:` (with `### 🍳 The Everyday Analogy:` and `### 💻 Bridging to Computer Science`)
+5. `<CoreDoseTOC toc={toc} />`
+6. `---`
+7. Technical Deep-Dive H2s (with React diagrams / visualizers)
+8. `## 🏭 Real-World Production Context:`
+9. `## 📐 Numerical Applications & Worked Examples` ($\ge 3$ problems with step-by-step solutions)
+10. `## 🎯 Exam & Interview Pitfall Check` (`:::tip` and `:::warning`)
+11. `<CoreDoseNav />` (Doubly-linked navigation chain)

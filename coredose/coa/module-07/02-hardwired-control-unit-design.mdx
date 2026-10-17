@@ -1,0 +1,661 @@
+---
+title: "Hardwired Control Unit Design & State Machine Synthesis"
+description: "Design high-speed hardwired control units using state machine synthesis, sequence counter decoders, delay elements, and combinational SOP logic gates."
+sidebar_label: "7.2 Hardwired Control Unit Design"
+keywords:
+  - hardwired control unit
+  - state machine synthesis
+  - control logic gates
+  - sequence counter
+  - delay element method
+  - one-hot encoding
+  - combinational logic design
+  - RISC control unit
+  - basic computer control
+hide_table_of_contents: true
+---
+
+import CoreDoseLessonHeader from '@site/src/components/CoreDose/CoreDoseLessonHeader';
+import CoreDoseTOC from '@site/src/components/CoreDose/CoreDoseTOC';
+import CoreDoseNav from '@site/src/components/CoreDose/CoreDoseNav';
+import FrameFormat from '@site/src/components/CoreDose/Diagrams/FrameFormat';
+import ConceptComparison from '@site/src/components/CoreDose/Diagrams/ConceptComparison';
+import SubsystemGrid from '@site/src/components/CoreDose/Diagrams/SubsystemGrid';
+import ProcessFlow from '@site/src/components/CoreDose/Diagrams/ProcessFlow';
+import MathBox from '@site/src/components/CoreDose/Diagrams/MathBox';
+import ArchitectureStack from '@site/src/components/CoreDose/Diagrams/ArchitectureStack';
+
+# 7.2 Hardwired Control Unit Design & State Machine Synthesis
+
+<CoreDoseLessonHeader
+  module="07"
+  topic="7.2"
+  readTime="32 min"
+  difficulty="Core Engineering"
+  prerequisites="Topic 7.1 (CPU Internal Datapath & Micro-Operations) & Digital Logic (Decoders & FSMs)"
+  relevance="Hardwired control synthesis is the foundation of high-frequency RISC and super-pipelined processors. It demonstrates how complex multi-cycle instruction decoding is mapped directly into minimal Boolean logic gates and finite state machines operating at sub-nanosecond speeds."
+/>
+
+## 💡 Core Intuition: Direct Hardwired Silicon Generation
+
+The **Control Unit (CU)** is the supervisory nerve center of the central processing unit. Its objective is to coordinate the physical movements of data across internal buses, trigger ALU operations, and manage memory transactions by issuing a complex set of binary **control signals** at precise clock-cycle intervals.
+
+In a **Hardwired Control Unit**, every control signal is generated directly by **fixed digital logic circuits** (AND, OR, NOT gates, decoders, and multiplexers). The silicon layout is wired so that whenever a specific instruction opcode, addressing mode, timing pulse, and ALU condition flag coincide, the corresponding control lines assert instantaneously.
+
+### 🍳 The Everyday Analogy: The Mechanical Engine Camshaft
+
+Consider the internal combustion engine of a high-performance sports car:
+- As the crankshaft spins, a specially shaped physical metal rod (**the camshaft**) rotates synchronously with the pistons.
+- Physical metal lobes ground directly into the camshaft strike and open intake valves, exhaust valves, and spark trigger switches at exact mechanical angles.
+- **Speed & Latency**: The mechanical camshaft operates with zero interpretive latency. As soon as the lobe reaches its peak, the valve opens immediately at 9,000 RPM.
+- **The Trade-Off (Rigidity)**: If the engine tuner wants to alter valve timing by 2 degrees or change the combustion cycle, they cannot simply upload a software update. They must physically tear down the engine block, mill a brand-new solid steel camshaft, and reassemble the engine.
+
+A hardwired control unit is the digital silicon equivalent of this mechanical camshaft: **unmatched raw execution speed, but zero post-silicon flexibility**.
+
+<FlowPipeline
+  title="Hardwired Control Generation Pipeline"
+  subtitle="How orthogonal instruction, timing, and flag vectors converge on combinational gate matrices"
+  nodes={[
+    {
+      badge: "Input Vectors",
+      title: "Opcode, Timing & Status Flags",
+      icon: "📥",
+      color: "blue",
+      description: "IR(14-12), 4-bit SC counter, and ALU condition flags (Z, S, C).",
+      connectorLabel: "Binary Inputs"
+    },
+    {
+      badge: "Decoding Stage",
+      title: "Opcode (3x8) & Timing (4x16) Decoders",
+      icon: "⚡",
+      color: "purple",
+      description: "Generates mutually exclusive active-high pulses (D0-D7 and T0-T15).",
+      connectorLabel: "Orthogonal Lines"
+    },
+    {
+      badge: "Gate Matrix",
+      title: "SOP Combinational Logic Matrix",
+      icon: "🔀",
+      color: "emerald",
+      description: "Two-level AND-OR array asserts cycle-exact processor control signals (LD, INR, CLR, MUX)."
+    }
+  ]}
+/>
+
+### 💻 Bridging to Computer Science
+
+In formal digital logic design, a hardwired control unit is modeled as a synchronous **Finite State Machine (FSM)**. 
+
+Each control output $C_k$ is expressed as a Boolean **Sum-of-Products (SOP)** function of four input vector classes:
+
+$$
+C_k = f(D, T, I, S) = \sum_{m} \left( D_i \cdot T_j \cdot I^x \cdot S_y \right)
+$$
+
+Where:
+- $D_i \in \{D_0, D_1, \dots, D_7\}$ represents the decoded instruction opcode.
+- $T_j \in \{T_0, T_1, \dots, T_{15}\}$ represents the orthogonal timing signal from the Sequence Counter.
+- $I \in \{0, 1\}$ represents the addressing mode bit ($IR_{15}$).
+- $S_y$ represents system condition and ALU status flags (Zero $Z$, Sign $S$, Carry $C$, Overflow $V$, Interrupt $IEN$).
+
+Because combinational logic gates propagate electrical signals in fractions of a nanosecond, hardwired controllers provide the lowest possible control-path latency, making them the universal choice for **RISC processors** and high-frequency execution pipelines.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🏗️ Architectural Anatomy of a Hardwired Control Unit
+
+The standard organization of a hardwired control unit consists of two primary decoding modules feeding a central combinational gate array.
+
+<SubsystemGrid
+  title="Hardwired Control Unit Component Hierarchy"
+  subtitle="Primary functional modules generating cycle-accurate processor control vectors"
+  items={[
+    {
+      title: "Instruction Decoder",
+      tag: "3 x 8 Decoder",
+      icon: "📜",
+      color: "blue",
+      points: [
+        "Decodes the 3-bit operation code IR(14-12) into 8 active-high outputs D0 to D7.",
+        "D0 through D6 designate distinct memory-reference instructions.",
+        "D7 = 1 distinguishes register-reference (I=0) and I/O instructions (I=1)."
+      ]
+    },
+    {
+      title: "Sequence Counter (SC)",
+      tag: "4-Bit Synchronous Counter",
+      icon: "⏱️",
+      color: "purple",
+      points: [
+        "Synchronous 4-bit binary up-counter advancing on each master clock edge.",
+        "Equipped with synchronous Increment (INR) and Clear (CLR) inputs.",
+        "Asserting CLR(SC) resets counter to 0000_2, completing the instruction cycle."
+      ]
+    },
+    {
+      title: "Timing Decoder",
+      tag: "4 x 16 Decoder",
+      icon: "⚡",
+      color: "cyan",
+      points: [
+        "Translates 4-bit counter states into 16 non-overlapping timing pulses T0 to T15.",
+        "Guarantees the orthogonality invariant: Ti . Tj = 0 for all i != j.",
+        "Pulses T0, T1, and T2 form the universal instruction fetch/decode window."
+      ]
+    },
+    {
+      title: "Control Logic Gates",
+      tag: "SOP Gate Matrix",
+      icon: "🔀",
+      color: "emerald",
+      points: [
+        "Synthesized two-level AND-OR gate array implementing minimal Boolean equations.",
+        "Directly generates register load (LD), increment (INR), clear (CLR), and bus signals.",
+        "Delivers sub-nanosecond signal propagation with zero memory lookup overhead."
+      ]
+    }
+  ]}
+/>
+
+### Signal Interconnect & Functional Flow
+
+1. **Instruction Latch**: At timing pulse $T_1$, an instruction word is fetched into the Instruction Register ($IR$).
+2. **Opcode Decoding**: Bits $14\text{--}12$ of $IR$ are routed to the $3 \times 8$ opcode decoder, immediately asserting one line among $D_0 \text{ to } D_7$. Bit $15$ is latched into flip-flop $I$.
+3. **Timing Generation**: The Sequence Counter ($SC$) starts at $0000_2$ ($T_0$) and counts upwards with each clock cycle ($T_1, T_2, T_3, \dots$).
+4. **Control Generation**: The outputs $D_0 \text{ to } D_7$, $T_0 \text{ to } T_{15}$, $I$, and bits $IR(11\text{--}0)$ are combined within the control logic gates to assert destination enable lines ($LD, INR, CLR$), memory read/write strobes, and bus multiplexer select lines ($S_2 S_1 S_0$).
+5. **Instruction Termination**: Upon completing the final micro-operation of an instruction, the control logic asserts $CLR(SC)$, resetting $SC$ back to $0$ on the next clock edge to fetch the subsequent instruction.
+
+---
+
+## 🎛️ State Machine Synthesis Methods
+
+Engineers employ four classical methodologies to implement the synchronous sequential state machine of a hardwired control unit:
+
+<ConceptComparison
+  title="Hardwired State Machine Implementation Strategies"
+  subtitle="Comparing area-optimized counters against maximum-speed one-hot architectures"
+  concepts={[
+    {
+      badge: "Area-Efficient",
+      title: "Sequence Counter + Decoder Method",
+      icon: "⏱️",
+      color: "blue",
+      domain: "Embedded Cores & Mano's Basic Architecture",
+      points: [
+        "Uses a k-bit binary counter and a 2^k decoder to step through states linearly.",
+        "Requires only ceil(log2 n) flip-flops for n discrete execution timing states.",
+        "Branches and early cycle terminations are handled by clearing or reloading the counter.",
+        "Introduces decoder propagation delay before control gate matrices switch."
+      ],
+      quote: "Minimizes flip-flop count at the cost of multi-level decoder propagation delay."
+    },
+    {
+      badge: "Maximum Speed",
+      title: "One-Hot (Delay Element) Method",
+      icon: "⚡",
+      color: "emerald",
+      domain: "Gigahertz RISC Execution Pipelines & DSPs",
+      points: [
+        "Allocates exactly one flip-flop per state (n states = n flip-flops).",
+        "At any clock instant, exactly one flip-flop holds logic 1; all others hold 0.",
+        "Completely eliminates decoder propagation delay; state outputs drive control gates directly.",
+        "Flip-flop excitation equations are the direct Boolean OR of predecessor transition conditions."
+      ],
+      quote: "Trades extra flip-flops for zero decoder delay, driving execution gates directly."
+    }
+  ]}
+/>
+
+### 1. The One-Hot (Delay Element) Formulation
+
+In the **One-Hot method**, if an architecture requires $N$ distinct execution timing intervals, it instantiates $N$ separate flip-flops ($FF_0, FF_1, \dots, FF_{N-1}$).
+
+- **State Invariant**:
+  
+  $$
+  \sum_{k=0}^{N-1} Q_k = 1 \quad \text{and} \quad Q_i \cdot Q_j = 0 \quad (\forall i \neq j)
+  $$
+
+- **Excitation Equation for Flip-Flop $j$**:
+  The D-input of flip-flop $j$ is the Boolean sum of all possible predecessor state transitions:
+  
+  $$
+  D_{FF_j} = \sum_{\text{all predecessors } i} \left( Q_i \cdot \text{Condition}_{i \to j} \right)
+  $$
+
+Because no decoding logic is required to determine the current state, the **maximum clock frequency** is bounded solely by:
+
+$$
+T_{\text{clk}} \ge t_{\text{cq}} + t_{\text{comb}} + t_{\text{setup}}
+$$
+
+Where:
+- $t_{\text{cq}}$ is the flip-flop clock-to-Q delay.
+- $t_{\text{comb}}$ is the propagation delay of the combinational control gate matrix.
+- $t_{\text{setup}}$ is the flip-flop input setup time.
+
+### 2. State Table & Classical Sequential Circuit Synthesis
+
+In the classical sequential approach, the control unit is modeled as an arbitrary Mealy or Moore FSM:
+1. Construct the complete **State Transition Diagram** showing all states ($S_0, S_1, \dots$).
+2. Assign binary state encodings using $\lceil \log_2 N \rceil$ state variables ($y_2, y_1, y_0$).
+3. Derive the **FSM Excitation Table** utilizing D, J-K, or T flip-flops.
+4. Minimize next-state excitation equations and output equations using Karnaugh Maps or the Quine-McCluskey algorithm.
+
+While theoretically minimizing the total number of transistors, this approach yields irregular, unstructured logic networks with significant routing overhead and hazard vulnerabilities.
+
+---
+
+## 📐 Detailed Boolean SOP Synthesis of Control Logic Gates
+
+To understand how hardwired control signals are synthesized, we derive the exact Boolean equations for the register control inputs and bus drivers in the basic computer datapath.
+
+### 1. Synthesis of Address Register ($AR$) Control Inputs
+
+The Address Register ($AR$) has three control inputs: Load ($LD$), Increment ($INR$), and Clear ($CLR$).
+
+By auditing every micro-operation across the computer instruction set that manipulates $AR$:
+
+| Execution Phase | Hardware Condition & Timing | Register Transfer Micro-Operation | Activated Control Pin |
+| :--- | :--- | :--- | :--- |
+| **Instruction Fetch** | $R' T_0$ | $AR \leftarrow PC$ | $LD(AR)$ |
+| **Instruction Decode** | $R' T_2$ | $AR \leftarrow IR(11\text{--}0)$ | $LD(AR)$ |
+| **Indirect Resolution** | $D_7' I T_3$ | $AR \leftarrow M[AR]$ | $LD(AR)$ |
+| **Subroutine Call (`BSA`)** | $D_5 T_4$ | $AR \leftarrow AR + 1$ | $INR(AR)$ |
+| **Interrupt Cycle** | $R T_0$ | $AR \leftarrow 0$ | $CLR(AR)$ |
+
+From these operational conditions, we directly synthesize the minimal SOP Boolean expressions:
+
+$$
+\mathbf{LD(AR)} = R' T_0 + R' T_2 + D_7' I T_3
+$$
+
+$$
+\mathbf{INR(AR)} = D_5 T_4
+$$
+
+$$
+\mathbf{CLR(AR)} = R T_0
+$$
+
+*(Where $R$ is the hardware Interrupt flip-flop: when $R = 1$, the computer enters the interrupt cycle rather than instruction fetch).*
+
+### 2. Synthesis of Accumulator ($AC$) Control Inputs
+
+The Accumulator ($AC$) register has 16 data inputs supplied by the ALU, and three control inputs: $LD(AC)$, $INR(AC)$, and $CLR(AC)$.
+
+Scanning the entire instruction set for micro-operations that modify $AC$:
+- $D_0 T_5: \; AC \leftarrow AC \land DR$ (`AND` instruction)
+- $D_1 T_5: \; AC \leftarrow AC + DR$ (`ADD` instruction)
+- $D_2 T_5: \; AC \leftarrow DR$ (`LDA` instruction)
+- $r B_{11}: \; AC \leftarrow 0$ (`CLA` instruction, where $r = D_7 I' T_3$ and $B_{11} = IR_{11}$)
+- $r B_9: \; AC \leftarrow \overline{AC}$ (`CMA` instruction, where $B_9 = IR_9$)
+- $r B_7: \; AC \leftarrow \text{shr } AC$ (`CIR` circular shift right)
+- $r B_6: \; AC \leftarrow \text{shl } AC$ (`CIL` circular shift left)
+- $r B_5: \; AC \leftarrow AC + 1$ (`INC` increment accumulator)
+- $p B_{11}: \; AC(7\text{--}0) \leftarrow INPR$ (`INP` instruction, where $p = D_7 I T_3$)
+
+From these statements, the three gate control inputs for $AC$ are synthesized directly:
+
+<MathBox title="Accumulator Control Gate SOP Equations">
+
+$$
+\mathbf{LD(AC)} = D_0 T_5 + D_1 T_5 + D_2 T_5 + p B_{11} + r B_9 + r B_7 + r B_6
+$$
+
+$$
+\mathbf{INR(AC)} = r B_5
+$$
+
+$$
+\mathbf{CLR(AC)} = r B_{11}
+$$
+</MathBox>
+
+These three equations correspond to the physical logic gate array driving the control pins of the Accumulator register.
+
+### 3. Synthesis of Memory Read ($RD$) & Write ($WR$) Controls
+
+The central RAM unit accepts active-high $Read$ and $Write$ control lines:
+- A memory **Read** occurs during:
+  - Instruction fetch: $R' T_1$
+  - Indirect address fetch: $D_7' I T_3$
+  - Operand fetch for AND, ADD, LDA, ISZ: $D_0 T_4 + D_1 T_4 + D_2 T_4 + D_6 T_4$
+- A memory **Write** occurs during:
+  - Interrupt return address storage: $R T_1$
+  - Store accumulator: $D_3 T_4$ (`STA`)
+  - Subroutine return address storage: $D_5 T_4$ (`BSA`)
+  - Increment-and-skip result writeback: $D_6 T_6$ (`ISZ`)
+
+Factoring common terms:
+
+$$
+\mathbf{Read} = R' T_1 + D_7' I T_3 + (D_0 + D_1 + D_2 + D_6) T_4
+$$
+
+$$
+\mathbf{Write} = R T_1 + D_3 T_4 + D_5 T_4 + D_6 T_6
+$$
+
+### 4. Synthesis of Sequence Counter Reset ($CLR(SC)$)
+
+Instructions execute across varying numbers of clock cycles (e.g., `STA` finishes at $T_4$, while `ISZ` requires $T_6$). To maximize system throughput, the Sequence Counter must be cleared as soon as an instruction finishes:
+
+$$
+\begin{aligned}
+\mathbf{CLR(SC)} = \; & R T_2 + D_0 T_5 + D_1 T_5 + D_2 T_5 + D_3 T_4 \\
+& + D_4 T_4 + D_5 T_5 + D_6 T_6 + r + p
+\end{aligned}
+$$
+
+When $CLR(SC)$ asserts, the counter resets to $0$ on the next clock pulse, automatically beginning timing pulse $T_0$ of the next instruction without wasting idle clock cycles!
+
+---
+
+## ⚖️ Architectural Comparison: Hardwired vs. Microprogrammed
+
+| Architectural Parameter | Hardwired Control Unit | Microprogrammed Control Unit |
+| :--- | :--- | :--- |
+| **Primary Implementation Mechanism** | Fixed combinational gates & flip-flops | Control Store Memory ($\mu$ROM) & Sequencer |
+| **Execution Speed & Clock Frequency** | **Ultra-Fast** (Sub-nanosecond gate propagation) | Slower (Limited by ROM access latency) |
+| **Modification & Flexibility** | **Completely Rigid** (Requires silicon re-fabrication) | **Highly Flexible** (Update ROM microcode bits) |
+| **Instruction Set Compatibility** | Ideal for **RISC** (Simple, fixed-length formats) | Ideal for **CISC** (Complex, multi-cycle instructions) |
+| **Silicon Area Overhead** | Grows exponentially with instruction set complexity | Grows linearly with microprogram length |
+| **Design & Debugging Complexity** | High (Complex state machine minimization) | Low (Software-like structured microprogramming) |
+| **CPI (Cycles Per Instruction)** | Typically $1 \text{ cycle}$ (Single-cycle execution) | Multi-cycle ($3 \text{ to } 10+ \text{ cycles}$ per instruction) |
+
+---
+
+## 🏭 Real-World Production Context: Modern High-Speed Decoders
+
+In modern high-performance microprocessors, pure hardwired control units dominate the execution engines of RISC architectures and modern superscalar front-ends:
+
+<ArchitectureStack
+  title="Production CPU Control Implementations"
+  subtitle="How real-world microarchitectures leverage hardwired control logic."
+  layers={[
+    {
+      badge: "Hybrid CISC",
+      title: "x86-64 Front-End Hybrid Decoders (Intel Raptor Lake / AMD Zen 4)",
+      icon: "⚙️",
+      color: "purple",
+      description: "Uses four parallel Hardwired 'Fast-Path' decoders for simple instructions (1-to-1 mapping into micro-ops in 1 cycle), reserving a slower Microcode Sequencer ROM (MSROM) only for legacy CISC instructions.",
+      items: ["4-Wide Hardwired Decoders", "MSROM Fallback Engine", "Decoded Micro-op Queue (DSB)"],
+      connectorText: "Pipelined to Execution Units"
+    },
+    {
+      badge: "Pure RISC",
+      title: "Pure Hardwired Silicon Engines (ARM Cortex-A78 / Apple Silicon M-Series)",
+      icon: "⚡",
+      color: "emerald",
+      description: "Zero microcode ROM. Every single instruction is decoded directly via multi-level synthesized PLA/combinational trees into control vectors in under 250 picoseconds.",
+      items: ["Single-Cycle Decoder Stage", "Direct Control Vector Generation", "3.5+ GHz Operating Frequency"],
+      connectorText: "Synthesized with Standard Cell ASIC Libraries"
+    },
+    {
+      badge: "Low-Power Core",
+      title: "Hardwired FSM Controllers (RISC-V RV32I / Rocket Core)",
+      icon: "🔬",
+      color: "blue",
+      description: "Single-state combinational decoders mapping 32-bit RISC-V instructions directly into ALU select, register writeback enables, and branch comparator masks.",
+      items: ["Zero-Overhead Decoding", "Minimal Transistor Gate Count", "Deterministic Cycle Latency"],
+      connectorText: "Physical Silicon Interconnect"
+    }
+  ]}
+/>
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: SOP Control Signal Synthesis for Multi-Instruction Datapath
+
+#### Problem Statement
+A processor control unit implemented via hardwired combinational logic controls three 8-bit registers: $A$, $B$, and $C$. 
+
+The processor supports two distinct instructions: $I_1$ and $I_2$. The timing signals $T_1, T_2, T_3, T_4$ are generated by a sequence counter and decoder. The micro-operations and active control signals required during each clock pulse are specified in the following table:
+
+| Timing Signal | Instruction $I_1$ Control Signals | Instruction $I_2$ Control Signals |
+| :---: | :--- | :--- |
+| **$T_1$** | $A_{in}, \; B_{out}$ | $A_{in}, \; A_{out}$ |
+| **$T_2$** | $B_{in}, \; C_{out}$ | $C_{in}, \; A_{out}$ |
+| **$T_3$** | $B_{in}, \; B_{out}$ | $C_{in}, \; C_{out}$ |
+| **$T_4$** | $A_{in}, \; A_{out}$ | $A_{in}, \; B_{out}$ |
+
+1. Synthesize the minimal Sum-of-Products (SOP) Boolean expressions for the register input control signals: $A_{in}, B_{in}, C_{in}$.
+2. Synthesize the minimal Sum-of-Products (SOP) Boolean expressions for the register output control signals: $A_{out}, B_{out}, C_{out}$.
+3. Calculate the total number of 2-input AND and OR gates required to implement the complete control signal generation logic (assuming inverted and decoded inputs $I_1, I_2, T_1 \text{--} T_4$ are available).
+
+#### Step-by-Step Solution
+
+**1. Register Input Control Signals ($A_{in}, B_{in}, C_{in}$)**:
+- **$A_{in}$** is active when:
+  - During $I_1$: at $T_1$ and $T_4$.
+  - During $I_2$: at $T_1$ and $T_4$.
+  
+  $$
+  A_{in} = I_1 T_1 + I_1 T_4 + I_2 T_1 + I_2 T_4 = (I_1 + I_2)(T_1 + T_4)
+  $$
+  
+  Since $I_1$ and $I_2$ are the only two instructions in the processor ($I_1 + I_2 = 1$):
+  
+  $$
+  \mathbf{A_{in} = T_1 + T_4}
+  $$
+
+- **$B_{in}$** is active when:
+  - During $I_1$: at $T_2$ and $T_3$.
+  - During $I_2$: never active.
+  
+  $$
+  \mathbf{B_{in} = I_1 T_2 + I_1 T_3 = I_1(T_2 + T_3)}
+  $$
+
+- **$C_{in}$** is active when:
+  - During $I_1$: never active.
+  - During $I_2$: at $T_2$ and $T_3$.
+  
+  $$
+  \mathbf{C_{in} = I_2 T_2 + I_2 T_3 = I_2(T_2 + T_3)}
+  $$
+
+**2. Register Output Control Signals ($A_{out}, B_{out}, C_{out}$)**:
+- **$A_{out}$** is active when:
+  - During $I_1$: at $T_4$.
+  - During $I_2$: at $T_1$ and $T_2$.
+  
+  $$
+  \mathbf{A_{out} = I_1 T_4 + I_2 T_1 + I_2 T_2 = I_1 T_4 + I_2(T_1 + T_2)}
+  $$
+
+- **$B_{out}$** is active when:
+  - During $I_1$: at $T_1$ and $T_3$.
+  - During $I_2$: at $T_4$.
+  
+  $$
+  \mathbf{B_{out} = I_1 T_1 + I_1 T_3 + I_2 T_4 = I_1(T_1 + T_3) + I_2 T_4}
+  $$
+
+- **$C_{out}$** is active when:
+  - During $I_1$: at $T_2$.
+  - During $I_2$: at $T_3$.
+  
+  $$
+  \mathbf{C_{out} = I_1 T_2 + I_2 T_3}
+  $$
+
+**3. Hardware Gate Sizing**:
+- $A_{in} = T_1 + T_4 \implies 1 \text{ OR gate}$.
+- $B_{in} = I_1(T_2 + T_3) \implies 1 \text{ OR gate} + 1 \text{ AND gate} = 2 \text{ gates}$.
+- $C_{in} = I_2(T_2 + T_3) \implies 1 \text{ OR gate (shared with } B_{in}\text{)} + 1 \text{ AND gate} = 1 \text{ new gate}$.
+- $A_{out} = I_1 T_4 + I_2(T_1 + T_2) \implies 2 \text{ AND gates} + 2 \text{ OR gates} = 4 \text{ gates}$.
+- $B_{out} = I_1(T_1 + T_3) + I_2 T_4 \implies 2 \text{ AND gates} + 2 \text{ OR gates} = 4 \text{ gates}$.
+- $C_{out} = I_1 T_2 + I_2 T_3 \implies 2 \text{ AND gates} + 1 \text{ OR gate} = 3 \text{ gates}$.
+
+Total gates required = **$15 \text{ gates}$** with a maximum propagation path of just $2 \text{ gate delays}$ ($t_{\text{prop}} \approx 0.1 \text{ ns}$).
+
+---
+
+### Example 2: One-Hot (Delay Element) vs. Decoded Counter FSM Sizing & Timing
+
+#### Problem Statement
+A processor control unit requires $16$ distinct sequential timing states ($T_0 \text{ to } T_{15}$) operating at maximum frequency. 
+
+Hardware parameters for the available CMOS standard-cell library:
+- D Flip-Flop propagation delay ($t_{\text{cq}}$): $0.45 \text{ ns}$
+- D Flip-Flop setup time ($t_{\text{setup}}$): $0.25 \text{ ns}$
+- Combinational control gate delay ($t_{\text{comb}}$): $0.80 \text{ ns}$
+- $4 \times 16$ Decoder propagation delay ($t_{\text{dec}}$): $0.70 \text{ ns}$
+
+Compare:
+1. The **Sequence Counter + Decoder Method**: number of flip-flops, minimum clock period ($T_{\text{clk}}$), and maximum operating clock frequency ($f_{\max}$).
+2. The **One-Hot (Delay Element) Method**: number of flip-flops, minimum clock period ($T_{\text{clk}}$), and maximum operating clock frequency ($f_{\max}$).
+3. Calculate the percentage increase in maximum clock frequency achieved by the One-Hot method.
+
+#### Step-by-Step Solution
+
+**1. Sequence Counter + Decoder Method**:
+- To represent 16 states:
+  
+  $$
+  \text{Number of Flip-Flops} = \lceil \log_2(16) \rceil = 4 \text{ flip-flops}
+  $$
+
+- The critical path begins at the clock edge triggering the counter, propagates through the counter flip-flops, through the $4 \times 16$ decoder to generate timing pulse $T_k$, through the combinational control gates, and must satisfy the setup time:
+  
+  $$
+  T_{\text{clk, decoded}} \ge t_{\text{cq}} + t_{\text{dec}} + t_{\text{comb}} + t_{\text{setup}}
+  $$
+
+  $$
+  T_{\text{clk, decoded}} = 0.45 \text{ ns} + 0.70 \text{ ns} + 0.80 \text{ ns} + 0.25 \text{ ns} = \mathbf{2.20 \text{ ns}}
+  $$
+
+- Maximum clock frequency:
+  
+  $$
+  f_{\max, \text{decoded}} = \frac{1}{2.20 \times 10^{-9} \text{ s}} \approx \mathbf{454.55 \text{ MHz}}
+  $$
+
+**2. One-Hot (Delay Element) Method**:
+- In the One-Hot method, each of the 16 states has its own dedicated flip-flop:
+  
+  $$
+  \text{Number of Flip-Flops} = 16 \text{ flip-flops}
+  $$
+
+- Because the output of each flip-flop directly represents the timing pulse $T_k$ with **zero decoding delay** ($t_{\text{dec}} = 0$):
+  
+  $$
+  T_{\text{clk, one-hot}} \ge t_{\text{cq}} + t_{\text{comb}} + t_{\text{setup}}
+  $$
+
+  $$
+  T_{\text{clk, one-hot}} = 0.45 \text{ ns} + 0.80 \text{ ns} + 0.25 \text{ ns} = \mathbf{1.50 \text{ ns}}
+  $$
+
+- Maximum clock frequency:
+  
+  $$
+  f_{\max, \text{one-hot}} = \frac{1}{1.50 \times 10^{-9} \text{ s}} \approx \mathbf{666.67 \text{ MHz}}
+  $$
+
+**3. Performance Improvement**:
+
+$$
+\text{Frequency Increase} = \frac{666.67 - 454.55}{454.55} \times 100\% = \mathbf{+46.67\%}
+$$
+
+The One-Hot architecture achieves a **$46.67\%$ higher operating clock frequency** at the cost of 12 additional flip-flops, making it the preferred design in high-speed microarchitectures where silicon area is secondary to cycle time.
+
+---
+
+### Example 3: Complete Gate Synthesis of Memory Write ($WR$) Logic
+
+#### Problem Statement
+In a basic computer system, memory writes occur during specific cycles across four distinct instruction execution flows and the interrupt handling sequence:
+1. Interrupt Cycle ($R = 1$): Return address $PC$ is written to memory at address $0$: $R T_1: M[0] \leftarrow PC$.
+2. Store Accumulator (`STA`, $D_3$): $D_3 T_4: M[AR] \leftarrow AC$.
+3. Branch and Save Return Address (`BSA`, $D_5$): $D_5 T_4: M[AR] \leftarrow PC$.
+4. Increment and Skip if Zero (`ISZ`, $D_6$): $D_6 T_6: M[AR] \leftarrow DR$.
+
+Synthesize:
+1. The complete Boolean expression for the active-high Memory Write strobe ($WR$).
+2. The gate-level schematic implementation using standard 2-input AND, 2-input OR, and multi-input OR gates.
+3. Determine the logic state of $WR$ during timing pulse $T_4$ when executing an indirect `ADD` instruction ($D_1 = 1, I = 1$).
+
+#### Step-by-Step Solution
+
+**1. Boolean Synthesis of $WR$**:
+Identify all terms that assert the memory write line:
+
+$$
+WR = R T_1 + D_3 T_4 + D_5 T_4 + D_6 T_6
+$$
+
+Factoring the common timing term $T_4$:
+
+$$
+\mathbf{WR = R T_1 + (D_3 + D_5) T_4 + D_6 T_6}
+$$
+
+**2. Gate-Level Implementation**:
+- Term 1: One 2-input AND gate computing $R \cdot T_1$.
+- Term 2: One 2-input OR gate computing $(D_3 + D_5)$, feeding into one 2-input AND gate with $T_4$.
+- Term 3: One 2-input AND gate computing $D_6 \cdot T_6$.
+- Output: One 3-input OR gate combining the three terms to produce $WR$.
+
+Total gate count: **$3 \text{ AND gates} + 2 \text{ OR gates} = 5 \text{ gates}$**.
+
+**3. Logic State Evaluation for Indirect `ADD` at $T_4$**:
+- For an `ADD` instruction: $D_1 = 1$, and all other opcode lines $D_0, D_2, D_3, D_4, D_5, D_6, D_7 = 0$.
+- Normal execution implies interrupt is inactive ($R = 0$).
+- At timing cycle $T_4$:
+  
+  $$
+  WR = (0 \cdot 0) + (0 + 0) \cdot 1 + (0 \cdot 0) = 0 + 0 + 0 = \mathbf{0}
+  $$
+
+The $WR$ line remains **$0$ (de-asserted)**. In fact, at cycle $T_4$, the `ADD` instruction asserts the **$Read$** line ($D_1 T_4: DR \leftarrow M[AR]$), successfully reading the operand from memory into the Data Register.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+1. **Why does RISC architecture exclusively implement hardwired control units rather than microprogramming?**
+   - RISC architectures are engineered around the principle of single-cycle instruction execution with uniform instruction lengths, regular register field alignments, and simple addressing modes. Because RISC instructions do not require complex multi-step micro-routines, hardwired control logic can decode and issue control vectors in a single gate delay without the memory read latency of a microcode store, enabling clock speeds exceeding $3\text{--}5 \text{ GHz}$.
+
+2. **What is the primary operational difference between a Mealy and a Moore control unit?**
+   - In a **Moore machine**, the control outputs depend solely on the current state (the current Sequence Counter timing value $T_k$). In a **Mealy machine**, the control outputs depend simultaneously on both the current state and external asynchronous inputs (such as condition flags or interrupt requests). Mealy control units respond one cycle faster to external inputs but are susceptible to logic glitches and clock-edge racing.
+
+3. **How does the Sequence Counter ($SC$) prevent wasting clock cycles on short instructions?**
+   - Rather than forcing every instruction to cycle through all 16 states ($T_0 \text{ to } T_{15}$), the control unit asserts $CLR(SC)$ at the end of the final micro-operation of each instruction (e.g., at $T_4$ for `STA`, or at $T_5$ for `ADD`). On the very next clock edge, $SC$ resets to $0$, immediately initiating $T_0$ of the next instruction and optimizing instruction throughput.
+:::
+
+:::warning Common Interview Traps
+- **Trap 1: Assuming hardwired control requires rewriting firmware to fix bugs.**
+  - **Fatal misconception**: Hardwired control has **no firmware or ROM**! The logic is etched permanently into physical silicon transistors and metal interconnect layers. A bug in a hardwired control unit cannot be patched with software or microcode; it requires a costly physical silicon re-spin (new lithography masks and chip manufacturing).
+- **Trap 2: Omitting the common Fetch and Indirect cycles during Boolean synthesis.**
+  - When asked to synthesize a control signal like $LD(AR)$ or $Read$, candidates frequently only look at the Execution phase ($T_4 \text{ to } T_6$) and forget that $AR$ is also loaded during Fetch ($T_0, T_2$) and Indirect addressing ($T_3$). All instruction phases must be audited to produce the complete Boolean equation.
+- **Trap 3: Confusing One-Hot encoding with binary counter encoding.**
+  - A 16-state binary counter requires $\lceil \log_2 16 \rceil = 4$ flip-flops followed by a $4 \times 16$ decoder. A One-Hot state controller requires **16 separate flip-flops**, but completely eliminates the decoder, achieving significantly lower propagation delay.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "7.1 CPU Internal Datapath & Register Transfer Micro-Operations",
+    url: "/coredose/coa/module-07/cpu-internal-datapath-and-micro-operations",
+  }}
+  next={{
+    title: "7.3 Microprogrammed Control Units: Horizontal vs Vertical Micro-Instructions",
+    url: "/coredose/coa/module-07/microprogrammed-control-units-horizontal-vs-vertical",
+  }}
+  courseUrl="/coredose/coa"
+/>

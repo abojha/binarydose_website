@@ -1,0 +1,489 @@
+---
+title: "Pipeline Hazards: Structural, Data Hazards & Operand Forwarding"
+description: "In-depth engineering analysis of structural hazards, data dependencies (RAW, WAR, WAW), Bernstein's conditions, pipeline stalls, and hardware operand forwarding."
+sidebar_label: "5.2 Hazards & Operand Forwarding"
+keywords:
+  - pipeline hazards
+  - structural hazards
+  - data hazards
+  - raw hazard
+  - war hazard
+  - waw hazard
+  - bernstein conditions
+  - operand forwarding
+  - pipeline stall
+  - load use hazard
+hide_table_of_contents: true
+---
+
+import CoreDoseLessonHeader from '@site/src/components/CoreDose/CoreDoseLessonHeader';
+import CoreDoseTOC from '@site/src/components/CoreDose/CoreDoseTOC';
+import CoreDoseNav from '@site/src/components/CoreDose/CoreDoseNav';
+import FlowDiagram from '@site/src/components/CoreDose/Diagrams/FlowDiagram';
+import ConceptComparison from '@site/src/components/CoreDose/Diagrams/ConceptComparison';
+import SubsystemGrid from '@site/src/components/CoreDose/Diagrams/SubsystemGrid';
+import ExecutionBlueprint from '@site/src/components/CoreDose/Diagrams/ExecutionBlueprint';
+import MathBox from '@site/src/components/CoreDose/Diagrams/MathBox';
+
+# 5.2 Pipeline Hazards: Structural, Data Hazards & Operand Forwarding
+
+<CoreDoseLessonHeader
+  module="05"
+  topic="5.2"
+  readTime="20 min"
+  difficulty="Core Engineering"
+  prerequisites="Module 05.1 (Pipeline Stages & Clock Period Derivation)"
+  relevance="Pipeline hazards represent the primary real-world performance bottleneck in computer microarchitectures, injecting idle stall cycles (bubbles) that degrade processor throughput from the ideal CPI of 1.0."
+/>
+
+## 💡 Core Intuition:
+
+### 🍳 The Everyday Analogy:
+Imagine an elite bakery kitchen operating an assembly line to produce decorated wedding cakes:
+* **Baker 1:** Mixes the batter and pours it into pans.
+* **Baker 2:** Bakes the cake in the commercial oven.
+* **Baker 3:** Cools and cuts the cake layers into discs.
+* **Baker 4:** Applies chocolate frosting and decorative fondant.
+
+Under ideal conditions, a finished cake exits every $20\text{ minutes}$. However, the bakery frequently suffers three distinct operational bottlenecks:
+1. **The Single Oven Conflict (Structural Hazard):** Baker 2 needs the oven to bake a new sponge cake, but Baker 3 simultaneously demands the oven to toast sugar crystals. Because the bakery only owns one physical oven door, one baker must stand completely idle, holding up the entire kitchen.
+2. **The Missing Sponge Dependency (Data Hazard):** Baker 4 is ready to frost Cake #2, but Baker 3 has not finished cooling it yet! Baker 4 cannot apply frosting onto imaginary air; they must wait until the actual physical sponge cake exists.
+3. **The Flavor Pivot Confusion (Control Hazard):** While Baker 1 and 2 are preparing three vanilla cakes, the store manager suddenly bursts in and shouts: *"The customer cancelled vanilla; make strawberry immediately!"* All the partially prepared vanilla cakes in the pipeline must be thrown directly into the trash bin (**Pipeline Flush**)!
+
+### 💻 Bridging to Computer Science:
+In a microprocessor, these disruptions are formally called **Pipeline Hazards**. A hazard prevents the next instruction in the instruction stream from executing in its designated clock cycle.
+
+When a hazard occurs, the CPU control unit must inject **Pipeline Bubbles (Stalls)**—wasting clock cycles where functional units perform zero productive work. Modern computer architects design sophisticated hardware solutions—such as **Harvard Caches** for structural conflicts and **Hardware Operand Forwarding** for data dependencies—to eliminate stalls and preserve maximum instruction throughput.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## The 3 Canonical Classes of Pipeline Hazards
+
+In instruction pipelining, any condition that prevents an instruction from executing in its scheduled clock cycle is termed a hazard. Hazards force the pipeline to inject one or more idle cycles, called **stalls** or **bubbles**, driving the actual Cycles Per Instruction ($CPI$) above the ideal $1.0$.
+
+<SubsystemGrid
+  title="The 3 Fundamental Pipeline Hazard Classes"
+  subtitle="Microarchitectural classifications, root causes, and primary mitigation strategies"
+  items={[
+    {
+      icon: "🏗️",
+      title: "Structural Hazards",
+      tag: "Resource Contention",
+      color: "rose",
+      points: [
+        "Caused by hardware resource conflicts when multiple instructions demand the same functional unit simultaneously.",
+        "Classic example: Single unified memory port accessed concurrently by Instruction Fetch (IF) and Memory Data (MEM).",
+        "Mitigated by hardware resource duplication: Separate L1 Instruction & Data Caches (Harvard Architecture)."
+      ],
+      syscalls: ["Resource Conflict", "Dual-Ported RAM"]
+    },
+    {
+      icon: "🔄",
+      title: "Data Hazards",
+      tag: "Operand Dependency",
+      color: "amber",
+      points: [
+        "Occurs when an instruction depends on the output of a prior instruction still in flight in the pipeline.",
+        "Governed by Bernstein's conditions: Read After Write (RAW), Write After Read (WAR), Write After Write (WAW).",
+        "Mitigated by Hardware Operand Forwarding (Bypassing), compiler instruction scheduling, or stalling."
+      ],
+      syscalls: ["RAW / WAR / WAW", "Operand Bypassing"]
+    },
+    {
+      icon: "🔀",
+      title: "Control Hazards",
+      tag: "Branch Penalty",
+      color: "purple",
+      points: [
+        "Caused by conditional and unconditional branch/jump instructions that alter the Program Counter (PC).",
+        "Pipeline fetches incorrect sequential instructions before the branch condition and target address are resolved.",
+        "Mitigated by Dynamic Branch Prediction (2-Bit Saturating Counters), Branch Target Buffers, and Delayed Branching."
+      ],
+      syscalls: ["Branch Stalls", "Pipeline Squashing"]
+    }
+  ]}
+/>
+
+---
+
+## Structural Hazards: Hardware Resource Contention
+
+A **Structural Hazard** occurs when the processor hardware does not have enough physical resources to support all possible combinations of overlapping instructions in the same clock cycle.
+
+### The Classic Unified Memory Port Conflict
+
+Consider a simple processor that connects to memory through a single, shared bus interface (Unified Memory / Von Neumann architecture):
+* In Clock Cycle 4:
+  * Instruction $I_1$ is in the **MEM** stage, reading an operand from memory (`LW R1, 0(R2)`).
+  * Instruction $I_4$ is in the **IF** stage, attempting to fetch a new instruction word from the same memory!
+
+Because the physical memory chip possesses only one set of address lines and one set of data pins, both operations cannot proceed concurrently. One instruction must stall!
+
+```
+Cycle:       1    2    3    4    5    6    7
+---------------------------------------------
+I1 (Load):  IF   ID   EX  [MEM]  WB
+I2:              IF   ID   EX   MEM  WB
+I3:                   IF   ID   EX   MEM  WB
+I4:                       [STALL] IF  ID   EX  ...  <- Stalled due to memory conflict!
+```
+
+### Architectural Solutions to Structural Hazards
+
+1. **Separate L1 Caches (Modified Harvard Architecture):** Modern CPUs split the Level-1 cache into an **L1 Instruction Cache ($I$-Cache)** and an **L1 Data Cache ($D$-Cache)**. The IF stage reads exclusively from the $I$-Cache while the MEM stage reads/writes exclusively to the $D$-Cache, completely eliminating memory port contention.
+2. **Dual-Ported Register Files:** A register file is engineered with two independent read ports and one dedicated write port. Furthermore, modern register files read during the second half of the clock cycle and write during the first half of the clock cycle, allowing an instruction in WB to write to register $R_1$ while an instruction in ID reads the newly updated $R_1$ in the exact same clock period!
+3. **Pipelined Functional Units:** Long-latency units (like Floating-Point Multipliers and Dividers) are internally sub-pipelined so a new multiply operation can enter every cycle rather than blocking subsequent instructions.
+
+---
+
+## Data Hazards: Bernstein's Conditions & Classification
+
+A **Data Hazard** occurs when overlapping instructions exhibit data dependencies, meaning an instruction requires the result of a previous instruction that has not yet committed its writeback to the register file.
+
+### Bernstein's Conditions Formulation
+
+Let $I_1$ and $I_2$ be two sequential instructions where $I_2$ follows $I_1$.  
+Let $I(I_k)$ denote the **input domain** (set of registers read by instruction $I_k$).  
+Let $O(I_k)$ denote the **output domain** (set of registers written by instruction $I_k$).
+
+The interaction between $I_1$ and $I_2$ falls into four distinct categories:
+
+<ConceptComparison
+  title="Classification of Data Dependencies (Bernstein's Conditions)"
+  subtitle="Contrasting true computational dependencies against name dependencies in instruction pipelines"
+  concepts={[
+    {
+      badge: "RAW (True Dependency)",
+      title: "Read After Write (Flow Dependence)",
+      icon: "⚠️",
+      color: "rose",
+      domain: "O(I1) ∩ I(I2) ≠ ∅",
+      points: [
+        "Instruction I2 attempts to read a register BEFORE instruction I1 writes its calculated result.",
+        "If unmitigated, I2 reads stale, corrupted data from the register file.",
+        "Represents the ONLY true data dependency inherent to the mathematical algorithm.",
+        "Example: I1: ADD R1, R2, R3 (writes R1) -> I2: SUB R4, R1, R5 (reads R1)."
+      ],
+      quote: "I cannot compute with your result until you have actually produced it!"
+    },
+    {
+      badge: "WAR (Anti-Dependency)",
+      title: "Write After Read (Anti-Dependence)",
+      icon: "🛡️",
+      color: "blue",
+      domain: "I(I1) ∩ O(I2) ≠ ∅",
+      points: [
+        "Instruction I2 attempts to write a destination register BEFORE I1 reads the old value.",
+        "Does NOT occur in simple in-order 5-stage RISC pipelines because reads happen in Stage 2 (ID) and writes in Stage 5 (WB).",
+        "Major hazard in Out-of-Order execution (Tomasulo algorithm / superscalar CPUs).",
+        "A 'Name Dependency' completely eliminated by Hardware Register Renaming."
+      ],
+      quote: "Do not overwrite my input operand before I have finished reading it!"
+    },
+    {
+      badge: "WAW (Output Dependency)",
+      title: "Write After Write (Output Dependence)",
+      icon: "⚡",
+      color: "amber",
+      domain: "O(I1) ∩ O(I2) ≠ ∅",
+      points: [
+        "Instruction I2 attempts to write a destination register BEFORE I1 writes its result.",
+        "Causes incorrect final architectural state if instructions complete out of order.",
+        "Does NOT occur in standard in-order linear pipelines with fixed writeback stages.",
+        "A 'Name Dependency' eliminated by Register Renaming and Reorder Buffers (ROB)."
+      ],
+      quote: "Ensure the younger instruction's write commits last so the final value is correct!"
+    }
+  ]}
+/>
+
+> [!NOTE]
+> **What About Read After Read (RAR)?**  
+> $$I(I_1) \cap I(I_2) \neq \emptyset$$  
+> When two instructions read the same register simultaneously (e.g. `ADD R4, R1, R2` followed by `SUB R5, R1, R3`), neither instruction modifies data. **RAR is completely harmless** and never causes a hazard.
+
+---
+
+## Hardware Operand Forwarding Microarchitecture
+
+The primary microarchitectural solution to RAW data hazards is **Hardware Operand Forwarding** (also known as **Data Bypassing**).
+
+### The First-Principles Intuition of Bypassing
+
+Consider the instruction sequence:
+```assembly
+I1: ADD R1, R2, R3   ; R1 <- R2 + R3 (Computed in EX, written to RegFile in WB)
+I2: SUB R4, R1, R5   ; R4 <- R1 - R5 (Requires R1 in EX stage)
+```
+
+In a standard pipeline without forwarding:
+* $I_1$ calculates $R_1$ at the end of **Clock Cycle 3** (its EX stage).
+* However, $I_1$ does not write $R_1$ into the physical Register File until **Clock Cycle 5** (its WB stage).
+* Meanwhile, $I_2$ requires $R_1$ at the beginning of its EX stage (**Clock Cycle 4**).
+* Without forwarding, the pipeline must insert **2 stall cycles (bubbles)**, forcing $I_2$ to wait until Cycle 5!
+
+> **The Architectural Epiphany:**  
+> The result of $R_1$ is physically present inside the processor at the output of the ALU at the end of Cycle 3! Why force the ALU output to travel all the way through MEM and WB into the Register File, only to read it right back out?  
+> **Route the result directly from the pipeline register back to the ALU input!**
+
+<FlowDiagram
+  title="Hardware Operand Forwarding & Bypass Datapath"
+  subtitle="Patterson & Hennessy standard microarchitecture routing EX/MEM and MEM/WB results directly into ALU input multiplexers"
+  width={940}
+  domains={[
+    { id: "decode_stage", title: "Decode & Register Read Stage (ID)", color: "purple", icon: "🔍", position: "top" },
+    { id: "exec_stage", title: "Execution & Forwarding Engine (EX)", color: "blue", icon: "⚙️", position: "top" },
+    { id: "retire_stage", title: "Memory & Writeback Pipeline Registers", color: "emerald", icon: "💾", position: "top" }
+  ]}
+  nodes={[
+    { id: "rf", domain: "decode_stage", col: 0, row: 0, title: "Register File", sublabel: "Read Ports A & B", badge: "ID Stage", icon: "📂", color: "purple" },
+    { id: "mux", domain: "exec_stage", col: 1, row: 0, title: "Forwarding Muxes", sublabel: "3-Way Input Selector", badge: "Bypass Logic", icon: "🔀", color: "cyan" },
+    { id: "alu", domain: "exec_stage", col: 2, row: 0, title: "ALU Core", sublabel: "Arithmetic/Address", badge: "EX Stage", icon: "⚙️", color: "blue" },
+    { id: "ex_mem", domain: "retire_stage", col: 3, row: 0, title: "EX/MEM Register", sublabel: "Stage 3-4 Latch", badge: "Pipeline Reg", icon: "🗄️", color: "emerald" },
+    { id: "mem_wb", domain: "retire_stage", col: 4, row: 0, title: "MEM/WB Register", sublabel: "Stage 4-5 Latch", badge: "Pipeline Reg", icon: "💾", color: "amber" }
+  ]}
+  edges={[
+    { from: "rf", to: "mux", fromPort: "right", toPort: "left", step: "1", label: "Register Operands", labelOffsetY: -20, details: "ID stage reads source registers rs1 and rs2 and passes them to forwarding multiplexers." },
+    { from: "mux", to: "alu", fromPort: "right", toPort: "left", step: "2", label: "Selected Input", labelOffsetY: -20, details: "Forwarding unit selects either fresh register file value or bypassed operand." },
+    { from: "alu", to: "ex_mem", fromPort: "right", toPort: "left", step: "3", label: "ALU Result Latch", labelOffsetY: -20, details: "ALU computation result latches into EX/MEM inter-stage pipeline register." },
+    { from: "ex_mem", to: "mem_wb", fromPort: "right", toPort: "left", step: "4", label: "Pipeline Step", labelOffsetY: -20, details: "Data propagates to MEM/WB register after data memory access." },
+    { from: "ex_mem", to: "mux", fromPort: "bottom", toPort: "bottom", bend: 46, step: "F1", label: "EX-to-EX Forwarding", labelOffsetY: 12, details: "Routes previous instruction's freshly computed ALU output directly into current ALU input, bypassing memory and writeback stages." },
+    { from: "mem_wb", to: "mux", fromPort: "top", toPort: "top", bend: -46, step: "F2", label: "MEM-to-EX Forwarding", labelOffsetY: -8, details: "Routes memory load value or 2-cycle-old ALU result from MEM/WB register directly into ALU input." }
+  ]}
+/>
+
+### Mathematical Forwarding Control Conditions
+
+The **Forwarding Unit** continuously compares register addresses between pipeline stages:
+1. **EX-to-EX Forwarding (Hazard Condition 1):**  
+   If the instruction in `EX/MEM` writes to a register (`EX/MEM.RegWrite == 1`) AND its destination register is not $R_0$ (`EX/MEM.RegisterRd != 0`) AND it matches the source register of the current instruction:
+   $$\text{ForwardA} = 10_2 \quad \text{if } (\text{EX/MEM.RegisterRd} == \text{ID/EX.RegisterRs1})$$
+   $$\text{ForwardB} = 10_2 \quad \text{if } (\text{EX/MEM.RegisterRd} == \text{ID/EX.RegisterRs2})$$
+
+2. **MEM-to-EX Forwarding (Hazard Condition 2):**  
+   If the instruction in `MEM/WB` writes to a register (`MEM/WB.RegWrite == 1`) AND its destination register is not $R_0$ AND it matches the current instruction's source register (and was not already forwarded by EX/MEM):
+   $$\text{ForwardA} = 01_2 \quad \text{if } (\text{MEM/WB.RegisterRd} == \text{ID/EX.RegisterRs1})$$
+   $$\text{ForwardB} = 01_2 \quad \text{if } (\text{MEM/WB.RegisterRd} == \text{ID/EX.RegisterRs2})$$
+
+<ExecutionBlueprint
+  title="Execution Trace: RAW Hazard Resolution with Zero Stalls"
+  subtitle="Demonstrating how operand forwarding completely eliminates stalls between dependent ALU operations"
+  actors={[
+    { name: "Instruction I1 (ADD)", icon: "➕" },
+    { name: "EX/MEM Register", icon: "🗄️" },
+    { name: "Forwarding Unit", icon: "⚡" },
+    { name: "Instruction I2 (SUB)", icon: "➖" }
+  ]}
+  steps={[
+    {
+      from: "Instruction I1 (ADD)",
+      to: "EX/MEM Register",
+      phase: "Cycle 3 (EX)",
+      action: "I1 finishes executing ADD R1, R2, R3 in ALU. Result R1 = 42 latches into EX/MEM register.",
+      code: "ALU_OUT = 42"
+    },
+    {
+      from: "EX/MEM Register",
+      to: "Forwarding Unit",
+      phase: "Cycle 4 Setup",
+      action: "Forwarding Unit detects: EX/MEM.RegisterRd (R1) == ID/EX.RegisterRs1 (R1). Match confirmed!",
+      code: "Hazard Detected: RAW"
+    },
+    {
+      from: "Forwarding Unit",
+      to: "Instruction I2 (SUB)",
+      phase: "Cycle 4 (EX)",
+      action: "Forwarding Unit sets ForwardA = 10. Mux injects R1 = 42 directly into ALU input for SUB.",
+      code: "ForwardA = 10 (Bypass)"
+    },
+    {
+      from: "Instruction I2 (SUB)",
+      to: "Instruction I1 (ADD)",
+      phase: "Cycle 5 (WB)",
+      action: "I2 executes SUB without stalling a single cycle. I1 commits R1 to Register File concurrently in WB.",
+      code: "0 Stalls Injected"
+    }
+  ]}
+/>
+
+---
+
+## The Load-Use Data Hazard & Inevitable Stalls
+
+Can hardware operand forwarding eliminate *every single* data hazard? **No.**
+
+Consider the **Load-Use Data Hazard**:
+```assembly
+I1: LW  R1, 0(R2)    ; Load data from memory into R1
+I2: ADD R4, R1, R3    ; Dependent instruction requires R1 immediately
+```
+
+* $I_1$ reads data from the L1 Data Cache during its **MEM stage** (Clock Cycle 4).
+* The loaded value of $R_1$ is physically unavailable until the very end of Clock Cycle 4!
+* Meanwhile, $I_2$ requires $R_1$ at the beginning of its **EX stage** (Clock Cycle 4).
+
+> [!WARNING]
+> **The Arrow Going Backward in Time!**  
+> To forward $R_1$ to $I_2$ at the start of Cycle 4, the data would have to travel backward in time! Even with full hardware forwarding, **a Load-Use hazard requires exactly 1 hardware stall cycle (bubble)**.
+
+### Hardware Hazard Detection Unit Operation
+
+When a Load-Use hazard is detected in the ID stage:
+$$\text{Condition: } (\text{ID/EX.MemRead} == 1) \text{ and } ((\text{ID/EX.RegisterRd} == \text{IF/ID.RegisterRs1}) \text{ or } (\text{ID/EX.RegisterRd} == \text{IF/ID.RegisterRs2}))$$
+
+The processor automatically:
+1. **Freezes the Program Counter (PC):** Prevents fetching the next instruction ($I_3$).
+2. **Freezes the IF/ID Pipeline Register:** Preserves $I_2$ in the decode stage.
+3. **Injects a Bubble into ID/EX:** Clears all control signals in `ID/EX` to $0$ (turning $I_2$'s execute phase into a harmless `NOP`).
+4. At Cycle 5, data is forwarded from `MEM/WB` to the ALU input with only **1 stall cycle** instead of 3!
+
+---
+
+## 🏭 Real-World Production Context:
+
+Modern production computing architectures utilize sophisticated hardware to mitigate hazards:
+1. **Compiler Instruction Scheduling:** Modern optimizing compilers (GCC, LLVM) inspect basic blocks and automatically move independent instructions into the Load-Use delay slot, hiding the 1-cycle latency with useful compute:
+   ```assembly
+   ; Unscheduled (1 Stall):       ; Compiler Scheduled (0 Stalls!):
+   LW  R1, 0(R2)                  LW  R1, 0(R2)
+   ADD R4, R1, R3  <- Stall!      ADD R8, R6, R7  <- Independent instruction moved here!
+   ADD R8, R6, R7                  ADD R4, R1, R3  <- No stall; data is now ready!
+   ```
+2. **Out-of-Order Execution & Register Renaming:** High-performance processors (Intel Core i9, AMD Ryzen Zen 5, Apple M3) eliminate artificial **WAR** and **WAW** dependencies entirely by dynamically renaming architectural registers ($R_0\dots R_{31}$) to hundreds of physical registers in a centralized Physical Register File (PRF), executing instructions in dataflow order.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: RAW Hazard Stall Calculation With & Without Forwarding
+**Problem Statement:**  
+Consider the following machine code sequence executed on a 5-stage RISC pipeline ($IF, ID, EX, MEM, WB$):
+```assembly
+I1: ADD R1, R2, R3
+I2: SUB R4, R1, R5
+I3: AND R6, R1, R7
+I4: OR  R8, R1, R9
+```
+Register write operations occur in the first half of the WB stage, and register reads occur in the second half of the ID stage.  
+1. Determine the total clock cycles required without operand forwarding.
+2. Determine the total clock cycles required with full hardware operand forwarding.
+3. Calculate the resulting speedup.
+
+**Step-by-Step Solution:**
+1. **Analyze Dependencies on $R_1$:**
+   * $I_1$ writes to $R_1$ in Cycle 5 (WB).
+   * $I_2$ reads $R_1$ in Cycle 3 (ID). RAW Hazard! Needs $R_1$ before Cycle 5.
+   * $I_3$ reads $R_1$ in Cycle 4 (ID). RAW Hazard!
+   * $I_4$ reads $R_1$ in Cycle 5 (ID). Because writeback occurs in the 1st half of Cycle 5 and read occurs in the 2nd half, $I_4$ reads the new value with **zero stalls**.
+
+2. **Without Operand Forwarding:**
+   * $I_2$ must wait until $I_1$ finishes WB (Cycle 5). Its ID stage stalls for **2 clock cycles** (Cycles 3 and 4).
+   * Because $I_2$ stalls, all subsequent instructions are delayed by 2 cycles.
+   * Total cycles: $k + (n - 1) + \text{stalls} = 5 + (4 - 1) + 2 = \mathbf{10\text{ clock cycles}}$.
+
+3. **With Full Hardware Operand Forwarding:**
+   * At Cycle 3, $I_1$ computes $R_1$ in EX.
+   * At Cycle 4, EX-to-EX forwarding passes $R_1$ directly from `EX/MEM` to $I_2$'s EX stage (**0 stalls**).
+   * At Cycle 5, MEM-to-EX forwarding passes $R_1$ from `MEM/WB` to $I_3$'s EX stage (**0 stalls**).
+   * Total cycles: $5 + (4 - 1) + 0 = \mathbf{8\text{ clock cycles}}$.
+
+4. **Speedup Calculation:**
+   $$\text{Speedup } S = \frac{T_{\text{no-forward}}}{T_{\text{forward}}} = \frac{10}{8} = \mathbf{1.25\times}$$
+
+---
+
+### Example 2: Pipeline CPI with Structural and Data Hazards
+**Problem Statement:**  
+A 5-stage pipelined processor runs a benchmark program where instruction distribution and hazard stall penalties are characterized as follows:
+* $20\%$ of instructions are Load instructions. Exactly half ($50\%$) of all Load instructions are immediately followed by an instruction that uses the loaded register (Load-Use data hazard), causing a 1-cycle stall.
+* $15\%$ of instructions suffer an L1 cache miss that delays the MEM stage by 2 stall cycles.
+* All other instructions execute with zero stalls ($CPI_{\text{ideal}} = 1.0$).  
+Calculate the average Cycles Per Instruction ($CPI_{\text{avg}}$) and the percentage throughput loss caused by these hazards.
+
+**Step-by-Step Solution:**
+1. **Calculate Stalls per Instruction from Load-Use Hazards:**
+   $$\text{Fraction of Load-Use hazards} = 20\% \times 50\% = 0.20 \times 0.50 = 0.10$$
+   $$\text{Stall contribution from Load-Use} = 0.10 \times 1\text{ stall cycle} = 0.10\text{ cycles/instruction}$$
+
+2. **Calculate Stalls per Instruction from Cache Misses:**
+   $$\text{Stall contribution from Cache Misses} = 0.15 \times 2\text{ stall cycles} = 0.30\text{ cycles/instruction}$$
+
+3. **Calculate Average CPI:**
+   $$CPI_{\text{avg}} = CPI_{\text{ideal}} + \sum \text{Stalls}$$
+   $$CPI_{\text{avg}} = 1.0 + 0.10 + 0.30 = \mathbf{1.40\text{ cycles/instruction}}$$
+
+4. **Calculate Throughput Loss:**
+   $$\text{Ideal Throughput} \propto \frac{1}{CPI_{\text{ideal}}} = \frac{1}{1.0} = 1.0$$
+   $$\text{Actual Throughput} \propto \frac{1}{CPI_{\text{avg}}} = \frac{1}{1.40} \approx 0.7143$$
+   $$\text{Throughput Loss} = \left(1 - \frac{0.7143}{1.0}\right) \times 100\% = \mathbf{28.57\%}$$
+
+---
+
+### Example 3: Bernstein's Condition Multi-Instruction Trace
+**Problem Statement:**  
+Analyze the following four-instruction program sequence and formally identify all data hazards (specifying the hazard type, the dependent register, and the instruction pair):
+```assembly
+S1: R1 = R2 * R3
+S2: R4 = R1 + R5
+S3: R3 = R6 - R7
+S4: R1 = R8 / R9
+```
+
+**Step-by-Step Solution:**
+1. **Extract Input and Output Sets for Each Instruction:**
+   * $I(S_1) = \{R_2, R_3\}$, $O(S_1) = \{R_1\}$
+   * $I(S_2) = \{R_1, R_5\}$, $O(S_2) = \{R_4\}$
+   * $I(S_3) = \{R_6, R_7\}$, $O(S_3) = \{R_3\}$
+   * $I(S_4) = \{R_8, R_9\}$, $O(S_4) = \{R_1\}$
+
+2. **Evaluate Pairwise Bernstein Intersections:**
+   * **Pair ($S_1, S_2$):**
+     $$O(S_1) \cap I(S_2) = \{R_1\} \cap \{R_1, R_5\} = \{R_1\} \neq \emptyset$$
+     $\implies$ **RAW (True Data Dependency) on register $R_1$**. $S_2$ cannot compute until $S_1$ produces $R_1$.
+   * **Pair ($S_1, S_3$):**
+     $$I(S_1) \cap O(S_3) = \{R_2, R_3\} \cap \{R_3\} = \{R_3\} \neq \emptyset$$
+     $\implies$ **WAR (Anti-Dependency) on register $R_3$**. $S_3$ must not overwrite $R_3$ before $S_1$ reads the old value of $R_3$.
+   * **Pair ($S_1, S_4$):**
+     $$O(S_1) \cap O(S_4) = \{R_1\} \cap \{R_1\} = \{R_1\} \neq \emptyset$$
+     $\implies$ **WAW (Output Dependency) on register $R_1$**. Both instructions write to $R_1$. $S_4$ must write last so the final architectural value of $R_1$ is correct.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does a Load-Use hazard require 1 stall cycle even with full hardware operand forwarding?**  
+  An arithmetic instruction produces its result in the EX stage (Clock Cycle 3). However, a `Load` instruction does not obtain its data from the cache until the end of the MEM stage (Clock Cycle 4). A subsequent dependent instruction requires the operand at the start of its EX stage (Clock Cycle 4). Because the data is not physically available until the end of Cycle 4, forwarding cannot travel backward in time. The pipeline must insert 1 bubble so the dependent instruction's EX stage aligns with Cycle 5.
+
+* **Why are WAR and WAW called "Name Dependencies" rather than true data dependencies?**  
+  In WAR and WAW, there is no actual transfer of data values from the first instruction to the second. The conflict exists solely because both instructions share the same register name ($R_1$). If the compiler or hardware register renamer assigns a different physical register name to the second instruction (e.g. changing $R_1$ to $R_{99}$), the dependency vanishes completely! Only RAW represents a true flow of computed data that cannot be renamed away.
+:::
+
+:::warning Common Interview Traps
+* **Trap 1: Believing hardware operand forwarding eliminates all stalls.**  
+  Candidates frequently claim that adding forwarding multiplexers reduces data hazard stalls to zero in all scenarios. Always mention the Load-Use exception: `Load` followed immediately by a dependent arithmetic instruction **strictly requires 1 stall cycle** unless the compiler can schedule an independent instruction in between.
+
+* **Trap 2: Confusing Register File half-cycle operations with forwarding.**  
+  In many textbooks, register write occurs in the first half of the clock cycle ($0\text{–}50\%$) and register read occurs in the second half ($50\text{–}100\%$). This allows an instruction in ID to read a value written by an instruction in WB *in the same clock cycle*. This is an internal Register File timing feature, NOT operand forwarding! Forwarding specifically refers to bypassing values directly between pipeline registers (`EX/MEM`, `MEM/WB`) and the ALU.
+
+* **Trap 3: Counting RAR as a pipeline hazard.**  
+  When two instructions read the same source register consecutively, students often flag a hazard. Multiple read operations never alter hardware state; RAR involves zero data modification and requires zero stalls.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "5.1 Linear Instruction Pipeline Execution & Performance Speedup Proofs",
+    url: "/coredose/coa/module-05/instruction-pipeline-execution-and-speedup-proofs",
+  }}
+  next={{
+    title: "5.3 Control Hazards, Dynamic Branch Prediction & Delayed Branching",
+    url: "/coredose/coa/module-05/control-hazards-and-branch-prediction",
+  }}
+  courseUrl="/coredose/coa"
+/>
