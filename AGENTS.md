@@ -613,7 +613,14 @@ Every diagram component (existing or newly created) MUST adhere strictly to thes
      - Use `<ProcessFlow />` (vertical numbered timeline).
      - Use `<ArchitectureStack />` (for vertical hierarchical stacks).
    - All diagram containers must enforce internal overflow protection (`overflow-x: auto`) and responsive stacking at `max-width: 996px` so no card or arrow ever bleeds outside the page.
-9. **Systematic Diagram Selection Framework (Strict Multi-Criteria Evaluation — NO FCFS SELECTION)**:
+9. **FrameFormat Proportionality & Clean Bit Encodings**:
+   - Every block must specify its exact bit allocation via `size: "X"`, `unit: "Bits"`, and `sublabel: "[MSB:LSB]"`.
+   - Specify `flex: X` proportionally matching its exact bit share so visual block widths reflect reality.
+   - **Bits Only**: Do NOT clutter frames with percentage or division arithmetic (e.g. no `bitPattern: "6 / 32 Bits (18.75%)"`). Keep it clean with bits and bit-range labels only.
+10. **Zero-Scrollbar MathBox Design**:
+   - In `<MathBox>`, keep algebraic and register-transfer alignment blocks compact ($\le 380\text{px}$) with concise step comments.
+   - For hardware invariants and metric summaries, use clean wrapping Markdown blockquotes (`> **Hardware Invariant:** ... > **Trace Cost:** ...`) inside `<MathBox>` rather than wide, single-line display math (`$$ ... \quad\vert\quad ... $$`) blocks, preventing horizontal scrollbars on desktop and mobile viewports.
+11. **Systematic Diagram Selection Framework (Strict Multi-Criteria Evaluation — NO FCFS SELECTION)**:
    > **CRITICAL RULE: NEVER USE FCFS (First-Come-First-Served) SELECTION BIAS.**  
    > Never lazily pick the first diagram component that comes to mind or force an architectural concept into an ill-fitting component just because it is familiar.  
    > **MANDATORY PROTOCOL**: Before writing any diagram, you MUST systematically compare the concept's mathematical/topological conditions against **ALL available diagram components** across the platform, evaluating dimensionality (1D vs 2D), time-dependency (space-time vector vs chronological state), actor interaction, and data encapsulation. Only select the component whose native geometry perfectly matches the concept's real-world behavior:
@@ -1055,6 +1062,30 @@ All course lessons across `coredose/` MUST adhere strictly to the locked 11-part
 ### Heading Content Integrity
 * **No Empty Headings**: Never follow a parent heading or subheading immediately with a child heading (e.g. `### Case 1: ...` followed immediately by `#### A. ...`). Always provide substantive introductory explanation setting up the concepts.
 * **Handwritten Notes Priority**: All state transition tables, truth tables, circuit derivations, and worked examples must be verified against and adapted directly from the user's handwritten GATE notes (`E:\GATE-NOTES\`).
+
+---
+
+## 16. Strict Academic Textbook Standards for Diagrams & Interactive Simulators
+
+All diagrams, architectural visualizations, and interactive simulators across Binary Dose MUST strictly adhere to standard academic textbook conventions (Carl Hamacher, William Stallings, David Patterson & John Hennessy, M. Morris Mano, Andrew Tanenbaum, Abraham Silberschatz):
+
+1. **Hardware Architecture Visualizations (Physical Circuit Standard)**:
+   * **Bit-Field Allocations**: CPU address registers must explicitly display textbook bit splitting (e.g., Tag bits, Set/Line index decoder input bits, Word/Byte offset select bits).
+   * **Decoders & Parallel Comparators**:
+     * *Direct-Mapped*: Explicit $s$-to-$2^s$ line decoder driving a single comparator.
+     * *Set-Associative*: Set decoder enabling the target set, followed by $K$ parallel comparators operating simultaneously.
+     * *Fully Associative*: Full Content Addressable Memory (CAM) array with parallel comparators across all lines and zero index bits.
+   * **Logic Gate Aggregation**: Valid bit gating ($V = 1$) and multi-input OR/AND gates outputting the explicit $\text{HIT} = 1$ / $\text{MISS} = 0$ CPU control signal.
+
+2. **Algorithmic & Numerical Trace Visualizations (Execution Matrix Standard)**:
+   * **Standard Matrix View**: Must replicate the classic academic execution trace matrix used in university examinations and competitive tests (columns = discrete cycle time steps $t_1, t_2, \dots, t_N$, rows = resident cache lines/frames, bottom row = Hit/Miss outcome).
+   * **No Ad-Hoc / Fictional Abstractions**: Never invent arbitrary or gamified visualizations that diverge from textbook literature. Learners must recognize the exact diagrams and matrices they see in standard reference books and exam papers.
+
+3. **Generic & Unified Implementation**:
+   * Interactive components must share a single generic architecture across all modes.
+   * Mode switches must not cause layout bifurcation, broken styling, or isolated code paths.
+   * Dual-view toggles (`[ 📊 Trace Matrix ]` and `[ ⚡ Hardware Circuit ]`) must be synchronized to the same underlying state model and step sequencer.
+
 
 
 

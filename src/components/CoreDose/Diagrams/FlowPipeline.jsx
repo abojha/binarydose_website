@@ -131,7 +131,20 @@ export default function FlowPipeline({
   // If stages are passed, render multi-stage architecture
   const hasStages = stages && stages.length > 0;
   const effectiveStages = hasStages
-    ? stages
+    ? stages.map((stage) => {
+        let stageSteps = stage.steps || stage.nodes || [];
+        if ((!stageSteps || stageSteps.length === 0) && stage.items && Array.isArray(stage.items)) {
+          stageSteps = stage.items.map((it, iIdx) =>
+            typeof it === 'string'
+              ? { title: `Step ${iIdx + 1}`, description: it, color: stage.color || 'blue' }
+              : it
+          );
+        }
+        return {
+          ...stage,
+          steps: stageSteps,
+        };
+      })
     : resolvedSteps && resolvedSteps.length > 0
     ? [{ id: 'default', steps: resolvedSteps }]
     : [];

@@ -20,8 +20,8 @@ export default function CoreDoseTOC({
     return rawList
       .map((item) => ({
         ...item,
-        value: item.value || item.title || item.label || "",
-        id: item.id || (item.value || item.label || "").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        value: item.value || item.text || item.title || item.label || "",
+        id: item.id || (item.value || item.text || item.label || item.title || "").toLowerCase().replace(/[^a-z0-9]+/g, "-"),
         level: item.level || 2,
       }))
       .filter((item) => {

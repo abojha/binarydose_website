@@ -1,0 +1,128 @@
+---
+title: "Computer Organization & Architecture (COA) Notes & Roadmap"
+description: "Complete module-wise notes and roadmap for Computer Organization & Architecture covering Floating-Point Representation, Memory Hierarchy, Cache Mapping, Virtual Memory, I/O & DMA, Pipelining, Instruction Formats, and Control Unit Design."
+hide_title: true
+hide_table_of_contents: true
+---
+
+<BackNav
+  backUrl="/coredose"
+  backLabel="Back to CoreDose Hub"
+  breadcrumbs={[
+    { label: "CoreDose", url: "/coredose" },
+    { label: "Computer Organization & Architecture" },
+  ]}
+/>
+
+<HeroHeader
+  badge={{ icon: "💻", text: "Computer Architecture Notes" }}
+  title="Computer Organization & Architecture"
+  gradient="(COA)"
+  subtitle="Zero-fluff hardware engineering notes, mathematical derivations, memory hierarchy blueprints, CPU datapath schematics, and high-yield interview frameworks for university semester exams, systems engineering, and foundational computing."
+  stats={[
+    { number: 7, label: "Modules" },
+    { number: 22, label: "Topics" },
+    { number: "100%", label: "Free Access" },
+  ]}
+/>
+
+<CourseCurriculum
+  hideStats={true}
+  tags={[
+    "Floating-Point IEEE-754",
+    "Memory Hierarchy",
+    "Cache Mapping",
+    "Virtual Memory & TLB",
+    "I/O & DMA",
+    "Instruction Pipelining",
+    "Addressing Modes",
+    "Control Unit & Datapath",
+  ]}
+  modules={[
+    {
+      num: "01",
+      title: "Data Representation & Floating-Point Standards",
+      icon: "🔢",
+      color: "emerald",
+      description: "Fixed-point vs floating-point limits, biased exponents, explicit vs implicit normalization, IEEE-754 Single & Double precision, and special value encodings.",
+      topics: [
+        { num: "1.1", title: "Fixed-Point vs Floating-Point & Biased Exponent Systems", url: "/coredose/coa/module-01/fixed-point-vs-floating-point-and-biased-exponent" },
+        { num: "1.2", title: "IEEE-754 Single Precision Standard & Special Value Encodings", url: "/coredose/coa/module-01/ieee-754-single-precision-standard" },
+        { num: "1.3", title: "Double Precision, Extended Formats & Arithmetic Error Analysis", url: "/coredose/coa/module-01/double-precision-extended-formats-and-arithmetic-pitfalls" },
+      ],
+    },
+    {
+      num: "02",
+      title: "Memory Hierarchy & Cache Memory Organization",
+      icon: "⚡",
+      color: "blue",
+      description: "Memory hierarchy principles, locality of reference, cache mapping architectures (Direct, Fully Associative, Set-Associative), and hit ratio mathematics.",
+      topics: [
+        { num: "2.1", title: "Memory Hierarchy Pyramid & Principles of Locality", url: "/coredose/coa/module-02/memory-hierarchy-pyramid-and-locality-of-reference" },
+        { num: "2.2", title: "Cache Memory Architecture & Direct Mapping Mechanics", url: "/coredose/coa/module-02/cache-architecture-and-direct-mapping" },
+        { num: "2.3", title: "Associative & Set-Associative Cache Mapping Architectures", url: "/coredose/coa/module-02/associative-and-set-associative-cache-mapping" },
+        { num: "2.4", title: "Cache Write Policies, Replacement Algorithms & Multi-Level AMAT", url: "/coredose/coa/module-02/cache-write-policies-and-replacement-algorithms" },
+      ],
+    },
+    {
+      num: "03",
+      title: "Virtual Memory & Memory Management Unit (MMU)",
+      icon: "🛡️",
+      color: "purple",
+      description: "Virtual address translation, single and multi-level page tables, Translation Lookaside Buffer (TLB) hit mechanics, and Effective Memory Access Time (EMAT).",
+      topics: [
+        { num: "3.1", title: "Virtual Memory Foundations & Hardware Paging Mechanics", url: "/coredose/coa/module-03/virtual-memory-foundations-and-paging" },
+        { num: "3.2", title: "Translation Lookaside Buffer (TLB) & Multi-Level Page Tables", url: "/coredose/coa/module-03/tlb-architecture-and-multi-level-page-tables" },
+        { num: "3.3", title: "Inverted Page Tables, Segmentation & EMAT Performance Analysis", url: "/coredose/coa/module-03/inverted-page-tables-and-emat-analysis" },
+      ],
+    },
+    {
+      num: "04",
+      title: "Input/Output Organization & DMA",
+      icon: "🔌",
+      color: "cyan",
+      description: "I/O bus interfaces, memory-mapped vs isolated I/O, programmed vs interrupt-driven transfers, daisy chaining, and Direct Memory Access (DMA) cycle stealing.",
+      topics: [
+        { num: "4.1", title: "I/O System Architectures: Memory-Mapped vs Isolated I/O", url: "/coredose/coa/module-04/io-system-architectures-memory-mapped-vs-isolated" },
+        { num: "4.2", title: "Interrupt Handling, Priority Arbitration & Daisy Chaining", url: "/coredose/coa/module-04/interrupt-handling-and-priority-arbitration" },
+        { num: "4.3", title: "Direct Memory Access (DMA) Controllers & Cycle Stealing Mechanics", url: "/coredose/coa/module-04/dma-controllers-and-cycle-stealing" },
+      ],
+    },
+    {
+      num: "05",
+      title: "Instruction Pipelining & Performance Optimization",
+      icon: "⏱️",
+      color: "amber",
+      description: "Linear instruction pipelines, stage time matching, pipeline hazards (Structural, Data RAW/WAR/WAW, Control Branching), forwarding, and speedup proofs.",
+      topics: [
+        { num: "5.1", title: "Linear Instruction Pipeline Execution & Performance Speedup Proofs", url: "/coredose/coa/module-05/instruction-pipeline-execution-and-speedup-proofs" },
+        { num: "5.2", title: "Pipeline Hazards: Structural, Data Hazards & Operand Forwarding", url: "/coredose/coa/module-05/pipeline-hazards-and-operand-forwarding" },
+        { num: "5.3", title: "Control Hazards, Dynamic Branch Prediction & Delayed Branching", url: "/coredose/coa/module-05/control-hazards-and-branch-prediction" },
+      ],
+    },
+    {
+      num: "06",
+      title: "Instruction Set Architecture (ISA) & Addressing Modes",
+      icon: "📋",
+      color: "rose",
+      description: "Machine instruction formats (0, 1, 2, 3-address), effective address computations across all addressing modes, and RISC vs CISC architectural trade-offs.",
+      topics: [
+        { num: "6.1", title: "Instruction Formats, Word Encoding & Opcode Expansion", url: "/coredose/coa/module-06/instruction-formats-and-opcode-expansion" },
+        { num: "6.2", title: "Comprehensive Addressing Modes & Effective Address Mechanics", url: "/coredose/coa/module-06/addressing-modes-and-effective-address" },
+        { num: "6.3", title: "RISC vs CISC Architectural Design & Register Windowing", url: "/coredose/coa/module-06/risc-vs-cisc-architectural-comparison" },
+      ],
+    },
+    {
+      num: "07",
+      title: "Control Unit Design & CPU Datapath",
+      icon: "🧠",
+      color: "emerald",
+      description: "Single-bus and multi-bus CPU datapath register transfers, Hardwired control units (state table & delay element), and Microprogrammed control units (Horizontal vs Vertical).",
+      topics: [
+        { num: "7.1", title: "CPU Internal Datapath & Register Transfer Micro-Operations", url: "/coredose/coa/module-07/cpu-internal-datapath-and-micro-operations" },
+        { num: "7.2", title: "Hardwired Control Unit Design & State Machine Synthesis", url: "/coredose/coa/module-07/hardwired-control-unit-design" },
+        { num: "7.3", title: "Microprogrammed Control Units: Horizontal vs Vertical Micro-Instructions", url: "/coredose/coa/module-07/microprogrammed-control-units-horizontal-vs-vertical" },
+      ],
+    },
+  ]}
+/>

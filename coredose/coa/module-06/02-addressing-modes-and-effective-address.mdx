@@ -1,0 +1,477 @@
+---
+title: "Comprehensive Addressing Modes & Effective Address Mechanics"
+description: "Master all 10 computer architecture addressing modes, effective address computations, memory reference overhead, and runtime program relocation."
+sidebar_label: "6.2 Addressing Modes & Effective Address"
+keywords:
+  - addressing modes
+  - effective address
+  - direct addressing
+  - indirect addressing
+  - register indirect
+  - base register mode
+  - indexed addressing
+  - pc relative addressing
+  - auto increment
+  - program relocation
+  - immediate addressing
+hide_table_of_contents: true
+---
+
+import CoreDoseLessonHeader from '@site/src/components/CoreDose/CoreDoseLessonHeader';
+import CoreDoseTOC from '@site/src/components/CoreDose/CoreDoseTOC';
+import CoreDoseNav from '@site/src/components/CoreDose/CoreDoseNav';
+import ConceptComparison from '@site/src/components/CoreDose/Diagrams/ConceptComparison';
+import SubsystemGrid from '@site/src/components/CoreDose/Diagrams/SubsystemGrid';
+import ProcessFlow from '@site/src/components/CoreDose/Diagrams/ProcessFlow';
+import MathBox from '@site/src/components/CoreDose/Diagrams/MathBox';
+
+# 6.2 Comprehensive Addressing Modes & Effective Address Mechanics
+
+<CoreDoseLessonHeader
+  module="06"
+  topic="6.2"
+  readTime="22 min"
+  difficulty="Core Engineering"
+  prerequisites="Topic 6.1 (Instruction Formats & Opcode Expansion) & Module 02 (Memory Subsystem)"
+  relevance="Addressing modes specify how machine instructions locate their operands. They bridge high-level programming constructs (variables, pointers, arrays, structures, and relocatable functions) to physical hardware memory addresses."
+/>
+
+## 💡 Core Intuition:
+
+### 🍳 The Everyday Analogy:
+Imagine an international treasure hunt where each clue card instructs you how to retrieve the next clue. Depending on the challenge, the instructions use fundamentally different retrieval strategies:
+
+1. **Immediate Mode:** The clue is literally stamped onto the back of the card itself (*"Your secret number is 42"*). Zero travel is required—the data is in your hand instantly!
+2. **Implied Mode:** The card simply says *"Advance!"* Everyone already knows by default that you advance the primary runner standing on the starting line (the Accumulator).
+3. **Register Direct Mode:** The card says *"Check your own left pocket (Register $R_1$)."* You reach into your pocket instantly without driving across town.
+4. **Register Indirect Mode:** Your left pocket contains a locker key and slip with locker number $502$. You travel to locker $502$ to retrieve the gold. The pocket held the *address*, not the prize!
+5. **Direct (Absolute) Mode:** The card says *"Drive directly to Vault $904$."* You make one trip to Vault $904$ to get the prize.
+6. **Indirect Mode:** The card says *"Go to Safe $200$."* When you open Safe $200$, you find a note saying *"The real treasure is at Bank Vault $850$."* You must make **two sequential trips** to get the treasure!
+7. **Relative Mode (PC-Relative):** *"Walk $50\text{ meters}$ forward from where you are standing right now."* No matter which city or venue the game is played in, taking $50$ steps from your current spot always works (**Position-Independent Relocation**).
+8. **Base Register Mode:** All players are staying at the Grand Plaza Hotel (Base Address). The card says *"Room $312$ (Offset)."* If the entire team moves to the Hilton Hotel tomorrow, the clue cards do not need to be rewritten—only the hotel base address changes!
+9. **Indexed Mode:** *"Go to the luggage carousel (Base) and inspect Suitcase #$i$ (Index Register)."* As suitcase index $i$ increments, you inspect consecutive array elements effortlessly.
+10. **Auto-Increment Mode:** Every time you open a locker, a mechanical spring immediately advances your key ring to the next consecutive locker number ($i \leftarrow i + 1$).
+
+### 💻 Bridging to Computer Science
+In computer architecture, an **Addressing Mode** is the hardware rule implemented by the Control Unit to translate the address or register fields of an instruction into the **Effective Address ($EA$)**—the actual physical or virtual memory address of the operand.
+
+Architects do not create addressing modes arbitrarily. Every mode satisfies specific engineering trade-offs:
+* **Execution Latency:** Does the mode require zero, one, or two main memory access cycles?
+* **Instruction Compactness:** Can we reference a large memory space using a small number of instruction bits?
+* **High-Level Language Constructs:** How efficiently can the hardware dereference pointers (`*ptr`), access array elements (`arr[i]`), access struct members (`p->age`), and support dynamic shared libraries?
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## Taxonomy of Addressing Modes: Computable vs Non-Computable
+
+The canonical addressing modes are divided into two fundamental classes based on whether the CPU datapath must perform arithmetic to determine the operand's location:
+
+<SubsystemGrid
+  title="The Two Architectural Classes of Addressing Modes"
+  subtitle="Classified by whether arithmetic hardware (ALU / Adder) is required for address resolution"
+  items={[
+    {
+      title: "Non-Computable Addressing",
+      tag: "Direct Translation (0 Cycles)",
+      icon: "⚡",
+      color: "emerald",
+      points: [
+        "The operand location is explicitly stated in the instruction or contained directly within a register.",
+        "Requires zero address arithmetic hardware or adder passes to determine the target operand.",
+        "Modes: Immediate, Implied, Direct, Register Direct, Register Indirect, and Memory Indirect."
+      ]
+    },
+    {
+      title: "Computable Addressing",
+      tag: "Dynamic Synthesis (1 Adder Pass)",
+      icon: "🧮",
+      color: "blue",
+      points: [
+        "The effective address is computed dynamically at runtime by adding registers and offsets.",
+        "Requires dedicated address adders or ALU passes during the address computation cycle.",
+        "Modes: PC-Relative, Base-Register, Indexed, Base-Indexed, and Auto-Increment/Decrement."
+      ]
+    }
+  ]}
+/>
+
+---
+
+## In-Depth Mechanics of the 10 Canonical Addressing Modes
+
+To understand what physically happens inside the CPU, we categorize the 10 canonical addressing modes into five architectural classes based on how the Effective Address ($EA$) is derived and how many memory cycles are consumed:
+
+---
+
+### Class 1: Zero-Memory Addressing (Immediate & Implied Modes)
+
+In these modes, the operand is already inside the CPU when the instruction is fetched, requiring **$0$ additional memory access cycles**.
+
+<ProcessFlow
+  title="Immediate & Implied Datapath Execution Flow"
+  subtitle="How literals and accumulator operations bypass memory access entirely"
+  steps={[
+    {
+      number: "1",
+      title: "Immediate Addressing Mode (ADDI R1, #4)",
+      tag: "0 Memory Cycles",
+      description: "The operand is an explicit numerical constant embedded directly inside the instruction word. The address/immediate field is extracted from the Instruction Register (IR), sign-extended to 32/64 bits, and routed directly to the ALU operand input latch.",
+      code: "Operand = IR.Immediate_Field  -->  ALU_Input_B <- SignExtend(IR.Imm)"
+    },
+    {
+      number: "2",
+      title: "Implied (Implicit) Addressing Mode (CMA, INCA, ADD in Stack)",
+      tag: "0 Memory Cycles",
+      description: "The operand location is hardwired into the operation code itself. No explicit address or register field is needed in the instruction word. The CPU ALU directly operates on the designated hardware register (Accumulator AC) or the Top of Stack (TOS).",
+      code: "AC <- NOT(AC)  or  TOS <- Pop() + Pop()"
+    }
+  ]}
+/>
+
+---
+
+### Class 2: Register-Based Addressing (Register Direct vs. Register Indirect)
+
+These modes use the CPU's internal high-speed general-purpose register file ($R_0 \text{ to } R_{31}$).
+
+<ProcessFlow
+  title="Register Direct vs. Register Indirect Pointer Resolution Flow"
+  subtitle="Comparing register-internal data retrieval vs. pointer dereferencing"
+  steps={[
+    {
+      number: "1",
+      title: "Register Direct Mode (ADD R1, R2)",
+      tag: "0 Memory Cycles",
+      description: "The operand is stored in a CPU general-purpose register. The 5-bit register field from IR directly addresses the Register File read port. Data is available at ALU inputs within sub-nanosecond flip-flop propagation delay.",
+      code: "EA = None  -->  Operand = RegisterFile[R2]"
+    },
+    {
+      number: "2",
+      title: "Register Indirect Mode (LOAD R1, [R2])",
+      tag: "1 Memory Cycle",
+      description: "The register R2 holds a memory pointer (*ptr in C). The CPU reads R2 from the register file, latches its contents into the Memory Address Register (MAR <- [R2]), and initiates 1 main memory bus read cycle to fetch the operand into MDR.",
+      code: "MAR <- RegisterFile[R2]  -->  MDR <- Memory[MAR]  -->  EA = [R2]"
+    }
+  ]}
+/>
+
+---
+
+### Class 3: Memory-Based Addressing (Direct vs. Memory Indirect)
+
+These modes reference absolute memory addresses encoded directly in the instruction word.
+
+<ProcessFlow
+  title="Direct vs. Memory Indirect Multi-Hop Memory Traversal"
+  subtitle="Tracing single-hop vs. two-hop pointer-to-pointer dereferencing across the memory bus"
+  steps={[
+    {
+      number: "1",
+      title: "Direct (Absolute) Addressing Mode (LOAD R1, [0x2000])",
+      tag: "1 Memory Cycle",
+      description: "The instruction word contains the complete physical address A (e.g. 0x2000). The CPU transfers A directly from IR into the Memory Address Register (MAR <- A) and performs a single memory read cycle to retrieve the operand.",
+      code: "MAR <- IR.Address  -->  MDR <- Memory[MAR]  -->  EA = A"
+    },
+    {
+      number: "2",
+      title: "Memory Indirect Addressing Mode (LOAD R1, [@0x2000] with I=1)",
+      tag: "2 Memory Cycles",
+      description: "Address A points to a memory word that holds the effective address EA (pointer-to-pointer). Cycle 1: The CPU reads Memory[A] into MDR and transfers it to MAR (MAR <- Memory[A]). Cycle 2: The CPU reads Memory[MAR] to finally retrieve the actual operand data.",
+      code: "Cycle 1: MAR <- IR.Addr, MDR <- Memory[MAR]  -->  Cycle 2: MAR <- MDR, Operand <- Memory[MAR]"
+    }
+  ]}
+/>
+
+---
+
+### Class 4: Displacement Addressing (PC-Relative, Base Register, Indexed)
+
+Displacement addressing combines an address stored in a register with a constant offset in the instruction word using a dedicated hardware **Address Adder**.
+
+<ProcessFlow
+  title="Displacement Addressing Arithmetic & Effective Address Generation"
+  subtitle="Hardware adder pipeline: EA = Dedicated_Register + SignExtended(Offset)"
+  steps={[
+    {
+      number: "1",
+      title: "PC-Relative Addressing Mode (BEQ offset / JUMP $+8)",
+      tag: "Branch / PIC",
+      description: "The Effective Address is computed by adding the sign-extended displacement offset to the current Program Counter: EA = PC + Offset. Used for loops, conditional branches, and Position-Independent Code (PIC) because relative offsets remain invariant when the OS relocates binary code.",
+      code: "EA = PC + SignExtend(IR.Offset)  -->  Branch Target Address"
+    },
+    {
+      number: "2",
+      title: "Base Register Addressing Mode (LOAD R1, [BR + 0x0200])",
+      tag: "OS Relocation",
+      description: "A large Base Register (BR) holds the physical starting address of a process, while the instruction contains a small offset. Used for Multiprogramming and Dynamic Relocation: when the OS moves a program to a new memory frame, it only updates the Base Register, leaving instruction offsets unchanged.",
+      code: "EA = BaseRegister[BR] + IR.Offset  -->  MAR <- EA"
+    },
+    {
+      number: "3",
+      title: "Indexed Addressing Mode (LOAD R1, [Array_Base + XR])",
+      tag: "Array Traversal",
+      description: "The instruction contains the static base address of an array (e.g. Array[0]), while a designated Index Register (XR) holds the element offset (i * element_size). Stepping through an array loop requires incrementing only the Index Register without altering the instruction.",
+      code: "EA = IR.Base_Address + IndexRegister[XR]  -->  MAR <- EA"
+    }
+  ]}
+/>
+
+---
+
+### Class 5: Auto-Increment & Auto-Decrement Addressing Modes
+
+Specialized computable modes designed for high-throughput string manipulation, vector streaming, and hardware-managed push/pop stack structures.
+
+<ProcessFlow
+  title="Auto-Increment vs. Auto-Decrement Execution Timelines"
+  subtitle="Comparing post-increment pointer stepping vs. pre-decrement stack push mechanics"
+  steps={[
+    {
+      number: "1",
+      title: "Auto-Increment Mode: Post-Increment (LOAD R1, (R2)+)",
+      tag: "Post-Update",
+      description: "Step 1: The current contents of R2 serve as the effective address to access memory (EA = [R2], MAR <- R2). Step 2: Immediately after the memory access is initiated, an autonomous hardware incrementer steps the register forward by d bytes: R2 <- R2 + d.",
+      code: "EA = [R2]  -->  Memory Read  -->  then R2 <- R2 + step_size (d)"
+    },
+    {
+      number: "2",
+      title: "Auto-Decrement Mode: Pre-Decrement (STORE R1, -(R2))",
+      tag: "Pre-Update",
+      description: "Step 1: Before memory is accessed, the register is decremented by d bytes: R2 <- R2 - d. Step 2: The decremented value is latched into MAR to access memory: EA = [R2]. This exact pre-decrement / post-increment duality forms the foundation of LIFO hardware stacks (Push: -(SP), Pop: (SP)+).",
+      code: "R2 <- R2 - step_size (d)  -->  EA = [R2]  -->  Memory Write"
+    }
+  ]}
+/>
+
+---
+
+## Comprehensive Addressing Mode Comparison Matrix
+
+<MathBox title="The Master Summary of Addressing Modes">
+The following table summarizes the mathematical formulations, memory references, and operational roles across all 10 canonical addressing modes:
+</MathBox>
+
+| Addressing Mode | Effective Address ($EA$) | Memory References (Operand Only) | Key Hardware Element | Primary System Role |
+| :--- | :--- | :---: | :--- | :--- |
+| **Immediate** | None ($\text{Operand} = \text{Value}$) | **$0$** | Sign Extension Unit | Defining constants & literals |
+| **Implied** | Implicit ($AC$ or $TOS$) | **$0$** | Hardwired Register/Stack | Accumulator & Stack arithmetic |
+| **Register Direct** | None ($\text{Operand} = [R_i]$) | **$0$** | Register File Decoder | Fast local variables |
+| **Register Indirect**| $EA = [R_i]$ | **$1$** | Reg Output to MAR | Pointer dereferencing (`*ptr`) |
+| **Direct (Absolute)**| $EA = A$ | **$1$** | Instruction Addr to MAR | Global static variables |
+| **Memory Indirect** | $EA = M[A]$ | **$2$** | Memory Bus Sequencer | Pointer-to-pointer dereferencing |
+| **PC-Relative** | $EA = PC + \text{Offset}$ | **$1$** (or $0$ on branch) | Branch Target Adder | Position-Independent branches |
+| **Base Register** | $EA = [BR] + \text{Offset}$ | **$1$** | Address Adder Unit | Multiprogramming relocation |
+| **Indexed** | $EA = \text{Base} + [XR]$ | **$1$** | Address Adder Unit | Array indexing (`arr[i]`) |
+| **Auto-Increment** | $EA = [R_i]$, then $R_i{+}{=}\,d$ | **$1$** | Dedicated In/Decrementer | Sequential streaming & Stacks |
+
+---
+
+## Program Relocation & Multiprogramming Mechanics
+
+Why did operating systems drive the adoption of **Base Register** and **PC-Relative** addressing?
+
+| Memory Region | Base Register Value | Instruction Offset | Computed Effective Address |
+| :--- | :--- | :--- | :--- |
+| **OS Kernel** | `0x00000` | N/A | Reserved System Space |
+| **Process A** | `[BR] = 0x10000` | `Offset = 0x0200` | $EA = \text{0x10000} + \text{0x0200} = \mathbf{\text{0x10200}}$ |
+| **Process B** | `[BR] = 0x40000` | `Offset = 0x0200` | $EA = \text{0x40000} + \text{0x0200} = \mathbf{\text{0x40200}}$ |
+
+
+* If instructions used **Direct (Absolute) Addressing**, a compiled program containing `JUMP 0x10200` could **only ever run at address `0x10000`**. If the OS needed to swap Process A to disk and load it back into memory at `0x40000`, every single branch address in the program binary would have to be disassembled and rewritten!
+* With **Base Register Addressing**, all internal addresses are stored as relative offsets (`0x0200`). When the OS loads Process A at physical address `0x40000`, it simply initializes the CPU's hardware Base Register:
+  $$[BR] = \text{0x40000}$$
+  $$EA = [BR] + \text{0x0200} = \text{0x40200}$$
+  The program executes flawlessly without modifying a single bit in the binary text!
+
+---
+
+## 🏭 Real-World Production Context:
+
+Modern instruction sets combine multiple addressing primitives into single, powerful execution instructions:
+
+* **x86-64 Complex Addressing (`SIB` Byte):** In x86-64, a single instruction can compute an effective address combining base, index, scaling, and displacement:
+  $$\text{Effective Address} = \text{Base Register} + (\text{Index Register} \times \text{Scale}) + \text{Displacement}$$
+  where $\text{Scale} \in \{1, 2, 4, 8\}$ corresponds to data types (`char`, `short`, `int`, `double`). For example:
+  ```assembly
+  MOV EAX, [RBX + RCX*4 + 0x20]
+  ```
+  This single machine instruction fetches an element from an array of 32-bit integers located inside a heap structure with an offset of $32\text{ bytes}$!
+* **The `LEA` (Load Effective Address) Compiler Optimization:** In x86, the `LEA` instruction was originally designed to compute memory addresses into a register without accessing memory. Modern optimizing compilers (GCC, Clang) exploit `LEA` as a ultra-fast, three-operand arithmetic shortcut:
+  ```assembly
+  LEA EAX, [EBX + ECX*4 + 7]  ; Computes EAX = EBX + 4*ECX + 7 in exactly 1 clock cycle!
+  ```
+  The processor uses its dedicated memory address generation unit (AGU) to perform three additions and a shift in a single clock cycle without touching RAM!
+* **Position-Independent Executables (PIE):** Modern Linux systems require all executables to be compiled as PIE to enable **Address Space Layout Randomization (ASLR)** for security against buffer overflow exploits. PIE relies almost exclusively on PC-Relative addressing (`[RIP + Offset]`) so the kernel can load the binary at a completely randomized memory location on every execution.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Operand Field Bit Allocation with Register and Immediate Operands
+**Problem Statement:**  
+A processor has an instruction set containing $40$ distinct instructions and $24$ general-purpose registers. The architecture uses a fixed $32\text{-bit}$ instruction word format. Every standard computational instruction contains:
+1. An Opcode field
+2. Two Register Operand identifiers ($Rs_1$ and $Rs_2$)
+3. An Immediate Operand field  
+Calculate the number of bits available in the instruction format for the immediate operand field.
+
+**Step-by-Step Solution:**
+1. **Calculate Bits for the Opcode Field:**
+   The processor supports $40$ distinct instructions:
+   $$\text{Bits}_{\text{opcode}} = \lceil \log_2(40) \rceil$$
+   Since $2^5 = 32 < 40 \le 64 = 2^6$:
+   $$\text{Bits}_{\text{opcode}} = \mathbf{6\text{ bits}}$$
+
+2. **Calculate Bits per Register Specifier:**
+   The CPU contains $24$ general-purpose registers:
+   $$\text{Bits}_{\text{reg}} = \lceil \log_2(24) \rceil$$
+   Since $2^4 = 16 < 24 \le 32 = 2^5$:
+   $$\text{Bits}_{\text{reg}} = \mathbf{5\text{ bits}}$$
+   Because there are two register operands ($Rs_1$ and $Rs_2$):
+   $$\text{Total Register Bits} = 2 \times 5 = \mathbf{10\text{ bits}}$$
+
+3. **Compute Bits Available for Immediate Operand:**
+   $$\text{Total Instruction Length} = 32\text{ bits}$$
+   $$\text{Bits}_{\text{immediate}} = \text{Total Length} - (\text{Bits}_{\text{opcode}} + \text{Total Register Bits})$$
+   $$\text{Bits}_{\text{immediate}} = 32 - (6 + 10) = 32 - 16 = \mathbf{16\text{ bits}}$$
+
+**Final Conclusion:** There are exactly **$16\text{ bits}$** available for the immediate operand field.
+
+---
+
+### Example 2: Maximum Unsigned Immediate Value with Word-Aligned 32-Bit Architecture
+**Problem Statement:**  
+A computer has a $32\text{-bit}$ word-aligned architecture with single-word instructions ($32\text{ bits}$). The processor provides $64$ general-purpose registers, each $32\text{ bits}$ wide. The instruction set must accommodate $45$ distinct instructions. Each instruction includes:
+* An Opcode
+* Two Register Operands
+* One Immediate Operand  
+Assuming the immediate operand field encodes an **unsigned integer**, calculate the maximum numeric value that can be represented in this immediate field.
+
+**Step-by-Step Solution:**
+1. **Determine Opcode Bit Width:**
+   For $45$ instructions:
+   $$\text{Bits}_{\text{opcode}} = \lceil \log_2(45) \rceil$$
+   Since $2^5 = 32 < 45 \le 64 = 2^6$:
+   $$\text{Bits}_{\text{opcode}} = \mathbf{6\text{ bits}}$$
+
+2. **Determine Register Field Width:**
+   For $64$ registers:
+   $$\text{Bits}_{\text{reg}} = \log_2(64) = \log_2(2^6) = \mathbf{6\text{ bits}}$$
+   Two register operands consume:
+   $$2 \times 6 = \mathbf{12\text{ bits}}$$
+
+3. **Calculate Remaining Bits for Immediate Value ($k$):**
+   $$k = 32 - (\text{Opcode} + \text{Register}_1 + \text{Register}_2)$$
+   $$k = 32 - (6 + 6 + 6) = 32 - 18 = \mathbf{14\text{ bits}}$$
+
+4. **Calculate Maximum Unsigned Integer Representable in $14\text{ Bits}$:**
+   For an unsigned integer of $k = 14\text{ bits}$:
+   $$\text{Range} = [0, 2^k - 1]$$
+   $$\text{Max Value} = 2^{14} - 1 = 16,384 - 1 = \mathbf{16,383}$$
+
+**Final Conclusion:** The maximum unsigned integer representable in the immediate field is **$16,383$**.
+
+---
+
+### Example 3: Multi-Mode Effective Address Computation & Memory Trace
+**Problem Statement:**  
+A hypothetical processor executes an instruction `LOAD R0, [Operand]` located at memory address $1,000$. The instruction specifies an address field containing the value $500$. The current CPU architectural state and memory contents are as follows:
+
+* Program Counter ($PC$): $1,001$ (already incremented past current instruction)
+* Base Register ($BR$): $300$
+* Index Register ($XR$): $150$
+* General Register $R_1$: $400$
+
+**Memory Contents Table:**
+* $M[400] = 700$
+* $M[500] = 800$
+* $M[650] = 950$
+* $M[800] = 1,200$
+* $M[1,501] = 2,500$
+
+Determine the **Effective Address ($EA$)** and the **Operand Value** loaded into register $R_0$ under each of the following five addressing modes:
+1. Direct Addressing Mode (Address field = $500$)
+2. Memory Indirect Addressing Mode (Address field = $500$)
+3. Register Indirect Addressing Mode (Specified Register = $R_1$)
+4. Indexed Addressing Mode (Base = $500$, Index Register = $XR$)
+5. PC-Relative Addressing Mode (Offset = $500$)
+
+**Step-by-Step Solution:**
+
+1. **Direct Mode:**
+   * Formula: $EA = A = 500$
+   * Memory Access: $M[500]$
+   * **Result:** $EA = \mathbf{500}, \quad \text{Operand} = \mathbf{800}$
+
+2. **Memory Indirect Mode:**
+   * Formula: $EA = M[A] = M[500] = 800$
+   * Memory Access: $M[EA] = M[800]$
+   * **Result:** $EA = \mathbf{800}, \quad \text{Operand} = \mathbf{1,200}$
+
+3. **Register Indirect Mode ($R_1$):**
+   * Formula: $EA = [R_1] = 400$
+   * Memory Access: $M[400]$
+   * **Result:** $EA = \mathbf{400}, \quad \text{Operand} = \mathbf{700}$
+
+4. **Indexed Mode:**
+   * Formula: $EA = \text{Base} + [XR] = 500 + 150 = 650$
+   * Memory Access: $M[650]$
+   * **Result:** $EA = \mathbf{650}, \quad \text{Operand} = \mathbf{950}$
+
+5. **PC-Relative Mode:**
+   * Formula: $EA = PC + \text{Offset} = 1,001 + 500 = 1,501$
+   * Memory Access: $M[1,501]$
+   * **Result:** $EA = \mathbf{1,501}, \quad \text{Operand} = \mathbf{2,500}$
+
+**Summary Matrix:**
+* Direct: $EA = 500$, Value $= 800$
+* Memory Indirect: $EA = 800$, Value $= 1,200$
+* Register Indirect: $EA = 400$, Value $= 700$
+* Indexed: $EA = 650$, Value $= 950$
+* PC-Relative: $EA = 1,501$, Value $= 2,500$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Question 1: Why does Register Indirect mode require only 1 memory access, whereas Memory Indirect mode requires 2 memory accesses?**  
+  *Answer:* In Register Indirect mode, the pointer (effective address) is already stored inside a CPU register ($R_i$). Register access is instantaneous and requires zero memory bus transactions. The CPU directly outputs $R_i$ onto the Memory Address Bus, resulting in exactly **one memory reference** (to read the data). In Memory Indirect mode, the pointer is stored in RAM; the CPU must first perform a memory read to fetch the pointer address from $M[A]$, and then perform a second memory read to fetch the actual operand from $M[EA]$.
+
+* **Question 2: What is the crucial difference between Base Register mode and Indexed addressing mode?**  
+  *Answer:* While both add a register to an address offset, their architectural roles are inversed:
+  * In **Base Register Mode**, the register holds the starting address of a program (large, variable), and the instruction contains a small constant offset. It is used by operating systems for **program relocation**.
+  * In **Indexed Mode**, the instruction contains the starting address of an array (constant), and the register holds the dynamic index (small, variable counter). It is used by programs for **array iteration**.
+
+* **Question 3: In PC-Relative addressing, which value of $PC$ is used during effective address calculation?**  
+  *Answer:* In virtually all modern pipelined architectures, the $PC$ is incremented during the Instruction Fetch (IF) stage. Therefore, by the time the instruction reaches the Decode (ID) or Execute (EX) stage where the effective address is computed, the $PC$ already points to the **next instruction** ($PC + 4$ in 32-bit systems). The relative offset is added to this updated $PC$, not the address of the current branch instruction itself.
+:::
+
+:::warning Common Interview Traps
+* **Trap 1: Counting Instruction Fetch as a Memory Reference for the Operand.**  
+  When an exam problem asks for "the number of memory references required to access the operand," candidates frequently count the instruction fetch cycle itself. An instruction fetch accesses the *instruction*, not the *operand*. For Immediate and Register Direct modes, operand memory references are strictly **$0$**; for Direct and Register Indirect, it is **$1$**; for Memory Indirect, it is **$2$**.
+
+* **Trap 2: Confusing Auto-Increment Pre-Increment vs Post-Increment.**  
+  Always verify whether a architecture implements *pre-increment* ($R_i \leftarrow R_i + d$, then $EA = [R_i]$) or *post-increment* ($EA = [R_i]$, then $R_i \leftarrow R_i + d$). Standard Auto-Increment is almost universally post-increment, while Auto-Decrement is almost universally pre-decrement. This exact pair allows painless implementation of Last-In-First-Out stacks without manual pointer offsets.
+
+* **Trap 3: Assuming Immediate Addressing Mode has an Effective Address.**  
+  Immediate mode does not have an Effective Address because the data does not reside in memory. The value is embedded inside the instruction register. Stating that the effective address is the instruction's address or $0$ is an architectural error.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "6.1 Instruction Formats, Word Encoding & Opcode Expansion",
+    url: "/coredose/coa/module-06/instruction-formats-and-opcode-expansion",
+  }}
+  next={{
+    title: "6.3 RISC vs CISC Architectural Design & Register Windowing",
+    url: "/coredose/coa/module-06/risc-vs-cisc-architectural-comparison",
+  }}
+  courseUrl="/coredose/coa"
+/>

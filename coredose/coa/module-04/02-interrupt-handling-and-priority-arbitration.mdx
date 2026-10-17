@@ -1,0 +1,678 @@
+---
+title: "4.2 Interrupt Handling, Priority Arbitration & Daisy Chaining"
+description: "Master programmed I/O vs interrupt-driven architectures, the micro-architectural hardware interrupt lifecycle, vectored vs non-vectored dispatch, daisy-chain serial arbitration, and parallel priority encoders with rigorous mathematical timing and production OS analysis."
+keywords: [
+  "Interrupt-Driven I/O",
+  "Daisy Chaining",
+  "Interrupt Vector Table",
+  "Priority Arbitration",
+  "Priority Encoder",
+  "Programmed I/O vs Interrupts",
+  "Interrupt Service Routine",
+  "Instruction Boundary",
+  "Computer Organization and Architecture"
+]
+hide_table_of_contents: true
+---
+
+import CoreDoseLessonHeader from '@site/src/components/CoreDose/CoreDoseLessonHeader';
+import CoreDoseTOC from '@site/src/components/CoreDose/CoreDoseTOC';
+import CoreDoseNav from '@site/src/components/CoreDose/CoreDoseNav';
+import ArchitectureStack from '@site/src/components/CoreDose/Diagrams/ArchitectureStack';
+import FlowPipeline from '@site/src/components/CoreDose/Diagrams/FlowPipeline';
+import ConceptComparison from '@site/src/components/CoreDose/Diagrams/ConceptComparison';
+import SubsystemGrid from '@site/src/components/CoreDose/Diagrams/SubsystemGrid';
+import ExecutionBlueprint from '@site/src/components/CoreDose/Diagrams/ExecutionBlueprint';
+import FlowDiagram from '@site/src/components/CoreDose/Diagrams/FlowDiagram';
+import MathBox from '@site/src/components/CoreDose/Diagrams/MathBox';
+
+# 4.2 Interrupt Handling, Priority Arbitration & Daisy Chaining
+
+<CoreDoseLessonHeader
+  module="04"
+  topic="4.2"
+  readTime="16 min"
+  difficulty="Advanced Architectural"
+  prerequisites="Topic 4.1 (I/O System Architectures & Handshaking)"
+  relevance="Modern multi-core processors rely entirely on hardware interrupts to coordinate billions of operations across NVMe storage, network packets, timer ticks, and GPU rendering pipelines without locking the CPU in wasteful polling loops."
+/>
+
+## 💡 Core Intuition:
+
+### 🍳 The Everyday Analogy:
+Imagine you are baking a cake while cooking dinner:
+* **The Polling (Programmed I/O) Approach:** Every 10 seconds, you stop chopping vegetables, walk over to the oven, open the door, and check if the cake is golden brown. Because the cake takes 45 minutes to bake, you inspect the oven 270 times. During 269 of those checks, the cake is not ready. You waste nearly all your productive culinary energy simply *checking status*.
+* **The Interrupt-Driven Approach:** You put the cake in the oven and set a loud electronic timer. Now, you chop vegetables, simmer sauce, and prepare salad with 100% of your attention. When the timer chimes, the auditory alarm **interrupts** your train of thought at a natural stopping point (after finishing your current knife cut). You save your place on the cutting board, walk to the oven, retrieve the cake, and immediately resume dinner preparation right where you left off.
+* **The Daisy Chaining Analogy:** If three guests at a conference table all raise their hands to speak into a single roving microphone, the moderator passes the microphone to Guest 1. If Guest 1 wants to speak, they grip the microphone and talk; guests further down the table must wait. If Guest 1 does not wish to speak, they hand the microphone downstream to Guest 2, who in turn can speak or pass it to Guest 3. The physical placement along the cable establishes strict, hardwired priority.
+
+### 💻 Bridging to Computer Science:
+In digital computer systems:
+1. **Programmed I/O (Polling)** forces the central processor to execute a tight loop reading an I/O device's status register (`STATUS_BUSY`). Because human keystrokes or mechanical disk seeks are orders of magnitude slower than gigahertz CPU clocks, polling wastes millions of clock cycles doing zero useful compute.
+2. **Interrupt-Driven I/O** frees the processor from waiting. The CPU commands an I/O peripheral to initiate a task and immediately switches to other computing work. When the peripheral finishes or requires attention, its hardware interface asserts an electrical voltage on the processor's **Interrupt Request ($\text{INTR}$)** pin.
+3. The processor finishes executing its current instruction, pushes its return address (Program Counter) and status flags (Program Status Word) onto the stack, acknowledges the interrupt via the **Interrupt Acknowledge ($\overline{\text{INTA}}$)** signal, fetches the starting address of the corresponding **Interrupt Service Routine (ISR)** from an **Interrupt Vector Table (IVT)**, and executes the handler.
+4. When multiple peripherals assert $\text{INTR}$ simultaneously, hardware arbiters—such as **Daisy Chaining** (serial priority grant) or **Parallel Priority Encoders**—resolve contention deterministically.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## Programmed I/O vs. Interrupt-Driven I/O
+
+The transfer of data between the central processor and external peripherals fundamentally dictates system throughput. Early computer architectures relied entirely on software-driven synchronization.
+
+<ConceptComparison
+  title="Programmed I/O vs. Interrupt-Driven I/O Architectural Comparison"
+  subtitle="The fundamental trade-off between processor-bound polling and asynchronous event-driven hardware signaling"
+  concepts={[
+    {
+      badge: "Programmed I/O",
+      title: "Polling / Busy-Waiting",
+      icon: "🔄",
+      color: "rose",
+      domain: "Simple Microcontrollers, Real-Time Low-Jitter Loops",
+      points: [
+        "CPU repeatedly executes instructions to read device Status Register until Ready bit is asserted.",
+        "CPU is 100% monopolized in a tight spin-lock loop during slow peripheral operations.",
+        "Extremely high CPU overhead; throughput collapses when multiple slow devices are attached.",
+        "Deterministic latency: response time is tightly bounded by loop iteration time."
+      ],
+      quote: "The CPU asks the peripheral: 'Are you ready yet? Are you ready yet? Are you ready yet?'"
+    },
+    {
+      badge: "Interrupt-Driven I/O",
+      title: "Asynchronous Hardware Signaling",
+      icon: "⚡",
+      color: "emerald",
+      domain: "Modern Multi-Tasking Operating Systems & High-Throughput CPUs",
+      points: [
+        "CPU issues start command and immediately context-switches to execute user processes.",
+        "Peripheral asserts physical INTR pin when its data buffer is filled or ready.",
+        "CPU overhead is strictly limited to the ISR execution time and context save/restore.",
+        "Enables true concurrency between CPU instruction execution and I/O peripheral operations."
+      ],
+      quote: "The peripheral alerts the CPU: 'I am finished with the data. Service me now!'"
+    }
+  ]}
+/>
+
+### The Cost of Polling: A Mathematical Breakdown
+
+Consider a high-speed optical scanner that transfers data at $10\text{ KB/s}$ ($10,000\text{ bytes/sec}$) to a processor running at $100\text{ MHz}$ ($1\text{ clock cycle} = 10\text{ ns}$). The device transfers data one byte at a time.
+* Between successive bytes, the time elapsed is:
+  $$\Delta t = \frac{1}{10,000\text{ B/s}} = 100\text{ }\mu\text{s} = 100,000\text{ ns}$$
+* In $100,000\text{ ns}$, a $100\text{ MHz}$ CPU can execute:
+  $$N_{\text{cycles}} = \frac{100,000\text{ ns}}{10\text{ ns}} = 10,000\text{ CPU clock cycles}$$
+* **Under Programmed I/O:** The processor executes a 4-instruction status polling loop ($20\text{ clock cycles}$ per iteration) $500$ times while waiting for each byte. Over $99.9\%$ of CPU execution capacity is completely destroyed by spin-locking.
+* **Under Interrupt-Driven I/O:** The CPU spends 10,000 clock cycles running productive user application threads. When the byte arrives, an interrupt triggers an ISR that takes only $50\text{ cycles}$ to read the byte and update pointers, consuming less than $0.5\%$ of processor bandwidth.
+
+---
+
+## The Hardware Interrupt Lifecycle & State Transitions
+
+An interrupt is an asynchronous signal generated by external hardware to halt the normal execution flow of the processor. To guarantee architectural correctness, the CPU hardware must handle interrupts through a deterministic multi-stage protocol.
+
+### The Sacred Rule of Instruction Boundaries
+
+> [!IMPORTANT]
+> **Interrupts are NEVER serviced in the middle of standard instruction execution.**  
+> An instruction is atomic in nature. The processor evaluates its hardware interrupt lines **only at the completion of the current instruction execution phase** (at the instruction boundary), immediately before fetching the next instruction. Servicing an interrupt mid-instruction would leave internal ALU flags, register write-backs, and pipeline stages in an undefined, corrupted state.
+
+<FlowPipeline
+  title="The 4-Phase Hardware Interrupt Dispatch Sequence"
+  subtitle="Micro-architectural execution from physical assertion through context switch and ISR return"
+  steps={[
+    {
+      badge: "Phase 1",
+      title: "Boundary Check",
+      icon: "🔍",
+      color: "blue",
+      description: "CPU finishes executing current instruction and samples internal Interrupt Request Register (IRR).",
+      details: "If INTR = 1 and Interrupt Enable (IE) = 1, CPU begins interrupt cycle at the instruction boundary."
+    },
+    {
+      badge: "Phase 2",
+      title: "Context Push",
+      icon: "💾",
+      color: "purple",
+      description: "CPU decrements SP and pushes Program Counter (PC) and Program Status Word (PSW) onto the stack.",
+      details: "Hardware automatically clears IE = 0 to prevent recursive preemption during vector fetch."
+    },
+    {
+      badge: "Phase 3",
+      title: "Vector Retrieval",
+      icon: "⚡",
+      color: "amber",
+      description: "CPU asserts active-low INTA pulse on bus; peripheral responds by driving Vector Address (V) onto data bus.",
+      details: "CPU latches vector and computes entry address in the Interrupt Vector Table (IVT)."
+    },
+    {
+      badge: "Phase 4",
+      title: "Branch & ISR",
+      icon: "🚀",
+      color: "emerald",
+      description: "CPU loads PC from Vector Table and begins fetching instructions from the registered ISR handler.",
+      details: "Software ISR services peripheral buffer, clears request bit, and terminates with an atomic IRET instruction."
+    }
+  ]}
+/>
+
+### Step-by-Step Micro-Operation Breakdown
+
+When the CPU acknowledges an interrupt, it suspends the current program sequence through the following hardware micro-operations:
+
+1. **Instruction Completion:** The processor finishes the execution phase ($EX$) and write-back phase ($WB$) of the current instruction $I_k$. The Program Counter ($PC$) holds the address of the next unexecuted instruction, $I_{k+1}$.
+2. **Hardware State Preservation:**
+   * Memory stack push:
+     $$SP \leftarrow SP - 1, \quad M[SP] \leftarrow PC$$
+   * Status flags push:
+     $$SP \leftarrow SP - 1, \quad M[SP] \leftarrow PSW$$
+3. **Interrupt Acknowledgment ($\overline{\text{INTA}}$):** The CPU generates one or two $\overline{\text{INTA}}$ pulses on the control bus. This informs all attached interfaces that their interrupt request is being accepted.
+4. **Vector Address Fetch:** The interrupting interface decodes the $\overline{\text{INTA}}$ pulse and places an 8-bit or 16-bit **Vector Address** or **Vector Index** onto the system data bus.
+5. **PC Redirection:** The CPU reads the vector and sets:
+   $$PC \leftarrow \text{ISR Base Address}$$
+6. **Execution of ISR:** The CPU executes the software instructions inside the ISR. If the ISR requires additional registers (e.g., $R_0, R_1$), the software routine pushes them onto the stack at entry and pops them before exit.
+7. **Return from Interrupt (`IRET` / `RETI`):** The final instruction of the ISR is an atomic `IRET`. The CPU executes:
+   $$PSW \leftarrow M[SP], \quad SP \leftarrow SP + 1$$
+   $$PC \leftarrow M[SP], \quad SP \leftarrow SP + 1$$
+   $$\text{IE} \leftarrow 1 \quad (\text{Interrupts Re-enabled})$$
+   The interrupted process resumes execution at instruction $I_{k+1}$ with zero knowledge that an interruption ever took place.
+
+---
+
+## Vectored vs. Non-Vectored Interrupts
+
+A fundamental design decision in processor architecture is how the CPU discovers the memory location of the appropriate ISR.
+
+<SubsystemGrid
+  title="Vectored vs Non-Vectored Interrupt Architectures"
+  subtitle="Comparing hardwired single-handler architectures with dynamic vector address bus protocols"
+  items={[
+    {
+      icon: "🎯",
+      title: "Vectored Interrupts",
+      tag: "Dynamic Hardware Addressing",
+      color: "blue",
+      points: [
+        "The interrupting peripheral supplies the vector address or interrupt vector number directly to the CPU over the data bus during the INTA cycle.",
+        "The CPU uses this vector as an offset into a dedicated memory table (Interrupt Vector Table / IDT).",
+        "Direct branch: Zero CPU software polling is required to determine which device requested service.",
+        "Highly scalable; supports hundreds of independent device drivers with minimal dispatch latency."
+      ],
+      syscalls: ["INT n", "IVT[V]", "MSI-X"]
+    },
+    {
+      icon: "📌",
+      title: "Non-Vectored Interrupts",
+      tag: "Fixed Hardware Branch",
+      color: "purple",
+      points: [
+        "The CPU always branches to a single, predetermined, hardwired memory address (e.g., 0x0008 or 0x0018) regardless of which device triggered the interrupt.",
+        "The code located at that fixed address is a generic dispatcher routine.",
+        "The dispatcher must sequentially read the status registers of all connected peripherals (Software Polling) to discover who fired the interrupt.",
+        "Low hardware complexity, but introduces significant software latency for low-priority peripherals."
+      ],
+      syscalls: ["TRAP (0x0024)", "RST 5.5", "Fixed Trap"]
+    }
+  ]}
+/>
+
+### Interrupt Vector Table (IVT) Mechanics
+
+In a vectored system, a reserved block of low physical memory (or an address referenced by a dedicated **Interrupt Vector Base Register (VBR / IDTR)**) contains pointers to each routine:
+
+<MathBox title="Interrupt Vector Address Computation" type="formula">
+
+If the Interrupt Vector Table starts at base address $B_{\text{IVT}}$, each vector table entry is $S_e\text{ bytes}$ wide, and the interrupting device supplies vector number $V$:
+
+$$\text{Vector Table Entry Address} = B_{\text{IVT}} + (V \times S_e)$$
+
+$$\text{Target ISR Address } = \text{Memory}\big[B_{\text{IVT}} + (V \times S_e)\big]$$
+
+For example, in x86 real-mode architecture:
+* $B_{\text{IVT}} = 0\text{x}00000$
+* Each entry is $4\text{ bytes}$ ($2\text{ bytes Segment} + 2\text{ bytes Offset}$)
+* For Interrupt Vector $V = 8$ (System Timer):
+  $$\text{Table Entry Address} = 0 + (8 \times 4) = 32 = 0\text{x}00020$$
+  The CPU loads the 4 bytes at physical address `0x00020` into `CS:IP`.
+
+</MathBox>
+
+---
+
+## Hardware Priority Arbitration: Daisy Chaining (Serial Priority)
+
+When multiple peripherals share a single processor interrupt line, a conflict arises if two or more devices request service simultaneously. The system requires an **arbitration mechanism** to decide which peripheral gets serviced first.
+
+Arbitration can be implemented in **Software** (sequential polling) or **Hardware** (serial or parallel). The standard serial hardware method is **Daisy Chaining**.
+
+### Daisy Chain Circuit Architecture
+
+In a daisy-chained system:
+1. All devices share a single, common active-low **Interrupt Request ($\overline{\text{INTR}}$)** line wired in an open-collector (wired-OR) configuration with a pull-up resistor to $+5\text{V}$.
+2. The processor's **Interrupt Acknowledge ($\overline{\text{INTA}}$)** signal is connected exclusively to the **Priority-In ($PI$)** pin of the first physical device (**Device 1**).
+3. The **Priority-Out ($PO$)** pin of Device 1 is connected to the $PI$ pin of Device 2, and this chain cascades sequentially down to Device $N$.
+4. **Physical Placement Dictates Priority:** Device 1 (closest to the CPU) has the highest priority. Device $N$ (farthest from the CPU) has the lowest priority.
+
+<FlowDiagram
+  title="Daisy Chaining Priority Interrupt Hardware Architecture"
+  subtitle="Textbook hardware standard (Morris Mano Fig 11-12) showing serial INTA grant propagation and common wired-OR /INTR bus"
+  width={1000}
+  domains={[
+    { id: "daisy_chain", title: "Daisy-Chained Priority Interrupt System (Morris Mano Fig 11-12)", color: "blue", icon: "⚡", position: "top" }
+  ]}
+  nodes={[
+    { id: "cpu", domain: "daisy_chain", col: 0, row: 0, title: "Central CPU", sublabel: "Master Arbiter", badge: "Host Core", icon: "🧠", color: "blue" },
+    { id: "dev1", domain: "daisy_chain", col: 1, row: 0, title: "Device 1 (Highest)", sublabel: "PI1 = INTA, PO1", badge: "Priority #1", icon: "⚡", color: "emerald" },
+    { id: "dev2", domain: "daisy_chain", col: 2, row: 0, title: "Device 2", sublabel: "PI2 = PO1, PO2", badge: "Priority #2", icon: "🔌", color: "purple" },
+    { id: "dev3", domain: "daisy_chain", col: 3, row: 0, title: "Device 3 (Lowest)", sublabel: "PI3 = PO2", badge: "Priority #3", icon: "💾", color: "rose" }
+  ]}
+  edges={[
+    { from: "cpu", to: "dev1", fromPort: "right", toPort: "left", step: "1", label: "INTA (PI1)", labelOffsetY: -22, details: "CPU asserts active-low INTA pulse directly into Device 1 Priority-In (PI1) pin at the instruction boundary." },
+    { from: "dev1", to: "dev2", fromPort: "right", toPort: "left", step: "2", label: "PO1 -> PI2", labelOffsetY: -22, details: "If Device 1 requested an interrupt (R1=1), it pulls PO1=0 and captures grant. If idle (R1=0), it passes PO1=1 to Device 2." },
+    { from: "dev2", to: "dev3", fromPort: "right", toPort: "left", step: "3", label: "PO2 -> PI3", labelOffsetY: -22, details: "If Device 2 is idle (R2=0), it passes PO2=1 downstream to Device 3. Gate equation: PO2 = PI2 · NOT(R2)." },
+    { from: "dev3", to: "cpu", fromPort: "bottom", toPort: "bottom", bend: 46, step: "4", label: "Shared /INTR Bus", labelOffsetY: 14, details: "All devices share a common open-collector /INTR line pulled high to +5V. Any device needing service pulls this line low." }
+  ]}
+/>
+
+<FlowPipeline
+  title="Daisy Chaining Serial Priority Execution Flow"
+  subtitle="Serial grant propagation cascading from highest-priority interface to lowest"
+  steps={[
+    {
+      badge: "Step 1",
+      title: "Common INTR Assert",
+      icon: "📢",
+      color: "blue",
+      description: "Any requesting peripheral pulls the shared wired-OR INTR line low.",
+      details: "CPU control unit samples INTR at instruction boundary and initiates the interrupt cycle."
+    },
+    {
+      badge: "Step 2",
+      title: "Grant Evaluation (Dev 1)",
+      icon: "⚡",
+      color: "emerald",
+      description: "CPU drives INTA into PI1. If Dev 1 is requesting, it seizes the bus and forces PO1 = 0.",
+      details: "Dev 1 places its 8-bit vector address on the data bus and inhibits downstream devices."
+    },
+    {
+      badge: "Step 3",
+      title: "Grant Forwarding (Dev 2)",
+      icon: "🔌",
+      color: "purple",
+      description: "If Dev 1 is idle, it asserts PO1 = 1, passing the grant token to Dev 2 PI2.",
+      details: "Dev 2 repeats the decision logic: PO2 = PI2 · NOT(R2)."
+    },
+    {
+      badge: "Step 4",
+      title: "Tail Service (Dev N)",
+      icon: "⏳",
+      color: "rose",
+      description: "Dev N is serviced only if all upstream interfaces are completely idle.",
+      details: "Vulnerable to starvation: high arrival rates at Device 1 or 2 permanently lock out Device N."
+    }
+  ]}
+/>
+
+### Internal Logic Gate Operation Inside Each Interface
+
+Each device interface contains dedicated combinatorial logic to evaluate whether to consume the acknowledge token or pass it along:
+
+<MathBox title="Daisy Chain Interface Logic Equations" type="definition">
+
+Let $R_i$ be the internal interrupt request flag of Device $i$ ($R_i = 1$ if requesting, $0$ otherwise).  
+Let $PI_i$ be the Priority-In signal entering Device $i$.  
+Let $PO_i$ be the Priority-Out signal generated by Device $i$ for Device $i+1$.  
+Let $V_i$ be the vector enable line placing the device's vector address onto the data bus.
+
+The internal logic is governed by:
+
+$$PO_i = PI_i \cdot \overline{R_i}$$
+
+$$V_i = PI_i \cdot R_i$$
+
+</MathBox>
+
+* **Case 1: Device $i$ requested an interrupt ($R_i = 1$) and receives $PI_i = 1$:**
+  * $PO_i = 1 \cdot \overline{1} = 0$: Device $i$ pulls $PO_i$ low, blocking all downstream devices ($i+1, i+2, \dots$).
+  * $V_i = 1 \cdot 1 = 1$: Device $i$ enables its tri-state bus transceivers and drives its vector address onto the data bus.
+* **Case 2: Device $i$ does NOT want an interrupt ($R_i = 0$) and receives $PI_i = 1$:**
+  * $PO_i = 1 \cdot \overline{0} = 1$: The grant token passes cleanly through to Device $i+1$.
+  * $V_i = 1 \cdot 0 = 0$: Device $i$ leaves the data bus in high-impedance ($Z$) state.
+* **Case 3: Device $i$ receives $PI_i = 0$ (an upstream device intercepted the grant):**
+  * $PO_i = 0 \cdot \overline{R_i} = 0$: The grant is blocked.
+  * $V_i = 0 \cdot R_i = 0$: No vector is driven.
+
+### Mathematical Analysis of Daisy Chain Propagation Delay
+
+While daisy chaining requires minimal wiring (only one $\overline{\text{INTR}}$ and one looped $\overline{\text{INTA}}$ wire), its primary disadvantage is **linear propagation latency**.
+
+<MathBox title="Daisy Chain Maximum Propagation Latency" type="theorem">
+
+If a daisy-chained system connects $N$ peripheral devices, and each interface introduces an internal gate propagation delay of $t_g$:
+
+$$\text{Worst-Case Propagation Delay } \tau_{\text{daisy}} = (N - 1) \cdot t_g + t_{\text{bus}}$$
+
+Where $t_{\text{bus}}$ is the bus settling and transceiver enable time.
+
+To ensure correct vector latching without bus timing violations, the processor's $\overline{\text{INTA}}$ pulse width $T_{\text{INTA}}$ must satisfy:
+
+$$T_{\text{INTA}} \ge (N \times t_g) + t_{\text{setup}}$$
+
+**Engineering Consequence:** If the number of devices $N$ is large, the processor must inject bus wait-states during the interrupt acknowledge cycle, severely capping the maximum allowable bus clock frequency.
+
+</MathBox>
+
+---
+
+## Parallel Priority Arbiters & Priority Encoders
+
+To eliminate the $O(N)$ propagation delay of serial daisy chains, high-performance systems employ **Parallel Priority Arbiters** using combinational priority encoders.
+
+### Functional Building Blocks
+
+A parallel arbiter consists of four hardware stages implemented inside a specialized peripheral controller (such as the classic Intel 8259A PIC or modern APIC):
+
+<SubsystemGrid
+  title="Internal Architecture of Parallel Priority Arbiter"
+  subtitle="Hardware subsystems of an O(1) combinational interrupt controller"
+  items={[
+    {
+      icon: "📥",
+      title: "Interrupt Request Register (IRR)",
+      tag: "Asynchronous Latch",
+      color: "blue",
+      points: [
+        "Latches incoming interrupt request levels from peripheral pins (IR0 to IR7).",
+        "Preserves pending requests even if peripheral line pulses transiently.",
+        "Bit i is set when device i asserts its request line."
+      ],
+      syscalls: ["IR0..IR7", "Edge/Level Detect"]
+    },
+    {
+      icon: "🛡️",
+      title: "Interrupt Mask Register (IMR)",
+      tag: "Software Masking",
+      color: "amber",
+      points: [
+        "8-bit programmable register configured by CPU I/O write instructions.",
+        "Bit i = 1 disables (masks) the corresponding interrupt level.",
+        "Bitwise AND with IRR produces active, unmasked candidates."
+      ],
+      syscalls: ["cli / sti", "out 0x21, AL"]
+    },
+    {
+      icon: "⚡",
+      title: "8-to-3 Priority Encoder",
+      tag: "O(1) Resolution Logic",
+      color: "purple",
+      points: [
+        "Combinational gate network evaluating all active lines in parallel.",
+        "Directly outputs 3-bit binary index (Y2, Y1, Y0) of highest-priority input.",
+        "Zero sequential latency: resolves contention in ~2 to 3 ns gate delay."
+      ],
+      syscalls: ["Y2 Y1 Y0", "Valid Bit"]
+    },
+    {
+      icon: "🎯",
+      title: "In-Service Register (ISR)",
+      tag: "Preemption Tracking",
+      color: "emerald",
+      points: [
+        "Stores the priority level currently being serviced by the CPU core.",
+        "Allows higher-priority interrupts to preempt the current ISR (nesting).",
+        "Cleared by End-of-Interrupt (EOI) command on ISR exit."
+      ],
+      syscalls: ["EOI (0x20)", "Priority Nesting"]
+    }
+  ]}
+/>
+
+### 8-to-3 Truth Table & Logic Equations
+
+Assuming $D_0$ has the highest priority and $D_7$ has the lowest:
+
+| $D_0$ | $D_1$ | $D_2$ | $D_3$ | $D_4$ | $D_5$ | $D_6$ | $D_7$ | $Y_2$ | $Y_1$ | $Y_0$ | Valid ($V$) |
+|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|:-----------:|
+| 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | X | X | X | **0** |
+| **1** | X | X | X | X | X | X | X | 0 | 0 | 0 | **1** |
+| 0 | **1** | X | X | X | X | X | X | 0 | 0 | 1 | **1** |
+| 0 | 0 | **1** | X | X | X | X | X | 0 | 1 | 0 | **1** |
+| 0 | 0 | 0 | **1** | X | X | X | X | 0 | 1 | 1 | **1** |
+| 0 | 0 | 0 | 0 | **1** | X | X | X | 1 | 0 | 0 | **1** |
+| 0 | 0 | 0 | 0 | 0 | **1** | X | X | 1 | 0 | 1 | **1** |
+| 0 | 0 | 0 | 0 | 0 | 0 | **1** | X | 1 | 1 | 0 | **1** |
+| 0 | 0 | 0 | 0 | 0 | 0 | 0 | **1** | 1 | 1 | 1 | **1** |
+
+The output lines $Y_2, Y_1, Y_0$ are fed to an internal adder that adds an architectural base offset (e.g., $0\text{x}20$ in x86 PC systems) to generate the final vector number transmitted on the data bus.
+
+---
+
+## 🏭 Real-World Production Context: Linux Kernel & Modern PCIe MSI-X
+
+Understanding how physical interrupt arbitration maps into modern production systems reveals why hardware-software co-design is critical.
+
+### Linux HardIRQ vs. SoftIRQ (Top-Half & Bottom-Half Split)
+
+When a $100\text{ Gbps}$ network card generates an interrupt, servicing the entire packet inside the hardware ISR would lock the processor and drop incoming packets. The Linux kernel solves this via a two-phase architecture:
+
+<ExecutionBlueprint
+  title="Linux Kernel Two-Phase Interrupt Architecture"
+  subtitle="De-coupling urgent hardware acknowledgment from deferred processing"
+  actors={[
+    { name: "NIC Device", icon: "⚡" },
+    { name: "CPU Core", icon: "🧠" },
+    { name: "Kernel Driver", icon: "🛡️" },
+    { name: "User Space", icon: "👤" }
+  ]}
+  steps={[
+    {
+      from: "NIC Device",
+      to: "CPU Core",
+      phase: "Physical Assert",
+      action: "NIC asserts MSI-X vector. CPU finishes instruction, pushes PC/PSW onto stack, and jumps to registered HardIRQ handler.",
+      code: "MSI-X Vector Write"
+    },
+    {
+      from: "CPU Core",
+      to: "Kernel Driver",
+      phase: "Top-Half (HardIRQ)",
+      action: "Runs with interrupts disabled. Acknowledges hardware, enqueues descriptor into DMA ring, schedules SoftIRQ, and exits immediately (< 5 µs).",
+      code: "napi_schedule()"
+    },
+    {
+      from: "Kernel Driver",
+      to: "Network Stack",
+      phase: "Bottom-Half (SoftIRQ)",
+      action: "Runs asynchronously with interrupts re-enabled. NAPI poller parses TCP/IP frames, performs checksums, and routes to socket queue.",
+      code: "net_rx_action()"
+    },
+    {
+      from: "Network Stack",
+      to: "User Application",
+      phase: "Socket Wakeup",
+      action: "User application thread blocked on epoll_wait() or read() wakes up with verified payload ready in memory.",
+      code: "epoll_wait() -> payload",
+      isReturn: true
+    }
+  ]}
+/>
+
+### Modern PCIe: Message Signaled Interrupts (MSI & MSI-X)
+
+In legacy PCI architectures, physical motherboards routed 4 physical interrupt wires (`INTA#`, `INTB#`, `INTC#`, `INTD#`) back to the central interrupt controller. In modern servers with 64 CPU cores and dozens of PCIe NVMe drives, physical wires create routing bottlenecks and pin count explosions.
+
+PCIe replaces physical wires with **Message Signaled Interrupts (MSI-X)**:
+* A PCIe device does **not** assert any physical voltage pin.
+* When the device needs service, it issues an inbound **32-bit Memory Write transaction** across the high-speed serial PCIe fabric directly to a memory-mapped architectural register inside the processor's **Local APIC**.
+* The payload of this memory write contains the vector number ($V$), and the address specifies the target CPU core.
+* **Advantage:** An NVMe drive or NIC can have up to $2,048$ distinct interrupt vectors, allowing each CPU core to service its own dedicated I/O queue with zero cross-core locking or bus contention!
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: CPU Overhead Comparison (Programmed vs. Interrupt-Driven)
+
+**Problem Statement:**  
+A peripheral device with a continuous data transfer rate of $50\text{ KB/s}$ ($50,000\text{ bytes/second}$) is connected to a CPU operating at a clock frequency of $20\text{ MHz}$. Data is transferred byte-by-byte.  
+* In **Programmed I/O mode**, the CPU executes a polling loop that takes $16\text{ clock cycles}$ per iteration to check the device status register.
+* In **Interrupt-Driven mode**, each byte transfer incurs an interrupt hardware context-save overhead of $8\text{ clock cycles}$, an ISR body execution time of $32\text{ clock cycles}$, and an `IRET` context-restore time of $10\text{ clock cycles}$.
+
+Calculate:
+1. The percentage of CPU time consumed under Programmed I/O mode.
+2. The percentage of CPU time consumed under Interrupt-Driven mode.
+3. The overall speedup / performance factor gained by operating in interrupt mode.
+
+**Step-by-Step Solution:**
+
+1. **Calculate Basic Timing Parameters:**
+   * CPU Clock Period:
+     $$T_{\text{clk}} = \frac{1}{20\text{ MHz}} = \frac{1}{20 \times 10^6\text{ Hz}} = 50\text{ ns}$$
+   * Time interval between successive byte arrivals from the device:
+     $$\Delta t = \frac{1}{50,000\text{ B/s}} = 20\text{ }\mu\text{s} = 20,000\text{ ns}$$
+   * Total CPU cycles available per byte interval:
+     $$\text{Cycles Available} = \frac{20,000\text{ ns}}{50\text{ ns}} = 400\text{ clock cycles}$$
+
+2. **Calculate Overhead for Programmed I/O:**
+   * In programmed I/O, the processor spends the entire waiting window executing the polling loop until the byte arrives.
+   * Number of polling loops executed per byte:
+     $$\text{Loops} = \frac{400\text{ cycles}}{16\text{ cycles/loop}} = 25\text{ iterations}$$
+   * Because the CPU cannot do any other work during this time:
+     $$\text{CPU Overhead}_{\text{Programmed}} = \mathbf{100\%}$$
+
+3. **Calculate Overhead for Interrupt-Driven I/O:**
+   * Total clock cycles required to service one interrupt:
+     $$C_{\text{ISR}} = C_{\text{save}} + C_{\text{body}} + C_{\text{restore}} = 8 + 32 + 10 = 50\text{ clock cycles}$$
+   * Time spent servicing the interrupt per byte:
+     $$T_{\text{service}} = 50 \times 50\text{ ns} = 2,500\text{ ns} = 2.5\text{ }\mu\text{s}$$
+   * Percentage of CPU time consumed:
+     $$\% \text{ Overhead}_{\text{Interrupt}} = \frac{C_{\text{ISR}}}{\text{Cycles Available}} \times 100\% = \frac{50}{400} \times 100\% = \mathbf{12.5\%}$$
+
+4. **Calculate Productive CPU Time & Performance Gain:**
+   * Under Programmed I/O, available user compute capacity = $0\%$.
+   * Under Interrupt-Driven I/O, available user compute capacity = $100\% - 12.5\% = 87.5\%$.
+   * If comparing the total processor time dedicated to I/O:
+     $$\text{Efficiency Gain Factor} = \frac{100\%}{12.5\%} = \mathbf{8\times\text{ Reduction in I/O Overhead}}$$
+
+---
+
+### Example 2: Daisy Chain Timing, Starvation & Clock Constraints
+
+**Problem Statement:**  
+An array of 12 peripheral interfaces are connected to a system bus using a Daisy Chaining priority scheme. The specifications of the system are as follows:
+* Each device interface has an internal propagation delay of $t_g = 15\text{ ns}$ from its $PI$ pin to its $PO$ pin.
+* The delay from the CPU asserting $\overline{\text{INTA}}$ to $PI_1$ is $5\text{ ns}$.
+* When the lowest-priority device receives its $PI$ signal, it requires $25\text{ ns}$ to decode the signal, enable its bus drivers, and place its vector address on the data bus.
+* The CPU data bus requires a setup time of $10\text{ ns}$ prior to the trailing edge of the $\overline{\text{INTA}}$ pulse.
+
+Calculate:
+1. The minimum allowable pulse duration ($T_{\text{INTA}}$) that the CPU must maintain on the $\overline{\text{INTA}}$ line to guarantee that Device 12 can be reliably serviced.
+2. If the CPU bus controller only supports $\overline{\text{INTA}}$ pulse widths up to $150\text{ ns}$, determine the maximum number of devices that can be safely daisy-chained.
+
+**Step-by-Step Solution:**
+
+1. **Calculate Minimum Pulse Duration for 12 Devices:**
+   * The acknowledge signal must propagate through the first 11 devices to reach Device 12 ($N = 12$):
+     $$\text{Propagation through } (N-1) \text{ devices} = (12 - 1) \times 15\text{ ns} = 11 \times 15\text{ ns} = 165\text{ ns}$$
+   * Add initial bus transit time from CPU:
+     $$t_{\text{transit}} = 5\text{ ns}$$
+   * Add Device 12 vector drive time:
+     $$t_{\text{drive}} = 25\text{ ns}$$
+   * Add CPU bus setup time:
+     $$t_{\text{setup}} = 10\text{ ns}$$
+   * Total minimum $\overline{\text{INTA}}$ pulse width:
+     $$T_{\text{INTA\_min}} = t_{\text{transit}} + (N - 1) \cdot t_g + t_{\text{drive}} + t_{\text{setup}}$$
+     $$T_{\text{INTA\_min}} = 5 + 165 + 25 + 10 = \mathbf{205\text{ ns}}$$
+
+2. **Calculate Maximum Devices for $T_{\text{INTA}} = 150\text{ ns}$:**
+   * Set up the inequality:
+     $$t_{\text{transit}} + (N - 1) \cdot t_g + t_{\text{drive}} + t_{\text{setup}} \le 150\text{ ns}$$
+     $$5 + (N - 1) \cdot 15 + 25 + 10 \le 150$$
+     $$40 + 15(N - 1) \le 150$$
+     $$15(N - 1) \le 110$$
+     $$N - 1 \le \frac{110}{15} \approx 7.33$$
+     $$N \le 8.33$$
+   * Since $N$ must be an integer:
+     $$N_{\text{max}} = \mathbf{8\text{ devices}}$$
+
+---
+
+### Example 3: Interrupt Vector Table Address Decoding
+
+**Problem Statement:**  
+A 32-bit computer system utilizes a Vectored Interrupt Architecture with an Interrupt Vector Table (IVT) located in memory starting at physical address `0x0000_1000`.
+* The system architecture specifies that each vector table entry contains a 32-bit ISR Starting Address followed by a 32-bit Initial Status Register (total entry size = $8\text{ bytes}$).
+* A hardware graphics accelerator interface is assigned **Interrupt Vector Number $V = 43$ (decimal)**.
+* During system initialization, the graphics driver's ISR is loaded into RAM starting at physical address `0x0045_8000`.
+
+Determine:
+1. The hexadecimal starting physical address of the IVT entry assigned to the graphics accelerator.
+2. The byte layout (in Little-Endian format) that the operating system loader must write into the IVT at that entry to initialize both the ISR address (`0x0045_8000`) and the default Status Register (`0x0000_0200`).
+
+**Step-by-Step Solution:**
+
+1. **Calculate the IVT Entry Address:**
+   * Base Address $B_{\text{IVT}} = 0\text{x}0000\_1000$
+   * Vector Index $V = 43_{10}$
+   * Entry Size $S_e = 8\text{ bytes}$
+   * Memory Offset:
+     $$\text{Offset} = V \times S_e = 43 \times 8 = 344_{10}\text{ bytes}$$
+   * Convert $344_{10}$ to hexadecimal:
+     $$344 = 1 \times 256 + 5 \times 16 + 8 = 0\text{x}0000\_0158$$
+   * Target IVT Entry Address:
+     $$\text{Entry Address} = 0\text{x}0000\_1000 + 0\text{x}0000\_0158 = \mathbf{0\text{x}0000\_1158}$$
+
+2. **Determine Little-Endian Byte Layout:**
+   * In Little-Endian storage, the least significant byte (LSB) is stored at the lowest memory address.
+   * **Field 1: ISR Starting Address (`0x0045_8000`)** occupying addresses `0x0000_1158` to `0x0000_115B`:
+     * Byte at `0x0000_1158`: `0x00` (Bits 7..0)
+     * Byte at `0x0000_1159`: `0x80` (Bits 15..8)
+     * Byte at `0x0000_115A`: `0x45` (Bits 23..16)
+     * Byte at `0x0000_115B`: `0x00` (Bits 31..24)
+   * **Field 2: Initial Status Register (`0x0000_0200`)** occupying addresses `0x0000_115C` to `0x0000_115F`:
+     * Byte at `0x0000_115C`: `0x00` (Bits 7..0)
+     * Byte at `0x0000_115D`: `0x02` (Bits 15..8)
+     * Byte at `0x0000_115E`: `0x00` (Bits 23..16)
+     * Byte at `0x0000_115F`: `0x00` (Bits 31..24)
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Question 1: Why does a processor push both the Program Counter ($PC$) and the Program Status Word ($PSW$) onto the stack during an interrupt, whereas a standard subroutine `CALL` only pushes the $PC$?**  
+  *Answer:* A subroutine `CALL` is a deliberate, planned software instruction written by the programmer; the programmer or compiler knows which registers and condition codes are dirty and explicitly preserves them if necessary. In contrast, an interrupt is completely asynchronous—it can occur after any arbitrary instruction (e.g., between a `CMP` and a conditional jump `JNE`). If the CPU does not automatically save the $PSW$ (which contains condition flags like Zero, Carry, Sign, and Overflow), the ISR instructions would overwrite those flags, causing the interrupted program to take the wrong branch upon return and inducing catastrophic data corruption.
+
+* **Question 2: In a daisy chain arbitration system, does physical proximity to the CPU confer an absolute advantage? What is the starvation hazard?**  
+  *Answer:* Yes. Device 1 is physically closest to the CPU and receives the $\overline{\text{INTA}}$ signal first. If Device 1 generates interrupts frequently (high arrival rate), it will continuously consume the acknowledge token by setting $PO_1 = 0$, completely starving downstream devices (Devices 2 through $N$) from ever receiving the grant token. Daisy chaining provides strictly non-uniform priority.
+
+* **Question 3: What is the critical distinction between Edge-Triggered and Level-Triggered interrupts in multi-device bus sharing?**  
+  *Answer:* An **Edge-Triggered** interrupt detects a low-to-high (rising) or high-to-low (falling) voltage transition. If two devices assert an edge-triggered line simultaneously, the line transitions once; after servicing the first device, the second device's request may be lost because no new edge occurs. A **Level-Triggered** interrupt detects a continuous logical voltage level (e.g., ground / $0\text{V}$). As long as any device still requires attention, the shared wired-OR line stays low, guaranteeing that the processor will re-enter the interrupt cycle at the next instruction boundary until all requesting devices have been satisfied.
+:::
+
+:::warning Common Interview Traps
+* **Trap 1: Assuming the CPU Immediately Halts Current Instruction Execution When an Interrupt Occurs.**  
+  Candidates frequently assert that an interrupt causes the CPU to instantly drop what it is doing mid-cycle. This is false! Instructions are executed to completion to preserve micro-architectural atomicity. The interrupt signal is merely latched into the Interrupt Request Register (IRR) and evaluated at the end of the current instruction's write-back phase.
+
+* **Trap 2: Confusing Interrupt Service Routine (ISR) with Interrupt Vector Table (IVT).**  
+  The IVT does **not** contain executable program code. The IVT is simply an array of 4-byte or 8-byte memory pointers (addresses). The IVT points to the ISR, which resides in the operating system's kernel code segment.
+
+* **Trap 3: Believing Daisy Chaining Provides Uniform Priority.**  
+  Daisy chaining is intrinsically asymmetric. It can never provide uniform or round-robin priority because the grant token is wired in series. Changing priority requires physically re-cabling the bus connections or inserting complex multiplexing switches.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "4.1 I/O System Architectures: Memory-Mapped vs Isolated I/O",
+    url: "/coredose/coa/module-04/io-system-architectures-memory-mapped-vs-isolated",
+  }}
+  next={{
+    title: "4.3 Direct Memory Access (DMA) Controllers & Cycle Stealing Mechanics",
+    url: "/coredose/coa/module-04/dma-controllers-and-cycle-stealing",
+  }}
+  courseUrl="/coredose/coa"
+/>

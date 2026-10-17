@@ -13,6 +13,7 @@ export default function NumberSystemSimulator({
   mode = 'converter', // 'converter' | 'complements' | 'floating-point'
   hideTabs = false,
   hideHeader = false,
+  categoryBadge,
   title,
   subtitle,
 }) {
@@ -22,6 +23,10 @@ export default function NumberSystemSimulator({
   React.useEffect(() => {
     if (mode) setActiveTab(mode);
   }, [mode]);
+
+  const badgeText =
+    categoryBadge ||
+    (activeTab === 'floating-point' ? 'Computer Architecture 1.x' : 'Digital Logic 7.x');
 
   return (
     <div className={styles.container}>
@@ -48,7 +53,7 @@ export default function NumberSystemSimulator({
               </p>
             </div>
           </div>
-          <span className={styles.categoryBadge}>Digital Logic 7.x</span>
+          <span className={styles.categoryBadge}>{badgeText}</span>
         </div>
       )}
 

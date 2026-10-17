@@ -1,0 +1,395 @@
+---
+title: "1.2 IEEE-754 Single Precision Standard & Special Value Encodings"
+description: "Master IEEE-754 32-bit single precision format, bias-127 mechanics, the complete 5-case special value matrix (Zero, Subnormal, Normalized, Infinity, NaN), and bidirectional decimal-hex conversions."
+hide_table_of_contents: true
+---
+
+# 1.2 IEEE-754 Single Precision Standard & Special Value Encodings
+
+<CoreDoseLessonHeader
+  module="Module 01: Data Representation & Floating-Point Standards"
+  topic="Topic 1.2"
+  courseUrl="/coredose/coa"
+  readTime="16 min read"
+  relevance="University Semester Exams • Hardware Engineering Rounds • Systems & Compiler Design"
+/>
+
+## 💡 Core Intuition: The International Currency Exchange Standard
+
+Imagine traveling across five countries where each country uses a completely different physical currency, varying wildly in coin sizes, fractional divisions, and non-standard banking ledgers.
+
+### 🍳 The Everyday Analogy: The Universal Standard Adapter
+
+* **Pre-Standard Hardware Fragmentation**: Prior to 1985, computer hardware was an engineering tower of Babel. IBM mainframes used base-16 floating-point formats, Cray supercomputers used proprietary word widths with no gradual underflow, DEC VAX used distinct D-floating and G-floating representations, and Intel designed early 8087 coprocessors. A scientific physics simulation computing aerospace trajectories would yield divergent orbital paths simply by being recompiled on a different manufacturer's CPU.
+* **The IEEE-754 Treaty**: In 1985, the Institute of Electrical and Electronics Engineers ratified the **IEEE-754 Standard for Floating-Point Arithmetic**. It established a universal, mathematically rigorous specification governing bit layouts, biased exponent formulas, rounding protocols, and standardized exception handling. For the first time in computing history, a floating-point calculation produced bit-for-bit identical results on every certified processor across the globe.
+
+### 💻 Bridging to Computer Science
+
+The cornerstone of modern computer architecture is the **32-Bit Single Precision Format** (formally designated as `binary32`).
+
+Every 32-bit floating-point word is partitioned into three precisely defined bit fields:
+
+$$
+\text{Total Word Length } N = 1 \text{ (Sign)} + 8 \text{ (Exponent)} + 23 \text{ (Mantissa)} = 32 \text{ Bits}
+$$
+
+By defining a hardware bias of **$127$**, the standard balances positive and negative powers of two while reserving critical boundary bit patterns for exceptional mathematical states: **Signed Zeros ($+0, -0$)**, **Infinities ($+\infty, -\infty$)**, **Subnormal Numbers**, and **NaNs (Not a Number)**.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🏛️ IEEE-754 32-Bit Single Precision Architecture
+
+In IEEE-754 Single Precision (`binary32`), a 32-bit memory word is allocated as follows:
+
+1. **Sign Bit ($S$, 1 Bit — Bit 31)**:
+   * $S = 0 \implies \text{Positive Number}$
+   * $S = 1 \implies \text{Negative Number}$
+2. **Biased Exponent Field ($E$, 8 Bits — Bits 30..23)**:
+   * Encodes the power of two scaling factor.
+   * Total combinations: $2^8 = 256$ states (ranging from $00000000_2 = 0$ to $11111111_2 = 255$).
+   * Standard Bias:
+     $$\text{Bias} = 2^{k-1} - 1 = 2^{8-1} - 1 = 128 - 1 = 127$$
+   * True Exponent calculation:
+     $$e = E - 127$$
+3. **Mantissa / Fraction Field ($M$, 23 Bits — Bits 22..0)**:
+   * Encodes the fractional digits to the right of the binary point.
+   * Employs **Implicit Normalization**: The leading bit before the binary point is assumed to be `1` and is omitted from storage.
+   * Mathematical Significand:
+     $$\text{Significand} = (1.M)_2 = 1 + \sum_{i=1}^{23} b_{23-i} \cdot 2^{-i}$$
+   * **Effective Precision**: $23 \text{ physical bits} + 1 \text{ hidden bit} = \mathbf{24 \text{ bits of precision}}$ (equivalent to $\approx 7.22$ decimal digits).
+
+<FrameFormat
+  title="IEEE-754 Single Precision (32-Bit binary32) Word Format"
+  subtitle="Standard Hardware Word Layout: 1 Sign Bit, 8 Biased Exponent Bits, 23 Mantissa Fraction Bits"
+  standardBadge="IEEE-754 / ISO/IEC 60559"
+  totalSizeBytes="4 Bytes (32 Bits)"
+  fields={[
+    {
+      name: "Sign (S)",
+      size: "1 Bit",
+      unit: "Bit 31 (MSB)",
+      color: "rose",
+      purpose: "Numerical Polarity",
+      details: "0 for positive values, 1 for negative values. Follows sign-magnitude symmetry.",
+      range: "Bit 31: [0 or 1]",
+    },
+    {
+      name: "Exponent (E)",
+      size: "8 Bits",
+      unit: "Bits 30..23",
+      color: "amber",
+      purpose: "Biased Exponent (Scale)",
+      details: "Stored with Excess-127 bias. Exponents 0 and 255 are reserved for special values. Normal range: 1 to 254 (true exponents -126 to +127).",
+      range: "Bits 30..23: [00000000 to 11111111]",
+    },
+    {
+      name: "Fraction (M)",
+      size: "23 Bits",
+      unit: "Bits 22..0",
+      color: "blue",
+      purpose: "Significand Fractional Part",
+      details: "Stores fractional bits after the implicit leading 1. Delivers 24 effective bits of precision (approx. 7 decimal digits).",
+      range: "Bits 22..0: [000...000 to 111...111]",
+    },
+  ]}
+/>
+
+---
+
+## 🎛️ The 5-Case Special Value Encoding Matrix
+
+A central triumph of the IEEE-754 architecture is that it provides a total mathematical function: **no legal bit pattern crashes the hardware**. 
+
+The 8-bit exponent field partitions the numerical space into **5 distinct hardware cases**:
+
+| Case | Sign ($S$) | Biased Exponent ($E$) | Fraction ($M$) | Mathematical Value / Identity | Architectural Significance |
+| :--- | :---: | :---: | :---: | :--- | :--- |
+| **1. Signed Zero** | $0$ or $1$ | $00000000_2$ ($E = 0$) | $000\dots 000_2$ ($M = 0$) | $\pm 0.0$ | Distinguishes $+0$ from $-0$ for directional branch limits. |
+| **2. Subnormal Numbers** | $0$ or $1$ | $00000000_2$ ($E = 0$) | Non-Zero ($M \ne 0$) | $(-1)^S \times (0.M)_2 \times 2^{-126}$ | **Gradual Underflow**: fills the gap between $0$ and smallest normalized number. |
+| **3. Normalized Numbers** | $0$ or $1$ | $1 \le E \le 254$ | Any Bit Pattern | $(-1)^S \times (1.M)_2 \times 2^{E - 127}$ | Standard general computing range ($e \in [-126, +127]$). |
+| **4. Signed Infinity** | $0$ or $1$ | $11111111_2$ ($E = 255$) | $000\dots 000_2$ ($M = 0$) | $\pm \infty$ | Saturated overflow (e.g. division of non-zero by zero: $1.0 / 0.0$). |
+| **5. Not a Number (NaN)** | $0$ or $1$ | $11111111_2$ ($E = 255$) | Non-Zero ($M \ne 0$) | $\text{NaN}$ | Invalid operations (e.g. $0.0/0.0$, $\infty - \infty$, $\sqrt{-1}$). |
+
+---
+
+## 🔬 In-Depth Analysis of Special Cases
+
+### 1. The Signed Zeros ($+0$ and $-0$)
+Why does IEEE-754 maintain two distinct zeros?
+* Both $+0$ and $-0$ compare as equal in standard comparisons (`+0.0 == -0.0` evaluates to `true`).
+* However, in calculus and complex analysis, sign continuity is essential:
+  $$\frac{1.0}{+0.0} = +\infty \qquad\text{whereas}\qquad \frac{1.0}{-0.0} = -\infty$$
+* Signed zero preserves sign information across continuous functions, such as branch cuts in complex logarithms and square roots.
+
+### 2. Subnormal (Denormalized) Numbers & Gradual Underflow
+In architectures without subnormals, if a calculation resulted in a number smaller than the minimum normalized value ($2^{-126}$), it immediately snapped to zero (**abrupt underflow**). This created a dangerous "underflow hazard" where $x - y = 0$ could occur even when $x \ne y$.
+
+IEEE-754 solves this via **Subnormal Numbers**:
+* When $E = 0$ and $M \ne 0$, the hidden bit becomes **$0$ instead of $1$**!
+* **Fixed Exponent**: The exponent is frozen at $-126$ (NOT $-127$):
+  $$V = (-1)^S \times (0.M)_2 \times 2^{-126}$$
+* As numbers shrink toward zero, precision degrades gradually (losing leading bits one by one) rather than abruptly collapsing to zero.
+* The absolute smallest positive representable non-zero number is when $M = 000\dots 001_2 = 2^{-23}$:
+  $$N_{\min\text{-subnormal}} = 2^{-23} \times 2^{-126} = 2^{-149} \approx 1.401298 \times 10^{-45}$$
+
+### 3. Not a Number (NaN): Signaling vs. Quiet
+When $E = 255$ and $M \ne 0$, the word represents a **NaN**:
+* **Quiet NaN (QNaN)**: The most significant bit of the mantissa is `1` ($b_{22} = 1$). It propagates quietly through subsequent operations without raising a hardware trap (e.g., `NaN + 5 = NaN`).
+* **Signaling NaN (SNaN)**: The most significant bit of the mantissa is `0` with at least one remaining non-zero bit ($b_{22} = 0, M \ne 0$). It immediately triggers a CPU hardware exception trap, ideal for catching uninitialized memory variables.
+
+---
+
+## 🔄 Bidirectional Conversion Algorithms
+
+### Algorithm 1: Decimal to IEEE-754 32-Bit Hexadecimal
+To convert any decimal real number $D$ into its 32-bit IEEE-754 hex representation:
+1. **Determine Sign Bit ($S$)**: If $D \ge 0 \implies S = 0$; if $D < 0 \implies S = 1$. Take the absolute magnitude $|D|$.
+2. **Convert to Pure Binary**: Convert the integer component via successive division by 2, and the fractional component via successive multiplication by 2.
+3. **Normalize to $1.M \times 2^e$**: Shift the radix point so exactly one `1` sits to the left. The shift count yields the true exponent $e$.
+4. **Compute Biased Exponent ($E$)**:
+   $$E = e + 127$$
+   Express $E$ as an 8-bit unsigned binary integer.
+5. **Extract Mantissa ($M$)**: Extract the 23 bits immediately following the radix point. If shorter than 23 bits, pad with trailing zeros.
+6. **Assemble and Pack**: Concatenate $[S]_{1} \ [E]_{8} \ [M]_{23}$ into 32 bits, partition into 8 nibbles (4 bits each), and translate to hexadecimal.
+
+---
+
+### Algorithm 2: IEEE-754 32-Bit Hexadecimal to Decimal
+To decode an 8-character hexadecimal word $H$ back to its decimal real value:
+1. **Unpack Hexadecimal to 32 Binary Bits**: Convert each hex digit into a 4-bit nibble.
+2. **Decompose Fields**:
+   * Bit 31: Sign bit $S$.
+   * Bits 30..23: Biased exponent $E$.
+   * Bits 22..0: Mantissa fraction $M$.
+3. **Inspect for Special Cases**:
+   * If $E = 0$ and $M = 0 \implies \text{Value} = \pm 0.0$.
+   * If $E = 0$ and $M \ne 0 \implies \text{Value} = (-1)^S \times (0.M)_2 \times 2^{-126}$.
+   * If $E = 255$ and $M = 0 \implies \text{Value} = \pm \infty$.
+   * If $E = 255$ and $M \ne 0 \implies \text{Value} = \text{NaN}$.
+4. **Compute Normalized Decimal Value** ($1 \le E \le 254$):
+   * True exponent: $e = E - 127$.
+   * Fractional value: $1.M = 1 + \sum_{i=1}^{23} b_{23-i} \cdot 2^{-i}$.
+   * Final magnitude: $V = (-1)^S \times (1.M) \times 2^e$.
+
+You can verify binary and hexadecimal machine words interactively below:
+
+<NumberSystemSimulator
+  mode="floating-point"
+  hideTabs={true}
+  title="Interactive IEEE-754 Single Precision 32-Bit Inspector"
+  subtitle="Type any decimal number or click individual register bits to see live IEEE-754 encoding, field breakdown, and special values"
+/>
+
+---
+
+## 📏 Dynamic Range & Quantization Boundaries in Single Precision
+
+<MathBox title="Single Precision Boundary Mathematical Spectrum" type="formula">
+
+$$
+\text{Normalized Positive Range: } \left[2^{-126}, \ (2 - 2^{-23}) \times 2^{127}\right] \approx [1.175494 \times 10^{-38}, \ 3.402823 \times 10^{38}]
+$$
+
+$$
+\text{Subnormal Positive Range: } \left[2^{-149}, \ (1 - 2^{-23}) \times 2^{-126}\right] \approx [1.401298 \times 10^{-45}, \ 1.175494 \times 10^{-38})
+$$
+
+</MathBox>
+
+* **Maximum Normalized Positive Value ($N_{\max}$)**:
+  * $S = 0$, $E = 254 \implies e = 254 - 127 = 127$.
+  * $M = 111\dots 111_2 \implies 1.M = 2 - 2^{-23}$.
+  * $N_{\max} = (2 - 2^{-23}) \times 2^{127} = 2^{128} - 2^{104} \approx 3.4028235 \times 10^{38}$.
+* **Minimum Normalized Positive Value ($N_{\min\text{-norm}}$)**:
+  * $S = 0$, $E = 1 \implies e = 1 - 127 = -126$.
+  * $M = 000\dots 000_2 \implies 1.M = 1.0$.
+  * $N_{\min\text{-norm}} = 1.0 \times 2^{-126} \approx 1.1754944 \times 10^{-38}$.
+
+---
+
+## 🏭 Real-World Production Context: The Ariane 5 Flight 501 Disaster & Linux Kernel Subnormals
+
+In mission-critical software and high-scale systems, subtle misunderstandings of IEEE-754 semantics have caused catastrophic physical and financial failures.
+
+### 1. The Ariane 5 Rocket Explosion (1996)
+On June 4, 1996, the European Space Agency's maiden Ariane 5 rocket veered abruptly off course and exploded just 37 seconds after liftoff, resulting in a **$370 million hardware loss**.
+* **Root Cause**: The inertial reference computer software (reused from Ariane 4 without re-verification) converted a 64-bit floating-point horizontal bias velocity variable into a 16-bit signed integer.
+* **The Arithmetic Failure**: The higher horizontal velocity of Ariane 5 exceeded $32,767$ (the maximum representable 16-bit signed integer). The Ada conversion code threw an unhandled hardware operand exception.
+* **Cascading Crash**: Both the primary and backup flight computers shut down simultaneously. The rocket's steering nozzles swiveled to full deflection, triggering aerodynamic breakup and automated self-destruction.
+
+### 2. The 100x CPU Slowdown: Subnormals in Audio DSP & Gaming
+While subnormals provide graceful underflow in mathematics, they are notoriously difficult to implement in hardware:
+* In older Intel Pentium and ARM cores, ALUs lacked dedicated silicon paths for subnormals. Whenever an operation produced a subnormal number, the hardware triggered an internal **microcode trap**, routing the calculation to slow software emulation.
+* **The Production Bug**: In digital audio workstations (DAWs) and video game physics engines, decaying audio reverb filters and friction calculations naturally decay toward zero. When values entered the subnormal range ($< 10^{-38}$), CPU usage suddenly spiked from $2\%$ to **$100\%$**, causing severe audio dropouts and game frame stutters!
+* **The Production Solution**: Modern compiler flags (`-ffast-math`) and hardware status registers allow developers to configure the FPU into **FTZ (Flush-To-Zero)** and **DAZ (Denormals-Are-Zero)** modes. Subnormals are instantly clamped to zero in a single cycle, trading microscopic mathematical precision for predictable real-time execution throughput.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+The following worked engineering problems demonstrate step-by-step IEEE-754 single precision bit encoding, hexadecimal conversions, and boundary evaluation algorithms.
+
+### Example 1: Decimal to IEEE-754 Single Precision Hexadecimal
+**Problem Statement:**  
+Encode the decimal number **$+85.125$** into standard IEEE-754 32-bit single precision floating-point format. Express the final result as a 32-bit binary string and its corresponding 8-digit hexadecimal machine word.
+
+**Step-by-Step Solution:**
+
+1. **Determine Sign Bit ($S$):**  
+   The number $+85.125$ is positive $\implies S = 0$.
+
+2. **Convert Integer and Fractional Parts to Binary:**  
+   * Integer part: $85_{10} = 64 + 16 + 4 + 1 = (1010101)_2$.
+   * Fractional part: $0.125_{10} = \frac{1}{8} = 2^{-3} = (0.001)_2$.
+   * Combined binary magnitude:
+     $$(85.125)_{10} = (1010101.001)_2$$
+
+3. **Normalize to Scientific Form ($1.M \times 2^e$):**  
+   Shift the binary point 6 positions to the left:
+   $$(1010101.001)_2 = 1.010101001 \times 2^6$$
+   * True exponent: $e = 6$.
+   * Fractional mantissa string: $010101001_2$.
+
+4. **Calculate Biased Exponent ($E$):**  
+   * Apply IEEE-754 bias ($\text{Bias} = 127$):
+     $$E = e + 127 = 6 + 127 = 133_{10}$$
+   * Convert $133_{10}$ to 8-bit binary:
+     $$133 = 128 + 4 + 1 = (10000101)_2$$
+
+5. **Construct 23-Bit Mantissa Field ($M$):**  
+   * Omit the implicit leading `1`.
+   * Take the fractional tail $010101001$ (9 bits) and pad with 14 trailing zeros to fill 23 bits:
+     $$M = 01010100100000000000000_2$$
+
+6. **Assemble the 32-Bit Word & Translate to Hexadecimal:**  
+   $$[S]_1 \ [E]_8 \ [M]_{23} = 0 \ 10000101 \ 01010100100000000000000_2$$
+
+   Partition into 4-bit nibbles:
+   $$0100 \ 0010 \ 1010 \ 1010 \ 0100 \ 0000 \ 0000 \ 0000_2$$
+   Translate to hexadecimal:
+   $$\mathbf{0x42AA4000}$$
+
+---
+
+### Example 2: Hexadecimal Machine Word to Decimal Value
+**Problem Statement:**  
+A 32-bit floating-point register contains the hexadecimal value **`0x40400000`**. Decode this IEEE-754 single precision word back to its exact decimal value.
+
+**Step-by-Step Solution:**
+
+1. **Unpack Hexadecimal Word into 32 Binary Bits:**  
+   $$\text{40400000}_{16} = 0100 \ 0000 \ 0100 \ 0000 \ 0000 \ 0000 \ 0000 \ 0000_2$$
+
+2. **Partition into IEEE-754 Fields:**  
+   * **Sign bit ($S$, Bit 31)**: $0 \implies$ Positive number.
+   * **Biased Exponent ($E$, Bits 30..23)**:
+     $$E = 10000000_2 = 128_{10}$$
+   * **Mantissa ($M$, Bits 22..0)**:
+     $$M = 10000000000000000000000_2$$
+
+3. **Compute True Exponent ($e$):**  
+   $$e = E - 127 = 128 - 127 = +1$$
+
+4. **Compute Significand ($1.M$):**  
+   Prepend the implicit leading `1`:
+   $$1.M = (1.10000000000000000000000)_2 = 1 + 2^{-1} = 1 + 0.5 = 1.5_{10}$$
+
+5. **Calculate Final Decimal Value:**  
+   $$V = (-1)^0 \times 1.5 \times 2^1 = 1.5 \times 2 = \mathbf{+3.0}$$
+
+---
+
+### Example 3: Negative Number Binary Bit Pattern Decoding
+**Problem Statement:**  
+Decode the following 32-bit binary pattern formatted in IEEE-754 single precision into its decimal equivalent:
+`1 10000011 10100000000000000000000`
+
+**Step-by-Step Solution:**
+
+1. **Identify Architectural Fields:**  
+   * **Sign bit ($S$)**: $1 \implies$ Negative number.
+   * **Biased Exponent ($E$)**: $10000011_2 = 128 + 2 + 1 = 131_{10}$.
+   * **Mantissa ($M$)**: $10100000000000000000000_2$.
+
+2. **Compute True Exponent ($e$):**  
+   Because $1 \le E \le 254$, the number is normalized:
+   $$e = E - 127 = 131 - 127 = +4$$
+
+3. **Compute Significand ($1.M$):**  
+   Prepend the hidden `1`:
+   $$1.M = (1.101)_2 = 1 + 2^{-1} + 2^{-3} = 1 + 0.5 + 0.125 = 1.625_{10}$$
+
+4. **Calculate Final Decimal Value:**  
+   $$V = (-1)^1 \times 1.625 \times 2^4 = -1 \times 1.625 \times 16 = \mathbf{-26.0}$$
+
+---
+
+### Example 4: Fractional Decimal $+0.5$ and Special Zero Verification
+**Problem Statement:**  
+1. Derive the IEEE-754 single precision bit pattern for the decimal value **$+0.5$**.  
+2. Identify the mathematical value represented by the 32-bit word **`0x00000000`**.
+
+**Step-by-Step Solution:**
+
+1. **Encode Decimal $+0.5$:**  
+   * Sign: Positive $\implies S = 0$.
+   * Binary value: $0.5_{10} = (0.1)_2$.
+   * Normalize to $1.M \times 2^e$:
+     $$(0.1)_2 = 1.0 \times 2^{-1}$$
+   * True exponent: $e = -1$.
+   * Biased exponent: $E = -1 + 127 = 126_{10} = (01111110)_2$.
+   * Mantissa: Since $(1.0)_2$ has only zeros after the binary point:
+     $$M = 00000000000000000000000_2$$
+   * Assembled binary word:
+     $$0 \ 01111110 \ 00000000000000000000000_2$$
+   * Grouped hex:
+     $$0011 \ 1111 \ 0000 \ 0000 \ 0000 \ 0000 \ 0000 \ 0000_2 = \mathbf{0x3F000000}$$
+   * **Result**: Fraction bits are all zeros ($000\dots 0$), and biased exponent is $126$ (true exponent $-1$).
+
+2. **Decode Hex Word `0x00000000`:**  
+   * Binary string: $32$ zeros.
+   * $S = 0$, $E = 00000000_2 = 0$, $M = 000\dots 0_2 = 0$.
+   * Referring to the IEEE-754 special encoding table: when $E = 0$ and $M = 0$, the word represents the **special value $+0.0$** (not a normalized power of two!).
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does IEEE-754 single precision use an exponent bias of 127 instead of 128?**  
+  An 8-bit unsigned integer spans $0$ to $255$. If an excess-128 bias were used, the true exponent range would be $-128$ to $+127$, creating an asymmetric bias favoring negative exponents. By choosing $\text{Bias} = 127$, the normal true exponent range spans from $-126$ (when $E = 1$) to $+127$ (when $E = 254$), providing exact mathematical symmetry between positive and negative scaling ($2^{-126}$ to $2^{+127}$) while cleanly reserving $E = 0$ and $E = 255$ for special values.
+
+* **Why do subnormal numbers use an effective exponent of $-126$ instead of $-127$ ($0 - 127$)?**  
+  If subnormals used $e = 0 - 127 = -127$, the largest subnormal number would be $(0.111\dots 1)_2 \times 2^{-127} \approx 2^{-127}$. However, the smallest normalized number is $1.0 \times 2^{-126} = 2 \times 2^{-127}$. This would leave a factor-of-two gap between normalized and subnormal numbers! By freezing the subnormal exponent at $-126$, the largest subnormal $(1 - 2^{-23}) \times 2^{-126}$ sits exactly one ULP below the smallest normalized number $1.0 \times 2^{-126}$, ensuring completely smooth and seamless **gradual underflow**.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Assuming $0.1$ can be represented exactly in IEEE-754 floating-point.**  
+  In base 10, $0.1$ is an exact finite decimal ($1/10$). In base 2, dividing by 10 produces an infinite repeating binary fraction:
+  $$(0.1)_{10} = (0.00011001100110011\dots)_2$$
+  Because a 32-bit register truncates the mantissa after 23 bits, storing $0.1$ introduces a microscopic rounding error ($\approx 0.10000000149$). This is why `0.1 + 0.2 == 0.3` famously evaluates to `false` in systems languages and JavaScript!
+
+* **Trap: Assuming $E = 255$ always represents Infinity.**  
+  Never assume an exponent of all 1s ($E = 255$) automatically signifies Infinity. If the mantissa is non-zero ($M \ne 0$), the word represents **NaN (Not a Number)**. Only when $M = 0$ is the word interpreted as Infinity.
+
+* **Trap: Forgetting the Hidden Bit when Decoding Normalized Numbers.**  
+  When unpacking a hex word like `0x40400000`, students frequently compute the value as $0.5 \times 2^1 = 1.0$ by evaluating the mantissa as a pure fraction $0.M$. Remember: for normalized numbers ($1 \le E \le 254$), the leading bit is implicitly `1`, making the significand $1.5$, which yields $+3.0$!
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "1.1 Fixed-Point vs. Floating-Point & Biased Exponent Systems",
+    url: "/coredose/coa/module-01/fixed-point-vs-floating-point-and-biased-exponent",
+  }}
+  next={{
+    title: "1.3 Double Precision, Extended Formats & Arithmetic Error Analysis",
+    url: "/coredose/coa/module-01/double-precision-extended-formats-and-arithmetic-pitfalls",
+  }}
+  courseUrl="/coredose/coa"
+/>

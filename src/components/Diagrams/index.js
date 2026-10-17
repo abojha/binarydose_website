@@ -29,5 +29,6 @@ export {
   CircuitSimulator,
   SequentialSimulator,
   NumberSystemSimulator,
+  CacheSimulator,
 } from '@site/src/components/CoreDose/Diagrams';
 

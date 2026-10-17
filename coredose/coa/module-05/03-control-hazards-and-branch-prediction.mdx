@@ -1,0 +1,419 @@
+---
+title: "Control Hazards, Dynamic Branch Prediction & Delayed Branching"
+description: "Master control hazards, branch penalty mathematics, static vs dynamic prediction, 2-bit saturating counter state machines, and delayed branch slot scheduling."
+sidebar_label: "5.3 Control Hazards & Branching"
+keywords:
+  - control hazards
+  - branch penalty
+  - dynamic branch prediction
+  - 2-bit saturating counter
+  - branch target buffer
+  - btb
+  - delayed branching
+  - branch delay slot
+  - pipeline flush
+hide_table_of_contents: true
+---
+
+import CoreDoseLessonHeader from '@site/src/components/CoreDose/CoreDoseLessonHeader';
+import CoreDoseTOC from '@site/src/components/CoreDose/CoreDoseTOC';
+import CoreDoseNav from '@site/src/components/CoreDose/CoreDoseNav';
+import FlowDiagram from '@site/src/components/CoreDose/Diagrams/FlowDiagram';
+import ConceptComparison from '@site/src/components/CoreDose/Diagrams/ConceptComparison';
+import SubsystemGrid from '@site/src/components/CoreDose/Diagrams/SubsystemGrid';
+import ProcessFlow from '@site/src/components/CoreDose/Diagrams/ProcessFlow';
+import MathBox from '@site/src/components/CoreDose/Diagrams/MathBox';
+
+# 5.3 Control Hazards, Dynamic Branch Prediction & Delayed Branching
+
+<CoreDoseLessonHeader
+  module="05"
+  topic="5.3"
+  readTime="20 min"
+  difficulty="Core Engineering"
+  prerequisites="Module 05.1 (Pipeline Stages) & Module 05.2 (Pipeline Hazards & Stalls)"
+  relevance="Control hazards occur on every conditional loop, if-else branch, and function call—making branch prediction the decisive microarchitectural factor determining whether a modern deep pipeline achieves peak instructions-per-cycle throughput or collapses under pipeline flushes."
+/>
+
+## 💡 Core Intuition:
+
+### 🍳 The Everyday Analogy:
+Imagine an express high-speed passenger train traveling at $200\text{ mph}$ along a rail corridor. Ahead lies a railway junction switch with two paths: **Track A (the main line)** and **Track B (the detour branch)**.
+
+The electronic switch indicator is located inside a tunnel $2\text{ miles}$ ahead, meaning the train engineer cannot verify which track is set until the locomotive is already through the tunnel:
+* **The Stalling Strategy:** The engineer applies emergency brakes before the tunnel, comes to a dead stop, waits for the switch signal to confirm, and then slowly accelerates again. Every single junction destroys $10\text{ minutes}$ of transit time!
+* **The Speculative Prediction Strategy:** The engineer knows from historical records that $95\%$ of trains are dispatched along Track A. The train barrels through the tunnel at $200\text{ mph}$ assuming Track A is open:
+  * **Correct Prediction ($95\%$ of cases):** The train roars past the junction at full speed with **zero lost seconds**!
+  * **Incorrect Prediction ($5\%$ of cases):** The engineer discovers the track was set to Track B. The train must halt, back up past the switch, and switch onto Track B (**The Branch Penalty / Pipeline Flush**).
+
+### 💻 Bridging to Computer Science:
+In a pipelined CPU, the Program Counter ($PC$) must fetch a new instruction *every single clock cycle*. However, when a conditional branch instruction (`BEQ R1, R2, TARGET`) enters the pipeline:
+1. The CPU does not know **whether the branch is Taken or Not-Taken** until the condition is evaluated.
+2. The CPU does not know the **Branch Target Address ($BTA$)** until it is calculated.
+
+If the processor waited for the branch to execute, every branch instruction would waste $2\text{ to }3\text{ clock cycles}$. To avoid this crippling penalty, modern microprocessors utilize **Branch Prediction** to guess the outcome speculatively. If the guess is correct, execution proceeds with zero stall cycles. If incorrect, the speculatively fetched instructions are **squashed**, and the pipeline is flushed!
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## The Mechanics of Control Hazards & The Branch Penalty
+
+A **Control Hazard** (also termed a **Branch Hazard**) occurs when the processor cannot determine which instruction to fetch in the next clock cycle because a conditional branch, unconditional jump, or subroutine call is currently in flight.
+
+### The Lifecycle of a Branch Instruction in a 5-Stage Pipeline
+
+Consider a conditional branch instruction $I_1$:
+```assembly
+I1: BEQ R1, R2, LOOP_TARGET   ; If R1 == R2, branch to LOOP_TARGET
+I2: ADD R3, R4, R5            ; Sequential fall-through instruction
+```
+
+In a baseline 5-stage RISC pipeline ($IF, ID, EX, MEM, WB$):
+1. **Cycle 1 (IF):** $I_1$ is fetched from instruction memory. The hardware increments $PC \leftarrow PC + 4$.
+2. **Cycle 2 (ID):** $I_1$ is decoded; registers $R_1$ and $R_2$ are read from the register file. Meanwhile, the processor fetches sequential instruction $I_2$ (`ADD`)!
+3. **Cycle 3 (EX):** The ALU subtracts $R_1 - R_2$ to evaluate the zero condition. Simultaneously, a dedicated adder computes the branch target address:
+   $$BTA = PC_{\text{branch}} + 4 + (\text{Sign-Extended Offset} \times 4)$$
+4. **The Critical Moment:** At the end of Cycle 3, the CPU discovers whether the branch is **Taken** or **Not-Taken**:
+   * **If Not-Taken:** The sequential instructions already fetched ($I_2$ in ID, $I_3$ in IF) are correct. Execution continues with zero penalty!
+   * **If Taken:** The sequential instructions ($I_2$ and $I_3$) were fetched erroneously. They must be destroyed immediately!
+
+```
+Cycle:              1     2     3     4     5     6     7
+------------------------------------------------------------
+I1 (BEQ Taken):    IF    ID   [EX]   MEM   WB
+I2 (Sequential):         IF    ID   [SQUASHED -> NOP]
+I3 (Sequential):               IF   [SQUASHED -> NOP]
+I_target:                            IF    ID    EX   MEM   WB
+```
+
+Because two instructions ($I_2$ and $I_3$) were fetched into the pipeline before the branch decision was finalized, **2 clock cycles are completely wasted**. This lost time is called the **Branch Penalty ($b$)**.
+
+### Mathematical Impact on Effective CPI
+
+In typical programs, branch instructions constitute $15\%\text{ to }25\%$ of all executed machine code. The effective CPI is given by:
+
+<MathBox title="Effective CPI with Branch Penalty" type="formula">
+
+$$CPI_{\text{avg}} = CPI_{\text{ideal}} + (f_{\text{branch}} \times P_{\text{taken}} \times b)$$
+
+Where:
+* $CPI_{\text{ideal}} = 1.0$ (Ideal pipeline execution rate)
+* $f_{\text{branch}}$ = Fraction of total instructions that are branches (typically $\approx 0.20$)
+* $P_{\text{taken}}$ = Probability that a branch is Taken (typically $\approx 0.60\text{–}0.70$)
+* $b$ = Branch penalty in clock cycles ($1\text{ to }3$ cycles in simple pipelines; $15\text{+} \text{ cycles}$ in deep pipelines)
+
+</MathBox>
+
+---
+
+## Early Branch Resolution in the Decode Stage
+
+To reduce the branch penalty, computer architects modified the classic MIPS/RISC datapath by moving branch hardware forward from the **EX stage (Stage 3)** into the **ID stage (Stage 2)**:
+
+<ProcessFlow
+  title="The 2 Hardware Modifications for Decode-Stage Branch Resolution"
+  subtitle="Optimizations reducing branch penalty from 2–3 cycles down to exactly 1 cycle"
+  steps={[
+    {
+      badge: "Modification 1",
+      title: "Branch Target Adder in ID",
+      icon: "➕",
+      color: "blue",
+      description: "Dedicated adder computes BTA in parallel with instruction decoding.",
+      details: "Adds the sign-extended 16-bit branch offset directly to the incremented PC inside the ID stage, computing the destination target in Cycle 2."
+    },
+    {
+      badge: "Modification 2",
+      title: "Fast Equality Comparator in ID",
+      icon: "⚖️",
+      color: "emerald",
+      description: "XOR-based comparator evaluates R1 == R2 without waiting for the ALU.",
+      details: "Bitwise XORs register read port A and port B and NORs the 32 bits together. If all bits match, the Zero condition asserts before Cycle 2 ends."
+    }
+  ]}
+/>
+
+**Result:** The branch decision and target address are both available by the end of **Clock Cycle 2** (ID stage). The branch penalty drops from **2 cycles to exactly 1 cycle**!
+
+---
+
+## Static vs. Dynamic Branch Prediction Paradigms
+
+Processors adopt two fundamentally distinct philosophies to resolve control hazards:
+
+<ConceptComparison
+  title="Static Branch Prediction vs. Dynamic Branch Prediction"
+  subtitle="Compile-time fixed heuristics versus runtime hardware history tracking"
+  concepts={[
+    {
+      badge: "Compile-Time Fixed",
+      title: "Static Branch Prediction",
+      icon: "📜",
+      color: "rose",
+      domain: "Embedded Systems, Low-Power Microcontrollers (ARM Cortex-M)",
+      points: [
+        "Prediction direction is hardwired into the processor or encoded by the compiler.",
+        "Predict-Never-Taken: CPU always fetches sequential PC + 4 (zero penalty if Not-Taken).",
+        "BTFN Heuristic (Backward Taken, Forward Not-Taken): Backward branches (loops) are predicted Taken; Forward branches (if-else) are predicted Not-Taken.",
+        "Zero hardware storage overhead; accuracy caps around 65% to 75%."
+      ],
+      quote: "The hardware assumes the same outcome for this branch every single time it executes."
+    },
+    {
+      badge: "Runtime History",
+      title: "Dynamic Branch Prediction",
+      icon: "🧠",
+      color: "emerald",
+      domain: "High-Performance Processors (x86-64 Intel/AMD, ARM Cortex-A, Apple M-Series)",
+      points: [
+        "Hardware dynamically records the past execution behavior of each branch instruction.",
+        "Branch History Table (BHT) stores saturating counters indexed by low-order PC bits.",
+        "Adapts dynamically: A loop that executes 1,000 times will be predicted Taken 999 times.",
+        "Achieves 90% to 98% prediction accuracy, drastically minimizing pipeline flushes."
+      ],
+      quote: "Those who do not remember the past are condemned to repeat pipeline flushes."
+    }
+  ]}
+/>
+
+---
+
+## Dynamic Branch Prediction: 2-Bit Saturating Counter FSM
+
+The simplest dynamic predictor uses a **1-Bit History Flip-Flop** (storing `1` for Taken and `0` for Not-Taken).  
+However, a 1-bit predictor has a fatal flaw: **In a loop that iterates 1,000 times, it mispredicts twice!**
+1. At the final loop iteration, the branch is Not-Taken, so the predictor flips its bit from `1` to `0` (**Misprediction 1**).
+2. When the loop starts again on the next function call, the predictor predicts Not-Taken, but the first iteration is Taken (**Misprediction 2**)!
+
+To eliminate this flaw, Jim E. Smith introduced the **2-Bit Saturating Counter (The Smith Predictor)**. A 2-bit counter requires **two consecutive mispredictions** before changing its prediction direction!
+
+<FlowDiagram
+  title="2-Bit Saturating Counter Branch Predictor Finite State Machine"
+  subtitle="Textbook hardware standard (Smith Predictor) requiring two consecutive mispredictions to flip prediction state"
+  width={920}
+  domains={[
+    { id: "fsm", title: "2-Bit Saturating Counter Finite State Machine (Smith Predictor)", color: "blue", icon: "🔄", position: "top" }
+  ]}
+  nodes={[
+    { id: "s00", domain: "fsm", col: 0, row: 0, title: "00: Strongly Not-Taken", sublabel: "State: 00", badge: "Predict NT", icon: "🛑", color: "rose" },
+    { id: "s01", domain: "fsm", col: 1, row: 0, title: "01: Weakly Not-Taken", sublabel: "State: 01", badge: "Predict NT", icon: "⚠️", color: "amber" },
+    { id: "s10", domain: "fsm", col: 2, row: 0, title: "10: Weakly Taken", sublabel: "State: 10", badge: "Predict Taken", icon: "ℹ️", color: "blue" },
+    { id: "s11", domain: "fsm", col: 3, row: 0, title: "11: Strongly Taken", sublabel: "State: 11", badge: "Predict Taken", icon: "✅", color: "emerald" }
+  ]}
+  edges={[
+    { from: "s00", to: "s01", fromPort: "right", toPort: "left", step: "1", label: "Taken", labelOffsetY: -20, details: "Branch taken: saturating counter increments from 00 to 01 (Weakly Not-Taken)." },
+    { from: "s01", to: "s10", fromPort: "right", toPort: "left", step: "2", label: "Taken", labelOffsetY: -20, details: "Second taken branch: counter crosses threshold from 01 to 10; prediction flips to Taken!" },
+    { from: "s10", to: "s11", fromPort: "right", toPort: "left", step: "3", label: "Taken", labelOffsetY: -20, details: "Branch taken: counter saturates at maximum state 11 (Strongly Taken)." },
+    { from: "s11", to: "s10", fromPort: "bottom", toPort: "bottom", bend: 46, step: "4", label: "Not-Taken", labelOffsetY: 12, details: "Loop exit (Not-Taken): counter decrements from 11 to 10. Prediction remains Taken for next re-entry!" },
+    { from: "s10", to: "s01", fromPort: "bottom", toPort: "bottom", bend: 46, step: "5", label: "Not-Taken", labelOffsetY: 12, details: "Second not-taken: counter crosses threshold from 10 to 01; prediction flips to Not-Taken." },
+    { from: "s01", to: "s00", fromPort: "bottom", toPort: "bottom", bend: 46, step: "6", label: "Not-Taken", labelOffsetY: 12, details: "Branch not-taken: counter saturates at minimum state 00 (Strongly Not-Taken)." },
+    { from: "s00", to: "s00", fromPort: "top", toPort: "top", bend: -38, step: "7", label: "Not-Taken", labelOffsetY: -8, details: "Branch not-taken in state 00: counter saturates at 00." },
+    { from: "s11", to: "s11", fromPort: "top", toPort: "top", bend: -38, step: "8", label: "Taken", labelOffsetY: -8, details: "Branch taken in state 11: counter saturates at 11." }
+  ]}
+/>
+
+### The State Machine Invariant
+* **States `11` and `10`:** The Most Significant Bit ($MSB = 1$). The hardware predicts **Branch Taken**.
+* **States `01` and `00`:** The Most Significant Bit ($MSB = 0$). The hardware predicts **Branch Not-Taken**.
+* **The Loop Advantage:** When a 1,000-iteration loop exits, state `11` decrements to `10`. Because $MSB = 1$, the hardware **still predicts Taken** when the loop is encountered again! Misprediction drops from 2 per loop to **only 1 per loop**!
+
+---
+
+## The Branch Target Buffer (BTB) Architecture
+
+Predicting that a branch is Taken solves only half the problem: *Where does the processor fetch the next instruction from?*  
+Even if we predict Taken, calculating the target address ($BTA$) requires decoding the instruction in the ID stage, which still incurs **1 stall cycle**!
+
+To achieve **Zero-Bubble Branching**, processors implement a **Branch Target Buffer (BTB)**:
+1. The BTB is an ultra-fast associative cache indexed directly by the **current Instruction Fetch Program Counter ($PC$)**.
+2. Each BTB entry stores:
+   * **Tag:** High-order bits of the branch instruction's PC.
+   * **Branch Target Address ($BTA$):** The cached destination address.
+   * **Prediction Bits:** 2-bit saturating counter state.
+3. **During the IF Stage:** The CPU looks up the current $PC$ in the BTB concurrently with instruction cache access:
+   * **BTB Hit & Predict Taken:** The processor immediately updates the Program Counter to the cached $BTA$ for the very next cycle!
+   * **Result:** **Zero stall cycles!** The target instruction enters the pipeline in the immediately succeeding clock cycle without delay!
+
+---
+
+## Delayed Branching & Branch Delay Slot Scheduling
+
+In classic RISC architectures (such as MIPS, SPARC, and PA-RISC), hardware designers solved the 1-cycle branch penalty through an architectural contract called **Delayed Branching**.
+
+<MathBox title="The Delayed Branching Architectural Contract" type="definition">
+
+In a processor with Delayed Branching:
+The instruction placed immediately following a branch instruction (in the **Branch Delay Slot**) is **ALWAYS EXECUTED**, regardless of whether the branch is Taken or Not-Taken!
+
+</MathBox>
+
+The compiler is tasked with finding a useful instruction and scheduling it into the branch delay slot:
+
+<SubsystemGrid
+  title="The 3 Compiler Delay-Slot Scheduling Strategies"
+  subtitle="Techniques for filling the branch delay slot with productive machine instructions"
+  items={[
+    {
+      icon: "⬆️",
+      title: "From Before the Branch",
+      tag: "Best Choice (Always Safe)",
+      color: "emerald",
+      points: [
+        "Compiler moves an independent instruction from before the branch into the delay slot.",
+        "The instruction must not affect the branch condition registers.",
+        "Always executed; improves performance whether the branch is Taken or Not-Taken."
+      ],
+      syscalls: ["100% Safe", "Zero Overhead"]
+    },
+    {
+      icon: "🎯",
+      title: "From the Target Address",
+      tag: "Preferred for Loops",
+      color: "blue",
+      points: [
+        "Compiler copies the instruction from the branch target address into the delay slot.",
+        "High payoff for loops that are Taken with high probability.",
+        "If the branch is Not-Taken, the instruction's effect must be cancelled (Branch Likely instructions)."
+      ],
+      syscalls: ["Loop Optimized", "Predict Taken"]
+    },
+    {
+      icon: "⬇️",
+      title: "From the Fall-Through Path",
+      tag: "Preferred for If-Else",
+      color: "amber",
+      points: [
+        "Compiler moves the next sequential instruction into the delay slot.",
+        "Optimal for conditional branches that are predominantly Not-Taken.",
+        "If the branch is Taken, the instruction must be harmless or cancelled."
+      ],
+      syscalls: ["If-Else Optimized", "Predict Not-Taken"]
+    }
+  ]}
+/>
+
+---
+
+## 🏭 Real-World Production Context:
+
+Modern high-performance processors demonstrate the critical importance of branch prediction:
+1. **The TAGE Branch Predictor:** Modern AMD Zen 5 and Intel Raptor Lake architectures feature multi-table **TAGE (Tagged Geometric History Length)** predictors. By correlating branch patterns across histories ranging from $4\text{ to }600\text{ past branches}$, TAGE achieves over **$97\text{–}99\%$ prediction accuracy**, essential for protecting their deep $16\text{–}19$ stage pipelines from flushes.
+2. **The Spectre Vulnerability (CVE-2017-5753):** In 2018, security researchers discovered that malicious code could mistrain the CPU's branch predictor to speculatively execute past bounds checks (`if (x < array1_size)`). Even though the pipeline eventually flushed the mispredicted instructions, the speculative memory reads left measurable footprints in the CPU's L1 cache, allowing attackers to leak cryptographic keys via cache timing side-channels!
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Effective CPI with Unmitigated vs. Predicted Branches
+**Problem Statement:**  
+A 5-stage pipelined processor with an ideal $CPI = 1.0$ executes a benchmark where $20\%$ of all instructions are branches ($f_{\text{branch}} = 0.20$). Among all branches, $70\%$ are Taken ($P_{\text{taken}} = 0.70$).  
+Calculate the effective average CPI and speedup under three architectural configurations:
+1. **Configuration A:** Baseline unmitigated pipeline where branches resolve in the EX stage (Branch Penalty $b = 2\text{ stall cycles}$ for Taken branches).
+2. **Configuration B:** Early branch resolution in the ID stage (Branch Penalty $b = 1\text{ stall cycle}$ for Taken branches).
+3. **Configuration C:** Dynamic Branch Target Buffer (BTB) with a $90\%$ prediction accuracy ($90\%$ of branches incur $0$ stalls; $10\%$ mispredict incurring $2$ stall cycles).
+
+**Step-by-Step Solution:**
+1. **Configuration A (EX-Stage Resolution, $b = 2$):**
+   $$CPI_A = CPI_{\text{ideal}} + (f_{\text{branch}} \times P_{\text{taken}} \times b)$$
+   $$CPI_A = 1.0 + (0.20 \times 0.70 \times 2) = 1.0 + 0.28 = \mathbf{1.28\text{ cycles/instruction}}$$
+
+2. **Configuration B (ID-Stage Resolution, $b = 1$):**
+   $$CPI_B = 1.0 + (f_{\text{branch}} \times P_{\text{taken}} \times b)$$
+   $$CPI_B = 1.0 + (0.20 \times 0.70 \times 1) = 1.0 + 0.14 = \mathbf{1.14\text{ cycles/instruction}}$$
+
+3. **Configuration C (BTB with 90% Accuracy):**
+   Branches suffer a penalty only upon misprediction ($P_{\text{mispredict}} = 1.0 - 0.90 = 0.10$):
+   $$CPI_C = 1.0 + (f_{\text{branch}} \times P_{\text{mispredict}} \times b_{\text{mispredict}})$$
+   $$CPI_C = 1.0 + (0.20 \times 0.10 \times 2) = 1.0 + 0.04 = \mathbf{1.04\text{ cycles/instruction}}$$
+
+4. **Speedup of Configuration C over Baseline Configuration A:**
+   $$S = \frac{CPI_A}{CPI_C} = \frac{1.28}{1.04} \approx \mathbf{1.231\times} \quad (23.1\%\text{ net throughput gain!})$$
+
+---
+
+### Example 2: 2-Bit Saturating Counter State Machine Trace
+**Problem Statement:**  
+A 2-bit saturating counter branch predictor is initialized in the **`01: Weakly Not-Taken`** state. A loop branch evaluates with the following sequence of outcomes over 7 consecutive executions:  
+$$\text{Sequence: } [\text{Taken, Taken, Taken, Taken, Not-Taken, Taken, Taken}]$$  
+Trace the state of the 2-bit counter, the predicted outcome, and the prediction correctness (Hit or Mispredict) for each execution.
+
+**Step-by-Step Solution:**
+
+| Execution | Initial State | Prediction ($MSB$) | Actual Outcome | Correct? | New State |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **1** | `01` (Weakly NT) | Not-Taken | **Taken** | ❌ **Mispredict** | `10` (Weakly Taken) |
+| **2** | `10` (Weakly Taken) | Taken | **Taken** | ✅ **Hit** | `11` (Strongly Taken) |
+| **3** | `11` (Strongly Taken) | Taken | **Taken** | ✅ **Hit** | `11` (Saturated) |
+| **4** | `11` (Strongly Taken) | Taken | **Taken** | ✅ **Hit** | `11` (Saturated) |
+| **5** | `11` (Strongly Taken) | Taken | **Not-Taken** | ❌ **Mispredict** | `10` (Weakly Taken) |
+| **6** | `10` (Weakly Taken) | Taken | **Taken** | ✅ **Hit** | `11` (Strongly Taken) |
+| **7** | `11` (Strongly Taken) | Taken | **Taken** | ✅ **Hit** | `11` (Saturated) |
+
+* **Analysis:** Out of 7 branch executions, the predictor achieves **5 Hits** and **only 2 Mispredictions** (accuracy $= 71.4\%$). Notice that on Execution 5, the transient Not-Taken loop exit decremented state `11` to `10`, but did NOT flip the prediction direction, allowing Execution 6 to hit immediately!
+
+---
+
+### Example 3: Speedup with Compiler Delayed Branch Slot Filling
+**Problem Statement:**  
+A computer program contains $100,000$ machine instructions executed on a processor with 1 branch delay slot. Branch instructions comprise $20\%$ of the total program ($20,000\text{ branches}$).  
+The optimizing compiler schedules the branch delay slot as follows:
+* In $65\%$ of the branches, the compiler successfully moves an independent instruction into the delay slot.
+* In the remaining $35\%$ of the branches, the compiler cannot find a safe instruction and inserts a `NOP`.  
+Assuming ideal single-cycle execution ($CPI = 1.0$) for non-stalled cycles, calculate the total clock cycles required to execute the program and the percentage of execution time wasted on `NOP` delay slots.
+
+**Step-by-Step Solution:**
+1. **Analyze Program Structure:**
+   * Total functional instructions: $N = 100,000$.
+   * Total branches: $20,000$.
+
+2. **Calculate Number of `NOP` Instructions Inserted:**
+   * Successful delay slot fills: $65\% \times 20,000 = 13,000\text{ slots filled with useful code}$.
+   * Unsuccessful fills (`NOP` inserted): $35\% \times 20,000 = \mathbf{7,000\text{ NOP instructions}}$.
+
+3. **Calculate Total Clock Cycles:**
+   Because every useful instruction and every inserted `NOP` executes in 1 clock cycle:
+   $$\text{Total Cycles} = 100,000\text{ (useful instructions)} + 7,000\text{ (NOP delay slots)} = \mathbf{107,000\text{ cycles}}$$
+
+4. **Calculate Wasted Execution Percentage:**
+   $$\text{Wasted Time Ratio} = \frac{7,000\text{ NOP cycles}}{107,000\text{ total cycles}} \times 100\% \approx \mathbf{6.54\%}$$
+   Without delayed branching, all $20,000$ branches would incur a 1-cycle stall ($20,000\text{ lost cycles}$, or $16.7\%$ waste). Compiler delay-slot filling saved $13,000\text{ clock cycles}$!
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does a 2-bit saturating counter branch predictor perform significantly better than a 1-bit predictor for nested loops?**  
+  A 1-bit predictor flips its prediction state every single time an outcome differs from the prediction. For an inner loop that iterates $N$ times, the final iteration is Not-Taken (causing misprediction 1 and flipping the bit to Not-Taken). On the very next outer loop iteration, the first inner branch is Taken (causing misprediction 2). Thus, a 1-bit predictor mispredicts twice per loop invocation. A 2-bit counter has hysteresis: when the loop exits, it transitions from `Strongly Taken (11)` to `Weakly Taken (10)`, still predicting Taken on the next iteration and cutting loop mispredictions in half!
+
+* **What is the fundamental architectural difference between a Branch History Table (BHT) and a Branch Target Buffer (BTB)?**  
+  A **Branch History Table (BHT)** stores only the 1-bit or 2-bit prediction state (Taken vs Not-Taken). The CPU still has to decode the instruction to determine the branch target address ($BTA$). A **Branch Target Buffer (BTB)** is a full associative cache that stores *both* the prediction state AND the target address ($BTA$). A BTB hit allows the processor to redirect the Program Counter during the Instruction Fetch (IF) stage itself, enabling zero-bubble branching.
+:::
+
+:::warning Common Interview Traps
+* **Trap 1: Assuming a branch delay slot instruction executes only when the branch is Taken.**  
+  By definition, an instruction in a standard branch delay slot is **ALWAYS executed**, regardless of whether the branch condition evaluates to Taken or Not-Taken. If a compiler places an instruction in the delay slot that is only valid when the branch is Taken, the program will produce silent data corruption whenever the branch is Not-Taken!
+
+* **Trap 2: Assuming branch penalty equals the total number of pipeline stages ($k$).**  
+  Candidates frequently calculate the branch penalty as $k$ cycles (e.g. 5 cycles in a 5-stage pipeline). The branch penalty is only the number of instructions fetched *between the branch fetch and the branch decision*. If the branch resolves in the EX stage (Cycle 3), only 2 instructions were fetched, so the penalty is $b = 2$ cycles. If it resolves in the ID stage (Cycle 2), the penalty is $b = 1$ cycle.
+
+* **Trap 3: Believing unconditional jumps have zero control hazards.**  
+  An unconditional jump (`JUMP TARGET`) always branches ($P_{\text{taken}} = 100\%$). However, until the target address is decoded and calculated in the ID stage, the CPU does not know where to jump! An unmitigated jump still incurs a 1-cycle penalty unless a BTB supplies the target address in Cycle 1.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "5.2 Pipeline Hazards: Structural, Data Hazards & Operand Forwarding",
+    url: "/coredose/coa/module-05/pipeline-hazards-and-operand-forwarding",
+  }}
+  next={{
+    title: "6.1 Instruction Formats, Word Encoding & Opcode Expansion",
+    url: "/coredose/coa/module-06/instruction-formats-and-opcode-expansion",
+  }}
+  courseUrl="/coredose/coa"
+/>

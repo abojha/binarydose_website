@@ -5,13 +5,17 @@
   "visualizerEnginesCount": 4,
   "videoPlaylistsCount": 4,
   "coredose": {
-    "activeCoursesCount": 4,
-    "totalTopics": 173,
-    "totalModules": 37,
+    "activeCoursesCount": 5,
+    "totalTopics": 195,
+    "totalModules": 44,
     "subjects": {
       "cn": {
         "modules": 10,
         "topics": 51
+      },
+      "coa": {
+        "modules": 7,
+        "topics": 22
       },
       "dbms": {
         "modules": 10,

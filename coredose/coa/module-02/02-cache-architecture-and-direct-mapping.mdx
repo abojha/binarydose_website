@@ -1,0 +1,446 @@
+---
+title: "Cache Memory Architecture & Direct Mapping Mechanics"
+description: "Master direct-mapped cache architecture, modulo index calculation, tag directory sizing with valid and dirty bits, 1-comparator hardware datapath, and conflict thrashing."
+hide_table_of_contents: true
+---
+
+import CoreDoseLessonHeader from '@site/src/components/CoreDose/CoreDoseLessonHeader';
+import CoreDoseTOC from '@site/src/components/CoreDose/CoreDoseTOC';
+import CoreDoseNav from '@site/src/components/CoreDose/CoreDoseNav';
+import FrameFormat from '@site/src/components/CoreDose/Diagrams/FrameFormat';
+import ConceptComparison from '@site/src/components/CoreDose/Diagrams/ConceptComparison';
+import FlowPipeline from '@site/src/components/CoreDose/Diagrams/FlowPipeline';
+import MathBox from '@site/src/components/CoreDose/Diagrams/MathBox';
+
+
+# 2.2 Cache Memory Architecture & Direct Mapping Mechanics
+
+<CoreDoseLessonHeader
+  module="02"
+  topic="2.2"
+  readTime="14 min"
+  difficulty="Intermediate"
+  prerequisites="Topic 2.1 (Memory Hierarchy & Locality of Reference)"
+  relevance="Direct mapping is the foundational cache architecture studied in every processor design course, establishing the core mathematical rules for tag parsing, directory sizing, and conflict thrashing."
+/>
+
+## 💡 Core Intuition: The Assigned Locker Model
+
+When a CPU references data, how does the hardware instantly determine whether that specific memory word is already present inside high-speed SRAM cache? Searching across thousands of cache lines sequentially would take dozens of clock cycles, completely destroying the speed advantage of cache.
+
+The cache controller requires a **deterministic placement rule** that maps any main memory address directly to a specific cache slot without searching.
+
+### 🍳 The Everyday Analogy: Modulo Gym Lockers
+
+Imagine a high school gym with **4 lockers** numbered $0, 1, 2, 3$, shared among **16 students** with student IDs $0$ through $15$:
+* The gym coach institutes a strict rule: **Locker Number = (Student ID) mod 4**.
+* Students $0, 4, 8, 12$ must all use **Locker 0**.
+* Students $1, 5, 9, 13$ must all use **Locker 1**.
+* Students $2, 6, 10, 14$ must all use **Locker 2**.
+* Students $3, 7, 11, 15$ must all use **Locker 3**.
+
+| Assigned Locker | Modulo Hash ($\text{ID} \pmod 4$) | Candidate Students |
+| :---: | :---: | :--- |
+| **Locker 0** | $0$ | Student IDs $\{0, 4, 8, 12\}$ |
+| **Locker 1** | $1$ | Student IDs $\{1, 5, 9, 13\}$ |
+| **Locker 2** | $2$ | Student IDs $\{2, 6, 10, 14\}$ |
+| **Locker 3** | $3$ | Student IDs $\{3, 7, 11, 15\}$ |
+
+**The Identification Card Trick (The Tag)**:
+When the coach inspects Locker 0, how does he know which specific student's bag is inside? He looks at the bag's ID tag! 
+* Since the locker number ($0$) already guarantees the student ID is one of $\{0, 4, 8, 12\}$, the tag only needs to store the quotient ($\lfloor\text{ID} / 4\rfloor$):
+  - Student 0: Tag $= 0$
+  - Student 4: Tag $= 1$
+  - Student 8: Tag $= 2$
+  - Student 12: Tag $= 3$
+
+If Student 4 arrives while Student 0's bag is in Locker 0, Student 0's bag is evicted to make room. This is **Direct Mapping**.
+
+### 💻 Bridging to Computer Science
+
+In computer hardware:
+* The **gym lockers** are the **Cache Lines** (numbered $0$ to $N - 1$).
+* The **students** are the **Main Memory Blocks** (numbered $0$ to $M - 1$).
+* The **bag tag** is the hardware **Tag Field** stored alongside the data inside SRAM.
+* Because a block can only ever reside in one specific cache line, checking for a cache hit requires **exactly one hardware comparator**.
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## ⚡ Direct Mapping Mathematical Law & Many-to-One Topology
+
+In direct mapping, every block of physical main memory maps to **exactly one predetermined line** in the cache:
+
+<MathBox title="The Direct Mapping Mathematical Rule" type="formula">
+
+$$
+\text{Cache Line Index } (c) = (\text{Main Memory Block Number } b) \pmod{\text{Total Number of Cache Lines } N}
+$$
+
+$$
+c = b \pmod{N}
+$$
+
+</MathBox>
+
+Because the total number of main memory blocks ($M$) is vastly larger than the total number of cache lines ($N$), direct mapping is a classic **Many-to-One Mapping**:
+
+| Cache Line Index | Main Memory Blocks That Map Here |
+| :---: | :--- |
+| **Line 0 ($C_0$)** | Blocks $\{B_0, B_N, B_{2N}, B_{3N}, \dots\}$ |
+| **Line 1 ($C_1$)** | Blocks $\{B_1, B_{N+1}, B_{2N+1}, B_{3N+1}, \dots\}$ |
+| **Line 2 ($C_2$)** | Blocks $\{B_2, B_{N+2}, B_{2N+2}, B_{3N+2}, \dots\}$ |
+| **Line $k$ ($C_k$)** | Blocks $\{B_k, B_{N+k}, B_{2N+k}, B_{3N+k}, \dots\}$ |
+
+### The Inherent Conflict Bottleneck
+
+At any given nanosecond, **only ONE main memory block can occupy a given cache line**. 
+
+If an algorithm repeatedly alternates references between Block $B_0$ and Block $B_N$, both blocks map to Line $0$. Block $B_N$ evicts $B_0$, then $B_0$ evicts $B_N$, causing continuous cache misses even if lines $C_1, C_2, \dots, C_{N-1}$ are completely empty! This phenomenon is a **Conflict Miss (or Collision Miss)**.
+
+---
+
+## 🧩 Physical Address Decomposition: Tag, Line & Word Offset
+
+When the CPU generates an $n$-bit physical address, direct-mapped hardware parses the bits into three distinct fields:
+
+<FrameFormat
+  title="Direct-Mapped Physical Address Decomposition"
+  subtitle="Decomposition of an n-bit CPU physical address into Tag, Line Index, and Word Offset fields"
+  standardBadge="Physical Address Format"
+  totalSizeBytes="n Bits"
+  fields={[
+    {
+      name: "Tag Field",
+      size: "t",
+      unit: "Bits",
+      flex: 3,
+      sublabel: "[n-1 : c+w]",
+      color: "purple",
+      description: "Distinguishes which specific main memory block among all candidates currently occupies the cache line (t = n - c - w)."
+    },
+    {
+      name: "Line Offset / Index",
+      size: "c",
+      unit: "Bits",
+      flex: 2,
+      sublabel: "[c+w-1 : w]",
+      color: "blue",
+      description: "Directly indexes into the cache array to select exactly one cache line (where c = log2 Lines)."
+    },
+    {
+      name: "Word / Block Offset",
+      size: "w",
+      unit: "Bits",
+      flex: 1,
+      sublabel: "[w-1 : 0]",
+      color: "cyan",
+      description: "Selects the exact target byte or word within the B-byte cache line (where w = log2 B)."
+    }
+  ]}
+/>
+
+### Mathematical Derivation of Bit Allocations
+
+Given:
+* **Main Memory Size**: $2^n\text{ bytes} \implies \text{Physical Address} = n\text{ bits}$.
+* **Cache Memory Size**: $S_{\text{cache}}\text{ bytes}$.
+* **Block Size (Line Size)**: $B = 2^w\text{ bytes}$.
+
+1. **Word Offset Field ($w$ bits)**:
+   $$w = \log_2(B) \text{ bits}$$
+   *Identifies the exact byte within the $B$-byte block.*
+
+2. **Line Offset / Cache Index Field ($c$ bits)**:
+   $$\text{Total Cache Lines } N = \frac{\text{Cache Size}}{\text{Block Size}} = \frac{S_{\text{cache}}}{B} = 2^c$$
+   $$c = \log_2(N) = \log_2\left(\frac{S_{\text{cache}}}{B}\right) \text{ bits}$$
+   *Directly selects one line among the $N$ cache lines.*
+
+3. **Combined Cache Address ($c + w$ bits)**:
+   Notice the architectural shortcut:
+   $$c + w = \log_2(N) + \log_2(B) = \log_2(N \times B) = \log_2(S_{\text{cache}})$$
+   *The lower $(c + w)$ bits of the address represent the exact capacity of the cache!*
+
+4. **Tag Field ($t$ bits)**:
+   $$t = n - (c + w) = n - \log_2(S_{\text{cache}}) \text{ bits}$$
+   *Alternatively:*
+   $$t = \text{Block Number Bits} - \text{Line Bits} = (n - w) - c \text{ bits}$$
+
+---
+
+## 🎛️ Hardware Datapath: The 1-Comparator Architecture
+
+<FlowPipeline
+  title="Direct-Mapped Cache Hardware Lookup Datapath"
+  subtitle="Deterministic 4-stage hardware pipeline executed on every memory load/store instruction"
+  steps={[
+    {
+      badge: "Stage 1",
+      title: "Address Decode",
+      icon: "🔍",
+      color: "blue",
+      description: "CPU generates n-bit address; hardware extracts Tag, Line Index, and Word Offset.",
+      connectorLabel: "Line Index",
+    },
+    {
+      badge: "Stage 2",
+      title: "SRAM Line Select",
+      icon: "⚡",
+      color: "amber",
+      description: "c-bit index activates single line in Tag & Data SRAM arrays via hardware MUX.",
+      connectorLabel: "Stored Tag",
+    },
+    {
+      badge: "Stage 3",
+      title: "Tag Comparison",
+      icon: "⚖️",
+      color: "purple",
+      description: "Single t-bit comparator tests if stored tag equals address tag and Valid Bit is 1.",
+      connectorLabel: "Hit / Miss",
+    },
+    {
+      badge: "Stage 4",
+      title: "Data Dispatch",
+      icon: "🎯",
+      color: "emerald",
+      description: "Hit: route word at offset w to CPU in ~1 ns. Miss: initiate DRAM block transfer.",
+    },
+  ]}
+/>
+
+### Why Direct Mapping is Blazing Fast
+
+<MathBox title="Direct Mapping Hardware Simplicity" type="principle">
+
+* **Number of Comparators Required**: Exactly **ONE comparator**.
+* **Width of Comparator**: Exactly **$t$ bits** (matching the Tag field).
+* **Search Complexity**: $O(1)$ constant time lookup. No associative search across other lines.
+* **Multiplexer Selection**: The $c$-bit Line Index drives a hardware multiplexer to select the single addressed line before comparison begins.
+
+</MathBox>
+
+Because only one tag comparison occurs, direct-mapped caches have the **lowest hit latency** of any cache architecture, making them ideal for high-clock-rate Level-1 Instruction (L1I) caches!
+
+---
+
+## 📊 Tag Directory Size Calculation & Status Bit Overhead
+
+A cache line does not store only payload data. To manage consistency and validity, the hardware maintains a parallel SRAM structure called the **Tag Directory**:
+
+<MathBox title="Tag Directory Sizing Formula" type="formula">
+
+$$
+\text{Tag Directory Size} = \text{Total Cache Lines } (N) \times \text{Bits per Tag Directory Entry}
+$$
+
+$$
+\text{Bits per Entry} = \text{Tag Bits } (t) + \text{Valid Bit } (V) + \text{Dirty Bit } (D)
+$$
+
+</MathBox>
+
+### The Essential Status Bits
+
+1. **Valid Bit ($V = 1\text{ bit}$)**:
+   * When a computer powers on, the cache SRAM contains random voltage noise (garbage data).
+   * The hardware initializes all Valid bits to `0`.
+   * When a line is populated with legitimate main memory data, $V \leftarrow 1$.
+   * A cache hit requires:
+     $$\text{Cache Hit} \iff (\text{Address Tag} == \text{Stored Tag}) \ \land \ (V == 1)$$
+
+2. **Dirty Bit ($D = 1\text{ bit}$)** *(Required for Write-Back Caches)*:
+   * Set to `1` whenever the CPU executes a write/store instruction that modifies the cache line.
+   * Indicates that the cache copy has been altered and is newer than the stale copy in DRAM.
+   * When this line is evicted, the controller inspects $D$: if $D = 1$, the block is written back to main memory; if $D = 0$, the line is simply overwritten with zero memory write traffic!
+
+### Total Physical Cache Memory Formula
+
+The total physical silicon storage required to fabricate a cache chip is:
+
+$$\text{Total Cache Silicon Size} = \text{Data Cache Size} + \text{Tag Directory Size}$$
+
+---
+
+## 🏭 Real-World Production Context: L1I Cache Design & Ping-Pong Thrashing
+
+### 1. High-Frequency L1 Instruction Caches (Intel Core & AMD Zen)
+Modern high-performance x86-64 microprocessors (such as Intel Raptor Lake and AMD Zen 4) operate at boost clocks exceeding $5.5\text{ GHz}$. At this frequency, an L1 instruction fetch must complete in **sub-nanosecond time (3 to 4 clock cycles)**:
+* Processor architects frequently employ direct mapping or low-associativity (2-way) structures in Level-1 instruction caches because **zero comparator multiplexer delay** exists.
+* The CPU instruction pointer (RIP) drives line selection and tag matching in parallel with instruction decoding.
+
+### 2. The Ping-Pong Thrashing Disaster in Systems Programming
+Consider an embedded automotive controller executing a cyclic PID control loop:
+
+```c
+// Two critical lookup tables allocated by the linker:
+float sensor_calibration[1024]; // Placed by linker at address 0x10000
+float actuator_limits[1024];    // Placed by linker at address 0x30000
+
+// In a direct-mapped 64 KB cache (Line Index = Address bits [15:6]):
+// 0x10000 has Line Index = 0
+// 0x30000 has Line Index = 0 (CATASTROPHIC CONFLICT)
+
+for (int i = 0; i < 1024; i++) {
+    // sensor_calibration[i] (Line 0) triggers DRAM fetch, evicting actuator_limits
+    // actuator_limits[i] (Line 0) triggers DRAM fetch, evicting sensor_calibration
+    control_signal += sensor_calibration[i] * actuator_limits[i];
+}
+```
+
+**The Production Consequence**:
+Every single loop iteration triggers **two consecutive cache misses**. The CPU operates at raw DRAM latency ($100\text{ ns}$ per element), reducing control loop execution throughput by **$98\%$**! 
+
+**The Production Fix**: Compilers and systems programmers apply **structure-of-arrays interleaving** or insert dummy padding bytes (`char padding[64];`) to shift `actuator_limits` onto an unconflicted cache line index.
+
+### 🎮 Interactive Direct-Mapped Cache & Conflict Visualizer
+
+Explore ping-pong conflict thrashing live below. Notice how requesting Block `0` and Block `4` repeatedly causes each to deterministically overwrite the other in Line 0, producing a catastrophic $0\%$ hit rate!
+
+<CacheSimulator mode="direct" />
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+The following worked engineering problems demonstrate step-by-step physical address parsing, tag directory calculations, and conflict miss simulation.
+
+### Example 1: Comprehensive Direct-Mapped Address Field Decomposition
+**Problem Statement:**  
+A computer system possesses a byte-addressable main memory of **$16\text{ GB}$**, a cache memory of **$32\text{ MB}$**, and a cache block size of **$4\text{ KB}$**.  
+1. Calculate the total physical address bus width ($n$).  
+2. Determine the bit-width of the Word Offset ($w$), Line Index ($c$), and Tag field ($t$).  
+3. Calculate the total Tag Directory Size in bits and in kilobytes assuming a standard $1$-bit Valid Bit and no Dirty Bit.
+
+**Step-by-Step Solution:**
+
+1. **Calculate Total Address Bits ($n$):**  
+   $$\text{Main Memory} = 16\text{ GB} = 16 \times 2^{30}\text{ bytes} = 2^4 \times 2^{30} = 2^{34}\text{ bytes}$$
+   $$n = \log_2(2^{34}) = \mathbf{34\text{ bits}}$$
+
+2. **Calculate Word Offset ($w$):**  
+   $$\text{Block Size } B = 4\text{ KB} = 4 \times 2^{10}\text{ bytes} = 2^{12}\text{ bytes}$$
+   $$w = \log_2(2^{12}) = \mathbf{12\text{ bits}}$$
+
+3. **Calculate Line Index ($c$):**  
+   $$\text{Total Cache Lines } N = \frac{\text{Cache Size}}{\text{Block Size}} = \frac{32\text{ MB}}{4\text{ KB}} = \frac{32 \times 2^{20}}{4 \times 2^{10}} = 8 \times 2^{10} = 2^3 \times 2^{10} = 2^{13}\text{ lines}$$
+   $$c = \log_2(2^{13}) = \mathbf{13\text{ bits}}$$
+
+4. **Calculate Tag Field Bits ($t$):**  
+   $$t = n - (c + w) = 34 - (13 + 12) = 34 - 25 = \mathbf{9\text{ bits}}$$
+   *Address breakdown: $[Tag]_{9} \ [Line]_{13} \ [Offset]_{12}$*
+
+5. **Calculate Tag Directory Size:**  
+   $$\text{Bits per Entry} = \text{Tag Bits} + \text{Valid Bit} = 9 + 1 = 10\text{ bits}$$
+   $$\text{Total Directory Size} = N \times (\text{Bits per Entry}) = 2^{13} \times 10\text{ bits} = 8,192 \times 10 = \mathbf{81,920\text{ bits}}$$
+   Convert to Kilobytes:
+   $$\text{Size in Bytes} = \frac{81,920}{8} = 10,240\text{ bytes}$$
+   $$\text{Size in KB} = \frac{10,240}{1,024} = \mathbf{10\text{ KB}}$$
+
+---
+
+### Example 2: Block Reference Trace & Conflict Miss Simulation
+**Problem Statement:**  
+Consider a direct-mapped cache consisting of **$4\text{ cache lines}$** (numbered $0, 1, 2, 3$). Initially, the cache is completely empty ($V = 0$ for all lines).
+
+The CPU generates a sequence of memory block accesses in the following chronological order:
+$$B_0, \ B_4, \ B_8, \ B_0, \ B_4, \ B_1, \ B_5, \ B_2$$
+
+1. Trace the cache state after each access, stating whether each reference is a **Hit** or a **Miss**.
+2. Identify the type of miss (Compulsory vs Conflict) for each miss.
+3. Compute the overall Hit Ratio ($H$) of the sequence.
+
+**Step-by-Step Solution:**
+
+Apply the direct mapping modulo formula: $\text{Line Index } c = \text{Block Number } b \pmod 4$.
+
+1. **Step-by-Step Execution Trace:**
+
+| Step | Access | Target Line ($b \pmod 4$) | Current Line Contents | Result | Miss Classification | New Line State |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| 1 | $B_0$ | $0 \pmod 4 = 0$ | Empty | **MISS** | Compulsory (Cold) | Line 0: $B_0$ |
+| 2 | $B_4$ | $4 \pmod 4 = 0$ | Line 0: $B_0$ | **MISS** | Conflict | Line 0: $B_4$ (Evicts $B_0$) |
+| 3 | $B_8$ | $8 \pmod 4 = 0$ | Line 0: $B_4$ | **MISS** | Conflict | Line 0: $B_8$ (Evicts $B_4$) |
+| 4 | $B_0$ | $0 \pmod 4 = 0$ | Line 0: $B_8$ | **MISS** | Conflict | Line 0: $B_0$ (Evicts $B_8$) |
+| 5 | $B_4$ | $4 \pmod 4 = 0$ | Line 0: $B_0$ | **MISS** | Conflict | Line 0: $B_4$ (Evicts $B_0$) |
+| 6 | $B_1$ | $1 \pmod 4 = 1$ | Empty | **MISS** | Compulsory (Cold) | Line 1: $B_1$ |
+| 7 | $B_5$ | $5 \pmod 4 = 1$ | Line 1: $B_1$ | **MISS** | Conflict | Line 1: $B_5$ (Evicts $B_1$) |
+| 8 | $B_2$ | $2 \pmod 4 = 2$ | Empty | **MISS** | Compulsory (Cold) | Line 2: $B_2$ |
+
+2. **Analysis of Results:**
+   * Total Accesses: $8$
+   * Total Hits: $\mathbf{0}$
+   * Total Misses: $\mathbf{8}$ (Compulsory Misses: $3$ on $B_0, B_1, B_2$; Conflict Misses: $5$ on $B_4, B_8, B_0, B_4, B_5$)
+   * **Hit Ratio ($H$)**:
+     $$H = \frac{0}{8} = \mathbf{0\%}$$
+
+*Architectural Takeaway*: Even though the cache had 4 lines and only accessed 5 distinct blocks, **Line 3 remained completely unused** while Line 0 thrashing caused a $100\%$ miss rate!
+
+---
+
+### Example 3: Tag Directory Size with Valid and Dirty Bit Overhead
+**Problem Statement:**  
+An **$8\text{ KB}$** direct-mapped **write-back** data cache is organized with a block size of **$32\text{ bytes}$**. The physical address generated by the processor is **$32\text{ bits}$** wide.  
+Each cache line entry in the tag directory requires:
+* The address Tag bits
+* $1$ Valid Bit
+* $1$ Dirty Bit (for write-back consistency)
+
+Calculate the total silicon storage capacity of the Tag Directory in bits and in bytes.
+
+**Step-by-Step Solution:**
+
+1. **Calculate Word Offset ($w$):**  
+   $$B = 32\text{ bytes} = 2^5\text{ bytes} \implies w = \log_2(2^5) = \mathbf{5\text{ bits}}$$
+
+2. **Calculate Number of Lines ($N$) and Line Bits ($c$):**  
+   $$N = \frac{\text{Cache Size}}{\text{Block Size}} = \frac{8\text{ KB}}{32\text{ B}} = \frac{8 \times 1,024}{32} = \frac{8,192}{32} = 256\text{ lines} = 2^8\text{ lines}$$
+   $$c = \log_2(256) = \mathbf{8\text{ bits}}$$
+
+3. **Calculate Tag Field Bits ($t$):**  
+   $$t = n - (c + w) = 32 - (8 + 5) = 32 - 13 = \mathbf{19\text{ bits}}$$
+
+4. **Calculate Total Bits per Tag Entry:**  
+   $$\text{Entry Width} = \text{Tag Bits } (t) + \text{Valid Bit } (V) + \text{Dirty Bit } (D)$$
+   $$\text{Entry Width} = 19 + 1 + 1 = \mathbf{21\text{ bits}}$$
+
+5. **Calculate Total Tag Directory Storage:**  
+   $$\text{Directory Size} = N \times \text{Entry Width} = 256 \times 21\text{ bits} = \mathbf{5,376\text{ bits}}$$
+   Convert to bytes:
+   $$\text{Directory Size in Bytes} = \frac{5,376}{8} = \mathbf{672\text{ bytes}}$$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **How many comparators are required in a Direct-Mapped Cache, and why?**  
+  Exactly **ONE comparator** is required. Because the mapping function $c = b \pmod N$ is strictly deterministic, a main memory block can only ever reside in one specific cache line. Hardware multiplexers use the Line Index bits to select that exact line, requiring only a single comparison between the address tag and the line's stored tag.
+
+* **What causes Conflict Misses, and why are they impossible in Fully Associative Caches?**  
+  Conflict misses occur when multiple active main memory blocks map to the exact same cache line, prematurely evicting each other despite other cache lines remaining completely empty. In a Fully Associative cache, a block can be placed in *any* freely available cache line; therefore, a block is never evicted unless the entire cache capacity is fully exhausted.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Forgetting Status Bits when Calculating Tag Directory Size.**  
+  Exams frequently ask for the *“total tag directory size”* or *“cache overhead”*. If the question mentions *write-back* or *valid bit*, you **MUST add the 1 Valid bit and 1 Dirty bit** to the tag width before multiplying by the number of cache lines:
+  $$\text{Directory Width} = t + 1 \text{ (valid)} + 1 \text{ (dirty)}$$
+  Omitting status bits leads to an immediate incorrect answer.
+
+* **Trap: Confusing Line Offset Bits with Cache Size Bits.**  
+  Remember that the Line Offset field ($c$) represents $\log_2(\text{Number of Lines})$, NOT $\log_2(\text{Cache Size})$. The lower bits representing the full cache capacity are $(c + w) = \log_2(\text{Cache Size})$.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "2.1 Memory Hierarchy Pyramid & Principles of Locality",
+    url: "/coredose/coa/module-02/memory-hierarchy-pyramid-and-locality-of-reference",
+  }}
+  next={{
+    title: "2.3 Associative & Set-Associative Cache Mapping Architectures",
+    url: "/coredose/coa/module-02/associative-and-set-associative-cache-mapping",
+  }}
+  courseUrl="/coredose/coa"
+/>

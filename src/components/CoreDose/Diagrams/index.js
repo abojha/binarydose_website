@@ -23,4 +23,5 @@ export { default as KMapDiagram } from './KMapDiagram';
 export { default as CircuitSimulator } from './CircuitSimulator';
 export { default as SequentialSimulator } from './SequentialSimulator';
 export { default as NumberSystemSimulator } from './NumberSystemSimulator';
+export { default as CacheSimulator } from './CacheSimulator';
 
