@@ -22,7 +22,7 @@ At the hardware CPU level, the **Modulo operator (`%`) requires integer division
 * In high-throughput collections processing millions of `get()` and `put()` calls per second, modulo arithmetic creates a severe CPU pipeline bottleneck.
 
 **The Power-of-2 Bitwise Optimization**:
-When capacity $n$ is a power of 2 ($n = 2^k$), the mathematical modulo operation is **100% equivalent to a bitwise AND with $(n - 1)$**:
+When capacity $n$ is a power of 2 ($n = 2^k$), the mathematical modulo operation is **100\% equivalent to a bitwise AND with $(n - 1)$**:
 
 $$\text{hash} \pmod n \iff \text{hash} \ \& \ (n - 1)$$
 
