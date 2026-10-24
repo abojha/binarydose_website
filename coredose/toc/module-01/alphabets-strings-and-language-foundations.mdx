@@ -1,0 +1,472 @@
+---
+title: "1.1 Alphabets, Strings, Substring Combinatorics & Language Formalisms"
+description: "Master formal definitions of symbols, alphabets, string concatenation, substring counting theorems, language closures, and the mathematical duality of grammar generators versus automata acceptors."
+hide_title: true
+hide_table_of_contents: true
+---
+
+# 1.1 Alphabets, Strings, Substring Combinatorics & Language Formalisms
+
+<CoreDoseLessonHeader
+  module="Module 01: Foundations & Deterministic Finite Automata (DFA)"
+  topic="1.1 Alphabets, Strings & Language Foundations"
+/>
+
+## 💡 Core Intuition:
+
+### 🍳 The Everyday Analogy: Construction Bricks to Architecture
+Imagine constructing a vast metropolis. You cannot build skyscrapers out of arbitrary raw dirt; you need standardized, unyielding atoms:
+1. **The Clay Mold (Symbol)**: An individual, atomic entity (like a letter `'a'`, a digit `'1'`, or a glyph).
+2. **The Brick Palette (Alphabet $\Sigma$)**: A strictly finite, non-empty catalog of standardized clay molds. English uses a 26-letter alphabet $\{A, \dots, Z\}$; digital logic uses the binary alphabet $\{0, 1\}$.
+3. **The Wall (String $w$)**: A linear sequence created by laying bricks end-to-end. The length is simply the physical count of bricks.
+4. **The Blueprint Specification (Language $L$)**: A curated set of approved walls that meet engineering standards. A dictionary is a finite list of words, but sentences in human speech are potentially infinite.
+
+### 💻 Bridging to Computer Science: Natural vs Formal Languages
+Human natural languages (English, Hindi, Mandarin) are deeply ambiguous and context-dependent. A phrase like *"The man saw the boy with binoculars"* requires human semantic parsing to decide who holds the binoculars.
+
+Digital computing hardware cannot tolerate ambiguity. An instruction decoder or compiler lexer requires a **formal language**: an unambiguous mathematical specification governed by rigid rules where every symbol sequence is decidably valid or invalid.
+
+<FlowPipeline
+  title="The Mathematical Hierarchy of Formal Languages"
+  subtitle="Hierarchical composition: from indivisible atomic symbols to infinite language sets"
+  nodes={[
+    {
+      badge: "Element",
+      title: "Symbol",
+      icon: "🔤",
+      color: "blue",
+      description: "Indivisible atomic abstract entity (e.g., 0, 1, a, b).",
+      connectorLabel: "Grouping",
+    },
+    {
+      badge: "Finite Set",
+      title: "Alphabet (Σ)",
+      icon: "📦",
+      color: "purple",
+      description: "Non-empty finite collection of valid symbols.",
+      connectorLabel: "Concatenation",
+    },
+    {
+      badge: "Sequence",
+      title: "String (w)",
+      icon: "📜",
+      color: "emerald",
+      description: "Finite-length sequence formed from alphabet symbols.",
+      connectorLabel: "Collection",
+    },
+    {
+      badge: "Subset",
+      title: "Language (L)",
+      icon: "📚",
+      color: "amber",
+      description: "Subset of Σ* containing strings satisfying a specific property.",
+    },
+  ]}
+/>
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🧱 Mathematical Building Blocks: Symbols, Alphabets & Strings
+
+In the Theory of Computation, computation is modeled as the processing of finite sequences over discrete alphabets.
+
+<ConceptComparison
+  title="Natural Languages vs Formal Mathematical Languages"
+  subtitle="Why computing systems mandate rigid formal language definitions over ambiguous natural languages"
+  concepts={[
+    {
+      badge: "Natural Language",
+      title: "Human Linguistic Communication",
+      icon: "🗣️",
+      color: "amber",
+      domain: "English, Hindi, Mandarin",
+      points: [
+        "Inherently ambiguous grammar rules with multiple interpretation paths",
+        "Dictionary contains finite words, but semantic meanings drift over time",
+        "Requires deep contextual inference and commonsense world models",
+        "Context-sensitive syntax that baffles deterministic state machines",
+      ],
+      quote: "Human languages trade precision for expressive flexibility.",
+    },
+    {
+      badge: "Formal Language",
+      title: "Mathematical Automata Specification",
+      icon: "⚙️",
+      color: "emerald",
+      domain: "TOC, Compilers, Protocols, Digital Logic",
+      points: [
+        "Unambiguous mathematical definitions governed by discrete state transitions",
+        "Strictly defined over a finite, immutable alphabet Σ",
+        "Determined by formal grammar generators or finite machine acceptors",
+        "Deterministic membership: every string w either belongs to L or does not",
+      ],
+      quote: "Formal languages trade poetic nuance for absolute mathematical determinism.",
+    },
+  ]}
+/>
+
+### 🔤 Symbol Definition
+A **symbol** is an indivisible, atomic element (a character, token, or letter). 
+* Examples: $0, 1, a, b, x, y, \star, \clubsuit$.
+
+### 🔤 Alphabet (Σ)
+An **alphabet** $\Sigma$ is a **finite, non-empty set of symbols**.
+* Binary Alphabet: $\Sigma = \{0, 1\}$
+* English Lowercase Alphabet: $\Sigma = \{a, b, c, \dots, z\}$
+* Hexadecimal Alphabet: $\Sigma = \{0, 1, \dots, 9, A, B, C, D, E, F\}$
+
+> **Theoretical Invariant:** An alphabet can never be empty ($\Sigma \ne \emptyset$) and can never be infinite ($|\Sigma| < \infty$).
+
+### 📜 String and Word Foundations (w)
+A **string** $w$ is a finite sequence of symbols chosen from an alphabet $\Sigma$.
+* For $\Sigma = \{a, b\}$, candidate strings include $w_1 = ab$, $w_2 = aabb$, $w_3 = bba$.
+* The **length of a string**, denoted $|w|$, is the total count of symbols in the sequence:
+  $$\text{If } w = 00110 \implies |w| = 5$$
+
+---
+
+## 📐 Operations on Strings: Concatenation, Reversal & Powers
+
+Just as numbers support arithmetic operations, strings support fundamental algebraic operations.
+
+<SubsystemGrid
+  title="The 4 Core String Operations"
+  subtitle="The fundamental algebraic operations that construct and transform symbol sequences"
+  items={[
+    {
+      icon: "🔗",
+      title: "String Concatenation",
+      tag: "Sequence Append",
+      color: "blue",
+      points: [
+        "Appending string y directly to the end of string x: w = xy.",
+        "Additive Length Invariant: |xy| = |x| + |y|.",
+        "Non-commutative: xy ≠ yx in general (e.g. ab · ba ≠ ba · ab).",
+      ],
+    },
+    {
+      icon: "🔄",
+      title: "String Reversal",
+      tag: "Order Inversion",
+      color: "purple",
+      points: [
+        "Writing symbols in opposite sequence: w = a₁a₂...aₙ ⟹ wᴿ = aₙ...a₂a₁.",
+        "Length Preservation: |wᴿ| = |w|.",
+        "Reversal Involution: (wᴿ)ᴿ = w and (xy)ᴿ = yᴿxᴿ.",
+      ],
+    },
+    {
+      icon: "⚡",
+      title: "String Powers (wⁿ)",
+      tag: "Iterated Concatenation",
+      color: "amber",
+      points: [
+        "Concatenating string w with itself n times: wⁿ = w · w · ... · w.",
+        "Base Case: w⁰ = ε (the empty string).",
+        "Length Scaling: |wⁿ| = n · |w|.",
+      ],
+    },
+    {
+      icon: "⭕",
+      title: "Empty String (ε or λ)",
+      tag: "Identity Element",
+      color: "rose",
+      points: [
+        "The unique string containing zero symbols: |ε| = 0.",
+        "Identity Invariant: w · ε = ε · w = w.",
+        "Exists over any alphabet: ε ∈ Σ* for all valid alphabets Σ.",
+      ],
+    },
+  ]}
+/>
+
+---
+
+## 🔢 Combinatorial Theorems: Substring, Prefix & Suffix Counting
+
+A string $w$ can be decomposed into contiguous segments. In automata design, understanding the combinatorial boundaries of prefixes, suffixes, and substrings is mandatory.
+
+### ✂️ Prefixes Analysis
+A **prefix** of $w$ is any leading segment obtained by truncating zero or more symbols from the right end:
+$$x \text{ is a prefix of } w \iff \exists y \text{ such that } w = xy$$
+* For $w = \text{"GATE"}$, the prefixes are:
+  $$\text{Prefixes}(w) = \{\epsilon, \text{G}, \text{GA}, \text{GAT}, \text{GATE}\}$$
+* **Theorem:** For any string $w$ of length $n$, the total number of prefixes is:
+  $$\text{Total Prefixes} = n + 1 \quad (\text{including } \epsilon)$$
+* A **proper prefix** excludes the string itself:
+  $$\text{Proper Prefixes} = n$$
+
+### 🏷️ Suffixes Analysis
+A **suffix** of $w$ is any trailing segment obtained by truncating zero or more symbols from the left end:
+$$y \text{ is a suffix of } w \iff \exists x \text{ such that } w = xy$$
+* For $w = \text{"GATE"}$, the suffixes are:
+  $$\text{Suffixes}(w) = \{\epsilon, \text{E}, \text{TE}, \text{ATE}, \text{GATE}\}$$
+* **Theorem:** For any string $w$ of length $n$, the total number of suffixes is:
+  $$\text{Total Suffixes} = n + 1 \quad (\text{including } \epsilon)$$
+* A **proper suffix** excludes the string itself:
+  $$\text{Proper Suffixes} = n$$
+
+### 🧩 Substrings Analysis
+A **substring** is any contiguous block of symbols appearing within $w$:
+$$s \text{ is a substring of } w \iff \exists x, y \text{ such that } w = xsy$$
+
+<MathBox title="Substring Counting Theorem (Distinct Symbols)">
+Let $w$ be a string of length $n$ composed of **$n$ pairwise distinct symbols**.
+
+1. Substrings of length $1$: $n$ choices.
+2. Substrings of length $2$: $n - 1$ choices.
+3. Substrings of length $k$: $n - k + 1$ choices.
+4. Substrings of length $n$: $1$ choice ($w$ itself).
+5. Substrings of length $0$: $1$ choice ($\epsilon$).
+
+Summing all contiguous segments:
+$$\sum_{k=1}^n (n - k + 1) + 1 = \frac{n(n + 1)}{2} + 1$$
+
+> **Counting Invariants:**
+> * Total Substrings (including $\epsilon$): $\frac{n(n+1)}{2} + 1$
+> * Total Non-Empty Substrings (excluding $\epsilon$): $\frac{n(n+1)}{2}$
+> * Total Non-Trivial Substrings (excluding $\epsilon$ and $w$): $\frac{n(n+1)}{2} - 1$
+</MathBox>
+
+> [!WARNING]
+> If a string contains **duplicate symbols** (e.g., $w = \text{"aaaa"}$ or $w = \text{"abab"}$), multiple index slices produce identical substrings. The formula $\frac{n(n+1)}{2} + 1$ represents the **strict upper bound**, achieved only when all symbols in $w$ are distinct!
+
+---
+
+## 🌐 Formal Languages & Set Operations: Complements & Reversals
+
+A **language** $L$ over an alphabet $\Sigma$ is any subset of strings formed from $\Sigma$:
+$$L \subseteq \Sigma^*$$
+
+Because languages are formal sets, they inherit both standard set operations and string-specific transformations.
+
+<ArchitectureStack
+  title="Language Abstraction Stack"
+  subtitle="Hierarchical construction of formal languages from atomic symbols to infinite language classes"
+  layers={[
+    {
+      badge: "Layer 4",
+      title: "Language Classes & Automata",
+      icon: "🏛️",
+      color: "purple",
+      description: "Infinite sets of approved strings accepted by state machines (DFA, NFA, PDA, Turing Machines).",
+      items: ["Regular Languages", "Context-Free Languages", "Decidable Languages"],
+      connectorText: "Accepted by Automata / Generated by Grammars",
+    },
+    {
+      badge: "Layer 3",
+      title: "Formal Languages (L ⊆ Σ*)",
+      icon: "🌐",
+      color: "blue",
+      description: "Specific subsets of strings satisfying mathematical invariants (e.g. even parity, palindromes).",
+      items: ["L = {aⁿbⁿ | n ≥ 0}", "L = {w | |w| mod 3 = 0}"],
+      connectorText: "Aggregated into Language Subsets",
+    },
+    {
+      badge: "Layer 2",
+      title: "Finite Strings (w ∈ Σ*)",
+      icon: "🧵",
+      color: "emerald",
+      description: "Linear sequences formed by concatenating symbols: w = s₁s₂...sₖ.",
+      items: ["w = 110", "w = abba", "|w| = length"],
+      connectorText: "Concatenated from Symbols",
+    },
+    {
+      badge: "Layer 1",
+      title: "Atomic Alphabet (Σ)",
+      icon: "🧱",
+      color: "amber",
+      description: "A finite, non-empty set of discrete symbols establishing the fundamental domain of discourse.",
+      items: ["Binary Σ = {0, 1}", "ASCII Character Set"],
+      connectorText: "Fundamental Atomic Base",
+    },
+  ]}
+/>
+
+### Key Language Operations
+
+1. **Union ($L_1 \cup L_2$)**:
+   $$L_1 \cup L_2 = \{w \mid w \in L_1 \lor w \in L_2\}$$
+2. **Intersection ($L_1 \cap L_2$)**:
+   $$L_1 \cap L_2 = \{w \mid w \in L_1 \land w \in L_2\}$$
+3. **Language Complement ($L^c$ or $\bar{L}$)**:
+   The set of all strings over $\Sigma$ that do *not* belong to $L$:
+   $$L^c = \Sigma^* - L$$
+4. **Language Reversal ($L^R$)**:
+   The set of all reversed strings:
+   $$L^R = \{w^R \mid w \in L\}$$
+   * Example: If $L = \{ab, aab\} \implies L^R = \{ba, baa\}$.
+5. **Language Concatenation ($L_1 L_2$)**:
+   $$L_1 L_2 = \{xy \mid x \in L_1, y \in L_2\}$$
+   * Example: If $L_1 = \{ab, aa\}$ and $L_2 = \{b, ba\}$:
+     $$L_1 L_2 = \{abb, abba, aab, aaba\}$$
+
+---
+
+## ♾️ Kleene Closure (Σ*) vs Positive Closure (Σ+)
+
+The most fundamental language generator over an alphabet is the **Kleene Star closure**.
+
+<ConceptComparison
+  title="Kleene Closure (Σ*) vs Positive Closure (Σ+)"
+  subtitle="The presence or absence of the zero-length identity string ε defines closure semantics"
+  concepts={[
+    {
+      badge: "Kleene Star (Σ*)",
+      title: "Universal Closure with ε",
+      icon: "⭐",
+      color: "purple",
+      domain: "All Strings of Length ≥ 0",
+      points: [
+        "Infinite union: Σ* = Σ⁰ ∪ Σ¹ ∪ Σ² ∪ Σ³ ∪ ... ∪ Σ^∞",
+        "Always contains the empty string ε (since Σ⁰ = {ε})",
+        "Universal set: Every language over Σ is a subset of Σ* (L ⊆ Σ*)",
+        "Cardinality: |Σ*| is countably infinite (ℵ₀) for any non-empty Σ",
+      ],
+      quote: "Σ* represents the universe of all possible finite strings over an alphabet.",
+    },
+    {
+      badge: "Positive Closure (Σ+)",
+      title: "Non-Empty String Closure",
+      icon: "➕",
+      color: "rose",
+      domain: "All Strings of Length ≥ 1",
+      points: [
+        "Infinite union excluding zero length: Σ⁺ = Σ¹ ∪ Σ² ∪ Σ³ ∪ ... ∪ Σ^∞",
+        "Does NOT contain ε unless ε is explicitly in the base alphabet",
+        "Fundamental Relation: Σ* = Σ⁺ ∪ {ε}",
+        "Equivalence: Σ⁺ = Σ · Σ* = Σ* · Σ",
+      ],
+      quote: "Σ⁺ represents all non-empty communications formed from the alphabet.",
+    },
+  ]}
+/>
+
+### Mathematical Powers of an Alphabet (Σ^k)
+Let $\Sigma = \{0, 1\}$:
+* $\Sigma^0 = \{\epsilon\}$ (all strings of length $0$) $\implies |\Sigma^0| = 1$
+* $\Sigma^1 = \{0, 1\}$ (all strings of length $1$) $\implies |\Sigma^1| = 2$
+* $\Sigma^2 = \{00, 01, 10, 11\}$ (all strings of length $2$) $\implies |\Sigma^2| = 4$
+* **General Invariant:** For an alphabet of size $|\Sigma| = m$, the number of strings of length $k$ is:
+  $$|\Sigma^k| = m^k$$
+
+---
+
+## 🏭 Real-World Production Context:
+
+1. **Compiler Lexical Tokenizers (Lex / Flex)**: Compilers represent source code as a string $w$ over the ASCII or UTF-8 alphabet $\Sigma$. Lexical analyzers scan prefixes of the remaining input string, identifying the longest prefix that matches a token definition (identifiers, keywords, numeric literals).
+2. **Network Protocol Framing**: Ethernet and TCP/IP packets are strings of bits over $\Sigma = \{0, 1\}$. Frame delimitation uses specialized prefix/suffix flags (e.g., HDLC `01111110`), and bit-stuffing guarantees that the flag substring never appears in the payload.
+3. **Genomic Sequence Analysis (Bioinformatics)**: DNA sequencing treats chromosomes as giant strings over the 4-symbol alphabet $\Sigma = \{A, C, G, T\}$. Suffix trees and substring indices (FM-index / Burrows-Wheeler Transform) allow fast $O(m)$ substring search queries across 3 billion base pairs.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Problem 1: Substring Counting on Strings with Distinct Symbols
+**Problem Statement:**  
+Consider the string $w = \text{"CIPHER"}$ defined over the English alphabet.  
+1. Calculate the total number of substrings.  
+2. Calculate the total number of non-empty substrings.  
+3. Calculate the total number of proper prefixes and proper suffixes.
+
+**Step-by-Step Solution:**
+
+1. **Verify Distinctness:**  
+   The string $w = \text{"CIPHER"}$ has length $n = 6$. All 6 characters ($\text{C, I, P, H, E, R}$) are distinct.
+
+2. **Total Substrings (Including $\epsilon$):**  
+   Using the combinatorial formula:
+   $$\text{Total Substrings} = \frac{n(n + 1)}{2} + 1 = \frac{6(7)}{2} + 1 = 21 + 1 = 22$$
+
+3. **Non-Empty Substrings:**  
+   Excluding the empty string $\epsilon$:
+   $$\text{Non-Empty Substrings} = \frac{n(n + 1)}{2} = \frac{6 \times 7}{2} = 21$$
+
+4. **Proper Prefixes and Suffixes:**  
+   * Number of prefixes: $n + 1 = 6 + 1 = 7$ ($\{\epsilon, \text{C}, \text{CI}, \text{CIP}, \text{CIPH}, \text{CIPHE}, \text{CIPHER}\}$).
+   * Number of proper prefixes (excluding $w$ itself): $n = 6$.
+   * Number of proper suffixes (excluding $w$ itself): $n = 6$.
+
+---
+
+### Problem 2: Substring Counting with Repeated Characters
+**Problem Statement:**  
+Consider the string $w = \text{"banana"}$ over $\Sigma = \{a, b, n\}$. Determine the exact number of distinct substrings and contrast it against the distinct-symbol upper bound.
+
+**Step-by-Step Solution:**
+
+1. **Calculate Theoretical Upper Bound:**  
+   For $n = |w| = 6$:
+   $$\text{Upper Bound} = \frac{6(7)}{2} + 1 = 22 \text{ substrings}$$
+
+2. **Enumerate Distinct Substrings by Length:**  
+   * **Length 0 ($k=0$):** $\{\epsilon\}$ (1 substring)
+   * **Length 1 ($k=1$):** $\{b, a, n\}$ (3 substrings; duplicate $a$'s and $n$'s collapse)
+   * **Length 2 ($k=2$):** $\{ba, an, na\}$ (3 substrings; "an" appears twice, "na" appears twice)
+   * **Length 3 ($k=3$):** $\{ban, ana, nan\}$ (3 substrings; "ana" appears twice)
+   * **Length 4 ($k=4$):** $\{bana, anan, nana\}$ (3 substrings)
+   * **Length 5 ($k=5$):** $\{banan, anana\}$ (2 substrings)
+   * **Length 6 ($k=6$):** $\{banana\}$ (1 substring)
+
+3. **Total Actual Distinct Substrings:**  
+   $$\text{Total} = 1 + 3 + 3 + 3 + 3 + 2 + 1 = 16 \text{ distinct substrings}$$
+
+4. **Conclusion:**  
+   Due to internal periodicities and repeating characters, the actual count ($16$) is strictly less than the theoretical maximum ($22$).
+
+---
+
+### Problem 3: Alphabet Powers & Language Cardinality
+**Problem Statement:**  
+Let $\Sigma = \{0, 1\}$.  
+1. Determine the cardinality of the language $L = \Sigma^0 \cup \Sigma^1 \cup \Sigma^2 \cup \Sigma^3$.  
+2. If $L_1 = \{w \in \Sigma^* \mid |w| = 2\}$ and $L_2 = \{w \in \Sigma^* \mid |w| \le 1\}$, compute $|L_1 L_2|$.
+
+**Step-by-Step Solution:**
+
+1. **Cardinality of $L$:**  
+   Each $\Sigma^k$ contains strings of length $k$:
+   $$|\Sigma^0| = 2^0 = 1 \quad (\{\epsilon\})$$
+   $$|\Sigma^1| = 2^1 = 2 \quad (\{0, 1\})$$
+   $$|\Sigma^2| = 2^2 = 4 \quad (\{00, 01, 10, 11\})$$
+   $$|\Sigma^3| = 2^3 = 8 \quad (\{000, 001, \dots, 111\})$$
+   Since sets of different length strings are mutually disjoint:
+   $$|L| = 1 + 2 + 4 + 8 = 15 \text{ strings}$$
+
+2. **Language Concatenation $L_1 L_2$:**  
+   * $L_1 = \{00, 01, 10, 11\}$ (size $4$)
+   * $L_2 = \{\epsilon, 0, 1\}$ (size $3$)
+   * Compute pairwise concatenations $xy$ where $x \in L_1, y \in L_2$:
+     * Concatenating with $\epsilon$: $\{00, 01, 10, 11\}$ (4 strings of length 2)
+     * Concatenating with $0$: $\{000, 010, 100, 110\}$ (4 strings of length 3)
+     * Concatenating with $1$: $\{001, 011, 101, 111\}$ (4 strings of length 3)
+   * Check for collisions: Length 2 strings cannot collide with length 3 strings. Within length 3 strings, suffixes $0$ and $1$ guarantee no collisions.
+   $$|L_1 L_2| = 4 + 4 + 4 = 12 \text{ strings}$$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Can an alphabet be infinite?**  
+  **No.** By definition, an alphabet $\Sigma$ is a *finite*, non-empty set of symbols. If a set of symbols is infinite, it cannot form an alphabet in standard automata theory.
+* **Is $\epsilon$ an element of every language?**  
+  **No.** $\epsilon \in \Sigma^*$ is true for every alphabet, but a specific language $L \subseteq \Sigma^*$ may or may not include $\epsilon$. For example, $L = \{w \in \{0, 1\}^* \mid |w| \ge 1\}$ explicitly excludes $\epsilon$.
+* **What is the difference between $\emptyset$ and $\{\epsilon\}$?**  
+  $\emptyset$ is the **empty language** with cardinality $|\emptyset| = 0$ (contains zero strings). $\{\epsilon\}$ is a non-empty language with cardinality $|\{\epsilon\}| = 1$ (contains exactly one string of length zero).
+:::
+
+:::warning Common Interview Traps
+* **Commutativity Trap in String Concatenation**: Many candidates incorrectly assume $xy = yx$. String concatenation is **associative** ($(xy)z = x(yz)$), but strictly **non-commutative** ($01 \ne 10$).
+* **The "Distinct Symbols" Condition in Substring Counting**: Never blindly write $\frac{n(n+1)}{2} + 1$ without checking whether the string contains duplicate characters. For $w = \text{"aaaa"}$, the formula yields $\frac{4(5)}{2}+1 = 11$, but the actual count is only $5$ ($\{\epsilon, a, aa, aaa, aaaa\}$).
+* **Language Power vs String Power**: Do not confuse $w^2$ (a single string $ww$) with $L^2$ (a set of strings formed by pairwise concatenation $\{xy \mid x, y \in L\}$).
+:::
+
+<CoreDoseNav
+  next={{
+    title: "1.2 Deterministic Finite Automata (DFA): Formalisms, Transitions & Acceptance",
+    url: "/coredose/toc/module-01/deterministic-finite-automata-formalisms-and-acceptance"
+  }}
+/>

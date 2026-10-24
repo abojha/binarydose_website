@@ -1,0 +1,171 @@
+---
+title: "Theory of Computation (TOC) Notes & Roadmap"
+description: "Complete module-wise notes and roadmap for Theory of Computation covering Alphabets & Strings, Deterministic Finite Automata (DFA), DFA Minimization, NFA, Moore & Mealy Machines, Regular Expressions & Arden's Theorem, Regular Grammars, Pumping Lemma, Pushdown Automata (PDA), Context-Free Grammars (CFG), Turing Machines, Decidability, and Complexity Theory."
+hide_title: true
+hide_table_of_contents: true
+---
+
+<BackNav
+  backUrl="/coredose"
+  backLabel="Back to CoreDose Hub"
+  breadcrumbs={[
+    { label: "CoreDose", url: "/coredose" },
+    { label: "Theory of Computation" },
+  ]}
+/>
+
+<HeroHeader
+  badge={{ icon: "🧮", text: "Theory of Computation Notes" }}
+  title="Theory of Computation"
+  gradient="(TOC)"
+  subtitle="Zero-fluff theoretical computer science notes, formal language derivations, finite state automaton schematics, computational limits proofs, and high-yield interview frameworks for university semester exams, systems engineering, and foundational computing."
+  stats={[
+    { number: 10, label: "Modules" },
+    { number: 30, label: "Topics" },
+    { number: "100%", label: "Free Access" },
+  ]}
+/>
+
+<CourseCurriculum
+  hideStats={true}
+  tags={[
+    "Alphabets & Strings",
+    "DFA & State Transitions",
+    "Modulo State Rings",
+    "DFA Minimization",
+    "NFA & Subset Construction",
+    "Moore & Mealy Machines",
+    "Regular Expressions & Arden's",
+    "Regular Grammars & Chomsky",
+    "Pumping Lemma & Closure",
+    "Pushdown Automata (PDA)",
+    "Context-Free Grammars (CFG)",
+    "Turing Machines & LBA",
+    "Decidability & Halting Problem",
+    "Complexity Theory (P vs NP)",
+  ]}
+  modules={[
+    {
+      num: "01",
+      title: "Foundations & Deterministic Finite Automata (DFA)",
+      icon: "🔢",
+      color: "rose",
+      description: "Formal alphabet definitions, combinatorial substring counting formulas, 5-tuple DFA formalisms, state transition tables, modulo-N divisibility, cross-product construction, and complementation invariants.",
+      topics: [
+        { num: "1.1", title: "Alphabets, Strings, Substring Combinatorics & Language Formalisms", url: "/coredose/toc/module-01/alphabets-strings-and-language-foundations" },
+        { num: "1.2", title: "Deterministic Finite Automata (DFA): Formalisms, State Transitions & Acceptance", url: "/coredose/toc/module-01/deterministic-finite-automata-formalisms-and-acceptance" },
+        { num: "1.3", title: "DFA Design Patterns: Substrings, Divisibility & Modulo State Rings", url: "/coredose/toc/module-01/dfa-design-patterns-substrings-divisibility-modulo" },
+        { num: "1.4", title: "DFA Combinatorics, Cross-Product Construction & Complementation Invariants", url: "/coredose/toc/module-01/dfa-combinatorics-cross-product-and-complementation" },
+      ],
+    },
+    {
+      num: "02",
+      title: "NFA, Subset Construction & DFA Minimization",
+      icon: "🔄",
+      color: "purple",
+      description: "Non-deterministic finite automata (NFA), epsilon-NFA transitions, epsilon-closure, subset construction algorithm (power set 2^Q), unreachable state elimination, and Myhill-Nerode table-filling minimization.",
+      topics: [
+        { num: "2.1", title: "DFA Minimization: Unreachable States & The Table-Filling (Myhill-Nerode) Algorithm", url: "/coredose/toc/module-02/dfa-minimization-unreachable-states-table-filling-algorithm" },
+        { num: "2.2", title: "Non-Deterministic Finite Automata (NFA), Epsilon-NFA & Transition Semantics", url: "/coredose/toc/module-02/non-deterministic-finite-automata-nfa-formalisms" },
+        { num: "2.3", title: "Epsilon-Closure Calculation & The Subset Construction (NFA to DFA) Algorithm", url: "/coredose/toc/module-02/epsilon-closure-and-subset-construction-nfa-to-dfa" },
+      ],
+    },
+    {
+      num: "03",
+      title: "Finite Automata with Output (Moore & Mealy Machines)",
+      icon: "⚡",
+      color: "amber",
+      description: "State-associated vs transition-associated output models, output string length relations, timing diagrams, and bidirectional state conversion algorithms between Moore and Mealy machines.",
+      topics: [
+        { num: "3.1", title: "Moore and Mealy Machine Architectures, Formalisms & Timing Mechanics", url: "/coredose/toc/module-03/moore-and-mealy-machine-architectures-formalisms-and-timing" },
+        { num: "3.2", title: "Bidirectional Algorithmic State Conversions: Moore to Mealy & Mealy to Moore", url: "/coredose/toc/module-03/bidirectional-state-conversions-moore-to-mealy-and-mealy-to-moore" },
+      ],
+    },
+    {
+      num: "04",
+      title: "Regular Expressions & Arden's Theorem",
+      icon: "📜",
+      color: "blue",
+      description: "Regular expression algebraic identities, language modeling, Arden's theorem state elimination proofs (R = Q + RP implies R = QP*), and algorithmic conversion from finite automata to regular expressions.",
+      topics: [
+        { num: "4.1", title: "Regular Expressions: Syntax, Operators, Algebraic Identities & Language Modeling", url: "/coredose/toc/module-04/regular-expressions-syntax-operators-algebraic-identities" },
+        { num: "4.2", title: "Arden's Theorem & State Elimination for Finite Automata to Regular Expressions", url: "/coredose/toc/module-04/ardens-theorem-state-elimination-fa-to-re" },
+      ],
+    },
+    {
+      num: "05",
+      title: "Regular Grammars & The Chomsky Hierarchy",
+      icon: "🏗️",
+      color: "cyan",
+      description: "Formal phrase-structure grammar 4-tuple, derivation conventions, the 4-level Chomsky hierarchy, Type-3 Right-Linear and Left-Linear regular grammars, and interconversions with finite automata.",
+      topics: [
+        { num: "5.1", title: "Formal Phrase-Structure Grammars & The 4-Level Chomsky Hierarchy", url: "/coredose/toc/module-05/formal-phrase-structure-grammars-chomsky-hierarchy" },
+        { num: "5.2", title: "Type-3 Regular Grammars: Right-Linear vs Left-Linear & FA Conversions", url: "/coredose/toc/module-05/type-3-regular-grammars-right-linear-left-linear-fa-conversions" },
+      ],
+    },
+    {
+      num: "06",
+      title: "Regular Language Identification, Pumping Lemma & Properties",
+      icon: "🛡️",
+      color: "emerald",
+      description: "Memory constraints of finite state systems, adversarial game formulations of the Pumping Lemma for regular languages, non-regularity proofs, decision algorithms, and closure property theorems.",
+      topics: [
+        { num: "6.1", title: "Memory Limits: Finite vs Infinite State Distinctions & Counting Constraints", url: "/coredose/toc/module-06/memory-limits-finite-vs-infinite-state-counting-constraints" },
+        { num: "6.2", title: "Pumping Lemma for Regular Languages & Proving Non-Regularity", url: "/coredose/toc/module-06/pumping-lemma-for-regular-languages-proving-non-regularity" },
+        { num: "6.3", title: "Decision Algorithms & Closure Property Theorems of Regular Languages", url: "/coredose/toc/module-06/decision-algorithms-and-closure-property-theorems-of-regular-languages" },
+      ],
+    },
+    {
+      num: "07",
+      title: "Context-Free Grammars (CFG) & Normal Forms",
+      icon: "🌳",
+      color: "purple",
+      description: "Context-free grammar formalisms, derivation parse trees, leftmost vs rightmost derivations, ambiguity detection, inherently ambiguous languages, simplification, and Chomsky & Greibach Normal Forms.",
+      topics: [
+        { num: "7.1", title: "Context-Free Grammars: Parse Trees, Leftmost & Rightmost Derivations", url: "/coredose/toc/module-07/context-free-grammars-parse-trees-leftmost-rightmost-derivations" },
+        { num: "7.2", title: "Ambiguity in Context-Free Grammars & Inherently Ambiguous Languages", url: "/coredose/toc/module-07/ambiguity-in-context-free-grammars-inherently-ambiguous-languages" },
+        { num: "7.3", title: "Grammar Simplification & Normal Forms: Chomsky (CNF) & Greibach (GNF)", url: "/coredose/toc/module-07/grammar-simplification-and-normal-forms-chomsky-and-greibach" },
+      ],
+    },
+    {
+      num: "08",
+      title: "Pushdown Automata (PDA) & CFL Properties",
+      icon: "📥",
+      color: "blue",
+      description: "Stack-augmented automaton architecture, instantaneous descriptions, acceptance by final state vs empty stack equivalence, deterministic PDA (DPDA) vs NPDA, and CFL decision/closure matrices.",
+      topics: [
+        { num: "8.1", title: "Pushdown Automata (PDA): 7-Tuple Architecture & Instantaneous Descriptions", url: "/coredose/toc/module-08/pushdown-automata-7-tuple-architecture-and-instantaneous-descriptions" },
+        { num: "8.2", title: "PDA Acceptance Criteria: Final State vs Empty Stack Equivalence & Design", url: "/coredose/toc/module-08/pda-acceptance-criteria-final-state-vs-empty-stack-equivalence-and-design" },
+        { num: "8.3", title: "Deterministic PDA (DPDA) vs Non-Deterministic PDA (NPDA) & DCFL Boundaries", url: "/coredose/toc/module-08/deterministic-pda-vs-non-deterministic-pda-and-dcfl-boundaries" },
+        { num: "8.4", title: "Decision Properties, Closure Properties & Pumping Lemma for CFLs", url: "/coredose/toc/module-08/decision-properties-closure-properties-and-pumping-lemma-for-cfls" },
+      ],
+    },
+    {
+      num: "09",
+      title: "Turing Machines & Linear Bounded Automata (LBA)",
+      icon: "💻",
+      color: "rose",
+      description: "Universal computational models, infinite tape head mechanics, transition functions, Church-Turing thesis, multi-tape/non-deterministic variants, Linear Bounded Automata, and Context-Sensitive Languages.",
+      topics: [
+        { num: "9.1", title: "Turing Machine 7-Tuple Model, Infinite Tape Mechanics & ID Transitions", url: "/coredose/toc/module-09/turing-machine-7-tuple-model-infinite-tape-mechanics-and-id-transitions" },
+        { num: "9.2", title: "Turing Machine Variants: Multi-Tape, Non-Deterministic TMs & Church-Turing Thesis", url: "/coredose/toc/module-09/turing-machine-variants-multi-tape-non-deterministic-and-church-turing" },
+        { num: "9.3", title: "Linear Bounded Automata (LBA) & Context-Sensitive Languages (CSL)", url: "/coredose/toc/module-09/linear-bounded-automata-and-context-sensitive-languages" },
+      ],
+    },
+    {
+      num: "10",
+      title: "Decidability, Undecidability & Complexity Theory",
+      icon: "⚖️",
+      color: "amber",
+      description: "Recursive (REC) vs Recursively Enumerable (RE) languages, Turing halting problem, Post Correspondence Problem (PCP), Rice's theorem, reductions, Class P, Class NP, and NP-Completeness.",
+      topics: [
+        { num: "10.1", title: "Recursive (REC) vs Recursively Enumerable (RE / Semi-Decidable) Languages", url: "/coredose/toc/module-10/recursive-vs-recursively-enumerable-languages" },
+        { num: "10.2", title: "The Halting Problem, Undecidability, Post Correspondence Problem & Rice's Theorem", url: "/coredose/toc/module-10/the-halting-problem-undecidability-post-correspondence-problem-and-rices-theorem" },
+        { num: "10.3", title: "Master Decision & Closure Properties Matrix Across All 4 Chomsky Classes", url: "/coredose/toc/module-10/master-decision-and-closure-properties-matrix-across-chomsky-hierarchy" },
+        { num: "10.4", title: "Computational Complexity: Class P, Class NP, Reductions & NP-Complete Problems", url: "/coredose/toc/module-10/computational-complexity-class-p-class-np-reductions-and-np-complete-problems" },
+      ],
+    },
+  ]}
+/>
+
+<GiscusComments />

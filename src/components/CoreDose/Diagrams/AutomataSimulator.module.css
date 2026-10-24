@@ -1,0 +1,552 @@
+.container {
+  margin: 2rem 0;
+  border-radius: 12px;
+  border: 1px solid var(--diagram-border, #334155);
+  background: var(--diagram-bg, #0f172a);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  font-family: var(--ifm-font-family-base, system-ui, -apple-system, sans-serif);
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: var(--diagram-surface, #1e293b);
+  border-bottom: 1px solid var(--diagram-border, #334155);
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex: 1 1 320px;
+}
+
+.iconBox {
+  font-size: 1.5rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid #334155;
+  flex-shrink: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.3;
+}
+
+.badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.metaChip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid #334155;
+}
+
+.metaLabel {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metaValue {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+/* Toolbar: Input + Quick Tests + Playback Controls */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  background: rgba(15, 23, 42, 0.65);
+  border-bottom: 1px solid var(--diagram-border, #334155);
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.inputGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.inputLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stringInput {
+  padding: 0.35rem 0.65rem;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid #475569;
+  background: #1e293b;
+  color: #f8fafc;
+  width: 120px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.stringInput:focus {
+  border-color: #fb7185;
+}
+
+.testPills {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.testPill {
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-weight: 600;
+  border: 1px solid #334155;
+  background: rgba(30, 41, 59, 0.7);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.testPill:hover {
+  background: #334155;
+  color: #f8fafc;
+  border-color: #475569;
+}
+
+.testPillActive {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: rgba(244, 63, 94, 0.5);
+  color: #fb7185;
+  font-weight: 700;
+}
+
+.playbackGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.controlBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #cbd5e1;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.controlBtn:hover:not(:disabled) {
+  background: #334155;
+  color: #f8fafc;
+  border-color: #475569;
+}
+
+.controlBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.playBtn {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: rgba(244, 63, 94, 0.5);
+  color: #fb7185;
+}
+
+.playBtn:hover:not(:disabled) {
+  background: rgba(244, 63, 94, 0.35);
+  color: #ffffff;
+}
+
+/* Tape Runner */
+.tapeBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1.25rem;
+  background: rgba(10, 15, 30, 0.5);
+  border-bottom: 1px solid var(--diagram-border, #334155);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tapeHeadTag {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.tapeCells {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.tapeCell {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.88rem;
+  font-weight: 800;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  transition: all 0.15s ease;
+}
+
+.cellActive {
+  border-color: #fb7185;
+  background: rgba(244, 63, 94, 0.2);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.4);
+}
+
+.cellProcessed {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+}
+
+.tapePointer {
+  position: absolute;
+  top: -14px;
+  font-size: 0.65rem;
+  color: #fb7185;
+  animation: bounce 0.6s infinite alternate;
+}
+
+@keyframes bounce {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-2px);
+  }
+}
+
+.tapeChar {
+  line-height: 1;
+}
+
+/* Split Grid: Side-by-Side Diagram + Table */
+.splitGrid {
+  display: grid;
+  grid-template-columns: 1.25fr 0.95fr;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+@media (max-width: 820px) {
+  .splitGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.schematicCard,
+.tableCard {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid var(--diagram-border, #334155);
+  border-radius: 10px;
+  padding: 0.9rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.sectionTitle {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.hintTag {
+  font-size: 0.68rem;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.stateMemoryTag {
+  font-size: 0.68rem;
+  color: #fb7185;
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+/* SVG Wrapper */
+.svgWrapper {
+  width: 100%;
+  background: rgba(10, 15, 30, 0.6);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 8px;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.circuitSvg {
+  width: 100%;
+  max-width: 380px;
+  height: auto;
+  display: block;
+}
+
+/* Arc and Wire Flow Pulse Animations */
+@keyframes wireFlowAnim {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.wireFlowPulse {
+  animation: wireFlowAnim 0.75s linear infinite;
+  pointer-events: none;
+  filter: drop-shadow(0 0 2px #ffffff);
+}
+
+.edgeLabel {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  user-select: none;
+}
+
+.edgeLabelActive {
+  fill: #fb7185 !important;
+  font-weight: 900 !important;
+}
+
+/* Table Card */
+.tableWrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.th {
+  background: rgba(30, 41, 59, 0.9);
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+  font-weight: 700;
+  color: #cbd5e1;
+  border-bottom: 1px solid #334155;
+  font-size: 0.78rem;
+}
+
+.td {
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+  font-family: var(--ifm-font-family-monospace, monospace);
+  color: #94a3b8;
+  transition: all 0.15s ease;
+}
+
+.tdStateCol {
+  text-align: left;
+  font-weight: 700;
+  color: #e2e8f0;
+  background: rgba(30, 41, 59, 0.4);
+}
+
+.rowActive {
+  background: rgba(244, 63, 94, 0.12) !important;
+}
+
+.rowActive .tdStateCol {
+  color: #fb7185 !important;
+  font-weight: 900;
+}
+
+.cellActiveTarget {
+  background: rgba(244, 63, 94, 0.28) !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  box-shadow: inset 0 0 8px rgba(244, 63, 94, 0.5);
+}
+
+/* Bottom Status Banner */
+.statusBanner {
+  padding: 0.65rem 1.25rem;
+  border-top: 1px solid var(--diagram-border, #334155);
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.statusBannerContent {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  line-height: 1.4;
+}
+
+.bannerAccepted {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+}
+
+.bannerRejected {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+.bannerRunning {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+}
+
+.bannerIcon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+/* Transducer Output Tape Styles */
+.outputTapeBar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1.25rem;
+  background: rgba(15, 23, 42, 0.45);
+  border-bottom: 1px solid var(--diagram-border, #334155);
+  overflow-x: auto;
+}
+
+.outputTapeTag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.cellEmitted {
+  background: rgba(16, 185, 129, 0.22) !important;
+  border-color: #10b981 !important;
+  color: #34d399 !important;
+  font-weight: 800;
+}
+

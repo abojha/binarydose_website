@@ -5,9 +5,9 @@
   "visualizerEnginesCount": 4,
   "videoPlaylistsCount": 4,
   "coredose": {
-    "activeCoursesCount": 5,
-    "totalTopics": 195,
-    "totalModules": 44,
+    "activeCoursesCount": 6,
+    "totalTopics": 225,
+    "totalModules": 54,
     "subjects": {
       "cn": {
         "modules": 10,
@@ -28,6 +28,10 @@
       "os": {
         "modules": 10,
         "topics": 51
+      },
+      "toc": {
+        "modules": 10,
+        "topics": 30
       }
     }
   }

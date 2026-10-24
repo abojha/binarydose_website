@@ -1,0 +1,705 @@
+---
+title: "Type-3 Regular Grammars: Right-Linear vs Left-Linear & FA Conversions"
+description: "Master Type-3 regular grammars, Right-Linear vs Left-Linear production rules, the hybrid non-regularity trap, and algorithmic bidirectional conversions with finite automata."
+sidebar_label: "5.2 Type-3 Regular Grammars & FA Conversions"
+sidebar_position: 2
+hide_table_of_contents: true
+keywords:
+  - type 3 regular grammar
+  - right-linear grammar
+  - left-linear grammar
+  - rlg to nfa
+  - nfa to rlg
+  - llg to fa
+  - linear grammar
+  - regular grammar conversion
+---
+
+import CoreDoseLessonHeader from '@site/src/components/CoreDose/CoreDoseLessonHeader';
+import CoreDoseTOC from '@site/src/components/CoreDose/CoreDoseTOC';
+import CoreDoseNav from '@site/src/components/CoreDose/CoreDoseNav';
+import { ConceptComparison, FlowPipeline, AutomataSimulator, SubsystemGrid } from '@site/src/components/Diagrams';
+
+# 5.2 Type-3 Regular Grammars: Right-Linear vs Left-Linear & FA Conversions
+
+<CoreDoseLessonHeader
+  subject="Theory of Computation"
+  moduleTitle="Module 05: Regular Grammars & The Chomsky Hierarchy"
+  lessonTitle="Type-3 Regular Grammars: Right-Linear vs Left-Linear & FA Conversions"
+  readTime="26 min read"
+  difficulty="Intermediate to Advanced"
+  topicsCovered={[
+    "Right-Linear Grammar (RLG) Formalism",
+    "Left-Linear Grammar (LLG) Formalism",
+    "The Fatal Hybrid Linear Trap",
+    "RLG to NFA Algorithmic Construction",
+    "NFA to RLG Algorithmic Construction",
+    "LLG to FA Dual & Reversal Methods",
+  ]}
+/>
+
+## 💡 Core Intuition: Directional String Synthesis
+
+A **Type-3 Regular Grammar** is the generative counterpart to a Finite Automaton. While a finite state machine scans a pre-existing string symbol-by-symbol from left to right, a regular grammar synthesizes strings character-by-character along a strict, unidirectional frontier.
+
+<ConceptComparison
+  title="Directional String Synthesis Frontiers: Right-Linear vs Left-Linear"
+  subtitle="Comparing the growth directions of single-variable frontiers during language generation"
+  concepts={[
+    {
+      badge: "Right-Linear",
+      title: "Right-Linear Expansion",
+      icon: "⏩",
+      color: "blue",
+      domain: "Forward Growth (Left-to-Right)",
+      points: [
+        "Derivation steps: S ⇒ aB ⇒ abC ⇒ abc",
+        "Terminals materialize from left to right.",
+        "The single non-terminal variable always sits at the RIGHT frontier.",
+        "Direct isomorphism with physical automaton forward scanning.",
+      ],
+      quote: "S ⇒ aB ⇒ abC ⇒ abc (Terminals grow left-to-right).",
+    },
+    {
+      badge: "Left-Linear",
+      title: "Left-Linear Expansion",
+      icon: "⏪",
+      color: "emerald",
+      domain: "Backward Growth (Right-to-Left)",
+      points: [
+        "Derivation steps: S ⇒ Ba ⇒ Cba ⇒ cba",
+        "Terminals materialize from right to left.",
+        "The single non-terminal variable always sits at the LEFT frontier.",
+        "Direct isomorphism with reading reversed strings from final states.",
+      ],
+      quote: "S ⇒ Ba ⇒ Cba ⇒ cba (Terminals grow right-to-left).",
+    },
+  ]}
+/>
+
+### 🍳 The Everyday Analogy: Threading Beads on an Open String
+
+Imagine assembling a beaded necklace:
+
+* **Right-Linear Assembly**: You tie a permanent knot at the far left. You thread a bead `a`, leaving the open needle (`variable B`) at the right end. You slide on another bead `b`, shifting the needle further to the right. Finally, you tie off the open needle with a clasp (`terminal` or `\epsilon`). The beads grow strictly from left to right, and you only ever interact with the **rightmost open tip**.
+* **Left-Linear Assembly**: You attach the clasp at the far right. You push beads onto the string from behind, so every new bead pushes the existing strand to the right. The open needle (`variable`) sits continuously at the **leftmost leading edge**.
+* **The Fatal Hybrid Trap**: What happens if an artisan tries to add beads from *both ends simultaneously*?
+  A rule of the form $S \to a S b$ adds a bead on the left and a bead on the right in the same breath. Suddenly, you must remember exactly how many beads you attached on the left so that you attach the identical number on the right! That requires an **auxiliary memory counter (a stack)**. The system immediately bursts out of the finite-state realm and becomes a **Context-Free Linear Grammar** ($a^n b^n$).
+
+### 💻 Bridging to Computer Science
+
+In finite automata, transitions are strictly forward-progressing: reading a character $a$ in state $q_i$ moves the control unit to state $q_j$ ($\delta(q_i, a) = q_j$). This maps 1-to-1 with a Right-Linear production:
+
+$$
+A_i \to a A_j
+$$
+
+The non-terminal variable acts as the **current state**, the emitted terminal acts as the **consumed input symbol**, and the next variable represents the **target state**. Because an automaton has zero stack memory, it can only track one active state at a time—which is why regular grammars can contain **at most one non-terminal variable** on their right-hand side.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 📜 Formal Mathematical Specification of Type-3 Grammars
+
+A grammar $G = (V, \Sigma, P, S)$ is a **Type-3 Regular Grammar** if and only if all its production rules are either **strictly Right-Linear** or **strictly Left-Linear**.
+
+### Right-Linear Grammar (RLG)
+
+A grammar $G$ is **Right-Linear** if every production rule in $P$ adheres to one of the following canonical forms:
+
+1. $A \to a B$ (where $A, B \in V$ and $a \in \Sigma$)
+2. $A \to a$ (where $A \in V$ and $a \in \Sigma$)
+3. $A \to \epsilon$ (where $A \in V$ and $\epsilon$ is the empty string)
+
+*Extended Right-Linear Form*: Productions of the form $A \to w B$ or $A \to w$, where $w \in \Sigma^*$, are also regular. Any extended RLG can be converted into strict single-terminal RLG by introducing intermediate variables:
+
+$$
+A \to a_1 a_2 a_3 B \iff A \to a_1 X_1, \quad X_1 \to a_2 X_2, \quad X_2 \to a_3 B
+$$
+
+### Left-Linear Grammar (LLG)
+
+A grammar $G$ is **Left-Linear** if every production rule in $P$ adheres to one of the following canonical forms:
+
+1. $A \to B a$ (where $A, B \in V$ and $a \in \Sigma$)
+2. $A \to a$ (where $A \in V$ and $a \in \Sigma$)
+3. $A \to \epsilon$ (where $A \in V$)
+
+*Extended Left-Linear Form*: Similarly, productions of the form $A \to B w$ or $A \to w$ (where $w \in \Sigma^*$) are left-linear and can be decomposed into single-terminal steps.
+
+---
+
+## ⚠️ The Fatal Hybrid Linear Trap: Why Mixing Directions Destroys Regularity
+
+A common and critical error in formal language theory is confusing a **Linear Grammar** with a **Regular Grammar**.
+
+### Definition: Linear Grammar
+
+A grammar $G = (V, \Sigma, P, S)$ is a **Linear Grammar** if every production has at most one variable on its right-hand side:
+
+$$
+A \to u B v \quad \text{or} \quad A \to w \quad (u, v, w \in \Sigma^*, \; A, B \in V)
+$$
+
+### The Core Invariance Theorem
+
+> **CRITICAL THEOREM**:  
+> Every Regular Grammar is a Linear Grammar, but **a Linear Grammar is NOT necessarily Regular**!  
+> A grammar is Type-3 Regular **if and only if** all its rules are uniformly right-linear, OR all its rules are uniformly left-linear. **Mixing right-linear and left-linear productions destroys regularity.**
+
+#### Mathematical Proof by Counterexample
+
+Consider the following grammar $G$ over $\Sigma = \{a, b\}$:
+
+$$
+S \to a B \mid \epsilon, \quad B \to S b
+$$
+
+1. Analyze rule $S \to a B$: This is strictly right-linear (variable $B$ at the right end).
+2. Analyze rule $B \to S b$: This is strictly left-linear (variable $S$ at the left end).
+3. Both rules contain at most one variable on the RHS, so $G$ is by definition a **Linear Grammar**.
+4. Now, examine the language generated by deriving sentential forms:
+   $$S \implies a B \implies a (S b) = a S b$$
+   Substituting recursively:
+   $$S \implies a S b \implies a (a S b) b = a^2 S b^2 \implies \dots \implies a^n S b^n$$
+   Terminating with $S \to \epsilon$:
+   $$a^n S b^n \implies a^n \epsilon b^n = a^n b^n$$
+5. The language generated is:
+   $$L(G) = \{a^n b^n \mid n \ge 0\}$$
+
+Since $\{a^n b^n \mid n \ge 0\}$ is the canonical non-regular context-free language (it fails the Pumping Lemma for regular languages), **grammar $G$ is Type-2 (Context-Free), NOT Type-3 (Regular)**!
+
+---
+
+## 🔄 Algorithmic Conversions Between Grammars and Finite Automata
+
+### Algorithm 1: Right-Linear Grammar (RLG) to NFA
+
+Given an RLG $G = (V, \Sigma, P, S)$, construct an equivalent NFA $M = (Q, \Sigma, \delta, q_0, F)$ as follows:
+
+<SubsystemGrid
+  title="Right-Linear Grammar to NFA Algorithmic Mapping Matrix"
+  subtitle="Formal 4-component transformation protocol from grammar variables to automaton states"
+  items={[
+    {
+      icon: "🔘",
+      title: "State Set Construction (Q)",
+      tag: "States",
+      color: "blue",
+      points: [
+        "Create a distinct state q_A for every variable A ∈ V.",
+        "Introduce a dedicated new accepting state q_f.",
+        "Total state count: |Q| = |V| + 1.",
+      ],
+      syscalls: ["Q = V ∪ {q_f}"],
+    },
+    {
+      icon: "🎯",
+      title: "Initial & Final Designations (q₀, F)",
+      tag: "Initial / Final",
+      color: "purple",
+      points: [
+        "Initial state: q₀ corresponds to start symbol S.",
+        "Dedicated final state: q_f is unconditionally in F.",
+        "Base final state: If A → ε ∈ P, then state A ∈ F as well.",
+      ],
+      syscalls: ["q₀ = S", "q_f ∈ F", "A → ε ⟹ A ∈ F"],
+    },
+    {
+      icon: "⚡",
+      title: "Standard Transitions (A → a B)",
+      tag: "State Transitions",
+      color: "cyan",
+      points: [
+        "For each rule A → a B, create transition from state A to B on symbol a.",
+        "Mirrors consuming symbol a and entering next state B.",
+      ],
+      syscalls: ["A → a B ⟹ δ(A, a) = B"],
+    },
+    {
+      icon: "🏁",
+      title: "Terminating Transitions (A → a)",
+      tag: "Accepting Arc",
+      color: "emerald",
+      points: [
+        "For each terminal-only rule A → a, create transition from state A to q_f on a.",
+        "Guarantees that finishing derivation enters an accepting state.",
+      ],
+      syscalls: ["A → a ⟹ δ(A, a) = q_f"],
+    },
+  ]}
+/>
+
+### Algorithm 2: Finite Automaton (NFA/DFA) to Right-Linear Grammar
+
+Given a finite automaton $M = (Q, \Sigma, \delta, q_0, F)$, construct an equivalent RLG $G = (V, \Sigma, P, S)$ as follows:
+
+1. **Variables ($V$)**: Create a non-terminal variable $A_i$ for every state $q_i \in Q$.
+2. **Start Symbol ($S$)**: The start symbol is the variable corresponding to the initial state: $S = A_0$.
+3. **Productions ($P$)**:
+   * For every transition $\delta(q_i, a) = q_j$, add production:
+     $$A_i \to a A_j$$
+   * For every transition leading to an accepting state ($q_j \in F$), also add the terminating production:
+     $$A_i \to a$$
+   * If the initial state is accepting ($q_0 \in F$), add the empty string rule:
+     $$A_0 \to \epsilon$$
+
+---
+
+### Algorithm 3: Left-Linear Grammar (LLG) to Finite Automata
+
+Left-Linear grammars generate strings from right to left, which conflicts with standard forward automaton reading. To convert an LLG to an automaton, we leverage the **Language Reversal Theorem**:
+
+$$
+(L^R)^R = L
+$$
+
+<FlowPipeline
+  title="Left-Linear Grammar to Finite Automaton Reversal Pipeline"
+  subtitle="Leveraging the Language Reversal Theorem ((Lᴿ)ᴿ = L) to synthesize NFAs from left-linear rules"
+  nodes={[
+    {
+      badge: "Stage 1",
+      title: "Left-Linear Grammar (G)",
+      icon: "⏪",
+      color: "blue",
+      description: "Original grammar with left-linear rules A → Ba | a | ε.",
+      connectorLabel: "Invert RHS",
+    },
+    {
+      badge: "Stage 2",
+      title: "Right-Linear Grammar (Gᴿ)",
+      icon: "📜",
+      color: "purple",
+      description: "Reversed grammar A → aB | a | ε generating L(G)ᴿ.",
+      connectorLabel: "Algorithm 1",
+    },
+    {
+      badge: "Stage 3",
+      title: "Reversed NFA (Mᴿ)",
+      icon: "⚡",
+      color: "amber",
+      description: "Forward automaton accepting the reversed language L(G)ᴿ.",
+      connectorLabel: "Reverse Machine",
+    },
+    {
+      badge: "Stage 4",
+      title: "Final Target NFA (M)",
+      icon: "🎯",
+      color: "emerald",
+      description: "Swap start/final states and invert all edge arrows to accept ((Lᴿ)ᴿ = L(G)).",
+    },
+  ]}
+/>
+
+#### Step-by-Step Reversal Procedure
+
+1. **Step 1: Construct Reversed Grammar $G^R$**:
+   * Reverse the right-hand side of every production in LLG $G$:
+     $$A \to B a \implies A \to a B$$
+     $$A \to a \implies A \to a$$
+     $$A \to \epsilon \implies A \to \epsilon$$
+   * The resulting grammar $G^R$ is strictly **Right-Linear** and generates $L(G^R) = (L(G))^R$.
+2. **Step 2: Construct NFA $M^R$ for $G^R$**:
+   * Apply Algorithm 1 to convert $G^R$ into an equivalent NFA $M^R$.
+3. **Step 3: Reverse the Automaton $M^R$ to Obtain $M$**:
+   * Invert the direction of all directed transition edges in $M^R$.
+   * Swap the initial state and accepting states:
+     * The old start state $S$ becomes an accepting state in $M$.
+     * The old accepting state $q_f$ becomes the new initial state in $M$.
+   * Automaton $M$ recognizes $((L(G))^R)^R = L(G)$.
+
+### Live Automaton: State-to-Variable Correspondence
+
+The following interactive automaton recognizes binary strings ending with `01` ($L = (0 + 1)^* 01$). Notice how each state ($q_0, q_1, q_2$) corresponds directly to a non-terminal variable in a Right-Linear Grammar:
+
+<AutomataSimulator preset="ends01" />
+
+---
+
+## ⏱️ Derivation Trace vs. Automaton State Traversal
+
+To understand why the RLG-to-NFA equivalence holds mathematically, observe the parallel execution trace for string $w = 0101$ on grammar $S \to 0 A, A \to 1 S \mid 1$:
+
+| Step $t$ | Grammar Derivation Sequence | Automaton Configuration $(q, \text{remaining input})$ | Applied Rule / Transition |
+| :---: | :---: | :---: | :---: |
+| $0$ | $S$ | $(q_S, 0101)$ | Initial configuration |
+| $1$ | $0 A$ | $(q_A, 101)$ | $S \to 0 A \iff \delta(q_S, 0) = q_A$ |
+| $2$ | $0 1 S$ | $(q_S, 01)$ | $A \to 1 S \iff \delta(q_A, 1) = q_S$ |
+| $3$ | $0 1 0 A$ | $(q_A, 1)$ | $S \to 0 A \iff \delta(q_S, 0) = q_A$ |
+| $4$ | $0 1 0 1$ | $(q_f, \epsilon)$ | $A \to 1 \iff \delta(q_A, 1) = q_f$ |
+
+Every single sentential expansion $u A \implies u a B$ directly mirrors the automaton reading symbol $a$ from state $A$ and entering state $B$.
+
+---
+
+## 📊 Comparative Analysis & Trade-Off Matrix
+
+| Feature / Dimension | Right-Linear Grammar (RLG) | Left-Linear Grammar (LLG) | Mixed Linear Grammar | Finite Automaton (FA) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Chomsky Type** | **Type-3** (Regular) | **Type-3** (Regular) | **Type-2** (Context-Free) | **Type-3 Recognizer** |
+| **Production Form** | $A \to aB \mid a \mid \epsilon$ | $A \to Ba \mid a \mid \epsilon$ | $A \to u B v \mid w$ | $\delta(q, a) = p$ |
+| **String Synthesis Frontier** | Expands **Left-to-Right** | Expands **Right-to-Left** | Expands **both edges simultaneously** | Scans **Left-to-Right** |
+| **Automaton Equivalence** | Direct 1-to-1 mapping to NFA | Requires **Reversal Theorem** ($G^R \to M^R \to M$) | Equivalent to **Pushdown Automaton (PDA)** | Isomorphic to RLG |
+| **Expressive Power** | Exactly Regular Languages | Exactly Regular Languages | Context-Free (includes $a^n b^n$) | Exactly Regular Languages |
+| **Auxiliary Memory Needed** | **Zero** | **Zero** | **1 Stack** (LIFO) | **Zero** |
+
+---
+
+## 🏭 Real-World Production Context: Lexer & Scanner Generators
+
+In industrial software engineering tools such as **Lex**, **Flex**, and **ANTLR**, regular expressions and regular grammars form the backbone of the scanner pipeline:
+
+<FlowPipeline
+  title="From Lexical Rules to Runtime Scanner Execution"
+  subtitle="How compiler generators transform regular grammar specifications into high-speed table drivers"
+  nodes={[
+    {
+      badge: "Input",
+      title: "Grammar / Regex Rules",
+      icon: "📜",
+      color: "blue",
+      description: "Developer writes token definitions (e.g., ID -> [a-zA-Z][a-zA-Z0-9]*).",
+      connectorLabel: "Syntax Tree",
+    },
+    {
+      badge: "AST to NFA",
+      title: "Thompson's Construction",
+      icon: "⚡",
+      color: "purple",
+      description: "Generates an equivalent non-deterministic finite automaton with epsilon transitions.",
+      connectorLabel: "Subset Construction",
+    },
+    {
+      badge: "Determinism",
+      title: "Powerset DFA",
+      icon: "🛡️",
+      color: "amber",
+      description: "Eliminates non-determinism, producing a deterministic transition matrix.",
+      connectorLabel: "Hopcroft's Algo",
+    },
+    {
+      badge: "Runtime",
+      title: "Minimal State Driver",
+      icon: "🚀",
+      color: "emerald",
+      description: "Emits a hardcoded C/Rust 2D lookup array for O(1) per-character scanning.",
+    },
+  ]}
+/>
+
+### Top-Down vs. Bottom-Up Parsers: The Echo of Linearity
+
+In industrial compiler engineering, the distinction between Right-Linear and Left-Linear grammars manifests directly in parsing algorithms:
+
+<ConceptComparison
+  title="Compiler Parsing Paradigms vs. Grammar Derivation Orientation"
+  subtitle="How Top-Down and Bottom-Up parsers leverage right-linear and left-linear recursive structures"
+  concepts={[
+    {
+      badge: "Top-Down",
+      title: "Top-Down Parsers (LL(k) / Recursive Descent)",
+      icon: "⬇️",
+      color: "blue",
+      domain: "Root-to-Leaf Predictive Parsing",
+      points: [
+        "Constructs derivations from start symbol S down to terminal leaves.",
+        "Favors Right-Recursive / Right-Linear productions (A → aA).",
+        "CRITICAL: Left-recursion (A → Aa) causes infinite loops in recursive descent!",
+        "Requires left-factoring to eliminate non-deterministic branch conflicts.",
+      ],
+      quote: "Directly mirrors forward right-linear derivation sequences.",
+    },
+    {
+      badge: "Bottom-Up",
+      title: "Bottom-Up Parsers (LR(k) / LALR / Bison)",
+      icon: "⬆️",
+      color: "purple",
+      domain: "Leaf-to-Root Shift-Reduce Parsing",
+      points: [
+        "Constructs derivations by reducing terminal leaves back up to start symbol S.",
+        "Naturally and efficiently handles Left-Recursive / Left-Linear rules (A → Aa).",
+        "Conserves parser stack memory depth during large sequence parsing.",
+        "Industry standard for high-performance C, C++, and Rust compiler grammars.",
+      ],
+      quote: "Left-recursion minimizes shift-reduce stack allocation overhead.",
+    },
+  ]}
+/>
+
+When building high-throughput data parsers or protocol deserializers, matching your grammar's linearity to the underlying parsing engine avoids stack overflow crashes and minimizes memory footprints.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Right-Linear Grammar to NFA Construction
+
+**Problem Statement:**  
+Consider the Right-Linear Grammar $G = (V, \Sigma, P, S)$ where $V = \{S, A\}$, $\Sigma = \{0, 1\}$, and the production rules $P$ are:
+
+$$
+S \to 0 A \mid 1 S \mid \epsilon, \quad A \to 0 S \mid 1 A
+$$
+
+1. Construct the equivalent NFA $M = (Q, \Sigma, \delta, q_0, F)$ using Algorithm 1.
+2. Formulate the state transition table.
+3. Trace the acceptance computation for input string $w = 010$.
+
+---
+
+#### Step-by-Step Solution
+
+#### Step 1: Identifying States and Initial/Final Conditions
+* Non-terminals: $V = \{S, A\}$.
+* Introduce dedicated final state $q_f$.
+* Full state set: $Q = \{S, A, q_f\}$.
+* Start state: $q_0 = S$.
+* Accepting states ($F$):
+  * $q_f$ is an accepting state by definition.
+  * In addition, the grammar contains the production $S \to \epsilon$. Therefore, **state $S$ is also an accepting state**:
+    $$F = \{S, q_f\}$$
+
+---
+
+#### Step 2: Mapping Transitions (δ)
+1. From $S$:
+   * $S \to 0 A \implies \delta(S, 0) = \{A\}$
+   * $S \to 1 S \implies \delta(S, 1) = \{S\}$
+2. From $A$:
+   * $A \to 0 S \implies \delta(A, 0) = \{S\}$
+   * $A \to 1 A \implies \delta(A, 1) = \{A\}$
+
+Notice that because neither variable has a terminating single-terminal production (like $S \to 0$ or $A \to 1$), transitions to $q_f$ are unnecessary, and $q_f$ remains unreachable. The automaton simplifies directly to a 2-state machine:
+
+#### State Transition Table
+
+| State $q \in Q$ | Input $0$ | Input $1$ | Is Accepting? |
+| :---: | :---: | :---: | :---: |
+| $\to *S$ | $\{A\}$ | $\{S\}$ | **Yes** (due to $S \to \epsilon$) |
+| $A$ | $\{S\}$ | $\{A\}$ | No |
+
+---
+
+#### Step 3: Acceptance Trace for w = 010
+* **Initial State**: $S$
+* Read symbol `0`: $\delta(S, 0) = A$
+* Read symbol `1`: $\delta(A, 1) = A$
+* Read symbol `0`: $\delta(A, 0) = S$
+* **Termination**: The input string is completely consumed, and the automaton rests in state $S$. Since $S \in F$, the string $w = 010$ is **accepted**.
+
+---
+
+### Example 2: DFA to Right-Linear Grammar Conversion
+
+**Problem Statement:**  
+A Deterministic Finite Automaton $M$ over $\Sigma = \{a, b\}$ accepts all strings that contain the substring `"ab"`. Its transition table is:
+
+| State | Input $a$ | Input $b$ |
+| :---: | :---: | :---: |
+| $\to q_0$ | $q_1$ | $q_0$ |
+| $q_1$ | $q_1$ | $q_2$ |
+| $*q_2$ | $q_2$ | $q_2$ |
+
+Derive the complete set of Right-Linear Grammar productions generating $L(M)$, and trace the formal derivation of the sentence $w = aab$.
+
+---
+
+#### Step-by-Step Solution
+
+#### Step 1: Assign Non-Terminals
+Assign a non-terminal variable to each state:
+$$q_0 \to A_0 \quad (\text{Start variable}), \quad q_1 \to A_1, \quad q_2 \to A_2$$
+
+---
+
+#### Step 2: Formulate Production Rules
+Apply Algorithm 2:
+
+1. **Transitions from $q_0$**:
+   * $\delta(q_0, a) = q_1 \implies A_0 \to a A_1$
+   * $\delta(q_0, b) = q_0 \implies A_0 \to b A_0$
+
+2. **Transitions from $q_1$**:
+   * $\delta(q_1, a) = q_1 \implies A_1 \to a A_1$
+   * $\delta(q_1, b) = q_2$: Since $q_2 \in F$ is an **accepting state**, add both the transition rule and the terminating rule:
+     $$A_1 \to b A_2 \mid b$$
+
+3. **Transitions from $q_2$ (Accepting State)**:
+   * Since $q_2$ is an accepting state, add:
+     $$A_2 \to \epsilon$$
+   * For the self-loops on $q_2$:
+     $$\delta(q_2, a) = q_2 \implies A_2 \to a A_2 \mid a$$
+     $$\delta(q_2, b) = q_2 \implies A_2 \to b A_2 \mid b$$
+
+#### Complete Grammar G
+$$
+A_0 \to a A_1 \mid b A_0
+$$
+$$
+A_1 \to a A_1 \mid b A_2 \mid b
+$$
+$$
+A_2 \to a A_2 \mid b A_2 \mid a \mid b \mid \epsilon
+$$
+
+---
+
+#### Step 3: Derivation Trace of w = aab
+Begin at start symbol $A_0$:
+
+1. Apply $A_0 \to a A_1$:
+   $$A_0 \implies a A_1$$
+2. Apply $A_1 \to a A_1$:
+   $$a A_1 \implies a a A_1$$
+3. Terminate using $A_1 \to b$:
+   $$a a A_1 \implies a a b$$
+
+The string $aab$ is successfully generated in 3 derivation steps.
+
+---
+
+### Example 3: Left-Linear Grammar to Finite Automaton via Reversal
+
+**Problem Statement:**  
+Consider the Left-Linear Grammar $G = (V, \Sigma, P, S)$ where:
+$$V = \{S, A\}, \quad \Sigma = \{0, 1\}$$
+With productions:
+$$S \to S 0 \mid A 1, \quad A \to A 1 \mid 0$$
+
+Convert $G$ into an equivalent Finite Automaton using the **Language Reversal Method**.
+
+---
+
+#### Step-by-Step Solution
+
+#### Step 1: Invert RHS to Obtain Right-Linear Grammar G^R
+Reverse the right-hand side of all production rules:
+* $S \to S 0 \implies S \to 0 S$
+* $S \to A 1 \implies S \to 1 A$
+* $A \to A 1 \implies A \to 1 A$
+* $A \to 0 \implies A \to 0$
+
+The reversed grammar $G^R$ is:
+$$S \to 0 S \mid 1 A, \quad A \to 1 A \mid 0$$
+
+---
+
+#### Step 2: Build NFA M^R for G^R
+Apply Algorithm 1 to $G^R$:
+* States: $Q = \{S, A, q_f\}$
+* Start state: $S$
+* Accepting states: $F = \{q_f\}$
+* Transitions:
+  * $S \to 0 S \implies \delta(S, 0) = \{S\}$
+  * $S \to 1 A \implies \delta(S, 1) = \{A\}$
+  * $A \to 1 A \implies \delta(A, 1) = \{A\}$
+  * $A \to 0 \implies \delta(A, 0) = \{q_f\}$
+
+---
+
+#### Step 3: Reverse the Automaton M^R to Obtain M
+To reverse $M^R$:
+1. **Swap Initial and Final States**:
+   * Old final state $q_f$ becomes the **new start state**: $q_0' = q_f$.
+   * Old start state $S$ becomes the **new accepting state**: $F' = \{S\}$.
+2. **Reverse All Transition Edges**:
+   * Edge $A \xrightarrow{0} q_f$ in $M^R$ becomes $q_f \xrightarrow{0} A$ in $M$.
+   * Edge $S \xrightarrow{1} A$ in $M^R$ becomes $A \xrightarrow{1} S$ in $M$.
+   * Self-loop $S \xrightarrow{0} S$ remains $S \xrightarrow{0} S$.
+   * Self-loop $A \xrightarrow{1} A$ remains $A \xrightarrow{1} A$.
+
+#### Final Automaton M State Table
+
+| State | Input $0$ | Input $1$ | Status |
+| :---: | :---: | :---: | :---: |
+| $\to q_f$ | $\{A\}$ | $\emptyset$ | Initial State |
+| $A$ | $\emptyset$ | $\{A, S\}$ | Intermediate |
+| $*S$ | $\{S\}$ | $\emptyset$ | **Accepting State** |
+
+The automaton $M$ accepts strings derived by starting at $q_f$, reading `0` into state $A$, looping on `1`, transitioning to $S$ on `1`, and looping on `0`. This matches the language of $G$: $L(G) = 0 1^+ 0^*$.
+
+---
+
+### Example 4: Identifying Non-Regular Linear Grammars vs. Regular Grammars
+
+**Problem Statement:**  
+Analyze the following three grammars over $\Sigma = \{a, b\}$ and determine whether each is a Type-3 Regular Grammar or a non-regular Linear Grammar. Explicitly state the language generated:
+
+1. **Grammar $G_A$**:
+   $$S \to a A, \quad A \to b S \mid b$$
+2. **Grammar $G_B$**:
+   $$S \to A b, \quad A \to S a \mid a$$
+3. **Grammar $G_C$**:
+   $$S \to a S b \mid a b$$
+
+---
+
+#### Step-by-Step Solution
+
+#### Analyzing Grammar G_A
+* Rules: $S \to a A$ (right-linear), $A \to b S$ (right-linear), $A \to b$ (terminal).
+* Every single non-terminal variable on the RHS appears at the **rightmost position**.
+* **Classification**: **Type-3 Right-Linear Regular Grammar**.
+* Language generated:
+  $$S \implies a A \implies a b S \implies (ab) a A \implies (ab)^k b \text{ or } (ab)^k$$
+  $L(G_A) = (ab)^+$ (all strings consisting of one or more repetitions of `"ab"`).
+
+---
+
+#### Analyzing Grammar G_B
+* Rules: $S \to A b$ (left-linear), $A \to S a$ (left-linear), $A \to a$ (terminal).
+* Every single non-terminal variable on the RHS appears at the **leftmost position**.
+* **Classification**: **Type-3 Left-Linear Regular Grammar**.
+* Language generated:
+  $$S \implies A b \implies (S a) b \implies S a b \implies (A b) a b \implies a b a b \dots$$
+  $L(G_B) = (ab)^+$ (identical language to $G_A$, synthesized from right to left).
+
+---
+
+#### Analyzing Grammar G_C
+* Rules: $S \to a S b$ (variable $S$ is surrounded by terminals $a$ and $b$), $S \to a b$.
+* The variable $S$ is neither strictly at the right edge nor strictly at the left edge.
+* **Classification**: **Linear Grammar (Type-2 Context-Free)**. It is **NOT a Regular Grammar**.
+* Language generated:
+  $$S \implies a S b \implies a (a S b) b = a^2 S b^2 \implies a^n b^n$$
+  $L(G_C) = \{a^n b^n \mid n \ge 1\}$. This language requires counting unbounded numbers of $a$'s and matching them with $b$'s, which is provably impossible for any finite automaton.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does reversing an NFA construct the correct machine for a Left-Linear Grammar?**  
+  Because an LLG synthesizes strings from right to left ($S \implies A a_n \implies B a_{n-1} a_n \dots$), the derivation actually generates the reversed string $w^R$ when viewed as a forward process. Reversing the automaton inverts all transitions and swaps initial and final states, precisely canceling the reversal ($((w)^R)^R = w$) and yielding the original language.
+* **Can a language be regular if its grammar is not regular?**  
+  Yes! The grammar $S \to a S b \mid a b \mid a \mid b$ is a context-free grammar, but if a grammar generates a language that can also be recognized by some DFA, the **language itself is regular**. A regular language may be generated by many different grammars, some of which belong to higher Chomsky tiers.
+* **What is the maximum number of states in an NFA created from an RLG with $|V|$ variables?**  
+  The NFA requires at most $|V| + 1$ states (one state per variable, plus one dedicated accepting state $q_f$). If the grammar already has an $\epsilon$-production on an existing state, no additional state is needed, keeping the state count at exactly $|V|$.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Assuming Any Grammar with at Most One Variable on the RHS is Regular**:  
+  This is the classic Linear Grammar trap. $S \to a S b \mid \epsilon$ has at most one variable on the RHS, yet it generates $\{a^n b^n \mid n \ge 0\}$, which is strictly context-free and non-regular. Regularity requires all variables to be consistently at the same edge across all productions!
+* **Trap: Forgetting That Start State Can Be Final**:  
+  When converting an RLG to an NFA, candidates often only mark the new dummy state $q_f$ as accepting. If the grammar contains the rule $S \to \epsilon$, the start state $S$ **must also be designated as an accepting state**; otherwise, the empty string will be incorrectly rejected.
+* **Trap: Mixing Terminals and Multiple Variables**:  
+  In a regular grammar, rules like $A \to a B C$ or $A \to B C$ are strictly forbidden. There can be at most **one** non-terminal on the right-hand side.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "5.1 Formal Phrase-Structure Grammars & The 4-Level Chomsky Hierarchy",
+    url: "/coredose/toc/module-05/formal-phrase-structure-grammars-chomsky-hierarchy",
+  }}
+  next={{
+    title: "Theory of Computation Roadmap (Module 06: Pumping Lemma Next)",
+    url: "/coredose/toc",
+  }}
+  courseUrl="/coredose/toc"
+/>

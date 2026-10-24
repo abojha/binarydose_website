@@ -11,6 +11,7 @@ const COURSE_MAP = {
   oops: { id: "oops", name: "OOPs", url: "/coredose/oops" },
   coa: { id: "coa", name: "COA", url: "/coredose/coa" },
   compiler: { id: "compiler", name: "Compiler Design", url: "/coredose/compiler" },
+  toc: { id: "toc", name: "Theory of Computation", url: "/coredose/toc" },
 };
 
 function resolveCourse(pathname, courseUrl) {
@@ -21,6 +22,8 @@ function resolveCourse(pathname, courseUrl) {
   if (target.includes("/coredose/oops")) return COURSE_MAP.oops;
   if (target.includes("/coredose/coa")) return COURSE_MAP.coa;
   if (target.includes("/coredose/compiler")) return COURSE_MAP.compiler;
+  if (target.includes("/coredose/toc")) return COURSE_MAP.toc;
+  if (target.includes("/coredose/dbms")) return COURSE_MAP.dbms;
   return COURSE_MAP.dbms;
 }
 
@@ -35,7 +38,8 @@ export default function CoreDoseLessonHeader({
   backLabel,
   courseUrl,
 }) {
-  const initialCourse = resolveCourse("", courseUrl);
+  const currentPathname = typeof window !== "undefined" ? window.location.pathname : (courseUrl || "");
+  const initialCourse = resolveCourse(currentPathname, courseUrl);
 
   const [displayReadTime, setDisplayReadTime] = useState(readTime || "5 min read");
   const [navConfig, setNavConfig] = useState({
@@ -55,8 +59,8 @@ export default function CoreDoseLessonHeader({
       // Check if on course index (e.g. /coredose/dbms or /coredose/os)
       const isIndex = pathname.endsWith(currentCourse.url) || pathname.endsWith(currentCourse.url + "/");
       
-      // Detect module from path (e.g. /chapter-06/ -> Module 06)
-      const moduleMatch = pathname.match(/chapter-(\d+)/i);
+      // Detect module from path (e.g. /chapter-06/ or /module-01/ -> Module 01)
+      const moduleMatch = pathname.match(/(?:chapter|module)-(\d+)/i);
       const modNum = moduleMatch ? `Module ${String(moduleMatch[1]).padStart(2, "0")}` : null;
 
       if (isIndex) {
