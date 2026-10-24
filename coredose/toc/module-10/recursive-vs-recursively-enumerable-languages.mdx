@@ -1,0 +1,450 @@
+---
+title: "Recursive (REC) vs Recursively Enumerable (RE / Semi-Decidable) Languages"
+description: "Comprehensive guide to Turing Deciders vs Recognizers, Recursive (REC) languages, Recursively Enumerable (RE) languages, Post's Complementation Theorem, and non-RE languages."
+hide_table_of_contents: true
+---
+
+# 10.1 Recursive (REC) vs Recursively Enumerable (RE / Semi-Decidable) Languages
+
+<CoreDoseLessonHeader
+  title="Recursive (REC) vs Recursively Enumerable (RE / Semi-Decidable) Languages"
+  description="Master the ultimate computability divide: contrast Turing Deciders against Turing Recognizers, formalize Recursive (REC) vs Recursively Enumerable (RE) languages, prove Post's Complementation Theorem, and map Non-RE boundaries."
+  readTime="22 min read"
+  difficulty="Advanced"
+  prerequisites={[
+    "Turing Machine 7-Tuple & Halting Conditions",
+    "Universal Turing Machine (UTM)",
+    "Church-Turing Thesis"
+  ]}
+/>
+
+## 💡 Core Intuition: The Definitive Verdict vs. The Endless Wait
+
+In computer programming, there is a profound difference between a function that **always finishes running** and a function that **might freeze your computer in an infinite loop**.
+
+When you write a sorting algorithm (like Quicksort or Mergesort), you have a mathematical guarantee that regardless of what input array you pass into it, the function will terminate in finite time with an answer.
+
+Now consider searching the internet for an obscure answer:
+* If you find the answer on page 1, you rejoice: you have positive proof!
+* But what if you have searched 500 pages and haven't found it? Does the answer not exist, or is it sitting on page 501?
+* You can keep clicking "Next Page" forever, never knowing whether to give up or keep waiting.
+
+In formal language theory, this marks the great dividing line between **Decidable Computation** and **Semi-Decidable Computation**.
+
+### 🍳 The Everyday Analogy: The Lab Test vs. The Lost Ship
+
+* **The Blood Test (Recursive / Decidable):**  
+  You submit a sample to a medical lab for testing. The lab equipment is guaranteed to produce a result: either **POSITIVE** or **NEGATIVE**. The test never runs forever. It is an algorithmic procedure that always concludes with a verdict.
+* **Waiting for a Lost Ship (Recursively Enumerable / Semi-Decidable):**  
+  A sailing ship embarks on an expedition into the Atlantic.
+  * If the ship returns to harbor, you know with 100% certainty: **The ship survived!** (Halts and Accepts).
+  * But if days turn into months and the ship has not returned, can you be sure it sank? It might have made port on a remote island and will return tomorrow, or it might be lost at the bottom of the ocean. You can wait on the docks for eternity without ever receiving a definitive "NO".
+
+### 💻 Bridging to Computer Science
+
+In computability theory, we classify Turing Machines into two categories based on their halting behavior:
+1. **Turing Decider (Algorithm):** A Turing Machine that is **guaranteed to halt on EVERY valid input string** $w \in \Sigma^*$. It either halts in an accepting state ($q \in F$) or halts in a rejecting state ($q \notin F$). It **never enters an infinite loop**.
+2. **Turing Recognizer:** A Turing Machine that halts and accepts if $w \in L$. However, if $w \notin L$, it might halt and reject, OR it might **run forever in an infinite loop**.
+
+From these two machines arise the two master language classes of Type-0 computation:
+* **Recursive Languages ($\text{REC}$):** Languages decided by a Turing Machine that always halts.
+* **Recursively Enumerable Languages ($\text{RE}$):** Languages recognized by a Turing Machine that may loop on rejected strings.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## ⚖️ Formal Definitions of REC and RE Languages
+
+Let $\Sigma$ be an input alphabet and $L \subseteq \Sigma^*$ be a formal language.
+
+<ConceptComparison
+  title="The Computability Duality: Recursive vs Recursively Enumerable"
+  subtitle="Contrasting the mathematical guarantees of Turing Deciders against Turing Recognizers"
+  concepts={[
+    {
+      badge: "Decidable (REC)",
+      title: "Recursive Languages (REC)",
+      icon: "⚖️",
+      color: "emerald",
+      domain: "Total Algorithms (Always Halts)",
+      points: [
+        "There exists a Turing Machine M such that for EVERY string w ∈ Σ*:",
+        "If w ∈ L, M halts and outputs YES (Accepts).",
+        "If w ∉ L, M halts and outputs NO (Rejects).",
+        "Infinite loops are mathematically impossible. M is a Decider."
+      ],
+      quote: "A true algorithm: guaranteed to finish with a definitive answer."
+    },
+    {
+      badge: "Semi-Decidable (RE)",
+      title: "Recursively Enumerable (RE)",
+      icon: "⏳",
+      color: "amber",
+      domain: "Partial Algorithms (May Loop)",
+      points: [
+        "There exists a Turing Machine M such that:",
+        "If w ∈ L, M halts and outputs YES (Accepts).",
+        "If w ∉ L, M may halt and reject OR loop forever (Hang).",
+        "Positive instances are verified in finite time; negative instances may never terminate."
+      ],
+      quote: "Semi-decidable: confirms membership, but cannot guarantee rejection."
+    }
+  ]}
+/>
+
+### Why the Name "Recursively Enumerable"?
+Why are these languages called *Recursively Enumerable*?
+* An **Enumerator** is a Turing Machine equipped with a printer tape that lists out all the strings belonging to language $L$:
+
+$$\text{Output Stream}: \quad w_1, \; w_2, \; w_3, \; w_4, \dots$$
+
+* An enumerator may print strings in any order, with possible duplicates, and may run infinitely if $L$ is infinite.
+* **Fundamental Theorem:** A language $L$ is Recursively Enumerable if and only if there exists some Turing Machine that can **enumerate all strings in $L$**.
+* If an enumerator can print the strings of $L$ in **lexicographical (dictionary) order**, then $L$ is **strictly Recursive (REC)**!
+
+---
+
+## 🏛️ The Great Computability Hierarchy: REC ⊂ RE ⊂ Non-RE
+
+The universe of all formal languages is strictly stratified into three nested tiers:
+
+<ArchitectureStack
+  title="The Global Computability Hierarchy"
+  subtitle="From computable algorithms up to totally uncomputable non-recursively enumerable languages"
+  layers={[
+    {
+      badge: "The Uncomputable Abyss",
+      title: "Non-Recursively Enumerable Languages (Non-RE)",
+      icon: "🌌",
+      color: "rose",
+      description: "Languages for which NO Turing Machine can even semi-decide membership. Includes the Complement of the Halting Problem (H_diagᶜ).",
+      items: ["No TM recognizer exists", "Uncountable language set (2^{Σ*})", "Completely uncomputable"],
+      connectorText: "Turing Machine Recognizer Exists"
+    },
+    {
+      badge: "Semi-Decidable",
+      title: "Recursively Enumerable Languages (RE)",
+      icon: "⏳",
+      color: "amber",
+      description: "Recognized by standard Turing Machines. May loop on invalid strings. Includes the Halting Problem (H_TM).",
+      items: ["RE = Type-0 Unrestricted", "Turing Recognizer", "NOT closed under complement"],
+      connectorText: "Turing Decider Exists (Always Halts)"
+    },
+    {
+      badge: "Decidable Algorithms",
+      title: "Recursive Languages (REC)",
+      icon: "⚖️",
+      color: "emerald",
+      description: "Decided by Turing Machines that are guaranteed to halt on all inputs. Includes Context-Sensitive, Context-Free, and Regular languages.",
+      items: ["Guaranteed termination", "Closed under ALL boolean ops", "True mechanical algorithms"],
+      connectorText: "Strictly Contained"
+    }
+  ]}
+/>
+
+### Cardinal Invariant:
+$$\text{Regular} \subsetneq \text{DCFL} \subsetneq \text{CFL} \subsetneq \text{CSL} \subsetneq \mathbf{REC} \subsetneq \mathbf{RE} \subsetneq \mathbf{All \; Languages}$$
+
+---
+
+## 📜 Post's Complementation Theorem: The Master Criterion
+
+How do we prove whether a language is fully decidable (Recursive) or only semi-decidable (RE)? The foundational tool is **Emil Post's Complementation Theorem**:
+
+> **Post's Theorem:** A language $L$ is **Recursive (REC)** if and only if **BOTH $L$ and its complement $\overline{L}$ are Recursively Enumerable (RE)**:
+> 
+> $$L \in \text{REC} \iff (L \in \text{RE} \quad \text{and} \quad \overline{L} \in \text{RE})$$
+
+<FlowPipeline
+  title="Post's Dual-Machine Parallel Decider Architecture"
+  subtitle="How two semi-deciders running in parallel construct a 100% guaranteed total decider"
+  nodes={[
+    {
+      badge: "Input String",
+      title: "Candidate w ∈ Σ*",
+      icon: "📥",
+      color: "blue",
+      description: "Input string w broadcast simultaneously to two parallel Turing recognizers.",
+      connectorLabel: "Fork Execution"
+    },
+    {
+      badge: "Recognizer 1",
+      title: "Machine M₁ for L",
+      icon: "⚙️",
+      color: "emerald",
+      description: "Simulates M₁ on w. If w ∈ L, M₁ is GUARANTEED to halt and accept in finite steps.",
+      connectorLabel: "Interleaved 1 Step"
+    },
+    {
+      badge: "Recognizer 2",
+      title: "Machine M₂ for Lᶜ",
+      icon: "⚙️",
+      color: "purple",
+      description: "Simulates M₂ on w. If w ∉ L, M₂ is GUARANTEED to halt and accept in finite steps.",
+      connectorLabel: "Interleaved 1 Step"
+    },
+    {
+      badge: "Guaranteed Termination",
+      title: "Decider Master Arbiter",
+      icon: "✅",
+      color: "amber",
+      description: "Because every string w MUST belong to either L or Lᶜ, EXACTLY ONE machine is guaranteed to halt! If M₁ halts ⇒ Output YES. If M₂ halts ⇒ Output NO."
+    }
+  ]}
+/>
+
+### Mathematical Proof:
+1. **Direction 1 ($\implies$):** If $L$ is Recursive, there is a decider $M$ that always halts. To decide $\overline{L}$, simply swap the YES and NO outputs of $M$. Since $\overline{L}$ has a decider, both $L$ and $\overline{L}$ are Recursive, and therefore both are RE.
+2. **Direction 2 ($\impliedby$):** Assume $L \in \text{RE}$ (recognized by $M_1$) and $\overline{L} \in \text{RE}$ (recognized by $M_2$).
+   * Construct a 2-tape Turing Machine $M_{\text{decide}}$ that runs $M_1$ and $M_2$ **in parallel on string $w$** (alternating 1 step of $M_1$, then 1 step of $M_2$).
+   * Since $w$ must belong to either $L$ or $\overline{L}$, **one of the two machines MUST halt in finite time**!
+   * If $M_1$ halts and accepts $\implies$ Halt and output **YES** ($w \in L$).
+   * If $M_2$ halts and accepts $\implies$ Halt and output **NO** ($w \notin L$).
+   * The composite machine $M_{\text{decide}}$ is guaranteed to halt on every single string $w \in \Sigma^*$.
+   * Therefore, $L$ is **Recursive (REC)**.
+
+---
+
+## 💥 The Complement Fate Theorem for RE Languages
+
+Post's Theorem gives us an indispensable tool for classifying languages in technical interviews and examinations:
+
+> **Theorem (The Non-RE Corollary):**  
+> If a language $L$ is **Recursively Enumerable (RE) but NOT Recursive (REC)**, then its complement $\overline{L}$ **CANNOT be Recursively Enumerable**!
+> 
+> $$L \in (\text{RE} - \text{REC}) \implies \overline{L} \notin \text{RE} \quad (\overline{L} \text{ is strictly Non-RE})$$
+
+**Proof by Contradiction:**  
+Suppose $\overline{L}$ were RE. Then both $L \in \text{RE}$ and $\overline{L} \in \text{RE}$. By Post's Theorem, $L$ would have to be Recursive (REC)! But this contradicts our premise that $L \notin \text{REC}$.  
+Therefore, **$\overline{L}$ must be completely Non-RE**.
+
+| Status of Language $L$ | Status of Complement $\overline{L}$ | Example Language Pair |
+| :---: | :---: | :--- |
+| **Recursive (REC)** | **Recursive (REC)** | $L = \{a^n b^n c^n\} \iff \overline{L} = \text{REC}$ |
+| **RE, but not REC** | **Strictly Non-RE** | $L = H_{\text{TM}}$ (Halting Problem) $\iff \overline{L} = \overline{H_{\text{TM}}}$ (Non-RE) |
+| **Strictly Non-RE** | **RE, but not REC** | $L = \overline{H_{\text{TM}}}$ (Non-RE) $\iff \overline{L} = H_{\text{TM}}$ (RE) |
+| **Strictly Non-RE** | **Strictly Non-RE** | $L_{\text{EQ}} = \{\langle M_1, M_2 \rangle \mid L(M_1) = L(M_2)\} \iff \overline{L_{\text{EQ}}} = \text{Non-RE}$ |
+
+---
+
+## 🛡️ Closure Properties: REC vs. RE
+
+<ConceptComparison
+  title="Closure Matrix: Recursive vs Recursively Enumerable"
+  subtitle="Where computability holds and where asymmetric semi-decidability fails"
+  concepts={[
+    {
+      badge: "Recursive (REC)",
+      title: "REC Closure Properties",
+      icon: "✅",
+      color: "emerald",
+      domain: "Complete Boolean Algebra",
+      points: [
+        "CLOSED under Union (Run M₁ then M₂; both halt).",
+        "CLOSED under Intersection (Run both; both halt).",
+        "CLOSED under Complement (Invert output of halting decider).",
+        "CLOSED under Set Difference: L₁ - L₂ = L₁ ∩ L₂ᶜ.",
+        "CLOSED under Concatenation, Kleene Star, and Reversal."
+      ],
+      quote: "Guaranteed termination preserves all algebraic combinations."
+    },
+    {
+      badge: "Recursively Enumerable (RE)",
+      title: "RE Closure Properties",
+      icon: "⚠️",
+      color: "amber",
+      domain: "Asymmetric Semi-Decidable",
+      points: [
+        "CLOSED under Union (Run M₁ and M₂ in parallel; accept if either halts).",
+        "CLOSED under Intersection (Run M₁ then M₂; accept if both halt).",
+        "CLOSED under Concatenation, Kleene Star, and Homomorphism.",
+        "STRICTLY NOT CLOSED UNDER COMPLEMENT! (Complementing Halting Problem yields Non-RE).",
+        "NOT closed under Set Difference."
+      ],
+      quote: "Infinite loops on negative instances destroy closure under complement."
+    }
+  ]}
+/>
+
+---
+
+## 🏭 Real-World Production Context: Static Code Analysis & Verification
+
+In industrial software engineering, the theoretical boundary between Recursive (REC) and Recursively Enumerable (RE) explains why your compiler's linter can catch some bugs instantly, but cannot automatically find all potential crashes.
+
+<FlowPipeline
+  title="Industrial Static Analysis vs Total Program Verification"
+  subtitle="Why static analysis tools operate in REC while formal verification hits the RE / Non-RE boundary"
+  nodes={[
+    {
+      badge: "Decidable Tier",
+      title: "Linters & Type Checkers (REC)",
+      icon: "🔍",
+      color: "blue",
+      description: "ESLint, TypeScript tsc, Rust borrow checker: algorithms strictly guaranteed to finish and return errors.",
+      connectorLabel: "Enforce Termination"
+    },
+    {
+      badge: "Semi-Decidable Tier",
+      title: "Model Checkers & Fuzzers (RE)",
+      icon: "⚡",
+      color: "purple",
+      description: "AFL, libFuzzer: runs millions of random inputs. If a memory crash occurs, it halts and reports the bug immediately.",
+      connectorLabel: "The Asymmetry"
+    },
+    {
+      badge: "The Unreachable Goal",
+      title: "Total Bug-Free Proof (Non-RE)",
+      icon: "🚫",
+      color: "rose",
+      description: "Proving that a program will NEVER crash on ANY input requires deciding the Halting Problem (Non-RE).",
+      connectorLabel: "Engineering Compromise"
+    },
+    {
+      badge: "Industrial Reality",
+      title: "Bounded Model Checking",
+      icon: "🛡️",
+      color: "emerald",
+      description: "Tools enforce loop unwinding bounds (k ≤ 100) to pull the problem back down into the Decidable (REC) domain."
+    }
+  ]}
+/>
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Problem 1: Post's Theorem Parallel Decider Trace
+
+**Problem Statement:**  
+Language $L_1$ is recognized by Turing Machine $M_1$, which halts and accepts on valid strings, but loops forever on invalid strings.  
+Its complement $\overline{L_1}$ is recognized by Turing Machine $M_2$, which halts and accepts on strings in $\overline{L_1}$, but loops forever otherwise.  
+Design a step-interleaved deterministic algorithm $M_{\text{total}}$ that decides $L_1$ in finite time for any input $w$, and trace on:
+1. A string $w_{\text{in}} \in L_1$ where $M_1$ halts in 4 steps.
+2. A string $w_{\text{out}} \notin L_1$ where $M_2$ halts in 3 steps.
+
+**Step-by-Step Solution:**
+
+#### Step 1: Design of the Interleaved Scheduler
+The decider $M_{\text{total}}$ maintains a clock step counter $k = 1, 2, 3, \dots$:
+* On clock tick $k$:
+  1. Execute step $k$ of machine $M_1$ on input $w$.
+  2. If $M_1$ enters an accepting state: Halt and output **YES ($w \in L_1$)**.
+  3. Execute step $k$ of machine $M_2$ on input $w$.
+  4. If $M_2$ enters an accepting state: Halt and output **NO ($w \notin L_1$)**.
+
+#### Step 2: Trace on w_in ∈ L₁ (M₁ halts in 4 steps)
+* Tick 1: Run $M_1$ step 1 (running); Run $M_2$ step 1 (running).
+* Tick 2: Run $M_1$ step 2 (running); Run $M_2$ step 2 (running).
+* Tick 3: Run $M_1$ step 3 (running); Run $M_2$ step 3 (running).
+* Tick 4: Run $M_1$ step 4 $\implies$ **$M_1$ enters ACCEPTING state!**
+* **Result:** $M_{\text{total}}$ immediately halts and outputs **YES**. Total simulated steps: 7.
+
+#### Step 3: Trace on w_out ∉ L₁ (M₂ halts in 3 steps)
+* Tick 1: Run $M_1$ step 1 (running); Run $M_2$ step 1 (running).
+* Tick 2: Run $M_1$ step 2 (running); Run $M_2$ step 2 (running).
+* Tick 3: Run $M_1$ step 3 (running); Run $M_2$ step 3 $\implies$ **$M_2$ enters ACCEPTING state!**
+* **Result:** $M_{\text{total}}$ detects $M_2$ accept, halts immediately, and outputs **NO**.
+
+In both cases, $M_{\text{total}}$ **never loops infinitely**. Hence, $L_1$ is **Recursive (REC)**.
+
+---
+
+### Problem 2: Classifying Language Complements
+
+**Problem Statement:**  
+Let $A$ be a known Recursively Enumerable language that is NOT Recursive ($A \in \text{RE} - \text{REC}$).  
+Classify the following derived languages into **REC**, **RE but not REC**, or **strictly Non-RE**:
+1. $L_1 = \overline{A}$ (The complement of $A$).
+2. $L_2 = A \cap R$ where $R$ is a Regular Language.
+3. $L_3 = A \cup \overline{A}$.
+
+**Step-by-Step Solution:**
+
+#### Part 1: Classification of L₁ = Ā
+* By Post's Theorem, if $\overline{A}$ were RE, then because $A$ is also RE, $A$ would be Recursive.
+* But we are given that $A$ is NOT Recursive!
+* Therefore, **$L_1 = \overline{A}$ is strictly Non-RE**.
+
+#### Part 2: Classification of L₂ = A ∩ R
+* $A$ is Recursively Enumerable.
+* $R$ is Regular, which means $R$ is also Recursive.
+* The intersection of an RE language with a Recursive language is always **Recursively Enumerable (RE)**.
+* Depending on $R$, it may be Recursive (e.g. if $R = \emptyset$, $L_2 = \emptyset \in \text{REC}$) or RE but not REC. In general, **$L_2 \in \text{RE}$**.
+
+#### Part 3: Classification of L₃ = A ∪ Ā
+* By basic set theory, for any language $A$ over alphabet $\Sigma$:
+
+$$A \cup \overline{A} = \Sigma^*$$
+
+* $\Sigma^*$ is the set of all possible strings over $\Sigma$.
+* A simple 1-state DFA can accept every string in $\Sigma^*$.
+* Because $\Sigma^*$ is a Regular language, it is trivially a **Recursive Language (REC)**!
+* Therefore, **$L_3 \in \text{REC}$**.
+
+---
+
+### Problem 3: Enumerator Order & Decidability Theorem
+
+**Problem Statement:**  
+Prove that if an Enumerator Turing Machine prints the strings of a language $L$ in **strict lexicographical order** (e.g. $\epsilon, 0, 1, 00, 01, 10, 11 \dots$), then $L$ is a **Recursive Language (REC)**.
+
+**Step-by-Step Solution:**
+
+#### Step 1: The Potential Hazard with Unordered Enumerators
+If an enumerator prints strings in random order, to check if $w \in L$, a tester must compare $w$ against each printed string. If $w \notin L$, the tester might wait forever, never knowing if $w$ will be printed a billion steps later.
+
+#### Step 2: The Lexicographical Halting Guarantee
+If the enumerator prints strings in strict length and alphabetical order:
+1. Let the target input string be $w$.
+2. Turn on the enumerator and inspect each printed string $s_1, s_2, s_3, \dots$
+3. **Condition A:** If $s_k = w$, halt and output **YES ($w \in L$)**.
+4. **Condition B:** If $s_k > w$ (i.e. the enumerator has printed a string that comes *after* $w$ in dictionary order):
+   * Because the enumerator prints in strict lexicographical order, **$w$ can NEVER be printed in the future**!
+   * The machine immediately halts and outputs **NO ($w \notin L$)**.
+
+#### Step 3: Conclusion
+Because every finite alphabet has only finitely many strings that precede $w$, the enumerator will reach a string $s_k \ge w$ in finite time!  
+The testing machine is **guaranteed to halt on all inputs**.  
+Therefore, **$L$ is Recursive (REC)**.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **What is the single operational difference between a Decider and a Recognizer?**  
+  A **Decider** is guaranteed to halt on 100% of inputs (both strings in $L$ and strings not in $L$). A **Recognizer** is guaranteed to halt on strings in $L$, but on strings not in $L$, it is permitted to run forever in an **infinite loop**.
+* **Why isn't RE closed under complement?**  
+  Because if RE were closed under complement, then for any $L \in \text{RE}$, $\overline{L}$ would also be in RE. By Post's Theorem, this would force every RE language to be Recursive! But we know undecidable RE languages exist (like the Halting Problem). Therefore, RE cannot be closed under complement.
+* **Is every Context-Sensitive Language (CSL) Recursive?**  
+  **YES!** As proven in Section 9.3, the Membership Problem for an LBA is decidable in finite time via configuration space cycle detection ($N_{\text{max}} = |Q| \cdot n \cdot |\Gamma|^n$). Therefore, **$\text{CSL} \subsetneq \text{REC}$**.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Confusing "Recursively Enumerable" with "Recursive"**:  
+  Never use these terms interchangeably!
+  * **Recursive (REC)** = Decidable (Always halts, YES/NO).
+  * **Recursively Enumerable (RE)** = Semi-Decidable (May loop on NO).
+* **Trap: Believing Non-RE Languages are Beyond Theory**:  
+  Non-RE languages are not imaginary; the complement of the Halting Problem ($\overline{H_{\text{TM}}}$) is a mathematically concrete Non-RE language. In fact, because the set of all Turing Machines is countable ($\aleph_0$) while the set of all languages is uncountable ($2^{\aleph_0}$), **almost all languages in mathematics are Non-RE**!
+* **Trap: Assuming Infinite Loops Mean Rejection in Practice**:  
+  If a Turing Machine is running, an external monitor cannot tell the difference between a machine that is about to halt in 2 seconds and a machine that is stuck in an infinite loop. That is why semi-decidability is fundamentally weaker than true decidability.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "9.3 Linear Bounded Automata (LBA) & Context-Sensitive Languages (CSL)",
+    url: "/coredose/toc/module-09/linear-bounded-automata-and-context-sensitive-languages",
+  }}
+  next={{
+    title: "10.2 The Halting Problem, Undecidability, Post Correspondence Problem & Rice's Theorem",
+    url: "/coredose/toc/module-10/the-halting-problem-undecidability-post-correspondence-problem-and-rices-theorem",
+  }}
+  courseUrl="/coredose/toc"
+/>

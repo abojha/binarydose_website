@@ -30,5 +30,8 @@ export {
   SequentialSimulator,
   NumberSystemSimulator,
   CacheSimulator,
+  AutomataSimulator,
+  PDASimulator,
+  TuringMachineSimulator,
 } from '@site/src/components/CoreDose/Diagrams';
 

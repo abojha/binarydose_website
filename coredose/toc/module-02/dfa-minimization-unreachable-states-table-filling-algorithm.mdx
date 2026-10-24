@@ -1,0 +1,480 @@
+---
+title: "2.1 DFA Minimization: Unreachable States & The Table-Filling (Myhill-Nerode) Algorithm"
+description: "Master the mathematical foundations of DFA minimization. Learn the distinction between productive and non-productive states (dead states, unreachable states, equal states), 0/1/2-equivalence partitioning, the Myhill-Nerode table-filling theorem, and minimal DFA uniqueness proofs."
+hide_title: true
+hide_table_of_contents: true
+---
+
+# 2.1 DFA Minimization: Unreachable States & The Table-Filling (Myhill-Nerode) Algorithm
+
+<CoreDoseLessonHeader
+  module="Module 02: NFA, Subset Construction & DFA Minimization"
+  topic="2.1 DFA Minimization & State Equivalence"
+/>
+
+## 💡 Core Intuition:
+
+### 🍳 The Everyday Analogy: Collapsing Redundant Hotel Rooms
+Imagine managing a large automated hotel where every guest room contains a control console with buttons `'0'` and `'1'`. 
+1. **The Unreachable Room**: Room 404 has no doors, staircases, or elevators connecting it to the lobby ($q_0$). No guest can ever enter Room 404. It is purely wasted space. The architect must demolish it immediately.
+2. **The Twin Rooms**: Room 101 and Room 102 are separate rooms, but pressing `'0'` in either room sends the guest to the Penthouse ($q_2$), and pressing `'1'` keeps the guest in Room 101/102. From the perspective of reaching the Penthouse, staying in Room 101 is indistinguishable from staying in Room 102. An efficient hotel would merge them into one suite.
+3. **The Dead-End Basement**: Rooms 901 and 902 have doors leading only to each other, with no exit to any amenities or checkout desks. Instead of keeping two separate trapped rooms, we collapse them into a single exit hallway.
+
+### 💻 Bridging to Computer Science: Redundancy in Synthesized Automata
+When finite state machines are synthesized algorithmically—such as via the **Subset Construction algorithm** from regular expressions—the resulting DFA often contains redundant states that bloat memory caches and hardware registers.
+
+**DFA Minimization** is the formal algorithmic process of identifying and collapsing indistinguishable states, producing the unique, irreducible **Minimal DFA** for that language.
+
+<ConceptComparison
+  title="Raw Generated DFA vs Minimized Canonical DFA"
+  subtitle="The computational and storage trade-offs between unoptimized state graphs and minimal automata"
+  concepts={[
+    {
+      badge: "Raw / Subset DFA",
+      title: "Unoptimized Machine",
+      icon: "📦",
+      color: "rose",
+      domain: "Direct Compiler Output",
+      points: [
+        "Contains combinatorial power-set states (up to 2^|Q|)",
+        "Includes dead branches and unreachable runtime states",
+        "Higher RAM cache footprints and lookup table overhead",
+        "Multiple isomorphic representations for the exact same language",
+      ],
+      quote: "Correct in functionality, but computationally wasteful and non-canonical.",
+    },
+    {
+      badge: "Minimized DFA",
+      title: "Canonical Minimal Automaton",
+      icon: "⚡",
+      color: "emerald",
+      domain: "Optimized Hardware / Lexer Engine",
+      points: [
+        "Guaranteed minimum possible number of states (|Q_min|)",
+        "Zero unreachable states and zero duplicate dead states",
+        "Mathematically UNIQUE for any given regular language",
+        "Optimal silicon area for FPGA hardware and lexical analyzers",
+      ],
+      quote: "The irreducible, unique physical state machine representing the language.",
+    },
+  ]}
+/>
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🧱 State Taxonomy: Productive vs Non-Productive States
+
+Before applying formal algebraic partitioning, states in an automaton are categorized based on their **productivity**—their capacity to contribute to string acceptance:
+
+<SubsystemGrid
+  title="Taxonomy of Finite Automaton States"
+  subtitle="The 4 operational classifications governing state productivity and elimination"
+  items={[
+    {
+      icon: "⚡",
+      title: "Productive States",
+      tag: "Retained (Active)",
+      color: "emerald",
+      points: [
+        "Accessible from the initial state: ∃ w_pre such that δ*(q0, w_pre) = q.",
+        "Can reach at least one accepting state: ∃ w_post such that δ*(q, w_post) ∈ F.",
+        "Essential to recognizing the language; cannot be eliminated.",
+      ],
+      syscalls: ["q_init", "q_accept", "q_bridge"],
+    },
+    {
+      icon: "🚫",
+      title: "Unreachable States",
+      tag: "Eliminated (Phase 1)",
+      color: "rose",
+      points: [
+        "Cannot be reached from the start state on ANY input string in Σ*.",
+        "∀ w ∈ Σ*, δ*(q0, w) ≠ q.",
+        "Must be purged FIRST before equivalence partitioning begins.",
+      ],
+      syscalls: ["Purged by BFS/DFS", "In-degree = 0", "Disconnected"],
+    },
+    {
+      icon: "🪤",
+      title: "Dead States (Traps)",
+      tag: "Merged (Phase 2)",
+      color: "amber",
+      points: [
+        "No path leads from this state to any final state: ∀ w ∈ Σ*, δ*(q_dead, w) ∉ F.",
+        "Introduced purely to make the transition function δ total (complete).",
+        "A DFA may have multiple dead states, but logically EXACTLY ONE is sufficient.",
+      ],
+      syscalls: ["Sink State", "Self-loop on Σ", "δ(q, a) = q"],
+    },
+    {
+      icon: "👥",
+      title: "Equivalent (Equal) States",
+      tag: "Collapsed (Phase 3)",
+      color: "purple",
+      points: [
+        "Two states p, q that exhibit identical acceptance futures for all suffixes.",
+        "∀ w ∈ Σ*, (δ*(p, w) ∈ F ⟺ δ*(q, w) ∈ F).",
+        "Collapsed into a single super-state [p, q] in the minimal automaton.",
+      ],
+      syscalls: ["p ≡ q", "k-Equivalence", "Table-Filling"],
+    },
+  ]}
+/>
+
+---
+
+## 🔄 The 3-Phase DFA Minimization Pipeline
+
+To avoid mathematical anomalies, DFA minimization must strictly execute in a **staged 3-phase sequence**:
+
+<FlowPipeline
+  title="End-to-End DFA Minimization Pipeline"
+  subtitle="Algorithmic stages from unoptimized automaton to irreducible canonical DFA"
+  nodes={[
+    {
+      badge: "Phase 1",
+      title: "Reachability Pruning",
+      icon: "🧹",
+      color: "rose",
+      description: "Traverse from q0 via BFS/DFS. Drop all unvisited states and their incident transitions.",
+      connectorLabel: "Clean Graph",
+    },
+    {
+      badge: "Phase 2",
+      title: "Dead-State Consolidation",
+      icon: "🪤",
+      color: "amber",
+      description: "Identify all non-accepting sink states from which F is unreachable. Merge into one trap.",
+      connectorLabel: "Complete Machine",
+    },
+    {
+      badge: "Phase 3",
+      title: "Equivalence Partitioning",
+      icon: "⚖️",
+      color: "purple",
+      description: "Iteratively separate 0, 1, 2... k-equivalent clusters until fixed-point partition P_k = P_(k-1).",
+      connectorLabel: "Super-States",
+    },
+    {
+      badge: "Output",
+      title: "Minimal Canonical DFA",
+      icon: "🏆",
+      color: "emerald",
+      description: "Reconstruct δ_min over partition super-states. Guaranteed unique irreducible representation.",
+    },
+  ]}
+/>
+
+---
+
+## 📐 Method 1: The Equivalence Partitioning Algorithm (k-Equivalence)
+
+The **Partitioning Algorithm** works top-down by maintaining a partition $P_k$ of states and iteratively refining it into smaller, mutually distinguishable subsets.
+
+### Mathematical Formalism of k-Equivalence
+
+<MathBox title="Formal Definition of k-Equivalence">
+Two states $p, q \in Q$ are **$k$-equivalent** (denoted $p \equiv_k q$) if and only if they cannot be distinguished by any string of length $\le k$:
+
+$$p \equiv_k q \iff \forall w \in \Sigma^* \text{ with } |w| \le k,\quad \big(\delta^*(p, w) \in F \iff \delta^*(q, w) \in F\big)$$
+
+Inductively, $p$ and $q$ are $(k+1)$-equivalent if:
+1. $p \equiv_k q$ (they belong to the same partition block in $P_k$).
+2. $\forall a \in \Sigma$, $\delta(p, a) \equiv_k \delta(q, a)$ (their 1-step transitions on every alphabet symbol lead to states in the same block of $P_k$).
+</MathBox>
+
+<ProcessFlow
+  title="The 4-Step DFA Partitioning Refinement Lifecycle"
+  subtitle="Algorithmic pipeline from unreachable state pruning to stable equivalence fixed-point convergence"
+  steps={[
+    {
+      number: 0,
+      title: "Step 0: Prune Unreachable States",
+      tag: "Preprocessing",
+      description: "Traverse graph from initial state q0 via BFS/DFS. Eliminate all orphaned states with zero inbound reachability.",
+    },
+    {
+      number: 1,
+      title: "Step 1: 0-Equivalence Partitioning (P₀)",
+      tag: "Coarse Split",
+      description: "Separate Q into accepting and non-accepting sets: P₀ = { Q \\ F, F } based on 0-length ε-distinguishability.",
+    },
+    {
+      number: 2,
+      title: "Step 2: Inductive (k+1)-Partition Refinement",
+      tag: "Iterative Refinement",
+      description: "For every partition group, split state pairs whose 1-step transitions on any symbol land in different blocks of Pₖ.",
+    },
+    {
+      number: 3,
+      title: "Step 3: Fixed-Point Convergence & DFA Synthesis",
+      tag: "Final Synthesis",
+      description: "When Pₖ₊₁ == Pₖ, stable fixed point is reached. Collapse each equivalent block into a single unified state of the minimal DFA.",
+    },
+  ]}
+/>
+
+1. **Initialization ($P_0$, 0-Equivalence)**:  
+   Partition $Q$ based on 0-length string testing ($\epsilon$). The empty string $\epsilon$ distinguishes accepting states from non-accepting states.
+   $$P_0 = \{ G_1, G_2 \} \quad \text{where } G_1 = Q \setminus F \text{ (Non-Final)}, \; G_2 = F \text{ (Final)}$$
+
+2. **Refinement ($P_1, P_2, \dots, P_k$)**:  
+   Examine every group $G$ in $P_k$. Two states $p, q \in G$ remain in the same sub-group in $P_{k+1}$ if and only if:
+   $$\forall a \in \Sigma, \quad \delta(p, a) \text{ and } \delta(q, a) \text{ reside in the same group of } P_k$$
+   If $\delta(p, a)$ and $\delta(q, a)$ fall into different groups for any symbol $a$, state $p$ and state $q$ are separated into distinct sub-blocks.
+
+3. **Termination (Fixed Point)**:  
+   Since $Q$ is finite, the number of groups can strictly increase at most $|Q|$ times. When $P_{k+1} = P_k$, no further splitting is possible. The algorithm terminates.
+
+---
+
+## 📊 Method 2: The Table-Filling (Myhill-Nerode) Algorithm
+
+While the partitioning algorithm operates top-down, the **Table-Filling Algorithm** (derived from the Myhill-Nerode theorem) works bottom-up by discovering and marking pairs of **distinguishable states**.
+
+### Distinguishability Criterion
+
+Two states $p, q$ are **distinguishable** if there exists at least one string $w \in \Sigma^*$ such that:
+$$\delta^*(p, w) \in F \quad \text{and} \quad \delta^*(q, w) \notin F \quad (\text{or vice versa})$$
+
+Such a string $w$ is called a **distinguishing witness** for the pair $(p, q)$.
+
+### Table Construction Steps
+
+<ArchitectureStack
+  title="The Table-Filling Execution Hierarchy"
+  subtitle="Step-by-step bottom-up elimination of equivalent pairs via lower-triangular matrix"
+  layers={[
+    {
+      badge: "Grid Setup",
+      title: "Lower-Triangular Matrix Setup",
+      icon: "📐",
+      color: "blue",
+      description: "Construct a grid of all unordered pairs (p, q) with p > q to avoid duplicate symmetrical checks.",
+      items: ["Total Pairs = |Q|·(|Q|-1)/2", "Empty cells represent potential equivalence candidates"],
+      connectorText: "Base Step (0-Distinguishable)",
+    },
+    {
+      badge: "Base Marking",
+      title: "Base Step: Acceptance Parity Check",
+      icon: "🎯",
+      color: "rose",
+      description: "Mark every pair (p, q) where exactly one state is final and the other is non-final.",
+      items: ["(p ∈ F ∧ q ∉ F) ⇒ Mark with X (Witness = ε)", "Trivially distinguishable in 0 steps"],
+      connectorText: "Inductive Propagation",
+    },
+    {
+      badge: "Inductive Step",
+      title: "Inductive Step: 1-Step Transition Search",
+      icon: "🔍",
+      color: "purple",
+      description: "For every unmarked pair (p, q), inspect target pair (δ(p, a), δ(q, a)) for every alphabet symbol a.",
+      items: ["If target pair is already marked with X ⇒ Mark (p, q) with X", "Witness = a · w_target"],
+      connectorText: "Fixed Point Convergence",
+    },
+    {
+      badge: "Result",
+      title: "Consolidation of Unmarked Cells",
+      icon: "🏆",
+      color: "emerald",
+      description: "All pairs remaining UNMARKED after a full pass without new marks are provably equivalent.",
+      items: ["Unmarked pair (p, q) ⇒ p ≡ q", "Merge p and q into unified super-state [p, q]"],
+    },
+  ]}
+/>
+
+---
+
+## 🏭 Real-World Production Context:
+
+1. **Hardware FPGA / ASIC State Machine Optimization**: In digital VLSI logic design, finite state machines (FSM) implemented in silicon consume flip-flops proportional to $\lceil \log_2 |Q| \rceil$. Minimizing a 9-state DFA to 8 states saves a physical flip-flop register and eliminates combinatorial multiplexer gates across every clock cycle.
+2. **Lexical Analyzers (`lex`, `flex`, Rust `regex`)**: Production compiler frontends compile thousands of token rules into a monolithic NFA, convert it to a DFA via subset construction, and then immediately run Hopcroft's $O(|\Sigma| \cdot n \log n)$ minimization. This minimizes the transition table size, ensuring the entire lexer lookup table fits inside the CPU's **L1 Data Cache (32 KB)** for zero-stall tokenization.
+3. **Network Intrusion Detection (Snort, Suricata)**: Deep packet inspection engines match byte streams against thousands of malware signatures simultaneously. DFA minimization compresses redundant protocol parsing states, preventing catastrophic denial-of-service memory exhaustion during multi-gigabit line-rate packet scanning.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Problem 1: Minimization of a 3-State DFA with Equivalent Non-Final States
+
+**Problem Statement:**  
+Given the DFA $M = (Q, \Sigma, \delta, q_0, F)$ over $\Sigma = \{0, 1\}$ with $Q = \{q_0, q_1, q_2\}$, initial state $q_0$, and final state $F = \{q_2\}$, with transitions:
+- $\delta(q_0, 0) = q_2, \quad \delta(q_0, 1) = q_1$
+- $\delta(q_1, 0) = q_2, \quad \delta(q_1, 1) = q_1$
+- $\delta(q_2, 0) = q_2, \quad \delta(q_2, 1) = q_2$
+
+Find the minimal number of states and construct the minimized DFA.
+
+**Step-by-Step Solution:**
+
+1. **Reachability Check**:
+   - $q_0$ is the start state (reachable).
+   - $\delta(q_0, 1) = q_1$ ($q_1$ is reachable).
+   - $\delta(q_0, 0) = q_2$ ($q_2$ is reachable).
+   - All states are reachable. No unreachable states to purge.
+
+2. **Partition $P_0$ (0-Equivalence)**:  
+   Separate non-final and final states:
+   $$P_0 = \{ \{q_0, q_1\}, \{q_2\} \}$$
+   Let Group 1 $G_1 = \{q_0, q_1\}$ and Group 2 $G_2 = \{q_2\}$.
+
+3. **Partition $P_1$ (1-Equivalence)**:  
+   Check transitions of states in $G_1 = \{q_0, q_1\}$ on all input symbols:
+   - On symbol `0`:
+     - $\delta(q_0, 0) = q_2 \in G_2$
+     - $\delta(q_1, 0) = q_2 \in G_2$
+     - Both transitions land in the same group $G_2$.
+   - On symbol `1`:
+     - $\delta(q_0, 1) = q_1 \in G_1$
+     - $\delta(q_1, 1) = q_1 \in G_1$
+     - Both transitions land in the same group $G_1$.
+   - Since $q_0$ and $q_1$ behave identically on both symbols `0` and `1`, they cannot be split:
+   $$P_1 = \{ \{q_0, q_1\}, \{q_2\} \}$$
+
+4. **Fixed Point Reached**:
+   Since $P_1 = P_0$, the partition is stable.
+   - Super-state $A = [q_0, q_1]$ (Initial state, since $q_0 \in A$).
+   - Super-state $B = [q_2]$ (Final state, since $q_2 \in B$).
+
+**Final Result:**  
+The minimal DFA requires strictly **2 states**: $[q_0, q_1]$ and $[q_2]$.
+- $\delta([q_0, q_1], 0) = [q_2], \quad \delta([q_0, q_1], 1) = [q_0, q_1]$
+- $\delta([q_2], 0) = [q_2], \quad \delta([q_2], 1) = [q_2]$
+
+---
+
+### Problem 2: DFA with Unreachable State Elimination & Subsequent Merging
+
+**Problem Statement:**  
+Consider a DFA over $\Sigma = \{a, b\}$ with states $Q = \{q_0, q_1, q_2, q_3\}$, where $q_0$ is initial, $F = \{q_1, q_2\}$, and transitions:
+- $\delta(q_0, a) = q_1, \quad \delta(q_0, b) = q_0$
+- $\delta(q_1, a) = q_2, \quad \delta(q_1, b) = q_1$
+- $\delta(q_2, a) = q_1, \quad \delta(q_2, b) = q_2$
+- $\delta(q_3, a) = q_1, \quad \delta(q_3, b) = q_2$
+
+Find the minimal equivalent DFA.
+
+**Step-by-Step Solution:**
+
+1. **Step 1: Reachability Analysis**:
+   - Start state $q_0$ is visited.
+   - From $q_0$: on `a` reaches $q_1$, on `b` reaches $q_0$.
+   - From $q_1$: on `a` reaches $q_2$, on `b` reaches $q_1$.
+   - From $q_2$: on `a` reaches $q_1$, on `b` reaches $q_2$.
+   - Set of reachable states: $\{q_0, q_1, q_2\}$.
+   - Notice that state $q_3$ has NO incoming transitions from any reachable state! **$q_3$ is unreachable**.
+   - **Purge $q_3$ immediately**. Active states: $Q' = \{q_0, q_1, q_2\}$.
+
+2. **Step 2: 0-Equivalence ($P_0$)**:
+   - Non-Final: $G_1 = \{q_0\}$
+   - Final: $G_2 = \{q_1, q_2\}$
+   $$P_0 = \{ \{q_0\}, \{q_1, q_2\} \}$$
+
+3. **Step 3: 1-Equivalence ($P_1$)**:
+   - Group $G_1 = \{q_0\}$ has only 1 state, cannot split.
+   - For $G_2 = \{q_1, q_2\}$:
+     - On symbol `a`: $\delta(q_1, a) = q_2 \in G_2$, $\delta(q_2, a) = q_1 \in G_2$. (Same group $G_2$).
+     - On symbol `b`: $\delta(q_1, b) = q_1 \in G_2$, $\delta(q_2, b) = q_2 \in G_2$. (Same group $G_2$).
+   - Both $q_1$ and $q_2$ transition to states within $G_2$ on all alphabet symbols. Therefore, $q_1 \equiv q_2$.
+   $$P_1 = \{ \{q_0\}, \{q_1, q_2\} \}$$
+
+4. **Fixed Point Reached**:
+   $P_1 = P_0$. The minimal DFA has **2 states**:
+   - State $[q_0]$ (Initial, Non-Final)
+   - State $[q_1, q_2]$ (Final)
+   - $\delta([q_0], a) = [q_1, q_2], \quad \delta([q_0], b) = [q_0]$
+   - $\delta([q_1, q_2], a) = [q_1, q_2], \quad \delta([q_1, q_2], b) = [q_1, q_2]$
+
+**Final Result:**  
+The minimal DFA has strictly **2 states**.
+
+---
+
+### Problem 3: Multi-Step Partition Splitting of a 5-State Automaton
+
+**Problem Statement:**  
+Minimize the 5-state DFA over $\Sigma = \{0, 1\}$ with $Q = \{q_0, q_1, q_2, q_3, q_4\}$, start state $q_0$, single final state $F = \{q_4\}$, and the transition table:
+
+| State ($Q$) | Input `0` | Input `1` |
+| :--- | :---: | :---: |
+| $\to q_0$ | $q_1$ | $q_3$ |
+| $q_1$ | $q_2$ | $q_4$ |
+| $q_2$ | $q_1$ | $q_4$ |
+| $q_3$ | $q_2$ | $q_4$ |
+| $* q_4$ | $q_4$ | $q_4$ |
+
+**Step-by-Step Solution:**
+
+1. **Reachability Check**:
+   - $q_0 \to 0 \to q_1 \to 0 \to q_2 \to 1 \to q_4$.
+   - $q_0 \to 1 \to q_3 \to 1 \to q_4$.
+   - All states $\{q_0, q_1, q_2, q_3, q_4\}$ are reachable.
+
+2. **Step 1: 0-Equivalence ($P_0$)**:
+   - $G_1 = Q \setminus F = \{q_0, q_1, q_2, q_3\}$
+   - $G_2 = F = \{q_4\}$
+   $$P_0 = \{ \{q_0, q_1, q_2, q_3\}, \{q_4\} \}$$
+
+3. **Step 2: 1-Equivalence ($P_1$)**:
+   Check transitions of all elements in $G_1 = \{q_0, q_1, q_2, q_3\}$:
+   - On symbol `1`:
+     - $\delta(q_0, 1) = q_3 \in G_1$  *(Lands in non-final group!)*
+     - $\delta(q_1, 1) = q_4 \in G_2$  *(Lands in final group!)*
+     - $\delta(q_2, 1) = q_4 \in G_2$  *(Lands in final group!)*
+     - $\delta(q_3, 1) = q_4 \in G_2$  *(Lands in final group!)*
+   - State $q_0$ behaves completely differently on input `1` compared to $q_1, q_2, q_3$! Therefore, $q_0$ MUST be isolated into its own group.
+   - Now test $q_1, q_2, q_3$ against each other:
+     - On `0`: $\delta(q_1, 0) = q_2$, $\delta(q_2, 0) = q_1$, $\delta(q_3, 0) = q_2$. All land in $\{q_1, q_2, q_3\} \subset G_1$.
+     - On `1`: $\delta(q_1, 1) = q_4$, $\delta(q_2, 1) = q_4$, $\delta(q_3, 1) = q_4$. All land in $G_2$.
+   - States $q_1, q_2, q_3$ behave identically.
+   $$P_1 = \{ \{q_0\}, \{q_1, q_2, q_3\}, \{q_4\} \}$$
+
+4. **Step 3: 2-Equivalence ($P_2$)**:
+   - Groups $\{q_0\}$ and $\{q_4\}$ are singletons (cannot split).
+   - Test group $\{q_1, q_2, q_3\}$ against groups in $P_1$:
+     - On `0`: $\delta(q_1, 0) = q_2$, $\delta(q_2, 0) = q_1$, $\delta(q_3, 0) = q_2$ $\implies$ all belong to $\{q_1, q_2, q_3\}$.
+     - On `1`: $\delta(q_1, 1) = q_4$, $\delta(q_2, 1) = q_4$, $\delta(q_3, 1) = q_4$ $\implies$ all belong to $\{q_4\}$.
+   - No further splits occur!
+   $$P_2 = P_1 = \{ \{q_0\}, \{q_1, q_2, q_3\}, \{q_4\} \}$$
+
+**Final Result:**  
+The minimal DFA requires exactly **3 states**:
+- State $[q_0]$ (Initial)
+- State $[q_1, q_2, q_3]$ (Non-Final)
+- State $[q_4]$ (Final)
+- Transitions:
+  - $\delta([q_0], 0) = [q_1, q_2, q_3], \quad \delta([q_0], 1) = [q_1, q_2, q_3]$
+  - $\delta([q_1, q_2, q_3], 0) = [q_1, q_2, q_3], \quad \delta([q_1, q_2, q_3], 1) = [q_4]$
+  - $\delta([q_4], 0) = [q_4], \quad \delta([q_4], 1) = [q_4]$
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Is the minimal DFA for a regular language always unique?**  
+  **Yes.** By the Myhill-Nerode theorem, the minimal DFA accepting any regular language $L$ is **unique up to state isomorphism (renaming)**. No two distinct minimal DFAs can exist for the same language.
+* **Why must unreachable states be purged before running equivalence partitioning?**  
+  If an unreachable state $q_{unreach}$ has identical transition outputs to a reachable state $q_{reach}$, the partitioning algorithm will merge them into a super-state $[q_{reach}, q_{unreach}]$ instead of deleting the dead code. Always run reachability BFS/DFS first.
+* **Can a minimal DFA have zero final states?**  
+  **Yes.** If the language is the empty language $\emptyset$, the minimal DFA consists of a single non-final state $q_0$ with self-loops on all symbols: $|Q| = 1, F = \emptyset$.
+:::
+
+:::warning Common Interview Traps
+* **The "Delete Dead State" Trap**: Candidates frequently delete dead/sink states thinking they are non-productive. A DFA must be a **complete system** ($\delta : Q \times \Sigma \to Q$ must be defined for all symbols). Never delete dead states; consolidate multiple dead states into **exactly one dead state**.
+* **Distinguishability Witness Length**: Two states in an $n$-state DFA that are distinguishable can always be distinguished by a string of length at most $n - 2$. If no string of length $\le n - 2$ distinguishes them, they are equivalent.
+* **Partition Convergence Check**: Do not stop at $P_1$ assuming no further splits are possible. Always verify that $P_{k+1} == P_k$ before finalizing the minimal state table.
+:::
+
+<CoreDoseNav
+  prev={{
+    title: "1.4 DFA Combinatorics, Cross-Product & Complementation",
+    url: "/coredose/toc/module-01/dfa-combinatorics-cross-product-and-complementation"
+  }}
+  next={{
+    title: "2.2 Non-Deterministic Finite Automata (NFA) & Formalisms",
+    url: "/coredose/toc/module-02/non-deterministic-finite-automata-nfa-formalisms"
+  }}
+/>

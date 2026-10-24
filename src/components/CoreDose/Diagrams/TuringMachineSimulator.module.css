@@ -1,0 +1,416 @@
+.container {
+  margin: 2rem 0;
+  border-radius: 12px;
+  border: 1px solid var(--diagram-border, #334155);
+  background: var(--diagram-bg, #0f172a);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  font-family: var(--ifm-font-family-base, system-ui, -apple-system, sans-serif);
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: var(--diagram-surface, #1e293b);
+  border-bottom: 1px solid var(--diagram-border, #334155);
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex: 1 1 320px;
+}
+
+.iconBox {
+  font-size: 1.5rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid var(--diagram-border, #334155);
+  flex-shrink: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.3;
+}
+
+.badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.presetSelect {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--diagram-border, #334155);
+  color: #f8fafc;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 600;
+  outline: none;
+}
+
+/* Test cases */
+.testChips {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 1.25rem;
+  background: rgba(15, 23, 42, 0.2);
+  border-bottom: 1px solid var(--diagram-border, #334155);
+}
+
+.testChipLabel {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.testChip {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid var(--diagram-border, #334155);
+  color: #cbd5e1;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.testChip:hover {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: #f43f5e;
+  color: #fda4af;
+}
+
+/* Controls row */
+.controlsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  background: rgba(15, 23, 42, 0.4);
+  border-bottom: 1px solid var(--diagram-border, #334155);
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.inputGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 240px;
+}
+
+.inputLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.inputField {
+  flex: 1;
+  max-width: 200px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--diagram-border, #334155);
+  color: #fb7185;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  outline: none;
+}
+
+.inputField:focus {
+  border-color: #f43f5e;
+}
+
+.btnGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn {
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid var(--diagram-border, #334155);
+  color: #f8fafc;
+  padding: 0.45rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn:hover:not(:disabled) {
+  background: #334155;
+  border-color: #64748b;
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btnPrimary {
+  background: #e11d48;
+  border-color: #f43f5e;
+  color: #ffffff;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: #be123c;
+}
+
+/* Tape Workspace */
+.tapeWorkspace {
+  padding: 1.5rem 1.25rem;
+  background: var(--diagram-bg, #0f172a);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Visual Tape Ribbon */
+.tapeContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--diagram-surface, #1e293b);
+  border: 1px solid var(--diagram-border, #334155);
+  border-radius: 10px;
+  padding: 1.5rem 1rem 1.25rem;
+  position: relative;
+  overflow-x: auto;
+}
+
+.headMarker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0.4rem;
+  animation: headBounce 0.2s ease-out;
+}
+
+.headStateBadge {
+  background: #f43f5e;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+  font-family: var(--ifm-font-family-monospace, monospace);
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.4);
+  letter-spacing: 0.05em;
+}
+
+.headPointer {
+  font-size: 0.9rem;
+  color: #f43f5e;
+  line-height: 1;
+  margin-top: -2px;
+}
+
+.tapeTrack {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  border-top: 2px dashed #475569;
+  border-bottom: 2px dashed #475569;
+  background: rgba(15, 23, 42, 0.85);
+  border-radius: 4px;
+}
+
+.tapeCell {
+  min-width: 44px;
+  height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--diagram-border, #334155);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.95);
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #f8fafc;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.tapeCellActive {
+  border-color: #f43f5e;
+  background: rgba(244, 63, 94, 0.15);
+  color: #fda4af;
+  box-shadow: 0 0 14px rgba(244, 63, 94, 0.3);
+  transform: translateY(-2px);
+}
+
+.tapeCellBlank {
+  color: #64748b;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.cellIndex {
+  position: absolute;
+  bottom: -20px;
+  font-size: 0.68rem;
+  color: #64748b;
+  font-family: var(--ifm-font-family-monospace, monospace);
+}
+
+/* Machine Info Cards */
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.infoCard {
+  background: var(--diagram-surface, #1e293b);
+  border: 1px solid var(--diagram-border, #334155);
+  border-radius: 8px;
+  padding: 0.9rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.infoLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+}
+
+.idDisplay {
+  font-family: var(--ifm-font-family-monospace, monospace);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(15, 23, 42, 0.85);
+  padding: 0.5rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+/* Operational Step Log & Status */
+.logBanner {
+  padding: 0.75rem 1.25rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-top: 1px solid var(--diagram-border, #334155);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.logText {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.logStatus {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.statusAccepted {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid #10b981;
+  color: #34d399;
+}
+
+.statusRejected {
+  background: rgba(244, 63, 94, 0.2);
+  border: 1px solid #f43f5e;
+  color: #fb7185;
+}
+
+.statusRunning {
+  background: rgba(244, 63, 94, 0.2);
+  border: 1px solid #f43f5e;
+  color: #fda4af;
+}
+
+@keyframes headBounce {
+  from {
+    transform: translateY(-4px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}

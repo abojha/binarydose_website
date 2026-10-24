@@ -1,0 +1,531 @@
+---
+title: "Linear Bounded Automata (LBA) & Context-Sensitive Languages (CSL)"
+description: "Comprehensive guide to Linear Bounded Automata (LBA), Type-1 Context-Sensitive Grammars (CSG), non-contracting productions, configuration space bounds, and membership decidability."
+hide_table_of_contents: true
+---
+
+# 9.3 Linear Bounded Automata (LBA) & Context-Sensitive Languages (CSL)
+
+<CoreDoseLessonHeader
+  title="Linear Bounded Automata (LBA) & Context-Sensitive Languages (CSL)"
+  description="Master the space-bounded computational model: explore Linear Bounded Automata (LBA), non-contracting Context-Sensitive Grammars (Type-1), finite configuration spaces, and the Immerman-Szelepcsényi complement theorem."
+  readTime="20 min read"
+  difficulty="Advanced"
+  prerequisites={[
+    "Standard Turing Machine Model & Tape Transitions",
+    "Chomsky Hierarchy (Type-1 Context-Sensitive)",
+    "Pumping Lemma Boundaries for Non-CFLs"
+  ]}
+/>
+
+## 💡 Core Intuition: The Fixed-Margin Scratchpad
+
+A standard Turing Machine possesses an infinite tape that extends without limit in both directions. While mathematically elegant, infinite memory does not exist in the physical universe:
+* Every smartphone has a fixed amount of RAM (e.g. 8 GB or 16 GB).
+* Every embedded microcontroller in a car has a strictly bounded scratchpad memory (e.g. 64 KB).
+
+What happens if we take a Turing Machine, but **strictly forbid the tape head from ever wandering beyond the boundary of the input string**?
+
+The resulting machine is called a **Linear Bounded Automaton (LBA)**.
+
+### 🍳 The Everyday Analogy: The Single Sheet Exam Paper
+
+Imagine a student sitting for a strict engineering exam:
+1. The professor hands the student a single sheet of paper containing the question printed across the top.
+2. The left edge is stamped with a solid red bar `[` and the right edge is stamped with a solid red bar `]`.
+3. **The Rules:**
+   * The student can write notes, erase errors, and rewrite equations as many times as they want inside the margins.
+   * However, the student **cannot attach extra sheets of paper**, and **cannot write outside the red boundary markers**.
+
+Even though the student has limited space, because they can erase and rewrite notes in-place, they can perform extraordinarily complex calculations—such as verifying multi-variable equations like $a^n b^n c^n$ or checking palindromes and prime numbers.
+
+### 💻 Bridging to Computer Science
+
+In formal language theory, a **Linear Bounded Automaton (LBA)** represents the computational engine corresponding to **Type-1 Context-Sensitive Languages (CSL)**:
+
+$$
+\text{Type-1 Context-Sensitive Languages (CSL)} \equiv \mathcal{L}(\text{Linear Bounded Automata})
+$$
+
+An LBA is a non-deterministic Turing Machine with one crucial restriction: **its working tape space is strictly bounded by a linear function of the input length**:
+
+$$
+\text{Tape Space Available} \le k \cdot |w| \quad (\text{where } k \ge 1 \text{ is a fixed constant})
+$$
+
+Because the physical tape space is finite for any given input string, the **total number of distinct machine configurations is finite**. This guarantees that:
+* Unlike a general Turing Machine which can run forever on an uncomputable problem, an LBA's infinite loops can be detected algorithmically.
+* **The Membership Problem for Context-Sensitive Languages is 100% DECIDABLE!**
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🧱 The Formal Definition of a Linear Bounded Automaton
+
+A Linear Bounded Automaton is formally defined as an 8-tuple:
+
+$$
+M = (Q, \Sigma, \Gamma, \delta, q_0, \vdash, \dashv, F)
+$$
+
+<SubsystemGrid
+  title="The Architectural Anatomy of a Linear Bounded Automaton"
+  subtitle="Formal components of the space-constrained Turing Machine model"
+  items={[
+    {
+      icon: "🧠",
+      title: "Control States (Q)",
+      tag: "Finite Control",
+      color: "purple",
+      points: [
+        "A finite set of internal control states: Q.",
+        "Governs logic flow and phase transitions.",
+        "Identical to standard Turing Machine control."
+      ],
+      syscalls: ["Q = {q₀, q₁, ..., q_f}", "Finite states"]
+    },
+    {
+      icon: "🚧",
+      title: "Boundary Markers (⊢ and ⊣)",
+      tag: "Tape Limits",
+      color: "rose",
+      points: [
+        "⊢ ∈ Γ: The Left End-Marker, protecting the left boundary.",
+        "⊣ ∈ Γ: The Right End-Marker, protecting the right boundary.",
+        "The head cannot move left of ⊢, cannot move right of ⊣, and cannot overwrite either marker."
+      ],
+      syscalls: ["⊢ w ⊣", "Immutable boundaries"]
+    },
+    {
+      icon: "Tape",
+      title: "Tape Alphabet (Γ)",
+      tag: "In-Place Storage",
+      color: "emerald",
+      points: [
+        "A finite set of symbols permitted on the working cells.",
+        "Contains input alphabet Σ and auxiliary markers: Σ ⊂ Γ.",
+        "Does NOT require an infinite blank symbol B."
+      ],
+      syscalls: ["Γ = Σ ∪ {X, Y, Z, ⊢, ⊣}", "Bounded alphabet"]
+    },
+    {
+      icon: "⚙️",
+      title: "Transition Function (δ)",
+      tag: "Constrained Moves",
+      color: "amber",
+      points: [
+        "δ: Q × Γ → P(Q × Γ × {L, R}).",
+        "If scanning ⊢, move must be Right (R).",
+        "If scanning ⊣, move must be Left (L)."
+      ],
+      syscalls: ["δ(q, ⊢) = (p, ⊢, R)", "δ(q, ⊣) = (p, ⊣, L)"]
+    }
+  ]}
+/>
+
+### The Tape Layout of an LBA
+When an input string $w = a_1 a_2 \cdots a_n$ is provided to an LBA:
+
+$$
+\underbrace{\mathbf{\vdash}}_{\text{Left Marker}} \quad a_1 \quad a_2 \quad \dots \quad a_n \quad \underbrace{\mathbf{\dashv}}_{\text{Right Marker}}
+$$
+
+The tape head is initialized at $a_1$ in state $q_0$. The total number of cells between $\vdash$ and $\dashv$ is exactly $n = |w|$. The machine can overwrite $a_i$ with any symbol from $\Gamma$, but it can **never escape the $[1, n]$ coordinate boundary**.
+
+---
+
+## 📜 Type-1 Context-Sensitive Grammars (CSG)
+
+In the Chomsky Hierarchy, Context-Sensitive Grammars are defined by two equivalent formulations:
+
+<ConceptComparison
+  title="Context-Sensitive Grammar Formulations"
+  subtitle="Contrasting the contextual rewrite formulation against the non-contracting formulation"
+  concepts={[
+    {
+      badge: "Formulation 1",
+      title: "Context-Dependent Rewriting",
+      icon: "🔀",
+      color: "blue",
+      domain: "Linguistic Context",
+      points: [
+        "Productions have the form: α A β → α γ β.",
+        "Variable A can ONLY be replaced by γ when flanked by left-context α and right-context β.",
+        "The context strings α and β remain completely unchanged.",
+        "Condition: γ ≠ ε (non-erasing)."
+      ],
+      quote: "A rewrites to γ strictly within the context of α and β."
+    },
+    {
+      badge: "Formulation 2",
+      title: "Non-Contracting Grammars",
+      icon: "📏",
+      color: "emerald",
+      domain: "Length Monotonicity",
+      points: [
+        "Productions have the form: α → β where |α| ≤ |β|.",
+        "The length of the RHS is ALWAYS greater than or equal to the length of the LHS.",
+        "Strings NEVER shrink in length during derivation: |w_{t+1}| ≥ |w_t|.",
+        "Proven mathematically equivalent to Formulation 1."
+      ],
+      quote: "Non-decreasing string length invariant: |α| ≤ |β|."
+    }
+  ]}
+/>
+
+### The Non-Contracting Invariant
+Because every production $\alpha \to \beta$ satisfies $|\alpha| \le |\beta|$:
+* During any derivation $S \Longrightarrow \alpha_1 \Longrightarrow \alpha_2 \Longrightarrow \cdots \Longrightarrow w$, the sentential forms can **never decrease in length**:
+
+$$
+1 \le |\alpha_1| \le |\alpha_2| \le \dots \le |w|
+$$
+
+* Therefore, to derive a target string of length $n = |w|$, a parser **never needs to inspect sentential forms longer than $n$**!
+* This length bound is the exact mathematical reason why a Linear Bounded Automaton can simulate any Context-Sensitive Grammar within the length of the input string.
+
+---
+
+## 🧮 The Finite Configuration Space & Membership Decidability
+
+Why is the Halting Problem undecidable for general Turing Machines, but **DECIDABLE for Linear Bounded Automata**?
+
+The fundamental proof rests on the **Pigeonhole Principle over discrete machine configurations**.
+
+### Calculating the Total Configuration Count
+
+Let an LBA have:
+* $|Q|$ states.
+* $|\Gamma|$ tape symbols.
+* Input length $n = |w|$.
+
+An Instantaneous Description (ID) of the LBA is defined by:
+1. The **contents of the $n$ tape cells**: Each cell can hold any of $|\Gamma|$ symbols $\implies |\Gamma|^n$ combinations.
+2. The **position of the tape head**: The head can sit on any of the $n$ cells $\implies n$ possibilities.
+3. The **current control state**: The machine can be in any state $q \in Q \implies |Q|$ possibilities.
+
+Multiplying these three independent factors yields the **Maximum Number of Distinct Configurations**:
+
+$$
+N_{\text{max}} = |Q| \cdot n \cdot |\Gamma|^n
+$$
+
+<FlowPipeline
+  title="LBA Membership Decidability Proof Algorithm"
+  subtitle="How the finite configuration bound guarantees algorithm termination"
+  nodes={[
+    {
+      badge: "Input",
+      title: "String w of Length n",
+      icon: "📥",
+      color: "blue",
+      description: "Initialize LBA simulation on string w with space bound n.",
+      connectorLabel: "Compute Bound"
+    },
+    {
+      badge: "Upper Limit",
+      title: "N_max = |Q| · n · |Γ|ⁿ",
+      icon: "🔢",
+      color: "purple",
+      description: "Calculate the exact maximum distinct configuration threshold N_max.",
+      connectorLabel: "Simulate Steps"
+    },
+    {
+      badge: "Clock Counter",
+      title: "Step Tracker",
+      icon: "⏱️",
+      color: "amber",
+      description: "Run the LBA. Increment clock counter for each step taken.",
+      connectorLabel: "Evaluate Exit"
+    },
+    {
+      badge: "Decision Verdict",
+      title: "Halt vs Loop Detection",
+      icon: "✅",
+      color: "emerald",
+      description: "If state q ∈ F entered, output YES. If steps exceed N_max without halting, a configuration has REPEATED: output NO (infinite loop detected!)."
+    }
+  ]}
+/>
+
+### The Membership Decidability Theorem
+> **Theorem:** The Membership Problem for Context-Sensitive Languages ($w \in L(M_{\text{LBA}})$) is **DECIDABLE**.
+
+**Proof:**
+1. Run the LBA on string $w$ for at most $N_{\text{max}} = |Q| \cdot n \cdot |\Gamma|^n$ steps.
+2. If the machine halts in an accepting state within $N_{\text{max}}$ steps, output **YES** ($w \in L$).
+3. If the machine halts in a rejecting state, output **NO** ($w \notin L$).
+4. If the machine has not halted after $N_{\text{max}} + 1$ steps:
+   * By the **Pigeonhole Principle**, because there are only $N_{\text{max}}$ distinct configurations, the machine **must have visited the exact same configuration twice**!
+   * Since the LBA is deterministic (or can be simulated deterministically), it will repeat that exact loop forever and will never halt.
+   * We terminate the simulation and output **NO** ($w \notin L$).
+5. In all cases, the algorithm terminates with a definitive answer in finite time. Hence, **CSL membership is decidable**.
+
+---
+
+## 🛡️ Closure Properties of Context-Sensitive Languages
+
+For decades, theoretical computer scientists debated whether the complement of a Context-Sensitive Language is always context-sensitive. In 1987, Neil Immerman and Róbert Szelepcsényi independently solved this monumental problem:
+
+> **The Immerman-Szelepcsényi Theorem (1987):**  
+> Context-Sensitive Languages are **strictly CLOSED under complement**:
+> 
+> $$
+> L \in \text{CSL} \implies \overline{L} \in \text{CSL}
+> $$
+
+<ConceptComparison
+  title="The Complete CSL Closure Matrix"
+  subtitle="Comprehensive algebraic robustness of Type-1 Context-Sensitive Languages"
+  concepts={[
+    {
+      badge: "Boolean Operations",
+      title: "Complete Boolean Algebra",
+      icon: "🧱",
+      color: "emerald",
+      domain: "Fully Closed",
+      points: [
+        "Union: L₁ ∪ L₂ (CLOSED).",
+        "Intersection: L₁ ∩ L₂ (CLOSED: simulate both LBAs within n tape space).",
+        "Complement: Lᶜ (CLOSED via Immerman-Szelepcsényi inductive counting).",
+        "Set Difference: L₁ - L₂ = L₁ ∩ L₂ᶜ (CLOSED)."
+      ],
+      quote: "CSL forms a mathematically complete Boolean algebra."
+    },
+    {
+      badge: "Grammatical Operations",
+      title: "Algebraic Closure",
+      icon: "📜",
+      color: "blue",
+      domain: "Fully Closed",
+      points: [
+        "Concatenation: L₁ · L₂ (CLOSED).",
+        "Kleene Star: L* (CLOSED, with ε handled via separate start symbol).",
+        "Reversal: Lᴿ (CLOSED: reverse tape traversal).",
+        "Inverse Homomorphism: h⁻¹(L) (CLOSED)."
+      ],
+      quote: "Robust under all standard grammatical transformations."
+    }
+  ]}
+/>
+
+---
+
+## ❓ The Famous LBA Open Problem
+
+One of the most famous open problems in computer science (analogous to $P \stackrel{?}{=} NP$) is the **LBA Problem**:
+
+> **The LBA Question:**  
+> Is the class of languages accepted by Deterministic Linear Bounded Automata (DLBA) equal to the class of languages accepted by Non-Deterministic Linear Bounded Automata (NLBA)?
+> 
+> $$
+> \text{DLBA} \stackrel{?}{=} \text{NLBA}
+> $$
+
+* In terms of computational complexity, this is equivalent to asking:
+
+$$
+\text{DSPACE}(n) \stackrel{?}{=} \text{NSPACE}(n)
+$$
+
+* While Savitch's Theorem proves that $\text{NSPACE}(n) \subseteq \text{DSPACE}(n^2)$, whether they are identical for strictly linear space ($O(n)$) remains **unsolved to this day**.
+
+---
+
+## 🏭 Real-World Production Context: eBPF & Embedded Security Sandboxes
+
+In modern operating systems, allowing user-space code to execute inside the Linux kernel is terrifying because an infinite loop or wild memory write will crash the entire operating system.
+
+To solve this, Linux introduced **eBPF (Extended Berkeley Packet Filter)**, which operates under the exact principles of a **Linear Bounded Automaton**.
+
+<FlowPipeline
+  title="Production System: Linux Kernel eBPF Verification Engine"
+  subtitle="How modern OS kernels use LBA bounded verification to prevent infinite loops and memory faults"
+  nodes={[
+    {
+      badge: "Bytecode Load",
+      title: "eBPF Kernel Program",
+      icon: "📥",
+      color: "blue",
+      description: "User submits networking/observability filter bytecode into kernel via bpf() syscall.",
+      connectorLabel: "Kernel Verifier"
+    },
+    {
+      badge: "LBA Verifier",
+      title: "Static DAG Analyzer",
+      icon: "⚙️",
+      color: "purple",
+      description: "Verifier simulates every instruction path: strictly enforces bounded loops and memory limits.",
+      connectorLabel: "Configuration Bound"
+    },
+    {
+      badge: "Safety Guarantee",
+      title: "BPCI ≤ 1,000,000 Instructions",
+      icon: "🛡️",
+      color: "amber",
+      description: "If total state combinations exceed bounded limit or loop is unbounded, PR is REJECTED.",
+      connectorLabel: "JIT Compilation"
+    },
+    {
+      badge: "Safe Execution",
+      title: "Kernel-Speed Execution",
+      icon: "🚀",
+      color: "emerald",
+      description: "Verified bytecode executes at line rate inside Ring 0 with 100% guarantee of zero crashes."
+    }
+  ]}
+/>
+
+### Production Implementations
+1. **Linux Kernel eBPF Verifier (Cilium / Cloudflare):**
+   The eBPF verifier performs abstract interpretation on register states. It guarantees that the program accesses only valid memory within a fixed buffer bound ($k \cdot |w|$) and halts in bounded time, directly utilizing the LBA decidability principle.
+2. **Smart Contracts (Ethereum Virtual Machine - EVM):**
+   The EVM prevents infinite loops by enforcing a **Gas Limit**. Every instruction consumes gas, bounding the maximum execution steps by a linear budget of transaction fee tokens.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Problem 1: Maximum Configuration Count Calculation
+
+**Problem Statement:**  
+A Linear Bounded Automaton $M$ has:
+* State set $|Q| = 5$.
+* Tape alphabet $|\Gamma| = 4$ (including boundary markers).
+* Input string length $n = 3$.
+
+Calculate the exact maximum number of distinct configurations that $M$ can occupy, and state the step limit beyond which the machine is guaranteed to be in an infinite loop.
+
+**Step-by-Step Solution:**
+
+#### Step 1: Apply the Configuration Formula
+
+$$
+N_{\text{max}} = |Q| \cdot n \cdot |\Gamma|^n
+$$
+
+Where:
+* $|Q| = 5$ states
+* Head positions $n = 3$ cells
+* Tape contents $= |\Gamma|^n = 4^3$ combinations
+
+#### Step 2: Calculate Intermediate Values
+* $4^3 = 64$ distinct tape contents.
+* State $\times$ Head position $= 5 \times 3 = 15$ combinations.
+
+#### Step 3: Compute Total Configurations
+
+$$
+N_{\text{max}} = 15 \times 64 = \mathbf{960 \text{ configurations}}
+$$
+
+#### Step 4: Step Limit Conclusion
+If the LBA runs for **$961$ steps** without entering an accepting or rejecting state, by the Pigeonhole Principle, it has visited at least one configuration twice.  
+Therefore, the machine is in an **infinite loop**, and the simulation can halt safely at step 961 and reject the string.
+
+---
+
+### Problem 2: LBA Execution Strategy for aⁿ bⁿ cⁿ
+
+**Problem Statement:**  
+Explain how an LBA recognizes the language $L = \{a^n b^n c^n \mid n \ge 1\}$ without ever requiring any extra tape cells beyond the input string.
+
+**Step-by-Step Solution:**
+
+#### Step 1: In-Place Symbol Mutation
+The input tape contains:
+
+$$
+\vdash \; a_1 a_2 \dots a_n \; b_1 b_2 \dots b_n \; c_1 c_2 \dots c_n \; \dashv
+$$
+
+The total distance between $\vdash$ and $\dashv$ is exactly $3n$.
+
+#### Step 2: Zig-Zag Matching Algorithm
+1. The head moves from $\vdash$ to the first unmarked $a$ and changes it to $X$.
+2. It moves right until it finds the first unmarked $b$ and changes it to $Y$.
+3. It moves right until it finds the first unmarked $c$ and changes it to $Z$.
+4. It moves left until it encounters the boundary $\vdash$.
+5. It repeats steps 1–4 until all $a$'s have been replaced by $X$'s.
+6. A final sweep verifies that no leftover $b$'s or $c$'s remain between $X$'s, $Y$'s, and $Z$'s.
+
+#### Step 3: Space Bound Verification
+Because symbols $a, b, c$ are overwritten **in-place** with $X, Y, Z$, the algorithm requires **zero extra tape cells** ($k = 1$).  
+The working space is exactly $1 \cdot |w| \le k |w|$.  
+Therefore, $\{a^n b^n c^n\}$ is a **Context-Sensitive Language accepted by an LBA**.
+
+---
+
+### Problem 3: Context-Sensitive Grammar Derivation Length
+
+**Problem Statement:**  
+A Context-Sensitive Grammar generates words over $\{0, 1\}$. Suppose a target word $w = 1011$ has length 4. Prove why any parsing algorithm searching for a derivation of $w$ only needs to consider sentential forms of length $\le 4$.
+
+**Step-by-Step Solution:**
+
+#### Step 1: The Non-Contracting Property
+In a Context-Sensitive Grammar (Type-1), every production $\alpha \to \beta$ satisfies:
+
+$$
+|\alpha| \le |\beta|
+$$
+
+#### Step 2: Monotonic Length Growth
+Let the derivation sequence be:
+
+$$
+S = \gamma_0 \Longrightarrow \gamma_1 \Longrightarrow \gamma_2 \Longrightarrow \dots \Longrightarrow \gamma_m = w
+$$
+
+Because each step replaces a substring $\alpha$ with a substring $\beta$ of equal or greater length:
+
+$$
+1 = |\gamma_0| \le |\gamma_1| \le |\gamma_2| \le \dots \le |\gamma_m| = |w| = 4
+$$
+
+#### Step 3: Impossibility of Shrinking
+If at any intermediate step a sentential form $\gamma_k$ reached a length of $5$ (or more), because the grammar cannot shrink strings ($|\alpha| \le |\beta|$), no subsequent production could ever reduce the length back down to 4!
+
+Therefore, the parser can immediately **prune any branch whose sentential form exceeds length 4**.  
+Since the number of strings of length $\le 4$ over $(V \cup T)$ is finite, parsing is **guaranteed to be decidable**.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why is the Halting Problem undecidable for Turing Machines, but decidable for LBAs?**  
+  Because a Turing Machine has an infinite tape, allowing it to generate an **infinite number of distinct configurations**. An infinite graph can have an infinite non-repeating path. In contrast, an LBA has a tape length bounded by $k \cdot n$, making its total configuration space strictly **finite** ($|Q| \cdot n \cdot |\Gamma|^n$). A finite state graph cannot run indefinitely without repeating a state (looping).
+* **Can an LBA recognize languages that a Pushdown Automaton cannot?**  
+  **YES!** A Pushdown Automaton cannot recognize $\{a^n b^n c^n\}$ or $\{w w\}$. An LBA can easily recognize both because its head can move in both directions across the bounded tape.
+* **Is every Context-Free Language context-sensitive?**  
+  **Yes (with minor exception for $\epsilon$)**. Every Context-Free Grammar can be converted to Chomsky Normal Form (where rules are $A \to BC$ or $A \to a$, both of which are non-contracting: $1 \le 2$ and $1 \le 1$). Thus, $\text{CFL} \subset \text{CSL}$. (If $\epsilon \in L$, formal Type-1 allows $S \to \epsilon$ if $S$ never appears on the RHS).
+:::
+
+:::warning Common Interview Traps
+* **Trap: Assuming the LBA Tape Must Have Length Exactly $n$**:  
+  The definition of an LBA allows the tape space to be bounded by any **linear function** $k \cdot n$ (e.g. $2n$, $5n$). By tape compression theorems, any LBA with space $k \cdot n$ can be simulated by an LBA using exactly $1 \cdot n$ cells by expanding the tape alphabet to $\Gamma^k$.
+* **Trap: Confusing the LBA Problem with LBA Decidability**:  
+  * The **Membership Problem** for LBA is **DECIDABLE** (solved in finite time).
+  * The **LBA Open Problem** asks whether **$\text{DLBA} = \text{NLBA}$** (this is an open complexity problem).
+  * The **Emptiness Problem** for LBA ($L(M_{\text{LBA}}) = \emptyset$) is **UNDECIDABLE**!
+* **Trap: Believing Non-Contracting Grammars Can Delete Characters**:  
+  In a Type-1 CSG, productions of the form $A \to \epsilon$ or $a B \to a$ are strictly illegal! A production can never shorten a string.
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "9.2 Turing Machine Variants: Multi-Tape, Non-Deterministic TMs & Church-Turing Thesis",
+    url: "/coredose/toc/module-09/turing-machine-variants-multi-tape-non-deterministic-and-church-turing",
+  }}
+  next={{
+    title: "10.1 Recursive (REC) vs Recursively Enumerable (RE / Semi-Decidable) Languages",
+    url: "/coredose/toc/module-10/recursive-vs-recursively-enumerable-languages",
+  }}
+  courseUrl="/coredose/toc"
+/>

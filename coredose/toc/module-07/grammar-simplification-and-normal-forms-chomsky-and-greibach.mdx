@@ -1,0 +1,674 @@
+---
+title: "Grammar Simplification & Normal Forms: Chomsky (CNF) & Greibach (GNF)"
+description: "Comprehensive guide to Context-Free Grammar simplification (epsilon, unit, useless symbols), Chomsky Normal Form (CNF), Greibach Normal Form (GNF), derivation step invariants, and CYK parsing."
+hide_table_of_contents: true
+---
+
+# 7.3 Grammar Simplification & Normal Forms: Chomsky (CNF) & Greibach (GNF)
+
+<CoreDoseLessonHeader
+  title="Grammar Simplification & Normal Forms: Chomsky (CNF) & Greibach (GNF)"
+  description="Master the algorithmic normalization of Context-Free Grammars: execute the 3-phase simplification pipeline, convert grammars into strictly binary CNF and real-time GNF, and derive 2n - 1 parsing step invariants."
+  readTime="22 min read"
+  difficulty="Intermediate to Advanced"
+  prerequisites={[
+    "Context-Free Grammars (CFG 4-tuple)",
+    "Derivations & Parse Tree Yields",
+    "Ambiguity in CFGs"
+  ]}
+/>
+
+## 💡 Core Intuition: The Standardized Modular Assembly Line
+
+In manufacturing, if every car model were assembled using screws, bolts, and hinges of completely arbitrary lengths and shapes, automated assembly robots would be impossible to build. Every tool would require a custom gripper.
+
+To solve this, industrial manufacturing relies on **strict geometric standardization**: every fastener must be one of two standard shapes: a binary bracket or an atomic pin.
+
+In formal language theory, an unconstrained Context-Free Grammar is similarly messy:
+* Some rules might generate nothing at all (useless dead-ends).
+* Some rules might loop infinitely between variables without making progress ($A \to B \to C \to A$).
+* Some rules might erase symbols into thin air ($A \to \epsilon$).
+* Other rules might have 15 variables and terminals jumbled together ($S \to a B c D e F g$).
+
+To enable high-speed algorithmic parsing, we subject the grammar to two mathematical standardization processes:
+1. **Grammar Simplification:** Purge all dead-ends, null erasures, and redundant daisy-chained aliases.
+2. **Normal Forms:** Transform every remaining production rule into one of two canonical shapes:
+   * **Chomsky Normal Form (CNF):** Every rule is strictly **binary** ($A \to B C$) or **atomic** ($A \to a$).
+   * **Greibach Normal Form (GNF):** Every rule consumes **exactly one terminal token upfront** ($A \to a \alpha$).
+
+### 🍳 The Everyday Analogy: Cleaning & Organizing the Kitchen
+
+Imagine an apprentice chef following a messy recipe binder:
+* **Useless Steps:** *"Step 4: Go to the roof and check the weather."* This step has zero connection to cooking the soup. We delete it.
+* **Redundant Renaming (Unit Rules):** *"Step 7: Pour the broth into Container B. Step 8: Pour Container B into Container C."* Why use two bowls? Just pour directly into Container C!
+* **Empty Work (Null Productions):** *"Step 12: Add 0 grams of invisible salt."* Doing nothing just clutters the instructions.
+
+Once you eliminate useless detours, empty steps, and redundant transfers, you can standardize every cooking step into a fixed 2-ingredient mix. That is **Chomsky Normal Form**.
+
+### 💻 Bridging to Computer Science
+
+In compiler engineering and computational biology, parsing an arbitrary CFG string of length $n$ via naive brute-force backtracking takes exponential time $O(2^n)$.
+
+However, when a grammar is transformed into **Chomsky Normal Form (CNF)**:
+* Every parse tree becomes a **strictly binary tree**.
+* Deriving a string of length $n$ requires **exactly $2n - 1$ derivation steps**.
+* The **Cocke-Younger-Kasami (CYK) Algorithm** can parse any string in deterministic polynomial time:
+
+$$O(n^3 \cdot |P|)$$
+
+When a grammar is transformed into **Greibach Normal Form (GNF)**:
+* Every derivation step produces **exactly one terminal symbol**.
+* Deriving a string of length $n$ takes **exactly $n$ steps**.
+* GNF maps directly to real-time **Pushdown Automata (PDA)** transitions, where reading one input token pops a variable and pushes replacement symbols onto the stack without stalling.
+
+---
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🧹 The 3-Phase Grammar Simplification Pipeline
+
+Before converting a CFG into any normal form, we must clean the grammar of all redundant and non-productive rules. This is achieved via a strict 3-phase elimination pipeline:
+
+<FlowPipeline
+  title="The 3-Phase Grammar Simplification Pipeline"
+  subtitle="The mathematically mandatory sequence for cleaning context-free grammars"
+  nodes={[
+    {
+      badge: "Phase 1",
+      title: "Eliminate Epsilon Productions",
+      icon: "💨",
+      color: "blue",
+      description: "Find all nullable variables (A ⇒* ε) and expand combinations without ε.",
+      connectorLabel: "Clean Nulls"
+    },
+    {
+      badge: "Phase 2",
+      title: "Eliminate Unit Productions",
+      icon: "🔗",
+      color: "purple",
+      description: "Remove single-variable aliases (A → B) by substituting B's productions directly into A.",
+      connectorLabel: "Collapse Chains"
+    },
+    {
+      badge: "Phase 3",
+      title: "Eliminate Useless Symbols",
+      icon: "🗑️",
+      color: "emerald",
+      description: "Prune non-generating variables first, then prune unreachable symbols from start symbol S."
+    }
+  ]}
+/>
+
+:::danger Strict Ordering Rule
+The ordering of the simplification pipeline is **ABSOLUTE and MANDATORY**:
+1. **$\epsilon$-Productions FIRST**
+2. **Unit Productions SECOND**
+3. **Useless Symbols LAST**
+
+**Why?** Eliminating $\epsilon$-productions can introduce new unit productions (e.g. $A \to B C$ with $C \Rightarrow^* \epsilon$ yields $A \to B$). Eliminating unit productions can expose newly dead, non-generating, or unreachable symbols. Running useless symbol elimination **last** guarantees that the final simplified grammar contains zero dead or unreachable elements!
+:::
+
+---
+
+## 💨 Phase 1: Elimination of ε-Productions
+
+A production of the form $A \to \epsilon$ is called an **$\epsilon$-production** (or null production). If the language $L(G)$ does not contain the empty string $\epsilon$, all $\epsilon$-productions can be removed without changing the language.
+
+### Step 1: Identify Nullable Variables
+A variable $A \in V$ is **nullable** if $A \Longrightarrow^* \epsilon$.
+* **Base Case:** Any variable with a direct production $A \to \epsilon$ is nullable.
+* **Inductive Step:** If there is a production $B \to X_1 X_2 \cdots X_k$ where every $X_i$ is already determined to be nullable, then $B$ is also nullable.
+* Repeat until no new nullable variables are discovered.
+
+### Step 2: Replace Productions
+For each production $A \to \alpha$:
+* Form all possible productions by substituting $\epsilon$ for every subset of nullable variables in $\alpha$.
+* If $\alpha$ has $k$ occurrences of nullable variables, this produces up to $2^k$ new productions.
+* Do not include the production $A \to \epsilon$.
+
+#### Example:
+Let $S \to A B, \quad A \to a \mid \epsilon, \quad B \to b \mid \epsilon$.
+* Nullable set: $N = \{A, B, S\}$.
+* From $S \to AB$:
+  * Keep both: $S \to AB$
+  * Remove $B$: $S \to A$
+  * Remove $A$: $S \to B$
+  * Remove both: (omit $\epsilon$, or add $S_0 \to \epsilon$ if $\epsilon \in L$).
+* New productions: $S \to AB \mid A \mid B, \quad A \to a, \quad B \to b$.
+
+---
+
+## 🔗 Phase 2: Elimination of Unit Productions
+
+A production of the form $A \to B$ where both $A, B \in V$ is called a **unit production**. Unit productions merely rename non-terminals without generating terminal symbols.
+
+### Step 1: Compute the Unit Pairs
+For each variable $A \in V$, find the set of all variables $B$ such that $A \Longrightarrow^* B$ using only unit productions:
+
+$$\text{Unit}(A) = \{B \in V \mid A \Longrightarrow^* B \text{ using unit productions}\}$$
+
+* By reflexivity, $A \in \text{Unit}(A)$ for every variable $A$.
+* If $A \to B$ and $B \to C$, then $C \in \text{Unit}(A)$ (transitive closure).
+
+### Step 2: Construct the New Production Set
+For each variable $A \in V$:
+* For every $B \in \text{Unit}(A)$:
+  * If $B \to \alpha$ is a **non-unit** production in the original grammar, add $A \to \alpha$ to the new grammar.
+* Discard all unit productions $A \to B$.
+
+#### Example:
+Let $S \to A \mid a, \quad A \to B \mid b, \quad B \to c$.
+* $\text{Unit}(S) = \{S, A, B\}$
+* $\text{Unit}(A) = \{A, B\}$
+* $\text{Unit}(B) = \{B\}$
+* Non-unit productions: $S \to a$, $A \to b$, $B \to c$.
+* Result:
+  * $S \to a \mid b \mid c$
+  * $A \to b \mid c$
+  * $B \to c$
+
+---
+
+## 🗑️ Phase 3: Elimination of Useless Symbols
+
+A symbol $X \in (V \cup T)$ is **useful** if there exists a derivation:
+
+$$S \Longrightarrow^* \alpha X \beta \Longrightarrow^* w \quad (\text{where } w \in T^*)$$
+
+This requires two distinct conditions:
+1. **Generating:** $X$ must be able to derive a string of pure terminals: $X \Longrightarrow^* w$.
+2. **Reachable:** $X$ must be reachable from the start symbol: $S \Longrightarrow^* \alpha X \beta$.
+
+:::warning The Order of Pruning
+You **MUST** eliminate non-generating symbols **first**, and eliminate unreachable symbols **second**.
+If you reverse this order, eliminating a non-generating symbol may cause previously reachable symbols to become unreachable, leaving dead symbols in your grammar!
+:::
+
+<ConceptComparison
+  title="The Two Conditions of Useful Symbols"
+  subtitle="Why a symbol must satisfy both generation and reachability to survive in a minimal CFG"
+  concepts={[
+    {
+      badge: "Condition 1 (Run First)",
+      title: "Generating Symbols",
+      icon: "🌱",
+      color: "emerald",
+      domain: "Terminal Derivability",
+      points: [
+        "A symbol X is generating if X ⇒* w for some string of pure terminals w ∈ T*.",
+        "Algorithm: Mark all terminals as generating. Inductively mark variable A if A → α where all symbols in α are already generating.",
+        "Prune all non-generating variables and any production referencing them."
+      ],
+      quote: "If a variable leads to an infinite non-terminal loop with no exit, it cannot generate anything."
+    },
+    {
+      badge: "Condition 2 (Run Second)",
+      title: "Reachable Symbols",
+      icon: "🚪",
+      color: "blue",
+      domain: "Start Symbol Connectivity",
+      points: [
+        "A symbol X is reachable if S ⇒* α X β for some strings α, β ∈ (V ∪ T)*.",
+        "Algorithm: Mark start symbol S as reachable. Inductively mark all symbols appearing on the RHS of productions of reachable variables.",
+        "Prune all symbols and productions that were never reached from S."
+      ],
+      quote: "If a valid rule is completely disconnected from the start symbol, it can never participate in derivations."
+    }
+  ]}
+/>
+
+---
+
+## 🏛️ Chomsky Normal Form (CNF)
+
+A Context-Free Grammar $G$ is in **Chomsky Normal Form (CNF)** if every production rule has one of two canonical forms:
+
+<SubsystemGrid
+  title="The 2 Canonical Production Shapes of CNF"
+  subtitle="Strictly binary variable branching or solitary terminal production"
+  items={[
+    {
+      icon: "🌿",
+      title: "Binary Variable Rule",
+      tag: "A → BC",
+      color: "purple",
+      points: [
+        "The RHS consists of EXACTLY TWO non-terminals: B, C ∈ V.",
+        "Zero terminals permitted on the RHS of this rule.",
+        "Creates a strictly binary bifurcation in the derivation parse tree."
+      ],
+      syscalls: ["A → BC", "B, C ∈ V"]
+    },
+    {
+      icon: "🍂",
+      title: "Solitary Terminal Rule",
+      tag: "A → a",
+      color: "emerald",
+      points: [
+        "The RHS consists of EXACTLY ONE terminal symbol: a ∈ T.",
+        "Zero variables permitted on the RHS of this rule.",
+        "Forms an atomic leaf node in the derivation parse tree."
+      ],
+      syscalls: ["A → a", "a ∈ T"]
+    }
+  ]}
+/>
+
+*(Note: If $\epsilon \in L(G)$, the rule $S \to \epsilon$ is permitted, provided $S$ does not appear on the RHS of any production).*
+
+### Algorithmic Conversion from CFG to CNF
+
+Given a simplified CFG with no $\epsilon$-productions, unit productions, or useless symbols:
+
+#### Step 1: Replace Terminals in Composite Rules
+For every production whose RHS has length $\ge 2$ containing terminals:
+* For each terminal $a \in T$, introduce a new variable $T_a$ and add the rule $T_a \to a$.
+* In all composite productions, replace terminal $a$ with $T_a$.
+* *Example:* $A \to a B c$ becomes $A \to T_a B T_c$, with $T_a \to a$ and $T_c \to c$.
+
+#### Step 2: Break Long Variable Chains into Binary Pairs
+For every production whose RHS contains $k \ge 3$ non-terminals:
+
+$$A \longrightarrow B_1 B_2 B_3 \cdots B_k$$
+
+Introduce $k - 2$ new auxiliary variables $D_1, D_2, \dots, D_{k-2}$ and replace the production with the cascading binary sequence:
+
+$$
+\begin{aligned}
+A &\longrightarrow B_1 D_1 \\
+D_1 &\longrightarrow B_2 D_2 \\
+D_2 &\longrightarrow B_3 D_3 \\
+&\vdots \\
+D_{k-2} &\longrightarrow B_{k-1} B_k
+\end{aligned}
+$$
+
+Now, every single production in the grammar is strictly of the form $A \to B C$ or $A \to a$!
+
+---
+
+## 📐 Mathematical Invariants of Chomsky Normal Form
+
+The strictly binary nature of CNF yields two fundamental mathematical theorems:
+
+### Derivation Step Invariant (2n - 1)
+
+> **Theorem:** In any Chomsky Normal Form grammar, deriving a non-empty string $w \in L(G)$ of length $|w| = n$ requires **exactly $2n - 1$ derivation steps**.
+
+**Mathematical Proof:**
+1. Let the target string have length $n$.
+2. To produce a string of $n$ terminal symbols, we must eventually apply the rule $A \to a$ exactly $n$ times (one for each terminal).
+3. In a CNF grammar, the number of non-terminals increases by $+1$ only when a binary rule $A \to BC$ is applied.
+4. Starting from the single start symbol $S$, to reach a sentential form containing $n$ non-terminals requires applying binary rules exactly $n - 1$ times.
+5. Total derivation steps:
+
+$$\text{Total Steps} = \underbrace{(n - 1)}_{\text{Binary rules } A \to BC} + \underbrace{n}_{\text{Terminal rules } A \to a} = \mathbf{2n - 1}$$
+
+| String Length ($n = \|w\|$) | Binary Expansions ($n - 1$) | Terminal Replacements ($n$) | Total Derivation Steps ($2n - 1$) |
+| :---: | :---: | :---: | :---: |
+| $n = 1$ | $0$ | $1$ | **$1$ step** |
+| $n = 2$ | $1$ | $2$ | **$3$ steps** |
+| $n = 3$ | $2$ | $3$ | **$5$ steps** |
+| $n = 4$ | $3$ | $4$ | **$7$ steps** |
+| $n = 100$ | $99$ | $100$ | **$199$ steps** |
+
+### Parse Tree Height & String Length Bounds
+
+Let $h$ be the height (longest path length from root to leaf) of a parse tree in a CNF grammar:
+* Because every internal node has at most 2 children, a tree of height $h$ can have at most $2^{h-1}$ leaves.
+* For a string of length $n$, the height $h$ must satisfy:
+
+$$n \le 2^{h-1} \iff h \ge 1 + \lceil \log_2 n \rceil$$
+
+* Furthermore, in the worst-case degenerate (skewed) tree:
+
+$$h \le n$$
+
+This property forms the mathematical bedrock of the **Pumping Lemma for Context-Free Languages**, proving that any sufficiently long string must repeat a variable along a deep path in the tree.
+
+---
+
+## ⚡ Greibach Normal Form (GNF)
+
+A Context-Free Grammar $G$ is in **Greibach Normal Form (GNF)** if every production rule has the form:
+
+$$A \longrightarrow a \alpha \quad (\text{where } a \in T, \; \alpha \in V^*)$$
+
+Every production begins with **strictly ONE terminal symbol**, followed by **zero or more non-terminals**.
+
+<ConceptComparison
+  title="Chomsky Normal Form vs Greibach Normal Form"
+  subtitle="Comparing the two dominant canonical representations of context-free languages"
+  concepts={[
+    {
+      badge: "Binary Structure",
+      title: "Chomsky Normal Form (CNF)",
+      icon: "🌳",
+      color: "blue",
+      domain: "CYK Parsing & Complexity Proofs",
+      points: [
+        "Rule format: A → BC or A → a.",
+        "Parse tree is a strictly binary tree.",
+        "Derivation of string of length n requires exactly 2n - 1 steps.",
+        "Optimal for Cocke-Younger-Kasami (CYK) dynamic programming parsing."
+      ],
+      quote: "Standardizes grammar into clean binary tree bifurcations."
+    },
+    {
+      badge: "Real-Time Execution",
+      title: "Greibach Normal Form (GNF)",
+      icon: "⚡",
+      color: "emerald",
+      domain: "Pushdown Automata Transitions",
+      points: [
+        "Rule format: A → a α (a ∈ T, α ∈ V*).",
+        "Every step consumes exactly one terminal token from the input.",
+        "Derivation of string of length n requires exactly n steps.",
+        "Direct 1-to-1 correspondence with Pushdown Automaton (PDA) stack operations."
+      ],
+      quote: "Guarantees zero-delay token consumption without stalls."
+    }
+  ]}
+/>
+
+### PDA Equivalence with GNF
+In Greibach Normal Form, each production $A \to a X_1 X_2 \cdots X_k$ corresponds directly to a Pushdown Automaton transition:
+* When non-terminal $A$ is on top of the stack, reading terminal $a$ from the input pops $A$ and pushes the string $X_1 X_2 \cdots X_k$ onto the stack:
+
+$$\delta(q, a, A) = (q, X_1 X_2 \cdots X_k)$$
+
+Because every rule consumes a terminal, a PDA built from a GNF grammar **never executes an $\epsilon$-transition**, preventing infinite stack loops!
+
+---
+
+## 🏭 Real-World Production Context: The CYK Algorithm & Bioinformatics
+
+Why do computer scientists spend so much effort converting grammars into Chomsky Normal Form? The primary production reason is the **Cocke-Younger-Kasami (CYK) Algorithm**.
+
+<FlowPipeline
+  title="The CYK Dynamic Programming Parsing Pipeline"
+  subtitle="How Chomsky Normal Form enables deterministic polynomial-time chart parsing"
+  nodes={[
+    {
+      badge: "Input Token Stream",
+      title: "Target String (w)",
+      icon: "📥",
+      color: "blue",
+      description: "Length n string: w = w₁ w₂ ... wₙ.",
+      connectorLabel: "Base Case Fill"
+    },
+    {
+      badge: "Chart Layer 1",
+      title: "Terminal Cell Fill (Substring Len 1)",
+      icon: "🍂",
+      color: "purple",
+      description: "For each position i, find all variables A such that A → w_i ∈ P.",
+      connectorLabel: "Dynamic Split"
+    },
+    {
+      badge: "Chart Layers 2..n",
+      title: "Binary Substring Combinations",
+      icon: "🧩",
+      color: "amber",
+      description: "For substring length l = 2..n, split at k: check if A → B C where B ∈ Table(i, k) and C ∈ Table(i+k, l-k).",
+      connectorLabel: "Root Verification"
+    },
+    {
+      badge: "Membership Result",
+      title: "Acceptance Check: S ∈ Table(1, n)",
+      icon: "✅",
+      color: "emerald",
+      description: "If start symbol S is in the top cell, output YES in O(n³ · |P|) time."
+    }
+  ]}
+/>
+
+### Industrial Applications of CNF & CYK Parsing
+1. **Computational Biology (RNA Secondary Structure Prediction):**
+   RNA folding forms complex hairpin loops, bulges, and stems that are modeled as Context-Free Grammars. Algorithms like **ViennaRNA** and **Infernal** convert RNA stochastic CFGs into Chomsky Normal Form and use CYK dynamic programming to compute the minimum free energy structure of viral genomes (such as SARS-CoV-2).
+2. **Natural Language Processing (Statistical Parsers):**
+   Early statistical NLP engines (such as the Stanford Parser) converted Penn Treebank grammars into CNF to run probabilistic CYK parsing, calculating the most likely grammatical parse tree for spoken English queries.
+3. **Formal Verification of Network Protocols:**
+   Security tools convert packet layout grammar definitions into CNF to verify whether a packet capture stream matches a valid protocol specification without suffering combinatorial explosions.
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Problem 1: Complete 3-Phase Grammar Simplification
+
+**Problem Statement:**  
+Simplify the following CFG $G$ by systematically executing the 3-phase pipeline:
+
+$$
+\begin{aligned}
+S &\longrightarrow A B \quad \mid \quad a \\
+A &\longrightarrow b \quad \mid \quad \epsilon \\
+B &\longrightarrow C \quad \mid \quad b \\
+C &\longrightarrow D \\
+D &\longrightarrow E \\
+E &\longrightarrow a E \quad \mid \quad b
+\end{aligned}
+$$
+
+**Step-by-Step Solution:**
+
+#### Phase 1: Eliminate ε-Productions
+1. Find nullable variables:
+   * $A \to \epsilon \implies A$ is nullable.
+   * Can $S$ become nullable? $S \to AB$. Since $B$ does not derive $\epsilon$, $S$ is NOT nullable.
+   * Nullable set: $N = \{A\}$.
+2. Replace rules containing $A$:
+   * $S \to AB$: Removing $A$ yields $S \to B$.
+   * $S \to a$: Unchanged.
+   * Discard $A \to \epsilon$.
+3. Result of Phase 1:
+   * $S \longrightarrow AB \quad \mid \quad B \quad \mid \quad a$
+   * $A \longrightarrow b$
+   * $B \longrightarrow C \quad \mid \quad b$
+   * $C \longrightarrow D$
+   * $D \longrightarrow E$
+   * $E \longrightarrow a E \quad \mid \quad b$
+
+#### Phase 2: Eliminate Unit Productions
+1. Compute Unit sets for each variable:
+   * $\text{Unit}(E) = \{E\}$
+   * $\text{Unit}(D) = \{D, E\}$
+   * $\text{Unit}(C) = \{C, D, E\}$
+   * $\text{Unit}(B) = \{B, C, D, E\}$
+   * $\text{Unit}(A) = \{A\}$
+   * $\text{Unit}(S) = \{S, B, C, D, E\}$
+2. Non-unit productions available:
+   * From $E$: $aE \mid b$
+   * From $B$: $b$
+   * From $A$: $b$
+   * From $S$: $AB \mid a$
+3. Expand rules:
+   * $S \longrightarrow AB \quad \mid \quad a \quad \mid \quad b \quad \mid \quad aE$
+   * $B \longrightarrow b \quad \mid \quad aE$
+   * $C \longrightarrow b \quad \mid \quad aE$
+   * $D \longrightarrow b \quad \mid \quad aE$
+   * $E \longrightarrow aE \quad \mid \quad b$
+   * $A \longrightarrow b$
+
+#### Phase 3: Eliminate Useless Symbols
+1. **Generating Symbols:**
+   * Terminals $\{a, b\}$ are generating.
+   * $E \to b \implies E$ is generating.
+   * $D \to b \implies D$ is generating.
+   * $C \to b \implies C$ is generating.
+   * $B \to b \implies B$ is generating.
+   * $A \to b \implies A$ is generating.
+   * $S \to a \implies S$ is generating.
+   * All variables are generating!
+2. **Reachable Symbols from $S$:**
+   * $S$ is reachable.
+   * From $S \to AB \mid a \mid b \mid aE$:
+     * Symbols $\{A, B, E\}$ and terminals $\{a, b\}$ are directly reachable!
+   * What about $C$ and $D$?
+     * Neither $C$ nor $D$ appears on the RHS of any production originating from $S, A, B$, or $E$!
+     * Therefore, **$C$ and $D$ are UNREACHABLE**.
+3. Prune $C$ and $D$:
+   * $S \longrightarrow AB \quad \mid \quad a \quad \mid \quad b \quad \mid \quad aE$
+   * $A \longrightarrow b$
+   * $B \longrightarrow b \quad \mid \quad aE$
+   * $E \longrightarrow aE \quad \mid \quad b$
+
+This is the minimal, fully simplified grammar.
+
+---
+
+### Problem 2: Algorithmic Conversion to Chomsky Normal Form (CNF)
+
+**Problem Statement:**  
+Convert the following simplified grammar into Chomsky Normal Form:
+
+$$
+\begin{aligned}
+S &\longrightarrow a b A B \\
+A &\longrightarrow b A B \quad \mid \quad a \\
+B &\longrightarrow B A a \quad \mid \quad b
+\end{aligned}
+$$
+
+**Step-by-Step Solution:**
+
+#### Step 1: Replace Terminals in Composite Rules
+Introduce auxiliary variables for terminals $a$ and $b$:
+* $T_a \longrightarrow a$
+* $T_b \longrightarrow b$
+
+Substitute $T_a$ and $T_b$ into all rules with length $\ge 2$:
+* $S \longrightarrow T_a T_b A B$
+* $A \longrightarrow T_b A B \quad \mid \quad a$
+* $B \longrightarrow B A T_a \quad \mid \quad b$
+
+#### Step 2: Binarize Long Variable Chains
+
+**Binarizing $S \longrightarrow T_a T_b A B$ (length 4):**
+Introduce auxiliary variables $D_1$ and $D_2$:
+
+$$
+\begin{aligned}
+S &\longrightarrow T_a D_1 \\
+D_1 &\longrightarrow T_b D_2 \\
+D_2 &\longrightarrow A B
+\end{aligned}
+$$
+
+**Binarizing $A \longrightarrow T_b A B$ (length 3):**
+Introduce auxiliary variable $D_3$:
+
+$$
+\begin{aligned}
+A &\longrightarrow T_b D_3 \\
+D_3 &\longrightarrow A B
+\end{aligned}
+$$
+
+**Binarizing $B \longrightarrow B A T_a$ (length 3):**
+Introduce auxiliary variable $D_4$:
+
+$$
+\begin{aligned}
+B &\longrightarrow B D_4 \\
+D_4 &\longrightarrow A T_a
+\end{aligned}
+$$
+
+#### Step 3: Final Chomsky Normal Form Grammar
+
+$$
+\begin{aligned}
+S &\longrightarrow T_a D_1 \\
+D_1 &\longrightarrow T_b D_2 \\
+D_2 &\longrightarrow A B \\
+A &\longrightarrow T_b D_3 \quad \mid \quad a \\
+D_3 &\longrightarrow A B \\
+B &\longrightarrow B D_4 \quad \mid \quad b \\
+D_4 &\longrightarrow A T_a \\
+T_a &\longrightarrow a \\
+T_b &\longrightarrow b
+\end{aligned}
+$$
+
+Every production is strictly of the form $A \to B C$ or $A \to a$. The grammar is in **Chomsky Normal Form**.
+
+---
+
+### Problem 3: Derivation Step Invariant Verification
+
+**Problem Statement:**  
+Using the CNF grammar obtained in Problem 2, verify the $2n - 1$ derivation step invariant for the terminal string $w = \mathbf{abab}$ (length $n = 4$).
+
+**Step-by-Step Solution:**
+
+#### Step 1: Calculate Theoretical Bound
+For $|w| = n = 4$:
+
+$$\text{Theoretical Steps} = 2n - 1 = 2(4) - 1 = \mathbf{7 \text{ steps}}$$
+
+#### Step 2: Trace the Leftmost Derivation
+
+$$
+\begin{aligned}
+\text{Step 1:} \quad \underline{S} &\Longrightarrow T_a D_1 && (\text{applied } S \to T_a D_1) \\
+\text{Step 2:} \quad &\Longrightarrow a \underline{D_1} && (\text{applied } T_a \to a) \\
+\text{Step 3:} \quad &\Longrightarrow a T_b \underline{D_2} && (\text{applied } D_1 \to T_b D_2) \\
+\text{Step 4:} \quad &\Longrightarrow a b \underline{D_2} && (\text{applied } T_b \to b) \\
+\text{Step 5:} \quad &\Longrightarrow a b \underline{A} B && (\text{applied } D_2 \to AB) \\
+\text{Step 6:} \quad &\Longrightarrow a b a \underline{B} && (\text{applied } A \to a) \\
+\text{Step 7:} \quad &\Longrightarrow a b a b && (\text{applied } B \to b)
+\end{aligned}
+$$
+
+#### Step 3: Verification
+Counting the individual derivation steps:
+* Step 1: $S \to T_a D_1$ (Binary expansion 1)
+* Step 2: $T_a \to a$ (Terminal replacement 1)
+* Step 3: $D_1 \to T_b D_2$ (Binary expansion 2)
+* Step 4: $T_b \to b$ (Terminal replacement 2)
+* Step 5: $D_2 \to AB$ (Binary expansion 3)
+* Step 6: $A \to a$ (Terminal replacement 3)
+* Step 7: $B \to b$ (Terminal replacement 4)
+
+Total steps = $3 \text{ binary expansions} + 4 \text{ terminal replacements} = \mathbf{7 \text{ steps}}$.  
+This confirms the invariant $2n - 1 = 2(4) - 1 = 7$.
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why can't Chomsky Normal Form derive the empty string $\epsilon$ without an explicit exception?**  
+  Because every CNF rule either replaces a variable with two variables ($A \to BC$) or with a terminal ($A \to a$). Neither rule reduces the length of the string! Thus, starting from $S$, the shortest string derivable is of length 1. To generate $\epsilon$, formal theory permits adding $S \to \epsilon$, provided $S$ does not appear on the RHS of any production.
+* **If a grammar has no $\epsilon$-productions and no unit productions, does converting to CNF increase the language accepted?**  
+  **No.** The transformation to CNF is an **exact language-preserving homomorphism**. $L(G_{\text{CNF}}) = L(G) - \{\epsilon\}$.
+* **Why does Greibach Normal Form require eliminating left recursion ($A \to A \alpha$)?**  
+  In GNF, every rule must begin with a terminal ($A \to a \alpha$). If a production has left recursion ($A \to A \alpha$), it begins with a non-terminal $A$, which directly violates the GNF definition. Converting to GNF requires eliminating immediate and indirect left recursion using auxiliary variables.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Executing Useless Symbol Elimination Before Epsilon Elimination**:  
+  Never run useless symbol elimination first! Removing $\epsilon$-productions or unit productions frequently makes previously useful symbols useless. Always execute Phase 3 (Useless Symbols) **last**.
+* **Trap: Confusing Non-Generating with Unreachable Symbols**:  
+  A non-generating symbol is a variable that enters an infinite recursion without ever producing pure terminals (e.g. $A \to aA$ with no base case). An unreachable symbol is a valid rule that is simply disconnected from $S$ (e.g. $X \to a$ where $X$ is never mentioned in any rule reachable from $S$).
+* **Trap: Forgetting That CYK Parsing Requires CNF**:  
+  Students often attempt to run the CYK dynamic programming table on an arbitrary grammar. The CYK split step $O(n^3)$ strictly relies on the binary decomposition $A \to BC$. Without CNF, CYK cannot partition substrings into binary pairs!
+:::
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "7.2 Ambiguity in Context-Free Grammars & Inherently Ambiguous Languages",
+    url: "/coredose/toc/module-07/ambiguity-in-context-free-grammars-inherently-ambiguous-languages",
+  }}
+  next={{
+    title: "8.1 Pushdown Automata (PDA): 7-Tuple Architecture & Instantaneous Descriptions",
+    url: "/coredose/toc/module-08/pushdown-automata-7-tuple-architecture-and-instantaneous-descriptions",
+  }}
+  courseUrl="/coredose/toc"
+/>

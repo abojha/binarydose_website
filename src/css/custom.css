@@ -1572,7 +1572,7 @@ body {
 }
 
 /* UI Component Heading Shield: Protect cards, widgets, and navigation grids from markdown prose heading styles */
-.markdown :is(.topic-card, .topic-grid, [class*='card'], [class*='Card'], [class*='visualizer'], [class*='Visualizer'], [class*='Hub'], [class*='Shell']) :is(h1, h2, h3, h4) {
+.markdown :is(.topic-card, .topic-grid, [class*='card'], [class*='Card'], [class*='visualizer'], [class*='Visualizer'], [class*='Hub'], [class*='Shell'], [class*='container'], [class*='Container'], [class*='simulator'], [class*='Simulator']) :is(h1, h2, h3, h4) {
   background: transparent !important;
   border: none !important;
   padding: 0 !important;

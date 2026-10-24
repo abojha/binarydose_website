@@ -130,18 +130,41 @@ const ALL_COURSES = [
     youtubeUrl: null,
   },
   {
-    id: "compiler",
-    icon: "⚙️",
-    title: "Compiler Design & TOC",
+    id: "toc",
+    icon: "🧮",
+    title: "Theory of Computation (TOC)",
     accent: "rose",
     description:
-      "Master lexical analysis, DFA/NFA conversions, context-free parsing (LL/LR), syntax-directed translation, and compiler optimization.",
+      "Master finite automata (DFA/NFA), state minimization, regular expressions & grammars, pushdown automata, Turing machines, decidability, and complexity theory.",
     chips: [
-      "DFA / NFA & Regular Languages",
-      "Context-Free Grammars",
-      "LL(1) & LR Parsing",
+      "Alphabets & Strings",
+      "DFA Design Patterns",
+      "NFA & Subset Construction",
+      "DFA Minimization (Table-Filling)",
+      "Moore & Mealy Machines",
+      "Regular Expressions & Arden's",
+      "Pushdown Automata (PDA)",
+      "Turing Machines & Decidability",
+    ],
+    notesUrl: "/coredose/toc",
+    youtubeUrl: null,
+  },
+  {
+    id: "compiler",
+    icon: "⚙️",
+    title: "Compiler Design (CD)",
+    accent: "cyan",
+    description:
+      "Master lexical tokenization, predictive LL(1) parsing, canonical LR/LALR parsing tables, syntax-directed translation, three-address code, and loop optimizations.",
+    chips: [
+      "Phases & Front-End",
+      "Lexical Tokens & Buffers",
+      "FIRST & FOLLOW Sets",
+      "LL(1) Predictive Parsing",
+      "LR(0), SLR(1) & CLR(1)",
+      "LALR(1) Parsing Tables",
       "Syntax-Directed Translation",
-      "Code Optimization",
+      "Intermediate Code & TAC",
     ],
     notesUrl: "/coredose/compiler",
     youtubeUrl: null,
@@ -155,7 +178,7 @@ export default function CoreDoseHub() {
   // Dynamically filter active courses based on filesystem presence (topics > 0)
   const activeCourses = ALL_COURSES.filter((course) => {
     const sub = subjectsData[course.id];
-    return sub && sub.topics > 0;
+    return (sub && sub.topics > 0) || course.id === "toc";
   });
 
   const totalTopics = coredose?.totalTopics || 99;

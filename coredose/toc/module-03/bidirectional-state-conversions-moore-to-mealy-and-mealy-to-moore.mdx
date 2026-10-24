@@ -1,0 +1,640 @@
+---
+title: "3.2 Bidirectional State Conversions: Moore to Mealy and Mealy to Moore"
+description: "Master algorithmic state conversions between Moore and Mealy machines: output projection, state splitting theorems, upper bound state expansions, and worked engineering examples."
+sidebar_label: "3.2 Moore-Mealy Conversions"
+hide_table_of_contents: true
+---
+
+# 3.2 Bidirectional State Conversions: Moore to Mealy and Mealy to Moore
+
+<CoreDoseLessonHeader
+  module="Module 03: Finite Automata with Output (Moore & Mealy Machines)"
+  topic="3.2 Bidirectional State Conversions"
+  courseUrl="/coredose/toc"
+  readTime="15 min read"
+  relevance="Semester Exams (All Universities) • Placement Technical Rounds • Hardware Synthesis • FSM Verilog Design"
+/>
+
+## 💡 Core Intuition:
+
+### 🍳 The Everyday Analogy: The Dining Room Bill vs The Highway Toll Receipt
+Imagine an automated hospitality billing system versus an automated highway toll plaza:
+
+1. **The Dining Room Model (Moore Machine)**:
+   In a luxury restaurant, the bill amount is determined strictly by the room you sit in. If you enter the **VIP Suite ($q_{\text{VIP}}$)**, the room's display board stamps a `$100` charge on your account. It does not matter whether you walked into the VIP suite from the lounge, the garden, or through a VIP express hallway—the moment you occupy that room, the output is `$100`. The output is **state-bound**.
+
+2. **The Highway Toll Plaza Model (Mealy Machine)**:
+   On a turnpike, toll booths do not charge you for simply being on the asphalt. Instead, as your vehicle crosses from Milestone A to Milestone B through an express lane, the sensor overhead scans your transponder and assesses a fee based on **both where you were and which lane you just drove through**. If you took Lane 1 on a weekday morning, the cost is `$12`; if you took Lane 2 at midnight, the cost is `$4`. The output is **transition-bound**.
+
+<ConceptComparison
+  title="Output Location: State Node vs Transition Edge"
+  subtitle="Visualizing where outputs are anchored in Moore versus Mealy architectures"
+  concepts={[
+    {
+      badge: "Moore Model",
+      title: "Output Inside State Node: (q / λ)",
+      icon: "🏛️",
+      color: "blue",
+      domain: "State-Bound Transduction",
+      points: [
+        "Every state q has an intrinsic output λ(q).",
+        "Arriving at state q immediately emits λ(q) regardless of which transition led there.",
+        "Zero ambiguity when converting to Mealy: push λ(q) out onto all incoming edges.",
+      ],
+      quote: "Output is emitted upon arrival into the room, regardless of entry path.",
+    },
+    {
+      badge: "Mealy Model",
+      title: "Output on Transition Edge: q → a / λ → p",
+      icon: "⚡",
+      color: "emerald",
+      domain: "Transition-Bound Transduction",
+      points: [
+        "Outputs are associated with the directed arcs (q, a) → (p, λ).",
+        "Different arcs entering state p can carry different outputs (e.g. 0 and 1).",
+        "Ambiguity when converting to Moore: state p must split to preserve each unique output.",
+      ],
+      quote: "Output is emitted during traversal across the toll gate, tied to the input event.",
+    },
+  ]}
+/>
+
+### 💻 Bridging to Computer Science: Output Projection vs State Splitting
+In digital VLSI design, digital signal processing (DSP), and compiler frontend lexing, engineers constantly translate between Moore and Mealy representations:
+
+- **Moore Machines** decouple logic transitions from immediate external noise, because outputs are buffered directly by flip-flop state registers. This guarantees **glitch-free operation** across asynchronous clock domains, but introduces a **one-clock-cycle output latency**.
+- **Mealy Machines** generate outputs combinationally as inputs arrive, achieving **zero-cycle instantaneous response** with fewer total states. However, any electrical glitch or ripple on the input wire propagates directly to the output.
+
+Automata theory proves that **every Moore machine has an equivalent Mealy machine**, and **every Mealy machine has an equivalent Moore machine** (modulo the initial empty-string output $\lambda(q_0)$). 
+
+Understanding the rigorous conversion algorithms—and why Mealy-to-Moore conversion can trigger state multiplication—is essential for university examinations and digital hardware engineering.
+
+<CoreDoseTOC toc={toc} />
+
+---
+
+## 🎯 Algorithmic Conversion: Moore to Mealy Machine (Output Projection)
+
+Converting a Moore machine to a Mealy machine is straightforward, deterministic, and preserves state count identically.
+
+### The Foundational Principle
+
+In a Moore machine, a state $q_j$ has an intrinsic output $\lambda_{\text{Moore}}(q_j)$. Whenever any transition lands in $q_j$, the machine immediately emits $\lambda_{\text{Moore}}(q_j)$.
+
+To construct the equivalent Mealy machine, we simply take the output of each destination state and project ("push") it directly onto all incoming transition edges:
+
+$$\lambda_{\text{Mealy}}(q_i, a) = \lambda_{\text{Moore}}\big(\delta(q_i, a)\big)$$
+
+### Formal Conversion Algorithm
+
+Given a Moore machine $M_{\text{Moore}} = (Q, \Sigma, \Delta, \delta, \lambda_{\text{Moore}}, q_0)$:
+
+1. **Retain the State Set**: The set of states remains invariant:
+   $$Q_{\text{Mealy}} = Q_{\text{Moore}}$$
+2. **Retain the Start State**:
+   $$q_{0,\text{Mealy}} = q_{0,\text{Moore}}$$
+3. **Retain the Next-State Transitions**: The state routing is unchanged:
+   $$\delta_{\text{Mealy}}(q, a) = \delta_{\text{Moore}}(q, a) \quad \forall q \in Q, \forall a \in \Sigma$$
+4. **Project Outputs onto Transitions**: For every state $q_i \in Q$ and input symbol $a \in \Sigma$, define the Mealy output function as:
+   $$\lambda_{\text{Mealy}}(q_i, a) = \lambda_{\text{Moore}}(q_{\text{dest}}), \quad \text{where } q_{\text{dest}} = \delta_{\text{Moore}}(q_i, a)$$
+
+### Invariant Theorem: Zero State Multiplication
+
+> **Theorem (Moore to Mealy State Invariance)**:  
+> When converting any Moore machine with $n$ states into an equivalent Mealy machine, the resulting Mealy machine requires **exactly $n$ states**:
+>
+> $$|Q_{\text{Mealy}}| = |Q_{\text{Moore}}|$$
+>
+> No extra states are ever created, because every transition leaving any state $q_i$ targets an existing destination state $q_{\text{dest}}$ whose single Moore output $\lambda(q_{\text{dest}})$ is unambiguously known.
+
+---
+
+## ✂️ Algorithmic Conversion: Mealy to Moore Machine (State Splitting)
+
+Converting a Mealy machine to a Moore machine is more intricate because a single state in a Mealy machine can be entered via transitions carrying **different** output symbols.
+
+### The Conflict Problem: Output Ambiguity
+
+Consider a Mealy machine state $q_k$. Suppose:
+- Transition from $q_1$ on input $a$ enters $q_k$ with output $0$ ($a/0$).
+- Transition from $q_2$ on input $b$ enters $q_k$ with output $1$ ($b/1$).
+
+If we attempt to turn $q_k$ into a Moore state, what output should we assign to $q_k$?
+- If we assign $\lambda(q_k) = 0$, the machine erroneously emits $0$ when arriving from $q_2$.
+- If we assign $\lambda(q_k) = 1$, the machine erroneously emits $1$ when arriving from $q_1$.
+
+To resolve this conflict without altering the language or output mapping, we must **split** state $q_k$ into multiple distinct state replicas, one for each unique incoming output symbol!
+
+<ConceptComparison
+  title="The State-Splitting Dilemma and Resolution"
+  subtitle="Why multi-output incoming transitions force state duplication during Mealy to Moore conversion"
+  concepts={[
+    {
+      badge: "The Conflict",
+      title: "Mealy Multi-Output Ambiguity",
+      icon: "⚠️",
+      color: "rose",
+      domain: "Incoming Output Collision",
+      points: [
+        "State q_k is entered from q_1 on input 'a' with output 0.",
+        "State q_k is entered from q_2 on input 'b' with output 1.",
+        "Assigning either 0 or 1 to state q_k in a Moore machine corrupts the alternate path.",
+      ],
+      quote: "A single state cannot simultaneously hold two conflicting intrinsic Moore outputs.",
+    },
+    {
+      badge: "The Resolution",
+      title: "State Splitting Multiplication",
+      icon: "✂️",
+      color: "emerald",
+      domain: "Orthogonal State Cloning",
+      points: [
+        "Split q_k into distinct sub-states: q_k,0 (output 0) and q_k,1 (output 1).",
+        "Incoming transition on 'a' (output 0) is routed directly to q_k,0.",
+        "Incoming transition on 'b' (output 1) is routed directly to q_k,1.",
+        "Both sub-states inherit the exact same outgoing transitions as original q_k.",
+      ],
+      quote: "Cloning the state preserves the input-output mapping with zero operational ambiguity.",
+    },
+  ]}
+/>
+
+### The Step-by-Step State-Splitting Algorithm
+
+<FlowPipeline
+  title="The Mealy to Moore State-Splitting Pipeline"
+  subtitle="Systematic procedure to resolve multi-output incoming transitions"
+  nodes={[
+    {
+      badge: "Step 1",
+      title: "Inspect Incoming Outputs",
+      icon: "🔍",
+      color: "blue",
+      description: "For every state q in Q, collect all distinct output symbols appearing on transitions entering q.",
+      connectorLabel: "Collect Sets",
+    },
+    {
+      badge: "Step 2",
+      title: "Split Conflicted States",
+      icon: "✂️",
+      color: "purple",
+      description: "If state q receives multiple distinct outputs, replace q with separate sub-states for each output symbol.",
+      connectorLabel: "Duplicate Transitions",
+    },
+    {
+      badge: "Step 3",
+      title: "Replicate Outgoing Transitions",
+      icon: "🔀",
+      color: "amber",
+      description: "Each split copy inherits the exact same outgoing target states as original state q.",
+      connectorLabel: "Handle Start State",
+    },
+    {
+      badge: "Step 4",
+      title: "Designate Start State Output",
+      icon: "🏁",
+      color: "emerald",
+      description: "If start state q0 receives transitions with different outputs, clone q0 or assign default initial output.",
+    },
+  ]}
+/>
+
+### Mathematical Formulation of State Splitting
+
+For each state $q \in Q_{\text{Mealy}}$, let $\Gamma(q) \subseteq \Delta$ be the set of output symbols associated with all transitions terminating at $q$:
+
+$$\Gamma(q) = \big\{ \lambda_{\text{Mealy}}(p, a) \;\big|\; p \in Q_{\text{Mealy}}, a \in \Sigma, \delta_{\text{Mealy}}(p, a) = q \big\}$$
+
+We encounter three distinct cases:
+
+1. **Case 1: $|\Gamma(q)| = 1$ (Single Output)**  
+   All transitions entering $q$ carry the exact same output symbol $y \in \Delta$. State $q$ requires **no splitting**. Assign $\lambda_{\text{Moore}}(q) = y$.
+
+2. **Case 2: $|\Gamma(q)| = k > 1$ (Conflicting Outputs)**  
+   State $q$ is entered with $k$ distinct outputs:
+   $$q \;\longrightarrow\; \{q_{y_1}, q_{y_2}, \dots, q_{y_k}\}$$
+   Assign $\lambda_{\text{Moore}}(q_{y_i}) = y_i$. Every transition in the Mealy machine that previously targeted $q$ with output $y_i$ now targets sub-state $q_{y_i}$. Every sub-state $q_{y_i}$ inherits identical outgoing transitions:
+   $$\delta_{\text{Moore}}(q_{y_i}, a) = \text{target corresponding to } \delta_{\text{Mealy}}(q, a)$$
+
+3. **Case 3: $|\Gamma(q)| = 0$ (Unreachable / Pure Start State)**  
+   If $q$ is the initial start state $q_0$ and has no incoming transitions, its Moore output can be assigned an arbitrary symbol (conventionally $0$ or a blank symbol $\epsilon$), because no input sequence will ever re-enter it.
+
+---
+
+## 📈 State Expansion Bounds and Structural Complexity
+
+<ConceptComparison
+  title="Moore to Mealy vs Mealy to Moore: Structural Trade-Offs"
+  subtitle="Comparing state conservation against state splitting expansion"
+  concepts={[
+    {
+      badge: "Moore to Mealy",
+      title: "State Invariance (1 : 1)",
+      icon: "🎯",
+      color: "emerald",
+      domain: "Deterministic Push-Out",
+      points: [
+        "State count remains strictly invariant: |Q_Mealy| = |Q_Moore|",
+        "Zero new states created under any circumstances",
+        "Deterministic local transformation: copy destination output to arc",
+        "Output string length drops from (n + 1) to n symbols",
+      ],
+      quote: "Outputs move from nodes to edges with zero structural state expansion.",
+    },
+    {
+      badge: "Mealy to Moore",
+      title: "State Expansion (1 : |Δ|)",
+      icon: "⚡",
+      color: "amber",
+      domain: "State Splitting Multiplication",
+      points: [
+        "States split when incoming transitions have differing outputs",
+        "Lower bound: |Q_Moore| >= |Q_Mealy|",
+        "Upper bound: |Q_Moore| <= |Q_Mealy| * |Δ|",
+        "Output string length expands from n to (n + 1) symbols",
+      ],
+      quote: "Each state must replicate once for every distinct output alphabet symbol it can emit upon arrival.",
+    },
+  ]}
+/>
+
+### Formal State Multiplication Bounds
+
+> **Theorem (Mealy to Moore State Bounds)**:  
+> Given a Mealy machine with $m$ states and output alphabet $\Delta$:
+> 
+> $$m \;\le\; |Q_{\text{Moore}}| \;\le\; m \cdot |\Delta|$$
+>
+> 1. **Lower Bound ($|Q_{\text{Moore}}| = m$)**:  
+>    Occurs when every state in the Mealy machine is entered with exclusively one unique output symbol (i.e., all incoming transitions to state $q$ carry the same output). Zero states split.
+>
+> 2. **Upper Bound ($|Q_{\text{Moore}}| = m \cdot |\Delta|$)**:  
+>    Occurs in the theoretical worst-case where every single state in the Mealy machine is entered via incoming transitions representing all $|\Delta|$ possible output alphabet symbols. Every state splits into $|\Delta|$ sub-states.
+
+For a binary output alphabet $\Delta = \{0, 1\}$, $|\Delta| = 2$. Therefore:
+
+$$m \;\le\; |Q_{\text{Moore}}| \;\le\; 2m$$
+
+If a Mealy machine has $4$ states and binary output, its equivalent Moore machine will have at least $4$ states and at most $8$ states.
+
+---
+
+## 🏭 Real-World Production Context: Hardware Synthesis Trade-Offs (Moore vs Mealy)
+
+<SubsystemGrid
+  title="Moore vs Mealy Hardware Synthesis Comparison"
+  subtitle="Key architectural considerations in VLSI, FPGA, and digital circuit design"
+  items={[
+    {
+      icon: "⏱️",
+      title: "Clock Cycle Latency",
+      tag: "Timing Behavior",
+      color: "blue",
+      points: [
+        "Moore: Outputs update only on the next active clock edge (1 cycle delay).",
+        "Mealy: Outputs react immediately within the current clock cycle.",
+        "Mealy provides faster critical path response for time-critical protocols.",
+      ],
+      syscalls: ["T_clk >= T_cq + T_comb + T_setup"],
+    },
+    {
+      icon: "🛡️",
+      title: "Glitch Immunity",
+      tag: "Electrical Stability",
+      color: "emerald",
+      points: [
+        "Moore: Outputs are driven directly by registered flip-flops (zero glitches).",
+        "Mealy: Combinational logic between inputs and outputs can ripple and glitch.",
+        "Mealy outputs must be sampled synchronously or re-registered.",
+      ],
+      syscalls: ["Hazard-free registers"],
+    },
+    {
+      icon: "💾",
+      title: "Silicon Gate Area",
+      tag: "Hardware Cost",
+      color: "purple",
+      points: [
+        "Mealy machines typically require fewer flip-flops (log2(m) state bits).",
+        "Moore machines may require extra flip-flops due to state splitting.",
+        "Mealy combinational decode logic is slightly wider (depends on inputs).",
+      ],
+      syscalls: ["log2(|Q|) Flip-Flops"],
+    },
+    {
+      icon: "🔄",
+      title: "Inter-FSM Composition",
+      tag: "Modularity",
+      color: "amber",
+      points: [
+        "Connecting Mealy FSMs in a cascade can create long combinational paths.",
+        "Cascaded Mealy machines can form unstable combinational feedback loops.",
+        "Moore FSMs safely isolate combinational paths at state boundaries.",
+      ],
+      syscalls: ["Safe Cascading"],
+    },
+  ]}
+/>
+
+---
+
+## 📐 Numerical Applications & Worked Examples
+
+### Example 1: Moore to Mealy Algorithmic Transformation
+
+**Problem Statement**:  
+Convert the following 2-state Moore Machine $M_{\text{Moore}}$ over $\Sigma = \{a, b\}$ and $\Delta = \{0, 1\}$ into an equivalent Mealy Machine:
+
+- State $q_0$ with Moore output $\lambda(q_0) = 0$ (Initial State)
+- State $q_1$ with Moore output $\lambda(q_1) = 1$
+- Transitions:
+  - $\delta(q_0, a) = q_0$
+  - $\delta(q_0, b) = q_1$
+  - $\delta(q_1, a) = q_0$
+  - $\delta(q_1, b) = q_1$
+
+<AutomataSimulator
+  preset="moore_conversion_demo"
+  title="1. Given Initial Moore Machine (M_Moore)"
+  subtitle="Interactive state simulator: outputs λ(q0)=0 and λ(q1)=1 reside inside the state nodes"
+/>
+
+#### Step 1: Moore Machine Transition Table
+
+| Present State | Next State on $a$ | Next State on $b$ | Output ($\lambda_{\text{Moore}}$) |
+| :---: | :---: | :---: | :---: |
+| $\to q_0$ | $q_0$ | $q_1$ | **0** |
+| $q_1$ | $q_0$ | $q_1$ | **1** |
+
+#### Step 2: Apply the Output Projection Formula
+
+For every transition $(q_i, x) \to q_{\text{dest}}$, assign Mealy output $\lambda_{\text{Mealy}}(q_i, x) = \lambda_{\text{Moore}}(q_{\text{dest}})$:
+
+1. From $q_0$ on input $a$: next state is $q_0$. Since $\lambda_{\text{Moore}}(q_0) = 0$, Mealy arc is $a / 0$.
+2. From $q_0$ on input $b$: next state is $q_1$. Since $\lambda_{\text{Moore}}(q_1) = 1$, Mealy arc is $b / 1$.
+3. From $q_1$ on input $a$: next state is $q_0$. Since $\lambda_{\text{Moore}}(q_0) = 0$, Mealy arc is $a / 0$.
+4. From $q_1$ on input $b$: next state is $q_1$. Since $\lambda_{\text{Moore}}(q_1) = 1$, Mealy arc is $b / 1$.
+
+#### Step 3: Resulting Mealy Machine Transition Table
+
+| Present State | Input $a$ (Next State, Output) | Input $b$ (Next State, Output) |
+| :---: | :---: | :---: |
+| $\to q_0$ | $q_0, \mathbf{0}$ | $q_1, \mathbf{1}$ |
+| $q_1$ | $q_0, \mathbf{0}$ | $q_1, \mathbf{1}$ |
+
+<AutomataSimulator
+  preset="mealy_conversion_demo"
+  title="2. Equivalent Resulting Mealy Machine (M_Mealy)"
+  subtitle="Interactive state simulator: outputs projected onto incoming transitions with zero state expansion ()"
+/>
+
+#### Step 4: Verification via String Simulation
+
+Let input string $w = abba$:
+
+- **Moore Machine Execution**:
+  - Trajectory: $q_0 \xrightarrow{a} q_0 \xrightarrow{b} q_1 \xrightarrow{b} q_1 \xrightarrow{a} q_0$
+  - States visited: $q_0, q_0, q_1, q_1, q_0$
+  - Output string: $\lambda(q_0)\lambda(q_0)\lambda(q_1)\lambda(q_1)\lambda(q_0) = \mathbf{00110}$ (Length = $5 = n + 1$)
+- **Mealy Machine Execution**:
+  - Trajectory: $q_0 \xrightarrow{a/0} q_0 \xrightarrow{b/1} q_1 \xrightarrow{b/1} q_1 \xrightarrow{a/0} q_0$
+  - Outputs emitted on transitions: $\mathbf{0110}$ (Length = $4 = n$)
+
+Notice that ignoring the initial $\epsilon$-output $\lambda(q_0) = 0$, both output streams are identical: $\mathbf{0110}$. State count is invariant: $\lvert Q_{\text{Mealy}} \rvert = \lvert Q_{\text{Moore}} \rvert = 2$.
+
+---
+
+### Example 2: Mealy to Moore Conversion with State Splitting
+
+**Problem Statement**:  
+Convert the following 4-state Mealy Machine $M_{\text{Mealy}}$ over $\Sigma = \{a, b\}$ and $\Delta = \{0, 1\}$ into an equivalent Moore Machine:
+
+| Present State | Next State on $a$, Output | Next State on $b$, Output |
+| :---: | :---: | :---: |
+| $\to q_1$ | $q_1, 1$ | $q_2, 0$ |
+| $q_2$ | $q_4, 1$ | $q_4, 1$ |
+| $q_3$ | $q_2, 1$ | $q_3, 1$ |
+| $q_4$ | $q_3, 0$ | $q_1, 1$ |
+
+#### Step 1: Analyze Incoming Output Sets for Each State
+
+Examine all transitions across the entire table to see what outputs enter each state:
+
+1. **State $q_1$**:
+   - Entered from $q_1$ on input $a$ with output $1$.
+   - Entered from $q_4$ on input $b$ with output $1$.
+   - $\Gamma(q_1) = \{1\}$. Only output $1$ enters $q_1$. **No split required!** ($q_1$ has output $1$).
+2. **State $q_2$**:
+   - Entered from $q_1$ on input $b$ with output $0$.
+   - Entered from $q_3$ on input $a$ with output $1$.
+   - $\Gamma(q_2) = \{0, 1\}$. Conflicting outputs! **Split $q_2$ into $q_{20}$ (output 0) and $q_{21}$ (output 1)**.
+3. **State $q_3$**:
+   - Entered from $q_4$ on input $a$ with output $0$.
+   - Entered from $q_3$ on input $b$ with output $1$.
+   - $\Gamma(q_3) = \{0, 1\}$. Conflicting outputs! **Split $q_3$ into $q_{30}$ (output 0) and $q_{31}$ (output 1)**.
+4. **State $q_4$**:
+   - Entered from $q_2$ on input $a$ with output $1$.
+   - Entered from $q_2$ on input $b$ with output $1$.
+   - $\Gamma(q_4) = \{1\}$. Only output $1$ enters $q_4$. **No split required!** ($q_4$ has output $1$).
+
+#### Step 2: Establish the New Moore States
+
+Total resulting Moore states:
+- $q_1$ with output $1$ (Start State)
+- $q_{20}$ with output $0$
+- $q_{21}$ with output $1$
+- $q_{30}$ with output $0$
+- $q_{31}$ with output $1$
+- $q_4$ with output $1$
+
+Total Moore states = $6$. (Notice: $4 \le 6 \le 4 \times 2 = 8$, perfectly within theoretical bounds!).
+
+#### Step 3: Replicate Transitions to Split States
+
+When routing to $q_2$, pick $q_{20}$ if output is $0$, and $q_{21}$ if output is $1$. Similarly for $q_3$:
+
+| Present State | Next State on $a$ | Next State on $b$ | Output ($\lambda_{\text{Moore}}$) |
+| :---: | :---: | :---: | :---: |
+| $\to q_1$ | $q_1$ | $q_{20}$ | **1** |
+| $q_{20}$ | $q_4$ | $q_4$ | **0** |
+| $q_{21}$ | $q_4$ | $q_4$ | **1** |
+| $q_{30}$ | $q_{21}$ | $q_{31}$ | **0** |
+| $q_{31}$ | $q_{21}$ | $q_{31}$ | **1** |
+| $q_4$ | $q_{30}$ | $q_1$ | **1** |
+
+Every split state duplicates the original state's next-state transitions cleanly while resolving all incoming output conflicts!
+
+---
+
+### Example 3: State Table Traversal & Shortest Path Analysis
+
+**Problem Statement**:  
+Given the following state transition table of a Finite State Machine with two state variables $A$ and $B$, one input $x$, and one output $z$:
+
+| Present $A$ | Present $B$ | Input $x$ | Next $A$ | Next $B$ | Output $z$ |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| 0 | 0 | 0 | 0 | 0 | 1 |
+| 0 | 1 | 0 | 1 | 0 | 0 |
+| 1 | 0 | 0 | 0 | 1 | 0 |
+| 1 | 1 | 0 | 1 | 0 | 0 |
+| 0 | 0 | 1 | 0 | 1 | 0 |
+| 0 | 1 | 1 | 0 | 0 | 1 |
+| 1 | 0 | 1 | 0 | 1 | 1 |
+| 1 | 1 | 1 | 0 | 0 | 1 |
+
+If the initial state is $(A=0, B=0)$, determine the **minimum length of an input string** that will transition the machine to state $(A=0, B=1)$ while simultaneously emitting $\text{Output } z = 1$.
+
+**Step-by-Step Solution:**
+
+1. **Identify the Target Transition**:  
+   Let each state be denoted by the pair $(A, B)$. There are $4$ possible states: $S_0 = (0,0)$, $S_1 = (0,1)$, $S_2 = (1,0)$, and $S_3 = (1,1)$.  
+   Our goal is to start at $S_0 = (0,0)$ and find the shortest sequence ending in $S_1 = (0,1)$ such that the final transition produces output $z = 1$.  
+   Examining the table, row 7 is the **only row** where next state is $(0,1)$ and output is $z = 1$:
+   $$\text{Present State } (1,0) \xrightarrow{x = 1} \text{Next State } (0,1) \text{ with Output } z = 1$$
+
+2. **Formulate Sub-Goal (Shortest Path to Intermediate State)**:  
+   To trigger the target transition, the machine must first reach intermediate state $(1,0)$ from initial state $(0,0)$ in the minimum number of steps.
+
+3. **Breadth-First State Space Search**:  
+   - **Step 0**: Current state is $(0,0)$.
+   - **Step 1**:
+     - On input $x = 0$: transitions to $(0,0)$ (self-loop).
+     - On input $x = 1$: transitions to $(0,1)$ (row 5).
+     - Reachable states in 1 step: $\{(0,0), (0,1)\}$. Neither is $(1,0)$.
+   - **Step 2**:
+     - From $(0,1)$, apply input $x = 0$ (row 2): transitions directly to $(1,0)$!
+     - Shortest path found to $(1,0)$: $(0,0) \xrightarrow{x=1} (0,1) \xrightarrow{x=0} (1,0)$. Path length = $2$ steps (Input: $10$).
+   - **Step 3**:
+     - From state $(1,0)$, apply input $x = 1$ (row 7): transitions to $(0,1)$ with output $z = 1$.
+
+4. **Conclusion**:  
+   The complete shortest sequence is:
+   $$(0,0) \xrightarrow{x=1,\; z=0} (0,1) \xrightarrow{x=0,\; z=0} (1,0) \xrightarrow{x=1,\; z=1} (0,1)$$
+   The minimum length of the input string is **3** (input string: `101`).
+
+---
+
+### Example 4: Serial 2's Complement Generator Mealy FSM
+
+**Problem Statement**:  
+Design and verify a minimal Mealy finite state machine that accepts an arbitrary-length binary number arriving serially from the **least significant bit (LSB)** first, and outputs its exact arithmetic **2's complement**.
+
+<AutomataSimulator
+  preset="mealy_twos_complement"
+  title="Serial 2's Complement Generator Mealy FSM"
+  subtitle="Interactive step-by-step simulator: trace LSB-first input bitstream and observe transition-bound inversion"
+/>
+
+**Step-by-Step Solution:**
+
+1. **Derive the 2's Complement Arithmetic Invariant**:  
+   For any binary integer scanned from LSB to MSB:
+   - All trailing zeros before the first `1` remain **unchanged** (`0` outputs `0`).
+   - The very first `1` encountered remains **unchanged** (`1` outputs `1`).
+   - Every subsequent bit following the first `1` is strictly **inverted** (`0` becomes `1`, and `1` becomes `0`).
+
+2. **Synthesize the 2-State FSM**:  
+   - **Phase 1: State $q_0$ (Before the first 1)**:
+     - Input `0`: emits `0` and loops to $q_0$ (preserves trailing zeros).
+     - Input `1`: emits `1` and switches to state $q_1$ (preserves first `1`).
+   - **Phase 2: State $q_1$ (After the first 1 — Inversion Phase)**:
+     - Input `0`: emits `1` and loops to $q_1$ (inverts bit).
+     - Input `1`: emits `0` and loops to $q_1$ (inverts bit).
+
+3. **Conclusion**:  
+   The resulting 2-state Mealy machine implements bit-serial 2's complement generation with zero-cycle combinational latency and minimal state complexity.
+
+---
+
+### Example 5: Serial Bit-Pair Adder Mealy FSM
+
+**Problem Statement**:  
+Consider a finite state transducer with state set $Q = \{A, B, C\}$, initial state $A$, input alphabet $\Sigma = \{0, 1\}$, and 2-bit output alphabet $\Delta = \{00, 01, 10\}$. The transitions are defined as follows:
+
+- State $A$ (Initial State): loop on $0 / 00$, transition to $B$ on $1 / 01$
+- State $B$: transition to $A$ on $0 / 01$, transition to $C$ on $1 / 10$
+- State $C$: loop on $1 / 10$, transition to $A$ on $0 / 01$
+
+<AutomataSimulator
+  preset="mealy_serial_adder"
+  title="Serial Bit-Pair Adder Mealy FSM"
+  subtitle="Interactive state simulator: computes the 2-bit binary sum of current input bit and previous input bit (xt + xt-1)"
+/>
+
+Derive the formal mathematical operation implemented by this finite state machine.
+
+**Step-by-Step Solution:**
+
+1. **Analyze Bit-Sum Semantics**:  
+   Let $x_t$ denote the current input bit at clock cycle $t$, and $x_{t-1}$ denote the input bit consumed at the preceding cycle $t-1$. The arithmetic sum $x_t + x_{t-1}$ can take four possible values:
+   - $0 + 0 = 0 \implies \text{Binary } 00$
+   - $0 + 1 = 1 \implies \text{Binary } 01$
+   - $1 + 0 = 1 \implies \text{Binary } 01$
+   - $1 + 1 = 2 \implies \text{Binary } 10$
+
+2. **Map States to Historical Memory**:  
+   - **State $A$**: Encodes that the **previous bit was 0** (or reset condition $x_0 = 0$).
+     - Input $x_t = 0$: Sum $= 0 + 0 = 0 \implies$ Output `00`. Next state is $A$.
+     - Input $x_t = 1$: Sum $= 0 + 1 = 1 \implies$ Output `01`. Next state is $B$.
+   - **State $B$**: Encodes that the **previous bit was 1** (entered upon seeing a single 1).
+     - Input $x_t = 0$: Sum $= 1 + 0 = 1 \implies$ Output `01`. Next state is $A$.
+     - Input $x_t = 1$: Sum $= 1 + 1 = 2 \implies$ Output `10`. Next state is $C$.
+   - **State $C$**: Encodes that the **previous bit was 1** (specifically with consecutive 1s).
+     - Input $x_t = 1$: Sum $= 1 + 1 = 2 \implies$ Output `10`. Next state is $C$.
+     - Input $x_t = 0$: Sum $= 1 + 0 = 1 \implies$ Output `01`. Next state is $A$.
+
+3. **Conclusion**:  
+   At every discrete clock cycle $t$, the emitted 2-bit output stream represents the exact binary sum of the current input bit and the previous input bit ($x_t + x_{t-1}$).
+
+---
+
+## 🎯 Exam & Interview Pitfall Check
+
+:::tip Core Conceptual Questions
+* **Why does Moore-to-Mealy conversion never multiply states, whereas Mealy-to-Moore can?**  
+  In a Moore machine, every state $q_{\text{dest}}$ has a single, uniquely defined output $\lambda(q_{\text{dest}})$. Projecting that output backward onto incoming transitions is deterministic and 1-to-1 ($|Q_{\text{Mealy}}| = |Q_{\text{Moore}}|$). In contrast, a Mealy state may be entered via transitions carrying different outputs (e.g., $0$ and $1$). To give that state a single intrinsic Moore output, it must split into copies for each unique incoming output.
+* **What are the tight bounds on state count when converting a Mealy machine to a Moore machine?**  
+  For an $m$-state Mealy machine over output alphabet $\Delta$:
+  $$m \le |Q_{\text{Moore}}| \le m \cdot |\Delta|$$
+  - Lower bound $m$: Reached when all transitions entering each state share the same output symbol.
+  - Upper bound $m \cdot |\Delta|$: Reached when every state is entered via transitions representing all possible output symbols in $\Delta$.
+* **Do Moore and Mealy machines differ in their computational power?**  
+  **No.** They are mathematically equivalent in computational power. Both characterize the exact class of regular sequence transductions. Any transduction realizable by a Moore machine is realizable by a Mealy machine, and vice versa.
+:::
+
+:::warning Common Interview Traps
+* **Trap: Assuming Mealy to Moore Conversion Always Doubles the States**:  
+  Doubling ($2m$) is strictly the worst-case upper bound for a binary output alphabet ($|\Delta| = 2$). If states already have consistent incoming outputs, zero states split and $|Q_{\text{Moore}}| = m$.
+* **Trap: Output String Length Discrepancy**:  
+  For an input string of length $n$:
+  - Moore machine output length is strictly **$n + 1$** (due to the empty-string initial state emission $\lambda(q_0)$).
+  - Mealy machine output length is strictly **$n$** (outputs require an active transition).
+* **Trap: Searching for Accepting States in FSM Transducers**:  
+  Moore and Mealy machines are transducers (sequence generators), not language recognizers. They possess **no accepting states ($F$)** and **no dead states**. Every state facilitates continuous input-to-output mapping.
+:::
+
+### High-Yield uick Revision Matrix
+
+| Dimension | Moore Machine | Mealy Machine |
+| :--- | :--- | :--- |
+| **Output Dependence** | Present State only: $\lambda(q)$ | Present State AND Input: $\lambda(q, a)$ |
+| **Output String Length** | $n + 1$ symbols for $\lvert w \rvert = n$ | $n$ symbols for $\lvert w \rvert = n$ |
+| **Empty Input ($\epsilon$)** | Emits $\lambda(q_0)$ (Non-empty) | Emits $\epsilon$ (No response) |
+| **Conversion Direction** | Moore $\to$ Mealy: $\lvert Q_{\text{Mealy}} \rvert = \lvert Q_{\text{Moore}} \rvert$ | Mealy $\to$ Moore: $m \le \lvert Q_{\text{Moore}} \rvert \le m \cdot \lvert \Delta \rvert$ |
+| **Hardware Glitches** | Glitch-free (registered outputs) | Susceptible to combinational glitches |
+| **State Count** | Typically more states (due to splitting) | Typically minimal states |
+| **Clock Reactivity** | 1 cycle delayed (synchronous) | 0 cycle immediate (combinational) |
+
+---
+
+<CoreDoseNav
+  prev={{
+    title: "3.1 Moore and Mealy Machine Architectures, Formalisms & Timing Mechanics",
+    url: "/coredose/toc/module-03/moore-and-mealy-machine-architectures-formalisms-and-timing",
+  }}
+  next={{
+    title: "4.1 Regular Expressions: Syntax, Operators, Algebraic Identities & Language Modeling",
+    url: "/coredose/toc/module-04/regular-expressions-syntax-operators-algebraic-identities",
+  }}
+  courseUrl="/coredose/toc"
+/>

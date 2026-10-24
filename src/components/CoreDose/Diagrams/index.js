@@ -24,4 +24,7 @@ export { default as CircuitSimulator } from './CircuitSimulator';
 export { default as SequentialSimulator } from './SequentialSimulator';
 export { default as NumberSystemSimulator } from './NumberSystemSimulator';
 export { default as CacheSimulator } from './CacheSimulator';
+export { default as AutomataSimulator } from './AutomataSimulator';
+export { default as PDASimulator } from './PDASimulator';
+export { default as TuringMachineSimulator } from './TuringMachineSimulator';
 

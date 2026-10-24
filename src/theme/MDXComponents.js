@@ -37,6 +37,9 @@ import {
   SequentialSimulator,
   NumberSystemSimulator,
   CacheSimulator,
+  AutomataSimulator,
+  PDASimulator,
+  TuringMachineSimulator,
 } from '@site/src/components/Diagrams';
 
 
@@ -89,5 +92,8 @@ export default {
   SequentialSimulator,
   NumberSystemSimulator,
   CacheSimulator,
+  AutomataSimulator,
+  PDASimulator,
+  TuringMachineSimulator,
 };
 
